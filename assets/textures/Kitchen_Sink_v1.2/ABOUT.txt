@@ -1,0 +1,39 @@
+KITCHEN SINK
+
+The textmode font "Kitchen sink" is provided in both PNG and BMP formats alongside a TTF file.
+
+To use the special characters in the TTF version of the font, you can copy and paste the corresponding characters:
+
+█☺☻♥♦♣♠●○▪□■◘♪♫≡
+►◄⌂ÞÀß×¥↑↓→←◌●▼▲
+ !"#$%&'()*+,-./
+0123456789:;<=>?
+@ABCDEFGHIJKLMNO
+PQRSTUVWXYZ[\]^_
+`abcdefghijklmno
+pqrstuvwxyz{|}~Χ
+░▒▓ḀḁḂ│┬┤┌┐ḃḄ┼ḅḆ
+ḇḈḉḊḋḌ─├┴└┘ḍḎ⁞ḏḐ
+ḑḒḓḔḕḖḗḘ▄ḙḚḛḜ…ḝḞ
+ḟḠḡḢḣḤḥḦ▌▐ḧḨḩḪḫḬ
+ḭḮḯḰḱḲḳḴḵḶḷḸḹḺḻḼ
+ḽḾḿṀṁṂṃṄṅṆṇṈṉṊṋṌ
+ṍṎṏṐṑṒṓṔṕṖṗṘṙṚṛṜ
+ṝṞṟṠṡṢṣṤṥṦṧṨṩṪṫṬ
+ṭṮṯṰṱṲṳṴṵṶṷṸṹṺṻṼ
+
+If you display this ABOUT.txt with the Kitchen Sink font, the above characters will display as intended. You should see a picture of a whale below:
+
+    Ḇ ḋ  Ḯ▓▓▓ḭ
+    ███    Ḋ 
+     █ ḅ███████Ḇ  Ṏ
+     ██████●██●█   Ṏ
+ḂḁḂḁḂ███████████ḁḂḁḂḁ
+ḋḌḋḌ ḏ██████ḘḘḘḘ ḋḌḋḌ
+█████▄▄▄▄▄▄▄▄▄▄▄▄████
+█████████████████████
+
+
+The font was designed to be viewed both in normal mode and inverted - we achieve this in programs like REXpaint, PLAYSCII and lvllvl.com by swapping the foreground and background colours. We have included an inverted version of the font as a TTF if you find this useful, as your specific implementation may vary.
+
+-Polyducks (PDX)

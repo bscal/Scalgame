@@ -1,0 +1,10 @@
+V1.0 12/02/2021
+* Font launched with BMP, PNG and TTF versions. Also includes license and about.txt.
+
+V1.1 17/02/2021
+* The char used for the joypad "x" button was a combining character and thus invalid. The glyph has now been remapped to U+00D7(×). Thanks, Bearror, for reporting this error so thoroughly and helping us overcome it!
+* License updated to allow terms of use in editors where third parties may neglect to credit the font.
+
+V1.2 18/02/2021
+* Just realised when using the font that the wavy X character hadn't been assigned to a proper character. This has been corrected in this build by assigning it to the Greek capital letter Chi, or U+03A7(Χ). Sorry about that!
+* Gave the inverted version of the font a unique name "Kitchen Sink (inverted)"
