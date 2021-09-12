@@ -1,12 +1,16 @@
 #include "Game.h"
 
-Game::Game()
-	: Client({})
+namespace TheGame
 {
+	Game::Game()
+	{
+	}
+
+	int Game::Start()
+	{
+		Client.Start();
+
+		return 0;
+	}
 }
 
-int Game::Start()
-{
-	Client.Start();
-	return 0;
-}

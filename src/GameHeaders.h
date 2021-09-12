@@ -1,3 +1,5 @@
 #pragma once
 
-#include "src/core/Game.h"
+extern "C" {
+	#include <raylib.h>
+}

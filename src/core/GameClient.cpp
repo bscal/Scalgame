@@ -4,134 +4,141 @@
 #include <math.h>
 #include <vector>
 
-#include "src/tiles/GridTile.h"
-#include "src/grid/Grid.h"
+#include "tiles/GridTile.h"
+#include "core/ResourceManager.h"
 
-
-Rectangle TextureTileToRect(const TextureTile& tile)
+namespace TheGame
 {
-	return Rectangle({ (float)tile.x * 16, (float)tile.y * 16, (float)tile.width, (float)tile.height
-		});
-}
-
-GameClient::GameClient()
-	: ScreenWidth(800), ScreenHeight(400)
-{
-	// Initialization
-	//--------------------------------------------------------------------------------------
-	InitWindow(ScreenWidth, ScreenHeight, "raylib [text] example - sprite font loading");
-
-	MainGameFont = LoadFont("assets/textures/fonts/Silver.ttf");
-	Tilemap = LoadTexture("assets/textures/tiles/16x16.png");
-
-	Init();
-}
-
-int GameClient::Start()
-{
-	SetupGame();
-	SetupCamera();
-
-	Loop();
-
-	Cleanup();
-	return 0;
-}
-
-void GameClient::Init()
-{
-	const size_t xTiles = GetScreenWidth() / 64;
-	const size_t yTiles = GetScreenHeight() / 64;
-	std::vector<GridTile> tiles(xTiles * yTiles);
-
-	for (size_t y = 0; y < yTiles; y++)
+	Rectangle TextureTileToRect(const TextureTile& tile)
 	{
-		for (size_t x = 0; x < xTiles; x++)
-		{
-			tiles[x * y] = GridTile({ 7, 0, 16, 16 });
-		}
+		return Rectangle({ (float)tile.x * 16, (float)tile.y * 16, (float)tile.width, (float)tile.height
+			});
 	}
 
-	SetTargetFPS(60);
-}
-
-void GameClient::SetupGame()
-{
-}
-
-void GameClient::Loop()
-{
-	//--------------------------------------------------------------------------------------
-	// Main game loop
-	while (!WindowShouldClose())
+	// TODO need to figure out World? Maybe play button creating a GameMode instance?
+	GameClient::GameClient()
+		: ScreenWidth(800), ScreenHeight(400)
 	{
-		// Update
-		//----------------------------------------------------------------------------------
+		// Initialization
+		//--------------------------------------------------------------------------------------
+		InitWindow(ScreenWidth, ScreenHeight, "raylib [text] example - sprite font loading");
 
-		// Draw
-		//----------------------------------------------------------------------------------
-		BeginDrawing();
+		g_ResourceManager.Load();
+		Tilemap = LoadTexture("assets/textures/tiles/16x16.png");
 
-		ClearBackground(RAYWHITE);
+		Init();
+	}
 
-		Render();
-		RenderUI();
+	int GameClient::Start()
+	{
+		SetupGame();
+		SetupCamera();
 
-		Update();
+		Loop();
 
+		Cleanup();
+		return 0;
+	}
+
+	void GameClient::Init()
+	{
+		SetTargetFPS(60);
+	}
+
+	void GameClient::SetupGame()
+	{
+		GameWorld = std::make_shared<World>(World(48, 32));
+	}
+
+	void GameClient::Loop()
+	{
+		// ONLY HERE TO WORK
 		// TODO combine new and old grids
 		const size_t xTiles = GetScreenWidth() / 64;
 		const size_t yTiles = GetScreenHeight() / 64;
+		std::vector<GridTile> tiles(xTiles * yTiles);
+
 		for (size_t y = 0; y < yTiles; y++)
 		{
 			for (size_t x = 0; x < xTiles; x++)
 			{
-				GridTile tile = tiles[x * y];
-
-				float xx = x * 64;
-				float yy = y * 64;
-				Rectangle dest({ xx, yy, xx + 64, yy + 64 });
-				Vector2 origin({ 0, 0 });
-
-				TextureTile background = tile.GetBackground();
-				DrawTextureTiled(tilemap, TextureTileToRect(background), dest, origin, 0.0f, 4.0f, WHITE);
-
-				TextureTile foreground = tile.GetForeground();
-				if (foreground != BLANK_TILE)
-				{
-					DrawTextureTiled(tilemap, TextureTileToRect(foreground), dest, origin, 0.0f, 4.0f, WHITE);
-				}
+				tiles[x + y * xTiles] = GridTile({ 7, 0, 16, 16 });
 			}
 		}
-		EndDrawing();
-		//----------------------------------------------------------------------------------
+
+		//--------------------------------------------------------------------------------------
+		// Main game loop
+		while (!WindowShouldClose())
+		{
+			// Update
+			//----------------------------------------------------------------------------------
+
+			// Draw
+			//----------------------------------------------------------------------------------
+			BeginDrawing();
+
+			ClearBackground(RAYWHITE);
+
+
+			// TODO REMOVE
+			for (size_t y = 0; y < yTiles; y++)
+			{
+				for (size_t x = 0; x < xTiles; x++)
+				{
+					GridTile tile = tiles[x + y * xTiles];
+
+					float xx = x * 64.0f;
+					float yy = y * 64.0f;
+					Rectangle dest({ xx, yy, xx + 64, yy + 64 });
+					Vector2 origin({ 0, 0 });
+
+					TextureTile background = tile.GetBackground();
+					DrawTextureTiled(Tilemap, TextureTileToRect(background), dest, origin, 0.0f, 4.0f, WHITE);
+
+					TextureTile foreground = tile.GetForeground();
+					if (foreground != BLANK_TILE)
+					{
+						DrawTextureTiled(Tilemap, TextureTileToRect(foreground), dest, origin, 0.0f, 4.0f, WHITE);
+					}
+				}
+			}
+
+			Render();
+			RenderUI();
+
+			Update();
+
+			EndDrawing();
+			//----------------------------------------------------------------------------------
+		}
 	}
-}
 
-void GameClient::Cleanup()
-{
-	// De-Initialization
-	//--------------------------------------------------------------------------------------
-	UnloadFont(MainGameFont);
-	UnloadTexture(Tilemap);
+	void GameClient::Cleanup()
+	{
+		// De-Initialization
+		//--------------------------------------------------------------------------------------
+		UnloadTexture(Tilemap);
 
-	CloseWindow();
-	//--------------------------------------------------------------------------------------
-}
+		g_ResourceManager.Cleanup();
 
-void GameClient::Render()
-{
-}
+		CloseWindow();
+		//--------------------------------------------------------------------------------------
+	}
 
-void GameClient::RenderUI()
-{
-}
+	void GameClient::Render()
+	{
+	}
 
-void GameClient::Update()
-{
-	World.Update();
-}
+	void GameClient::RenderUI()
+	{
+	}
 
-void GameClient::SetupCamera()
-{
+	void GameClient::Update()
+	{
+		GameWorld->Update();
+	}
+
+	void GameClient::SetupCamera()
+	{
+	}
 }

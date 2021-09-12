@@ -1,22 +1,16 @@
 #pragma once
 
-extern "C" {
-	#include <raylib.h>
-}
+#include "GameHeaders.h"
+#include "core/GameClient.h"
 
-#include "src/core/GameClient.h"
-
-class Game
+namespace TheGame
 {
-public:
-	static Game& GetInstance()
+	class Game
 	{
-		static Game instance;
-		return instance;
-	}
-	GameClient Client;
-public:
-	Game();
-	int Start();
-};
-
+	public:
+		GameClient Client;
+	public:
+		Game();
+		int Start();
+	};
+}

@@ -1,28 +1,30 @@
 #include "World.h"
 
-World::World(const uint32_t& width, const uint32_t& height)
-	: Grid(width, height, 64)
+namespace TheGame
 {
-	int i = 0;
-	for (uint32_t y = 0; y < Grid.Height; y++)
+	World::World(const uint32_t& width, const uint32_t& height)
+		: WorldGrid(width, height, 64)
 	{
-		for (uint32_t x = 0; x < Grid.Width; x++)
+		int i = 0;
+		for (uint32_t y = 0; y < WorldGrid.Height; y++)
 		{
-			i++;
-			Grid.Set(x, y, i);
-			printf("%d\n", Grid.Get(x, y));
+			for (uint32_t x = 0; x < WorldGrid.Width; x++)
+			{
+				i++;
+				WorldGrid.Set(x, y, i);
+			}
 		}
 	}
-}
 
-void World::Update()
-{
-	for (uint32_t y = 0; y < Grid.Height; y++)
+	void World::Update()
 	{
-		for (uint32_t x = 0; x < Grid.Width; x++)
+		for (uint32_t y = 0; y < WorldGrid.Height; y++)
 		{
-			Grid.DrawDebugText(x, y);
-			Grid.DrawDebugRect(x, y);
+			for (uint32_t x = 0; x < WorldGrid.Width; x++)
+			{
+				WorldGrid.DrawDebugText(x, y);
+				WorldGrid.DrawDebugRect(x, y);
+			}
 		}
 	}
 }

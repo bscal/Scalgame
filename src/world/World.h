@@ -1,16 +1,17 @@
 #pragma once
 
-#include "src/GameHeaders.h"
-#include "src/grid/Grid.h"
+#include "GameHeaders.h"
+#include "grid/Grid.h"
 
-
-class World
+namespace TheGame
 {
-public:
-	TheGame::Grid<unsigned int> Grid; // TODO this should be in a new class GameMode ?
+	class World
+	{
+	public:
+		Grid<unsigned int> WorldGrid; // TODO this should be in a new class GameMode ?
 
-public:
-	World(const uint32_t& width, const uint32_t& height);
-	void Update();
-};
-
+	public:
+		World(const uint32_t& width, const uint32_t& height);
+		void Update();
+	};
+}
