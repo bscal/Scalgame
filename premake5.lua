@@ -8,38 +8,41 @@ workspace "Game"
         "Dist"
     }
 
+-- To the vcpkg directory containing your includes and libs folders. Didnt think premake's architecture would be the same as vcpkg's
+vcpkg_installed_dir = "F:/dev-libs/vcpkg/vcpkg/installed/x64-windows"
 outputdir = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
 
 project "Game"
     kind "ConsoleApp"
     language "C++"
+    location "."
 
-    targetdir ("../bin/" .. outputdir .. "/%{prj.name}")
-    objdir ("../bin-int/" .. outputdir .. "/%{prj.name}")
+    targetdir ("bin/" .. outputdir .. "/%{prj.name}")
+    objdir ("bin-int/" .. outputdir .. "/%{prj.name}")
 
     files
     {
-        "../src/**.h",
-        "../src/**.cpp"
+        "src/**.h",
+        "src/**.cpp"
     }
 
     includedirs
     {
-        "../src",
-        "../vendor/",
-        "F:/dev-libs/vcpkg/vcpkg/installed/x64-windows/include"
+        "src",
+        "vendor/raylib/include",
+        vcpkg_installed_dir .. "/include"
     }
 
     libdirs
     {
-        "../vendor/raylib/lib",
-        "F:/dev-libs/vcpkg/vcpkg/installed/x64-windows/lib"
+        "vendor/raylib/lib",
+        vcpkg_installed_dir .. "/lib"
     }
 
     links
     {
         "raylib",
-        "gamenetworkingsocket"
+        "GameNetworkingSockets"
     }
 
     filter "system:windows"
