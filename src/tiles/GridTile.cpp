@@ -26,7 +26,7 @@ namespace TheGame
 	void GridTile::Render(const GameClient& client)
 	{
 		float tileSize = client.GameWorld->WorldGrid.TileSize;
-		Rectangle destination{ X, Y, tileSize, tileSize };
+		Rectangle destination{ X * tileSize, Y * tileSize, tileSize, tileSize };
 		Vector2 origin{ 0.0f, 0.0f };
 		DrawTextureTiled(*g_ResourceManager.TileMap, TextureTileToRect(*Background), destination, origin, 0.0f, 4.0f, WHITE);
 

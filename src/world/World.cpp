@@ -13,7 +13,7 @@ namespace TheGame
 			{
 				Vector2 pos = WorldGrid.ToWorldPos(x, y);
 				Rectangle rect = { pos.x, pos.y, WorldGrid.TileSize, WorldGrid.TileSize };
-				WorldGrid.Set(x, y, std::make_unique<GridTile>(x, y));
+				WorldGrid.Move(x, y, std::make_unique<GridTile>(x, y, TextureTile{ 3, 3, 16, 16 }));
 				//WorldGrid.Move(x, y, std::move(std::make_unique<HeatMapTile>(0, 10, 0, SKYBLUE, RED, rect)));
 				//WorldGrid.GetArray()[x + y * WorldGrid.Width] =;
 			}
