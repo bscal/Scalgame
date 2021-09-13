@@ -1,17 +1,21 @@
 #include "World.h"
 
+#include "core/GameClient.h"
+
 namespace TheGame
 {
-	World::World(const uint32_t& width, const uint32_t& height)
-		: WorldGrid(width, height, 64)
+	World::World(uint32_t width, uint32_t height, GameClient& client)
+		: WorldGrid(width, height, 64), Client(client)
 	{
-		int i = 0;
 		for (uint32_t y = 0; y < WorldGrid.Height; y++)
 		{
 			for (uint32_t x = 0; x < WorldGrid.Width; x++)
 			{
-				i++;
-				WorldGrid.Set(x, y, i);
+				Vector2 pos = WorldGrid.ToWorldPos(x, y);
+				Rectangle rect = { pos.x, pos.y, WorldGrid.TileSize, WorldGrid.TileSize };
+				WorldGrid.Set(x, y, std::make_unique<GridTile>(x, y));
+				//WorldGrid.Move(x, y, std::move(std::make_unique<HeatMapTile>(0, 10, 0, SKYBLUE, RED, rect)));
+				//WorldGrid.GetArray()[x + y * WorldGrid.Width] =;
 			}
 		}
 	}
@@ -22,6 +26,7 @@ namespace TheGame
 		{
 			for (uint32_t x = 0; x < WorldGrid.Width; x++)
 			{
+				WorldGrid.Get(x, y)->Render(Client);
 				WorldGrid.DrawDebugText(x, y);
 				WorldGrid.DrawDebugRect(x, y);
 			}

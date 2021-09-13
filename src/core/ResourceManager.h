@@ -10,6 +10,7 @@ namespace TheGame
 	{
 	public:
 		std::unique_ptr<Font> MainFont;
+		std::unique_ptr<Texture2D> TileMap;
 	public:
 		void Load();
 		void Cleanup();

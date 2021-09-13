@@ -1,5 +1,7 @@
 #pragma once
 
+#include "GameHeaders.h";
+
 struct TextureTile
 {
 	int x, y, width, height;
@@ -8,4 +10,6 @@ struct TextureTile
 	bool operator!=(const TextureTile& rhs) const;
 };
 
-static const TextureTile BLANK_TILE({ 0, 0, 16, 16 });
+Rectangle TextureTileToRect(const TextureTile& tile);
+
+extern TextureTile g_BlankTile;

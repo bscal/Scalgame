@@ -12,7 +12,6 @@ namespace TheGame
 	{
 	public:
 		uint32_t ScreenWidth, ScreenHeight;
-		Texture2D Tilemap;
 		std::shared_ptr<World> GameWorld;
 		//Camera2D MainCamera;
 	public:
