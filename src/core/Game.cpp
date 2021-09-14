@@ -1,5 +1,7 @@
 #include "Game.h"
 
+#include "GameClient.h"
+
 namespace TheGame
 {
 	Game::Game()
@@ -8,7 +10,7 @@ namespace TheGame
 
 	int Game::Start()
 	{
-		Client.Start();
+		GameClient::Instance().Start();
 
 		return 0;
 	}

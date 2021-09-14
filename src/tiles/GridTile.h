@@ -21,7 +21,7 @@ namespace TheGame
 		GridTile(uint32_t x, uint32_t y, const TextureTile& background);
 		GridTile(uint32_t x, uint32_t y, const TextureTile& background, const TextureTile& foreground);
 
-		virtual void Render(const GameClient& client) override;
+		virtual void Render(const Rectangle& destination, const GameClient& client) override;
 		virtual void Update() override;
 	};
 }

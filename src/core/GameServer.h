@@ -11,7 +11,8 @@ namespace TheGame
 		int StartServer();
 
 	private:
-		void Init();
+		void InitClient();
+		void InitServer();
 
 	};
 

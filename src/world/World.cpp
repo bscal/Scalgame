@@ -20,13 +20,16 @@ namespace TheGame
 		}
 	}
 
+
+
 	void World::Update()
 	{
 		for (uint32_t y = 0; y < WorldGrid.Height; y++)
 		{
 			for (uint32_t x = 0; x < WorldGrid.Width; x++)
 			{
-				WorldGrid.Get(x, y)->Render(Client);
+				Rectangle destination{ x * WorldGrid.TileSize, y * WorldGrid.TileSize, WorldGrid.TileSize, WorldGrid.TileSize };
+				WorldGrid.Get(x, y)->Render(destination, Client);
 				WorldGrid.DrawDebugText(x, y);
 				WorldGrid.DrawDebugRect(x, y);
 			}

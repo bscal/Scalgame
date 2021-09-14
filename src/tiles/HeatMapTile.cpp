@@ -5,14 +5,14 @@
 
 namespace TheGame
 {
-	HeatMapTile::HeatMapTile(float min, float max, float startValue, Color cold, Color hot, Rectangle tileRect)
-		: Min(min), Max(max), Value(startValue), ColdColor(cold), HotColor(hot), TileRect(tileRect), CurrentColor(cold)
+	HeatMapTile::HeatMapTile(float min, float max, float startValue, Color cold, Color hot)
+		: Min(min), Max(max), Value(startValue), ColdColor(cold), HotColor(hot), CurrentColor(cold)
 	{
 	}
 
-	void HeatMapTile::Render(const GameClient& client)
+	void HeatMapTile::Render(const Rectangle& destination, const GameClient& client)
 	{
-		DrawRectangleRec(TileRect, CurrentColor);
+		DrawRectangleRec(destination, CurrentColor);
 	}
 
 	void HeatMapTile::Update()
@@ -24,30 +24,26 @@ namespace TheGame
 		if (value < Min) Value = Min;
 		else if (value > Max) Value = Max;
 		else Value = value;
+		SetColorFromValue();
 	}
 
 	void HeatMapTile::SetColorFromValue()
 	{
-		float weight = Value - Min / Max - Min;
+		float weight = (Value - Min) / (Max - Min);
 		CurrentColor = LerpColor(ColdColor, HotColor, weight);
 	}
 
 	Color LerpColor(const Color& src, const Color& dest, float weight)
 	{
-		unsigned int i;
+		uint32_t rr = src.r * (1 - weight) + dest.r * weight;
+		unsigned char r = rr > 255 ? 255 : rr;
 
-		i = weight * src.r + weight * dest.r;
-		unsigned char r = i > 255 ? 255 : i;
+		uint32_t gg = src.g * (1 - weight) + dest.g * weight;
+		unsigned char g = gg > 255 ? 255 : gg;
 
-		i = weight * src.g + weight * dest.g;
-		unsigned char g = i > 255 ? 255 : i;
+		uint32_t bb = src.b * (1 - weight) + dest.b * weight;
+		unsigned char b = bb > 255 ? 255 : bb;
 
-		i = weight * src.b + weight * dest.b;
-		unsigned char b = i > 255 ? 255 : i;
-
-		i = weight * src.a + weight * dest.a;
-		unsigned char a = i > 255 ? 255 : i;
-
-		return Color{ r, g, b, a };
+		return Color{ r, g, b, 255 };
 	}
 }

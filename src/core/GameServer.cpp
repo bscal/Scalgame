@@ -2,6 +2,7 @@
 
 #include <stdio.h>
 
+
 namespace TheGame
 {
 	int GameServer::StartClient()
@@ -19,8 +20,13 @@ namespace TheGame
 		return 0;
 	}
 
-	void GameServer::Init()
+	void GameServer::InitClient()
 	{
 
+	}
+
+	void GameServer::InitServer()
+	{
+		
 	}
 }

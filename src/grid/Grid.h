@@ -3,6 +3,7 @@
 #include <string>
 #include <iostream>
 #include <vector>
+#include <cmath>
 
 #include "GameHeaders.h"
 #include "core/ResourceManager.h"
@@ -50,6 +51,16 @@ namespace TheGame
 			return Vector2{ fx, fy };
 		}
 
+		inline uint32_t MousePosToIndex(const Vector2& pos) const
+		{
+			if (pos.x < 0.0f || pos.y < 0.0f || pos.x > m_GridArray.size() || pos.y >= m_GridArray.size())
+			{
+				TraceLog(LOG_ERROR, "MousePosToIndex: Position was out of bounds! x=%f.0, y=%f.0", pos.x, pos.y);
+				return 0;
+			}
+			return floorf(pos.x / TileSize) + floorf(pos.y / TileSize) * Width;
+		}
+
 		inline std::vector<T>& GetArray() { return m_GridArray; }
 		inline const T& Get(uint32_t x,uint32_t y) const { return m_GridArray[x + y * Width]; }
 		inline const T& GetFromIndex(uint32_t index) const { return m_GridArray[index]; }
@@ -57,7 +68,6 @@ namespace TheGame
 		inline void Set(uint32_t x, uint32_t y, const T& value) { m_GridArray[x + y * Width] = value; }
 		/// Will preform a std::move with value into the position
 		inline void Move(uint32_t x, uint32_t y, T& value) { m_GridArray[x + y * Width] = std::move(value); }
-		inline uint32_t MousePosToIndex(const Vector2& pos) const { return (pos.x / TileSize) + (pos.y / TileSize) * Width; }
 	};
 }
 

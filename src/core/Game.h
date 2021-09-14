@@ -8,7 +8,6 @@ namespace TheGame
 	class Game
 	{
 	public:
-		GameClient Client;
 	public:
 		Game();
 		int Start();

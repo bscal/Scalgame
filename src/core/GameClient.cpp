@@ -35,6 +35,8 @@ namespace TheGame
 
 	void GameClient::Init()
 	{
+		m_InputHandler = std::make_unique<InputHandler>(InputHandler());
+
 		SetTargetFPS(60);
 	}
 
@@ -52,16 +54,18 @@ namespace TheGame
 			// Update
 			//----------------------------------------------------------------------------------
 
+			m_InputHandler->ProcessInputs();
+
+
 			// Draw
 			//----------------------------------------------------------------------------------
 			BeginDrawing();
 
 			ClearBackground(RAYWHITE);
 
+			Update();
 			Render();
 			RenderUI();
-
-			Update();
 
 			EndDrawing();
 			//----------------------------------------------------------------------------------

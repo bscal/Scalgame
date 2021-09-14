@@ -12,16 +12,15 @@ namespace TheGame
 	public:
 		const Color ColdColor;
 		const Color HotColor;
-		const Rectangle TileRect;
 		const float Min, Max;
 
 	private:
 		float Value;
 		Color CurrentColor;
 	public:
-		HeatMapTile(float min, float max, float startValue, Color cold, Color hot, Rectangle tileRect);
+		HeatMapTile(float min, float max, float startValue, Color cold, Color hot);
 		// Inherited via Tile
-		virtual void Render(const GameClient& client) override;
+		virtual void Render(const Rectangle& destination, const GameClient& client) override;
 		virtual void Update() override;
 
 		void SetValue(float value);
