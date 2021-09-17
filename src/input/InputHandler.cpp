@@ -8,6 +8,16 @@ namespace TheGame
 	{
 		Vector2 mousePos = GetMousePosition();
 
+		if (IsKeyDown(KEY_W)) GameClient::Instance().GetMainCamera().target.y -= CameraMoveSpeed;
+		else if (IsKeyDown(KEY_S)) GameClient::Instance().GetMainCamera().target.y += CameraMoveSpeed;
+
+		if (IsKeyDown(KEY_A)) GameClient::Instance().GetMainCamera().target.x -= CameraMoveSpeed;
+		else if (IsKeyDown(KEY_D)) GameClient::Instance().GetMainCamera().target.x += CameraMoveSpeed;
+
+		GameClient::Instance().GetMainCamera().zoom += GetMouseWheelMove() * CameraZoomSpeed;
+		if (GameClient::Instance().GetMainCamera().zoom > MAX_ZOOM) GameClient::Instance().GetMainCamera().zoom = MAX_ZOOM;
+		else if (GameClient::Instance().GetMainCamera().zoom < MIN_ZOOM) GameClient::Instance().GetMainCamera().zoom = MIN_ZOOM;
+
 		if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON))
 		{
 			HandleLeftMouseClicK(mousePos);
