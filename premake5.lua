@@ -29,13 +29,11 @@ project "Game"
     {
         "src",
         "vendor/raylib/include",
-        vcpkg_installed_dir .. "/include"
     }
 
     libdirs
     {
         "vendor/raylib/lib",
-        vcpkg_installed_dir .. "/lib"
     }
 
     links
@@ -45,11 +43,12 @@ project "Game"
     }
 
     filter "system:windows"
-        cppdialect "C++17"
+        cppdialect "C++20"
         systemversion "latest"
 
     filter "configurations:Debug"
         symbols "On"
+        defines { "GAME_DEBUG" }
 
     filter "configurations:Release"
         optimize "On"

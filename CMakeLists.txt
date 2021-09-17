@@ -2,11 +2,13 @@ cmake_minimum_required(VERSION 3.10)
 
 project(Game VERSION 1.0.0)
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 
-set(VENDOR_DIR ${CMAKE_CURRENT_SOURCE_DIR}/vendor CACHE STRING "Path to vendor directory.")
+set(VENDOR_DIR ${CMAKE_CURRENT_SOURCE_DIR}/vendor CACHE FILEPATH "Path to vendor directory.")
 set(RAYLIB_DIR ${VENDOR_DIR}/raylib)
+
+set(CMAKE_CONFIGURATION_TYPES "Debug;Release;Dist" CACHE STRING "Configuration" FORCE);
 
 find_library(RAYLIB raylib REQUIRED PATHS ${RAYLIB_DIR}/lib)
 
@@ -16,6 +18,8 @@ INCLUDE_DIRECTORIES(
 LINK_DIRECTORIES(
     ${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/lib
 ) 
+
+add_compile_definitions(GAME_DEBUG)
 
 file(GLOB_RECURSE SRC_FILES src/*.cpp)
 file(GLOB_RECURSE HEADER_FILES src/*.h)
