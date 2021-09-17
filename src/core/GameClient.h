@@ -21,14 +21,16 @@ namespace TheGame
 		uint32_t ScreenWidth, ScreenHeight;
 		std::shared_ptr<World> GameWorld;
 
-		//Camera2D MainCamera;
+		
 	private:
 		std::unique_ptr<InputHandler> m_InputHandler;
+		std::unique_ptr<Camera2D> m_MainCamera;
 	public:
 		GameClient();
 		int Start();
 
 		inline InputHandler& GetInputHandler() { return *m_InputHandler; }
+		inline Camera2D& GetMainCamera() { return *m_MainCamera; }
 	private:
 		void Init();
 		void SetupGame();

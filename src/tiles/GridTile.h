@@ -16,6 +16,7 @@ namespace TheGame
 		std::unique_ptr<TextureTile> Foreground;
 		HeatMapTile TemperatureTile;
 
+		bool ShowTemperature = false;
 	public:
 		GridTile(uint32_t x, uint32_t y);
 		GridTile(uint32_t x, uint32_t y, const TextureTile& background);

@@ -6,6 +6,9 @@
 
 #include "tiles/GridTile.h"
 #include "core/ResourceManager.h"
+#include "input/Keybinds.h"
+
+const Vector2 VEC2_ZERO = Vector2{ 0.0f, 0.0f };
 
 namespace TheGame
 {
@@ -35,7 +38,14 @@ namespace TheGame
 
 	void GameClient::Init()
 	{
+		m_MainCamera = std::make_unique<Camera2D>(Camera2D{ 0 });
+		m_MainCamera->target = { 0.0f, 0.0f };
+		m_MainCamera->offset = { ScreenWidth / 2.0f, ScreenHeight / 2.0f };
+		m_MainCamera->rotation = 0.0f;
+		m_MainCamera->zoom = 1.0f;
+
 		m_InputHandler = std::make_unique<InputHandler>(InputHandler());
+		KeyBinds::Defaults();
 
 		SetTargetFPS(60);
 	}
@@ -54,19 +64,34 @@ namespace TheGame
 			// Update
 			//----------------------------------------------------------------------------------
 
+			KeyBinds::Process();
 			m_InputHandler->ProcessInputs();
+		
 
+			if (KeyBinds::GetBind("MoveUp").IsActive())
+				TraceLog(LOG_INFO, "Moved up!");
+
+			if (KeyBinds::GetBind("MoveDown").IsActive())
+				TraceLog(LOG_INFO, "Moved down!");
+
+			if (KeyBinds::GetBind("MoveLeft").IsActive())
+				TraceLog(LOG_INFO, "Moved left!");
+
+
+			if (KeyBinds::GetBind("MoveRight").IsActive())
+				TraceLog(LOG_INFO, "Moved right!");
 
 			// Draw
 			//----------------------------------------------------------------------------------
 			BeginDrawing();
+				ClearBackground(RAYWHITE);
 
-			ClearBackground(RAYWHITE);
+				BeginMode2D(*m_MainCamera);
+					Update();
+					Render();
+				EndMode2D();
 
-			Update();
-			Render();
-			RenderUI();
-
+				RenderUI();
 			EndDrawing();
 			//----------------------------------------------------------------------------------
 		}
@@ -92,6 +117,8 @@ namespace TheGame
 
 	void GameClient::Update()
 	{
+		
+
 		GameWorld->Update();
 	}
 

@@ -55,7 +55,9 @@ namespace TheGame
 		{
 			if (pos.x < 0.0f || pos.y < 0.0f || pos.x > m_GridArray.size() || pos.y >= m_GridArray.size())
 			{
+#ifdef GAME_DEBUG
 				TraceLog(LOG_ERROR, "MousePosToIndex: Position was out of bounds! x=%f.0, y=%f.0", pos.x, pos.y);
+#endif // GAME_DEBUG	
 				return 0;
 			}
 			return floorf(pos.x / TileSize) + floorf(pos.y / TileSize) * Width;
@@ -67,7 +69,7 @@ namespace TheGame
 		/// Will set the index to value. This will not work for some types like unique_ptrs. Use Move instead
 		inline void Set(uint32_t x, uint32_t y, const T& value) { m_GridArray[x + y * Width] = value; }
 		/// Will preform a std::move with value into the position
-		inline void Move(uint32_t x, uint32_t y, T& value) { m_GridArray[x + y * Width] = std::move(value); }
+		inline void Move(uint32_t x, uint32_t y, T value) { m_GridArray[x + y * Width] = std::move(value); }
 	};
 }
 

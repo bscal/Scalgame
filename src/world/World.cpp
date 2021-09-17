@@ -31,7 +31,7 @@ namespace TheGame
 				Rectangle destination{ x * WorldGrid.TileSize, y * WorldGrid.TileSize, WorldGrid.TileSize, WorldGrid.TileSize };
 				WorldGrid.Get(x, y)->Render(destination, Client);
 				WorldGrid.DrawDebugText(x, y);
-				WorldGrid.DrawDebugRect(x, y);
+				//WorldGrid.DrawDebugRect(x, y);
 			}
 		}
 	}

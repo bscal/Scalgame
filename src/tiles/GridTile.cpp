@@ -33,7 +33,8 @@ namespace TheGame
 			DrawTextureTiled(*g_ResourceManager.TileMap, TextureTileToRect(*Foreground), destination, origin, 0.0f, 4.0f, WHITE);
 		}
 
-		TemperatureTile.Render(destination, client);
+		if (ShowTemperature)
+			TemperatureTile.Render(destination, client);
 	}
 
 	void GridTile::Update()
