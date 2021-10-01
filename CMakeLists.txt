@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.10)
 
 project(Game VERSION 1.0.0)
 
+set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 
@@ -10,7 +11,12 @@ set(RAYLIB_DIR ${VENDOR_DIR}/raylib)
 
 set(CMAKE_CONFIGURATION_TYPES "Debug;Release;Dist" CACHE STRING "Configuration" FORCE);
 
-find_library(RAYLIB raylib REQUIRED PATHS ${RAYLIB_DIR}/lib)
+# Set this to the minimal version you want to support
+find_package(raylib 3.7.0 QUIET) # Let CMake search for a raylib-config.cmake
+
+add_subdirectory(${raylib_SOURCE_DIR} ${raylib_BINARY_DIR})
+
+#find_library(RAYLIB raylib REQUIRED PATHS ${RAYLIB_DIR}/lib)
 
 INCLUDE_DIRECTORIES(
    ${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/include
