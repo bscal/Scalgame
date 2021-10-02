@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <math.h>
 #include <vector>
+#include <filesystem>
 
 #include "tiles/GridTile.h"
 #include "core/ResourceManager.h"
@@ -20,6 +21,7 @@ namespace TheGame
 		//--------------------------------------------------------------------------------------
 		InitWindow(ScreenWidth, ScreenHeight, "raylib [text] example - sprite font loading");
 
+		std::cout << "Current path is " << std::filesystem::current_path() << '\n'; // (1)
 		g_ResourceManager.Load();
 
 		Init();

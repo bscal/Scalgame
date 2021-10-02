@@ -33,8 +33,8 @@ namespace TheGame
 			float halfTileSize = TileSize / 2.0f;
 			Vector2 worldPos = ToWorldPos(x, y);
 			Vector2 textSize = MeasureTextEx(*g_ResourceManager.MainFont, text, 64.0f, 0.0f);
-			Rectangle rect = { worldPos.x + halfTileSize - (textSize.x / 2.0f), worldPos.y + (textSize.y / 8.0f), TileSize, TileSize };
-			DrawTextRec(*g_ResourceManager.MainFont, text, rect, 64.0f, 0.0f, false, DARKGREEN);
+			Vector2 pos = { Vector2{ worldPos.x + halfTileSize - (textSize.x / 2.0f), worldPos.y + (textSize.y / 8.0f) } };
+			DrawTextEx(*g_ResourceManager.MainFont, text, pos, 64.0f, 0.0f, DARKGREEN);
 		}
 
 		void DrawDebugRect(uint32_t x, uint32_t y) const

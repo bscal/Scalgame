@@ -116,8 +116,6 @@ namespace TheGame
 
 	void KeyBinds::Serialize()
 	{
-		
-		SaveFileData();
 	}
 }
 

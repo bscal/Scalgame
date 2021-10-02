@@ -3,7 +3,7 @@
 #include <cstdint>
 
 extern "C" {
-#include "raylib.h"
+#include "../vendor/raylib/src/raylib.h"
 }
 
 namespace TheGame
