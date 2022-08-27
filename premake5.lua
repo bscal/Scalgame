@@ -1,57 +1,49 @@
-workspace "Game"
+workspace "ScalGame"
     architecture "x64"
 
     configurations
     {
         "Debug",
-        "Release",
-        "Dist"
+        "Release"
     }
 
--- To the vcpkg directory containing your includes and libs folders. Didnt think premake's architecture would be the same as vcpkg's
-vcpkg_installed_dir = "F:/dev-libs/vcpkg/vcpkg/installed/x64-windows"
+    startproject "Game"
+
 outputdir = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
 
-project "Game"
-    kind "ConsoleApp"
-    language "C++"
+newoption
+{
+    trigger = "graphics",
+    value = "OPENGL_VERSION",
+    description = "version of OpenGL to build raylib against",
+    allowed = {
+	    { "opengl11", "OpenGL 1.1"},
+	    { "opengl21", "OpenGL 2.1"},
+	    { "opengl33", "OpenGL 3.3"},
+	    { "opengl43", "OpenGL 4.3"}
+    },
+    default = "opengl43"
+}
 
-    targetdir ("bin/" .. outputdir .. "/%{prj.name}")
-    objdir ("bin-int/" .. outputdir .. "/%{prj.name}")
+include "Engine/vendor/raylib"
+include "Engine"
+include "Game"
 
-    files
-    {
-        "src/**.h",
-        "src/**.cpp"
-    }
-
-    includedirs
-    {
-        "src",
-        "vendor/raylib/include",
-    }
-
-    libdirs
-    {
-        "vendor/raylib/lib",
-    }
-
-    links
-    {
-        "raylib",
-        "GameNetworkingSockets"
-    }
-
-    filter "system:windows"
-        cppdialect "C++20"
-        systemversion "latest"
-
-    filter "configurations:Debug"
-        symbols "On"
-        defines { "GAME_DEBUG" }
-
-    filter "configurations:Release"
-        optimize "On"
-
-    filter "configurations:Dist"
-        optimize "On"
+newaction
+{
+    trigger = "clean",
+    description = "Remove all binaries, int-binaries, vs files",
+    execute = function()
+        os.rmdir("./bin")
+        print("Successfully removed binaries")
+        os.rmdir("./bin-int")
+        print("Successfully removed intermediate binaries")
+        os.rmdir("./.vs")
+        os.remove("**.sln")
+        os.remove("**.vcxproj")
+        os.remove("**.vcxproj.filters")
+        os.remove("**.vcxproj.user")
+        print("Successfully removed vs project files")
+        print("Done!")
+    end
+}

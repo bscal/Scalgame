@@ -1,3 +1,4 @@
-[submodule "vendor/raylib"]
-	path = vendor/raylib
+
+[submodule "Engine/vendor/raylib"]
+	path = Engine/vendor/raylib
 	url = https://github.com/bscal/raylib.git
