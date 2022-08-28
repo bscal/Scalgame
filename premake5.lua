@@ -1,5 +1,6 @@
 workspace "ScalGame"
     architecture "x64"
+    staticruntime "off"
 
     configurations
     {
@@ -25,7 +26,7 @@ newoption
     default = "opengl43"
 }
 
-include "Engine/vendor/raylib"
+include "Engine/vendor/raylib_premake5.lua"
 include "Engine"
 include "Game"
 

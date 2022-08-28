@@ -1,5 +1,5 @@
 project "Game"
-    kind "SharedLib"
+    kind "ConsoleApp"
     language "C++"
     staticruntime "off"
     cppdialect "C++17"
@@ -27,20 +27,22 @@ project "Game"
 
     links
     {
-        "Engine"
+        "Engine",
+        "raylib",
+        "winmm", "kernel32", "opengl32", "gdi32"
     }
 
     filter "configurations:Debug"
         defines "SCAL_DEBUG"
-        buildoptions "/MDd"
         runtime "Debug"
         symbols "on"
+        staticruntime "off"
 
     filter "configurations:Release"
         defines "SCAL_RELEASE"
-        buildoptions "/MD"
         runtime "Release"
         optimize "on"
+        staticruntime "off"
 
     filter "system:Windows"
         defines "SCAL_PLATFORM_WINDOWS"

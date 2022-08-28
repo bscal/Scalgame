@@ -8,9 +8,9 @@
 
 #ifdef SCAL_PLATFORM_WINDOWS
 #ifdef SCAL_BUILD_DLL
-#define SAPI __declspec(dllexport)
+#define ENGINE_API __declspec(dllexport)
 #else
-#define SAPI __declspec(dllimport)
+#define ENGINE_API __declspec(dllimport)
 #endif // SCAL_BUILD_DLL
 #else
 #define SAPI
