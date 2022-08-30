@@ -4,30 +4,67 @@
 
 #include <cassert>
 
-bool InitializeTileMap(
-	Texture2D* Texture,
-	uint32_t width,
-	uint32_t height,
-	uint16_t tileSize,
-	TileMap* outMap)
+bool InitializeTileMap(TextureTileSet* tileSet,
+	uint32_t width, uint32_t height,
+	uint16_t tileSize, TileMap* outTileMap)
 {
-	outMap->Texture = Texture;
-	outMap->Width = width;
-	outMap->Height = height;
-	outMap->TileSize = tileSize;
-	outMap->MapTiles = (Tile*)MemAlloc(width * height * sizeof(Tile));
+	outTileMap->TileSetPtr = tileSet;
+	outTileMap->MapWidth = width;
+	outTileMap->MapHeight = height;
+	outTileMap->MapTileSize = tileSize;
+	outTileMap->MapHalfTileSize = (float)tileSize / 2.0f;
+	outTileMap->MapTiles = (Tile*)MemAlloc(width * height * sizeof(Tile));
+
+	TraceLog(LOG_INFO, "Initialized TileMap");
+
+	return true;
+}
+
+bool LoadTileSet(const char* textureFilePath,
+	uint16_t tileSizeWidth, uint16_t tileSizeHeight,
+	TextureTileSet* outTileSet)
+{
+	outTileSet->TileTextures = LoadTexture(textureFilePath);
+	outTileSet->TextureTileWidth = tileSizeWidth;
+	outTileSet->TextureTileHeight = tileSizeHeight;
+
+	int width = outTileSet->TileTextures.width / tileSizeWidth;
+	int height = outTileSet->TileTextures.height / tileSizeHeight;
+	int totalTiles = width * height;
+	outTileSet->TileTypes = (TileType*)MemAlloc(totalTiles * sizeof(TileType));
+
+	for (int y = 0; y < height; ++y)
+	{
+		for (int x = 0; x < width; ++x)
+		{
+			int i = x + y * width;
+			float xTexturePos = (float)x * (float)tileSizeWidth;
+			float yTexturePos = (float)y * (float)tileSizeHeight;
+			float rectX = xTexturePos;
+			float rectY = yTexturePos;
+			float rectW = tileSizeWidth;
+			float rectH = tileSizeHeight;
+			Rectangle rect = { rectX, rectY, rectW, rectH };
+			outTileSet->TileTypes[i].TextureSrcRectangle = rect;
+			outTileSet->TileTypes[i].MovementCost = 1;
+		}
+	}
+	
+	TraceLog(LOG_INFO, "Loaded TileSet %s with %d tiles",
+		textureFilePath, totalTiles);
+
 	return true;
 }
 
 void LoadTileMap(TileMap* tileMap)
 {
 	SetRandomSeed(0);
-	for (int y = 0; y < tileMap->Height; ++y)
+	for (int y = 0; y < tileMap->MapHeight; ++y)
 	{
-		for (int x = 0; x < tileMap->Width; ++x)
+		for (int x = 0; x < tileMap->MapWidth; ++x)
 		{
-			int index = x + y * tileMap->Width;
-			int tileId = GetRandomValue(0, 1);
+			int index = x + y * tileMap->MapWidth;
+			int tileId = GetRandomValue(0, 2);
 			tileMap->MapTiles[index].TileId = (uint32_t) tileId;
 		}
 	}
@@ -41,48 +78,46 @@ void UnloadTileMap(TileMap* tileMap)
 
 void RenderTileMap(Game* game, TileMap* tileMap)
 {
-	Texture2D mapTexture = game->Engine.Resources.MainTileMapTexture;
-	for (int y = 0; y < tileMap->Height; ++y)
+	Texture2D mapTexture = tileMap->TileSetPtr->TileTextures;
+
+	for (int y = 0; y < tileMap->MapHeight; ++y)
 	{
-		for (int x = 0; x < tileMap->Width; ++x)
+		for (int x = 0; x < tileMap->MapWidth; ++x)
 		{
-			int index = x + y * tileMap->Width;
+			int index = x + y * tileMap->MapWidth;
+			float xPos = (float)x * (float)tileMap->MapTileSize;
+			float yPos = (float)y * (float)tileMap->MapTileSize;
 			uint32_t tileId = tileMap->MapTiles[index].TileId;
-
-			float textureTileSize = 16;
-			float textX = (tileId % tileMap->Width) * textureTileSize;
-			float textY = (tileId / tileMap->Width) * textureTileSize;
-
-			Rectangle textureSrc = {};
-			textureSrc.x = textX;
-			textureSrc.y = textY;
-			textureSrc.width = textX + textureTileSize;
-			textureSrc.height = textY + textureTileSize;
-
-			Vector2 tilePos = 
-			{ 
-				x * tileMap->TileSize,
-				y * tileMap->TileSize
-			};
-			DrawTextureRec(mapTexture, textureSrc, tilePos, WHITE);
+			Rectangle textRect =
+				tileMap->TileSetPtr->TileTypes[tileId].TextureSrcRectangle;
+			Vector2 pos = { xPos, yPos };
+			DrawTextureRec(mapTexture, textRect, pos, WHITE);
 		}
 	}
+
+	DrawRectangleLinesEx(
+		{0, 0,
+		(float)tileMap->MapWidth * (float)tileMap->MapTileSize,
+		(float)tileMap->MapHeight * (float)tileMap->MapTileSize
+		},
+		2.5f,
+		RED);
 }
 
 Tile* GetTile(TileMap* tileMap, int x, int y)
 {
-	assert(x >= 0 && x <= tileMap->Width);
-	assert(y >= 0 && y <= tileMap->Height);
+	assert(x >= 0 && x <= tileMap->MapWidth);
+	assert(y >= 0 && y <= tileMap->MapHeight);
 
-	int index = x + y * tileMap->Width;
+	int index = x + y * tileMap->MapWidth;
 	return &tileMap->MapTiles[index];
 }
 
 void SetTile(TileMap* tileMap, int x, int y, Tile* srcTile)
 {
-	assert(x >= 0 && x <= tileMap->Width);
-	assert(y >= 0 && y <= tileMap->Height);
+	assert(x >= 0 && x <= tileMap->MapWidth);
+	assert(y >= 0 && y <= tileMap->MapHeight);
 
-	int index = x + y * tileMap->Width;
+	int index = x + y * tileMap->MapWidth;
 	tileMap->MapTiles[index] = *srcTile;
 }

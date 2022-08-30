@@ -30,6 +30,22 @@ include "Engine/vendor/raylib_premake5.lua"
 include "Engine"
 include "Game"
 
+local directories = {
+    "./",
+    "Engine/",
+    "Engine/vendor/",
+    "Game/",
+    "Game/vendor/"
+}
+
+local function DeleteVSFiles(path)
+    os.remove(path .. "*.sln")
+    os.remove(path .. "*.vcxproj")
+    os.remove(path .. "*.vcxproj.filters")
+    os.remove(path .. "*.vcxproj.user")
+    print("Deleting VS files for " .. path)
+end
+
 newaction
 {
     trigger = "clean",
@@ -40,10 +56,11 @@ newaction
         os.rmdir("./bin-int")
         print("Successfully removed intermediate binaries")
         os.rmdir("./.vs")
-        os.remove("**.sln")
-        os.remove("**.vcxproj")
-        os.remove("**.vcxproj.filters")
-        os.remove("**.vcxproj.user")
+
+        for _, v in pairs(directories) do
+            DeleteVSFiles(v)
+        end
+
         print("Successfully removed vs project files")
         print("Done!")
     end

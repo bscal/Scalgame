@@ -1,10 +1,12 @@
 #pragma once
 
 #include "Engine.h"
+#include "Core/TileMap.h"
 
 struct Resources
 {
-	Texture2D MainTileMapTexture;
+	TextureTileSet MainTileSet;
+	Font MainFont;
 	bool IsInitialized;
 };
 

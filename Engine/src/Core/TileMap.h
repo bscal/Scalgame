@@ -4,9 +4,18 @@
 
 struct Game;
 
-struct TexturedTile
+struct TileType
 {
 	Rectangle TextureSrcRectangle;
+	uint16_t MovementCost;
+};
+
+struct TextureTileSet
+{
+	Texture2D TileTextures;
+	TileType* TileTypes;
+	uint16_t TextureTileWidth;
+	uint16_t TextureTileHeight;
 };
 
 struct Tile
@@ -16,20 +25,21 @@ struct Tile
 
 struct TileMap
 {
-	uint32_t Width;
-	uint32_t Height;
-	uint16_t TileSize;
-	Texture2D* Texture;
+	TextureTileSet* TileSetPtr;
 	Tile* MapTiles;
-	TexturedTile* TexturedTiles;
+	uint32_t MapWidth;
+	uint32_t MapHeight;
+	uint16_t MapTileSize;
+	float MapHalfTileSize;
 };
 
-bool InitializeTileMap(
-	Texture2D* Texture,
-	uint32_t width,
-	uint32_t height,
-	uint16_t tileSize,
-	TileMap* outData);
+bool LoadTileSet(const char* textureFilePath,
+	uint16_t tileSizeWidth, uint16_t tileSizeHeight,
+	TextureTileSet* outTileSet);
+
+bool InitializeTileMap(TextureTileSet* tileSet, 
+	uint32_t width, uint32_t height,
+	uint16_t tileSize, TileMap* outTileMap);
 
 void LoadTileMap(TileMap* tileMap);
 
