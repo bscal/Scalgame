@@ -2,6 +2,13 @@
 
 #include <Engine.h>
 
+struct Game;
+
+struct TexturedTile
+{
+	Rectangle TextureSrcRectangle;
+};
+
 struct Tile
 {
 	uint32_t TileId;
@@ -13,7 +20,8 @@ struct TileMap
 	uint32_t Height;
 	uint16_t TileSize;
 	Texture2D* Texture;
-	Tile* Tiles;
+	Tile* MapTiles;
+	TexturedTile* TexturedTiles;
 };
 
 bool InitializeTileMap(
@@ -23,8 +31,10 @@ bool InitializeTileMap(
 	uint16_t tileSize,
 	TileMap* outData);
 
+void LoadTileMap(TileMap* tileMap);
+
 void UnloadTileMap(TileMap* tileMap);
-void RenderTileMap(TileMap* tileMap);
+void RenderTileMap(Game* game, TileMap* tileMap);
 
 Tile* GetTile(TileMap* tileMap, int x, int y);
 void SetTile(TileMap* tileMap, int x, int y, Tile* srcTile);

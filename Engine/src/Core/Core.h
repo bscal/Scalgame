@@ -1,5 +1,6 @@
 #pragma once
 
+#include <raylib/src/raylib.h>
 #include <stdint.h>
 
 #define internal static
