@@ -104,10 +104,15 @@ void RenderTileMap(Game* game, TileMap* tileMap)
 		RED);
 }
 
+bool IsInBounds(int x, int y, int width, int height)
+{
+	return x >= 0 && x < width && y >= 0 && y < height;
+}
+
 Tile* GetTile(TileMap* tileMap, int x, int y)
 {
-	assert(x >= 0 && x <= tileMap->MapWidth);
-	assert(y >= 0 && y <= tileMap->MapHeight);
+	assert(x >= 0 && x < tileMap->MapWidth);
+	assert(y >= 0 && y < tileMap->MapHeight);
 
 	int index = x + y * tileMap->MapWidth;
 	return &tileMap->MapTiles[index];
@@ -115,9 +120,16 @@ Tile* GetTile(TileMap* tileMap, int x, int y)
 
 void SetTile(TileMap* tileMap, int x, int y, Tile* srcTile)
 {
-	assert(x >= 0 && x <= tileMap->MapWidth);
-	assert(y >= 0 && y <= tileMap->MapHeight);
+	assert(x >= 0 && x < tileMap->MapWidth);
+	assert(y >= 0 && y < tileMap->MapHeight);
 
 	int index = x + y * tileMap->MapWidth;
 	tileMap->MapTiles[index] = *srcTile;
+}
+
+TileType* GetTileInfo(TileMap* tileMap, uint32_t tileId)
+{
+	assert(tileId < 
+		tileMap->TileSet->TextureTileWidth * tileMap->TileSet->TextureTileHeight);
+	return &tileMap->TileSet->TileTypes[tileId];
 }

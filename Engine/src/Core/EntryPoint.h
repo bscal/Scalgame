@@ -4,9 +4,9 @@
 
 int main(int argc, char** argv)
 {
-	Game* game = CreateGame();
-	game->Start();
-	game->Run();
-	game->Shutdown();
+	GameApplication app = {};
+	app.Start();
+	app.Run();
+	app.Shutdown();
 	return 0;
 }

@@ -25,12 +25,12 @@
 
 struct Vector2i
 {
-	int X;
-	int Y;
+	int x;
+	int y;
 };
 
 struct Vector2ui
 {
-	uint32_t X;
-	uint32_t Y;
+	uint32_t x;
+	uint32_t y;
 };

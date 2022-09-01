@@ -2,5 +2,5 @@
 
 struct World
 {
-
+	TileMap MainTileMap;
 };

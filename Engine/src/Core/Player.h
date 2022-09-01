@@ -2,20 +2,21 @@
 
 #include "Engine.h"
 
-struct Game;
-struct TileMap;
+struct GameApplication;
 
 struct Player
 {
 	Vector2 Position;
-
+	Vector2i TilePosition;
     Rectangle TexturePosition;
-
-	bool IsInitialized;
+	int MaxEnergy;
+	int Energy;
 };
 
-bool InitializePlayer(Player* outPlayer, Game* Game);
-void UpdatePlayer(Player* player, Game* game);
-void RenderPlayer(Player* player, Game* game);
+bool InitializePlayer(GameApplication* gameApp, Player* outPlayer);
 
-void MoveToTile(Player* player, Game* Game, int x, int y);
+void UpdatePlayer(GameApplication* gameApp, Player* player);
+void RenderPlayer(GameApplication* gameApp, Player* player);
+
+void MovePlayer(GameApplication* gameApp, Player* player, int tileX, int tileY);
+bool ProcessEnergy(GameApplication* gameApp, Player* player, int cost);

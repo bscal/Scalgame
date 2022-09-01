@@ -47,5 +47,9 @@ void LoadTileMap(TileMap* tileMap);
 void UnloadTileMap(TileMap* tileMap);
 void RenderTileMap(Game* game, TileMap* tileMap);
 
+bool IsInBounds(int x, int y, int width, int height);
+
 Tile* GetTile(TileMap* tileMap, int x, int y);
 void SetTile(TileMap* tileMap, int x, int y, Tile* srcTile);
+
+TileType* GetTileInfo(TileMap* tileMap, uint32_t tileId);

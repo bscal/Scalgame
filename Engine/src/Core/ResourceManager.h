@@ -18,4 +18,5 @@ struct Resources
 	bool IsInitialized;
 };
 
+Resources* CreateResources();
 bool InitializeResources(Resources* outData);

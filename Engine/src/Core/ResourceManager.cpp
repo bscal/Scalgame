@@ -7,6 +7,12 @@
 
 internal SDFFont LoadSDFFont();
 
+Resources* CreateResources()
+{
+    Resources* resources = (Resources*)MemAlloc(sizeof(Resources));
+    return resources;
+}
+
 bool InitializeResources(Resources* resources)
 {
 	resources->TileSheet = LoadTexture(TILE_MAP_TEXTURE_PATH);
