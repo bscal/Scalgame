@@ -12,7 +12,7 @@ bool InitializePlayer(Player* outPlayer, Game* game)
 	return outPlayer->IsInitialized = true;
 }
 
-void UpdatePlayer(Player* player, Game* game, TileMap* tileMap)
+void UpdatePlayer(Player* player, Game* game)
 {
     Vector2 position = player->Position;
     auto tileSize = game->MainTileMap.MapTileSize;
@@ -26,9 +26,10 @@ void UpdatePlayer(Player* player, Game* game, TileMap* tileMap)
         MoveToTile(player, game, position.x, position.y - tileSize);
 }
 
-void RenderPlayer(Player* player, Game* game, TileMap* tileMap)
+void RenderPlayer(Player* player, Game* game)
 {
-    DrawTextureRec(tileMap->TileSetPtr->TileTextures,
+    Texture2D spriteSheet = game->Resources.TileSheet;
+    DrawTextureRec(spriteSheet,
         player->TexturePosition,
         player->Position,
         WHITE);

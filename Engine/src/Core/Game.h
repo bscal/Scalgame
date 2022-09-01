@@ -5,8 +5,6 @@
 #include "ResourceManager.h"
 #include "Player.h"
 
-struct Resources;
-
 struct Game
 {
     Resources Resources;

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "DebugWindow.h"
+
 #include <raylib/src/raylib.h>
 #include <stdint.h>
 

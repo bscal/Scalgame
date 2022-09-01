@@ -4,11 +4,11 @@
 
 #include <cassert>
 
-bool InitializeTileMap(TextureTileSet* tileSet,
+bool InitializeTileMap(TileSet* tileSet,
 	uint32_t width, uint32_t height,
 	uint16_t tileSize, TileMap* outTileMap)
 {
-	outTileMap->TileSetPtr = tileSet;
+	outTileMap->TileSet = tileSet;
 	outTileMap->MapWidth = width;
 	outTileMap->MapHeight = height;
 	outTileMap->MapTileSize = tileSize;
@@ -20,16 +20,16 @@ bool InitializeTileMap(TextureTileSet* tileSet,
 	return true;
 }
 
-bool LoadTileSet(const char* textureFilePath,
+bool LoadTileSet(Texture2D* tileTexture,
 	uint16_t tileSizeWidth, uint16_t tileSizeHeight,
-	TextureTileSet* outTileSet)
+	TileSet* outTileSet)
 {
-	outTileSet->TileTextures = LoadTexture(textureFilePath);
+	outTileSet->TileTexture = *tileTexture;
 	outTileSet->TextureTileWidth = tileSizeWidth;
 	outTileSet->TextureTileHeight = tileSizeHeight;
 
-	int width = outTileSet->TileTextures.width / tileSizeWidth;
-	int height = outTileSet->TileTextures.height / tileSizeHeight;
+	int width = tileTexture->width / tileSizeWidth;
+	int height = tileTexture->height / tileSizeHeight;
 	int totalTiles = width * height;
 	outTileSet->TileTypes = (TileType*)MemAlloc(totalTiles * sizeof(TileType));
 
@@ -50,8 +50,8 @@ bool LoadTileSet(const char* textureFilePath,
 		}
 	}
 	
-	TraceLog(LOG_INFO, "Loaded TileSet %s with %d tiles",
-		textureFilePath, totalTiles);
+	TraceLog(LOG_INFO, "Loaded TileSet %d with %d tiles",
+		tileTexture->id, totalTiles);
 
 	return true;
 }
@@ -78,7 +78,7 @@ void UnloadTileMap(TileMap* tileMap)
 
 void RenderTileMap(Game* game, TileMap* tileMap)
 {
-	Texture2D mapTexture = tileMap->TileSetPtr->TileTextures;
+	Texture2D mapTexture = tileMap->TileSet->TileTexture;
 
 	for (int y = 0; y < tileMap->MapHeight; ++y)
 	{
@@ -89,7 +89,7 @@ void RenderTileMap(Game* game, TileMap* tileMap)
 			float yPos = (float)y * (float)tileMap->MapTileSize;
 			uint32_t tileId = tileMap->MapTiles[index].TileId;
 			Rectangle textRect =
-				tileMap->TileSetPtr->TileTypes[tileId].TextureSrcRectangle;
+				tileMap->TileSet->TileTypes[tileId].TextureSrcRectangle;
 			Vector2 pos = { xPos, yPos };
 			DrawTextureRec(mapTexture, textRect, pos, WHITE);
 		}

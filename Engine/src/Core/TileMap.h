@@ -10,9 +10,10 @@ struct TileType
 	uint16_t MovementCost;
 };
 
-struct TextureTileSet
+struct TileSet
 {
-	Texture2D TileTextures;
+	// TODO should a TileSet have a unique Texture?
+	Texture2D TileTexture;
 	TileType* TileTypes;
 	uint16_t TextureTileWidth;
 	uint16_t TextureTileHeight;
@@ -25,7 +26,7 @@ struct Tile
 
 struct TileMap
 {
-	TextureTileSet* TileSetPtr;
+	TileSet* TileSet;
 	Tile* MapTiles;
 	uint32_t MapWidth;
 	uint32_t MapHeight;
@@ -33,11 +34,11 @@ struct TileMap
 	float MapHalfTileSize;
 };
 
-bool LoadTileSet(const char* textureFilePath,
+bool LoadTileSet(Texture2D* tileTexture,
 	uint16_t tileSizeWidth, uint16_t tileSizeHeight,
-	TextureTileSet* outTileSet);
+	TileSet* outTileSet);
 
-bool InitializeTileMap(TextureTileSet* tileSet, 
+bool InitializeTileMap(TileSet* tileSet, 
 	uint32_t width, uint32_t height,
 	uint16_t tileSize, TileMap* outTileMap);
 

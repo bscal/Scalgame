@@ -12,9 +12,11 @@ ENGINE_API bool Game::Start()
     Camera.target = { 0, 0 };
     Camera.offset = { screenWidth / 2.0f, screenHeight / 2.0f };
     Camera.rotation = 0.0f;
-    Camera.zoom = 1.0f;
+    Camera.zoom = 2.0f;
 
     InitializeResources(&Resources);
+    InitiailizeDebugWindow(&Resources.MainFont, 10, 30, DARKGREEN);
+
     InitializeTileMap(&Resources.MainTileSet,
         64,
         64,
@@ -22,6 +24,7 @@ ENGINE_API bool Game::Start()
         &MainTileMap
     );
     LoadTileMap(&MainTileMap);
+
 
     InitializePlayer(&Player, this);
    
@@ -71,7 +74,7 @@ ENGINE_API void Game::Run()
             Camera.rotation = 0.0f;
         }
 
-        UpdatePlayer(&Player, this, &MainTileMap);
+        UpdatePlayer(&Player, this);
 
         // ***************
         // Render
@@ -79,11 +82,13 @@ ENGINE_API void Game::Run()
         BeginDrawing();
 
         ClearBackground(RAYWHITE);
+        
+        UpdateDebugWindow();
 
         BeginMode2D(Camera);
 
         RenderTileMap(this, &MainTileMap);
-        RenderPlayer(&Player, this, &MainTileMap);
+        RenderPlayer(&Player, this);
 
         EndMode2D();
 
@@ -91,12 +96,15 @@ ENGINE_API void Game::Run()
         // UI
         // ***************
 
-        DrawFPS(16, 16);
-        auto font = Resources.MainFont;
-        auto zoom = std::to_string(Camera.zoom);
-        DrawTextEx(font, zoom.c_str(), { 16, 48 }, 20, 1.4f, DARKGREEN);
-        auto pos = std::to_string(Camera.target.x) + ", " + std::to_string(Camera.target.y);
-        DrawTextEx(font, pos.c_str(), { 16, 80 }, 20, 1.4f, DARKGREEN);
+        //BeginShaderMode(Resources.SDFFont.Shader);
+
+        DisplayDebugText("Zoom = %.2f", Camera.zoom);
+        DisplayDebugText("cX = %.1f, cY = %.1f", Camera.target.x, Camera.target.y);
+        DisplayDebugText("pX = %.1f, pY = %.1f", Player.Position.x / 16.0f, Player.Position.y / 16.0f);
+
+        //EndShaderMode();
+
+
 
         EndDrawing();
     }
