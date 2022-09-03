@@ -4,6 +4,14 @@
 
 struct GameApplication;
 
+enum class Direction : uint8_t
+{
+	North,
+	East,
+	South,
+	West
+};
+
 struct Player
 {
 	Vector2 Position;
@@ -11,6 +19,7 @@ struct Player
     Rectangle TexturePosition;
 	int MaxEnergy;
 	int Energy;
+	Direction LookDirection;
 };
 
 bool InitializePlayer(GameApplication* gameApp, Player* outPlayer);

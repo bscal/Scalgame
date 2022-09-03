@@ -4,6 +4,8 @@
 
 struct Game;
 
+// TODO Think about moving TileType into Tile structure
+
 struct TileType
 {
 	Rectangle TextureSrcRectangle;
