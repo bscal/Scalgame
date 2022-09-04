@@ -1,5 +1,7 @@
 #include "Game.h"
 
+#include "SMemory.h"
+
 ENGINE_API bool GameApplication::Start()
 {
     if (IsInitialized)
@@ -13,12 +15,13 @@ ENGINE_API bool GameApplication::Start()
     InitWindow(screenWidth, screenHeight, "Some roguelike game");
     //SetTargetFPS(60);
 
-    Resources = (struct Resources*)MemAlloc(sizeof(struct Resources));
+    Resources = (struct Resources*)Scal::Memory::CAlloc(sizeof(struct Resources));
+
     InitializeResources(Resources);
 
     InitiailizeDebugWindow(&Resources->MainFont, 10, 30, DARKGREEN);
 
-    Game = (struct Game*)MemAlloc(sizeof(struct Game));
+    Game = (struct Game*)Scal::Memory::CAlloc(sizeof(struct Game));
     Game->Camera.target = { 0, 0 };
     Game->Camera.offset = { screenWidth / 2.0f, screenHeight / 2.0f };
     Game->Camera.rotation = 0.0f;

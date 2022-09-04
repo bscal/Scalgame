@@ -21,10 +21,23 @@ struct TileSet
 	uint16_t TextureTileHeight;
 };
 
+enum class FOWLevel : uint8_t
+{
+	NoVision = 0,
+	PastVision,
+	PeripheralVision,
+	SemiVision,
+	FullVision
+};
+
 struct Tile
 {
 	uint32_t TileId;
+	FOWLevel Fow;
 };
+
+
+#define NULL_TILE { 999999999, FOWLevel::NoVision } 
 
 struct TileMap
 {
@@ -53,5 +66,9 @@ bool IsInBounds(int x, int y, int width, int height);
 
 Tile* GetTile(TileMap* tileMap, int x, int y);
 void SetTile(TileMap* tileMap, int x, int y, Tile* srcTile);
+
+// TODO uses an allocation can this be changed
+void GetSurroundingTiles(TileMap* tileMap, int x, int y, int boxWidth, int boxHeight,
+	Tile* outTiles[]);
 
 TileType* GetTileInfo(TileMap* tileMap, uint32_t tileId);
