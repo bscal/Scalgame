@@ -67,12 +67,12 @@ bool LoadTileSet(Texture2D* tileTexture,
 void LoadTileMap(TileMap* tileMap)
 {
 	SetRandomSeed(0);
-	for (int y = 0; y < tileMap->MapHeight; ++y)
+	for (uint32_t y = 0; y < tileMap->MapHeight; ++y)
 	{
-		for (int x = 0; x < tileMap->MapWidth; ++x)
+		for (uint32_t x = 0; x < tileMap->MapWidth; ++x)
 		{
-			int index = x + y * tileMap->MapWidth;
-			int tileId = GetRandomValue(0, 2);
+			uint32_t index = x + y * tileMap->MapWidth;
+			int tileId = GetRandomValue(1, 2);
 
 			Tile tile{};
 			tile.TileId = (uint32_t)tileId;
@@ -88,23 +88,24 @@ void UnloadTileMap(TileMap* tileMap)
 	MemFree(tileMap);
 }
 
+// TODO remove
 global_var Tile* OutTiles[5 * 5 * 5];
 global_var bool DisableFow = false;
 
 void RenderTileMap(Game* game, TileMap* tileMap)
 {
-	const float fowValues[5] = { 0.0f, 0.25f, 0.5f, 0.75f, 1.0f };
+	float fowValues[5] = { 0.0f, 0.25f, 0.5f, 0.75f, 1.0f };
+	float fowAlphas[5] = { 1.0f, 1.0f, 1.0f, 1.0f, 1.0f };
 	Vector4 colorFullVision = ColorNormalize(WHITE);
 	Vector4 colorNoVision = ColorNormalize(DARKGRAY);
 
 	Texture2D mapTexture = tileMap->TileSet->TileTexture;
 
 	Player p = game->Player;
-	GetSurroundingTiles(
+	GetSurroundingTilesRadius(
 		tileMap,
 		p.TilePosition.x,
 		p.TilePosition.y,
-		5,
 		5,
 		OutTiles);
 
@@ -118,11 +119,11 @@ void RenderTileMap(Game* game, TileMap* tileMap)
 	if (IsKeyPressed(KEY_F1))
 		DisableFow = !DisableFow;
 
-	for (int y = 0; y < tileMap->MapHeight; ++y)
+	for (uint32_t y = 0; y < tileMap->MapHeight; ++y)
 	{
-		for (int x = 0; x < tileMap->MapWidth; ++x)
+		for (uint32_t x = 0; x < tileMap->MapWidth; ++x)
 		{
-			int index = x + y * tileMap->MapWidth;
+			uint32_t index = x + y * tileMap->MapWidth;
 			float xPos = (float)x * (float)tileMap->MapTileSize;
 			float yPos = (float)y * (float)tileMap->MapTileSize;
 			Tile tile = tileMap->MapTiles[index];
@@ -136,7 +137,7 @@ void RenderTileMap(Game* game, TileMap* tileMap)
 			finalColor.x = Lerp(colorNoVision.x, colorFullVision.x, fowValue);
 			finalColor.y = Lerp(colorNoVision.y, colorFullVision.y, fowValue);
 			finalColor.z = Lerp(colorNoVision.z, colorFullVision.z, fowValue);
-			finalColor.w = 1.0f;
+			finalColor.w = fowAlphas[(uint8_t)tile.Fow];
 
 			Color color = ColorFromNormalized(finalColor);
 			#if SCAL_DEBUG
@@ -180,7 +181,7 @@ void SetTile(TileMap* tileMap, int x, int y, Tile* srcTile)
 	tileMap->MapTiles[index] = *srcTile;
 }
 
-void GetSurroundingTiles(TileMap* tileMap, int x, int y, int boxWidth, int boxHeight,
+void GetSurroundingTilesBox(TileMap* tileMap, int x, int y, int boxWidth, int boxHeight,
 	Tile* outTiles[])
 {
 	int startX = x - boxWidth;
@@ -192,17 +193,54 @@ void GetSurroundingTiles(TileMap* tileMap, int x, int y, int boxWidth, int boxHe
 	{
 		for (int xi = startX; xi <= endX; ++xi)
 		{
-			int index = xi + yi * tileMap->MapWidth;
 			if (IsInBounds(xi, yi, tileMap->MapWidth, tileMap->MapHeight))
-				outTiles[i] = &tileMap->MapTiles[index];
+				outTiles[i] = &tileMap->MapTiles[xi + yi * tileMap->MapWidth];
 			else
-			{
 				outTiles[i] = nullptr;
-			}
 			++i;
 		}
 	}
 }
+
+// bounds check for array
+void GetSurroundingTilesRadius(TileMap* tileMap,
+	int x, int y,
+	float radius,
+	Tile** outTiles)
+{
+	int startX = x - (int)radius;
+	int startY = y - (int)radius;
+	int endX = x + (int)radius;
+	int endY = y + (int)radius;
+	int i = 0;
+	for (int yi = startY; yi <= endY; ++yi)
+	{
+		for (int xi = startX; xi <= endX; ++xi)
+		{
+			if (IsInBounds(xi, yi, tileMap->MapWidth, tileMap->MapHeight)
+				&& Distance(x, y, xi, yi) < radius)
+				outTiles[i] = &tileMap->MapTiles[xi + yi * tileMap->MapWidth];
+			else
+				outTiles[i] = nullptr;
+			++i;
+		}
+	}
+}
+
+float Distance(float x0, float y0, float x1, float y1)
+{
+	float xL = x1 - x0;
+	float yL = y1 - y0;
+	return (float)sqrt(xL * xL + yL * yL);
+}
+
+int DistanceInTiles(int x0, int y0, int x1, int y1)
+{
+	int xL = x1 - x0;
+	int yL = y1 - y0;
+	return xL + yL;
+}
+
 
 TileType* GetTileInfo(TileMap* tileMap, uint32_t tileId)
 {

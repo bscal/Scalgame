@@ -67,8 +67,18 @@ bool IsInBounds(int x, int y, int width, int height);
 Tile* GetTile(TileMap* tileMap, int x, int y);
 void SetTile(TileMap* tileMap, int x, int y, Tile* srcTile);
 
-// TODO uses an allocation can this be changed
-void GetSurroundingTiles(TileMap* tileMap, int x, int y, int boxWidth, int boxHeight,
+// TODO whenever i add dynamic arrays should use those
+
+void GetSurroundingTilesBox(TileMap* tileMap,
+	int x, int y,
+	int boxWidth, int boxHeight,
 	Tile* outTiles[]);
+
+void GetSurroundingTilesRadius(TileMap* tileMap,
+	int x, int y,
+	float radius,
+	Tile** outTiles);
+
+float Distance(float x0, float y0, float x1, float y1);
 
 TileType* GetTileInfo(TileMap* tileMap, uint32_t tileId);

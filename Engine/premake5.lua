@@ -55,6 +55,7 @@ project "Engine"
 
     postbuildcommands
     {
-        ("{COPYDIR} %{wks.location}/bin/" .. outputdir .. "/%{prj.name}/Engine.dll %{wks.location}/bin/" .. outputdir .. "/%{prj.name}/../Game/")
+        ("{COPYFILE} %{wks.location}bin/" .. outputdir .. "/%{prj.name}/Engine.dll "
+            .. "%{wks.location}bin/" .. outputdir .. "/%{prj.name}/../Game/Engine.dll")
     }
 
