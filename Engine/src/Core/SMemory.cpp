@@ -9,17 +9,12 @@ namespace Memory
 
 // TODO for now use standard malloc but should probably switch
 
-void InitializeMemory()
-{
-
-}
-
 void* Alloc(size_t size)
 {
 	return malloc(size);
 }
 
-void* CAlloc(size_t size)
+void* AllocZero(size_t size)
 {
 	return calloc(size, size);
 }

@@ -79,6 +79,9 @@ void GetSurroundingTilesRadius(TileMap* tileMap,
 	float radius,
 	Tile** outTiles);
 
+void GetTilesInCone(TileMap* tileMap, float playerAngle, 
+	float x, float y, int distance, Tile** outTiles);
+
 float Distance(float x0, float y0, float x1, float y1);
 
 TileType* GetTileInfo(TileMap* tileMap, uint32_t tileId);

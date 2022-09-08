@@ -9,6 +9,8 @@
 #define local_persist static
 #define global_var static
 
+#define TAO ((float)PI * 2.0f)
+
 #ifdef SCAL_PLATFORM_WINDOWS
 #ifdef SCAL_BUILD_DLL
 #define ENGINE_API __declspec(dllexport)

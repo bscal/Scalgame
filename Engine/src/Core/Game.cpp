@@ -15,16 +15,12 @@ ENGINE_API bool GameApplication::Start()
     InitWindow(screenWidth, screenHeight, "Some roguelike game");
     //SetTargetFPS(60);
 
-    Resources = (struct Resources*)Scal::Memory::CAlloc(sizeof(struct Resources));
+    Resources = (struct Resources*)Scal::Memory::AllocZero(sizeof(struct Resources));
 
     InitializeResources(Resources);
-
     InitiailizeDebugWindow(&Resources->MainFont, 10, 30, DARKGREEN);
 
-    Game = (struct Game*)Scal::Memory::CAlloc(sizeof(struct Game));
-    Game->Camera.target = { 0, 0 };
-    Game->Camera.offset = { screenWidth / 2.0f, screenHeight / 2.0f };
-    Game->Camera.rotation = 0.0f;
+    Game = (struct Game*)Scal::Memory::AllocZero(sizeof(struct Game));
     Game->Camera.zoom = 2.0f;
 
     InitializeTileMap(&Resources->MainTileSet,
@@ -98,6 +94,16 @@ ENGINE_API void GameApplication::Run()
 
         RenderTileMap(Game, &Game->World.MainTileMap);
         RenderPlayer(this, &Game->Player);
+
+
+        float playerAngle = AngleFromDirection(Game->Player.LookDirection);
+        Vector2i playerTilePos = Game->Player.TilePosition;
+        GetTilesInCone(&Game->World.MainTileMap,
+            playerAngle,
+            playerTilePos.x * 16.0f + 8.0f,
+            playerTilePos.y * 16.0f + 8.0f, 
+            5 * 16,
+            nullptr);
 
         EndMode2D();
 

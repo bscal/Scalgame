@@ -3,6 +3,8 @@
 #include "Game.h"
 #include "TileMap.h"
 
+#include <cassert>
+
 bool InitializePlayer(GameApplication* gameApp, Player* outPlayer)
 {
 	outPlayer->Position = { 0, 0 };
@@ -29,7 +31,8 @@ void RenderPlayer(GameApplication* gameApp, Player* player)
 {
 	Rectangle rect = player->TexturePosition;
 
-	if (player->LookDirection == Direction::West)
+	if (player->LookDirection == Direction::West ||
+		player->LookDirection == Direction::South)
 		rect.width = -rect.width;
 
 	DrawTextureRec(
@@ -40,19 +43,29 @@ void RenderPlayer(GameApplication* gameApp, Player* player)
 
 }
 
+constexpr global_var float DirectionAngles[4] =
+	{ 0.75f * TAO, 0.0f * TAO, 0.25f * TAO, 0.5f * TAO };
+
+float AngleFromDirection(Direction dir)
+{
+	assert((uint8_t)dir > -1);
+	assert((uint8_t)dir < 4);
+	return DirectionAngles[(uint8_t)dir];
+}
+
 void MovePlayer(GameApplication* gameApp, Player* player, int tileX, int tileY)
 {
 	Vector2i playerTilePos = player->TilePosition;
 	Vector2i newPlayerTilePos = { playerTilePos.x + tileX, playerTilePos.y + tileY };
 
 	if (tileX < 0)
-	{
 		player->LookDirection = Direction::West;
-	} 
 	else if (tileX > 0)
-	{
 		player->LookDirection = Direction::East;
-	}
+	else if (tileY < 0)
+		player->LookDirection = Direction::North;
+	else if (tileY > 0)
+		player->LookDirection = Direction::South;
 
 	TileMap* tileMap = &gameApp->Game->World.MainTileMap;
 	if (!IsInBounds(newPlayerTilePos.x, newPlayerTilePos.y,
