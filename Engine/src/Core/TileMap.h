@@ -17,8 +17,8 @@ struct TileSet
 	// TODO should a TileSet have a unique Texture?
 	Texture2D TileTexture;
 	TileType* TileTypes;
-	uint16_t TextureTileWidth;
-	uint16_t TextureTileHeight;
+	uint32_t TextureTileWidth;
+	uint32_t TextureTileHeight;
 };
 
 enum class FOWLevel : uint8_t
@@ -79,8 +79,10 @@ void GetSurroundingTilesRadius(TileMap* tileMap,
 	float radius,
 	Tile** outTiles);
 
-void GetTilesInCone(TileMap* tileMap, float playerAngle, 
-	float x, float y, int distance, Tile** outTiles);
+void GetTilesInCone(TileMap* tileMap, float playerAngle,
+	float playerFov, float x, float y,
+	int fowardX, int fowardY, float distance,
+	Tile** outTiles);
 
 float Distance(float x0, float y0, float x1, float y1);
 

@@ -2,7 +2,7 @@
 
 #include "SMemory.h"
 
-ENGINE_API bool GameApplication::Start()
+SAPI bool GameApplication::Start()
 {
     if (IsInitialized)
     {
@@ -36,12 +36,12 @@ ENGINE_API bool GameApplication::Start()
     return IsInitialized = true;
 }
 
-ENGINE_API void GameApplication::Shutdown()
+SAPI void GameApplication::Shutdown()
 {
     CloseWindow();
 }
 
-ENGINE_API void GameApplication::Run()
+SAPI void GameApplication::Run()
 {
     TraceLog(LOG_INFO, "Game Running...");
     IsRunning = true;
@@ -94,16 +94,6 @@ ENGINE_API void GameApplication::Run()
 
         RenderTileMap(Game, &Game->World.MainTileMap);
         RenderPlayer(this, &Game->Player);
-
-
-        float playerAngle = AngleFromDirection(Game->Player.LookDirection);
-        Vector2i playerTilePos = Game->Player.TilePosition;
-        GetTilesInCone(&Game->World.MainTileMap,
-            playerAngle,
-            playerTilePos.x * 16.0f + 8.0f,
-            playerTilePos.y * 16.0f + 8.0f, 
-            5 * 16,
-            nullptr);
 
         EndMode2D();
 

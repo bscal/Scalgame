@@ -46,17 +46,29 @@ void RenderPlayer(GameApplication* gameApp, Player* player)
 constexpr global_var float DirectionAngles[4] =
 	{ 0.75f * TAO, 0.0f * TAO, 0.25f * TAO, 0.5f * TAO };
 
+constexpr global_var Vector2i PlayerFowardVectors[4] =
+	{ { 0, -1 }, { 1, 0 }, { 0, 1 }, { -1, 0 } };
+
 float AngleFromDirection(Direction dir)
 {
 	assert((uint8_t)dir > -1);
-	assert((uint8_t)dir < 4);
+	assert((uint8_t)dir < (uint8_t)Direction::MaxDirections);
 	return DirectionAngles[(uint8_t)dir];
+}
+
+Vector2i PlayerFoward(Player* player)
+{
+	assert((uint8_t)player->LookDirection > -1);
+	assert((uint8_t)player->LookDirection < (uint8_t)Direction::MaxDirections);
+	return PlayerFowardVectors[(uint8_t)player->LookDirection];
 }
 
 void MovePlayer(GameApplication* gameApp, Player* player, int tileX, int tileY)
 {
 	Vector2i playerTilePos = player->TilePosition;
-	Vector2i newPlayerTilePos = { playerTilePos.x + tileX, playerTilePos.y + tileY };
+	Vector2i newPlayerTilePos = playerTilePos;
+	newPlayerTilePos.x += tileX;
+	newPlayerTilePos.y += tileY;
 
 	if (tileX < 0)
 		player->LookDirection = Direction::West;
@@ -84,8 +96,8 @@ void MovePlayer(GameApplication* gameApp, Player* player, int tileX, int tileY)
 	{
 		player->TilePosition.x = newPlayerTilePos.x;
 		player->TilePosition.y = newPlayerTilePos.y;
-		player->Position.x += tileX * 16;
-		player->Position.y += tileY * 16;
+		player->Position.x += (float)tileX * 16.0f;
+		player->Position.y += (float)tileY * 16.0f;
 	}
 
 }

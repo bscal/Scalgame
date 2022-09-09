@@ -2,6 +2,7 @@
 
 #include "Game.h"
 #include "SMemory.h"
+#include "SArray.h"
 #include "raymath.h"
 
 #include <cassert>
@@ -102,19 +103,19 @@ void RenderTileMap(Game* game, TileMap* tileMap)
 	Texture2D mapTexture = tileMap->TileSet->TileTexture;
 
 	Player p = game->Player;
-	GetSurroundingTilesRadius(
-		tileMap,
-		p.TilePosition.x,
-		p.TilePosition.y,
-		5,
-		OutTiles);
-
-	for (int i = 0; i < 5 * 5 * 5; ++i)
-	{
-		Tile* tile = OutTiles[i];
-		if (tile == nullptr) continue;
-		tile->Fow = FOWLevel::FullVision;
-	}
+	
+	float playerAngle = AngleFromDirection(p.LookDirection);
+	Vector2i playerTilePos = p.TilePosition;
+	Vector2i fowardPlayer = PlayerFoward(&p);
+	GetTilesInCone(tileMap,
+		playerAngle,
+		60.0f * DEG2RAD,
+		(float)(p.Position.x / 16.0f) + 0.5f,
+		(float)(p.Position.y / 16.0f) + 0.5f,
+		fowardPlayer.x,
+		fowardPlayer.y,
+		24.0f,
+		nullptr);
 
 	if (IsKeyPressed(KEY_F1))
 		DisableFow = !DisableFow;
@@ -148,19 +149,11 @@ void RenderTileMap(Game* game, TileMap* tileMap)
 			tileMap->MapTiles[index].Fow = FOWLevel::NoVision;
 		}
 	}
-
-	DrawRectangleLinesEx(
-		{ 0, 0,
-		(float)tileMap->MapWidth * (float)tileMap->MapTileSize,
-		(float)tileMap->MapHeight * (float)tileMap->MapTileSize
-		},
-		2.5f,
-		RED);
 }
 
 bool IsInBounds(int x, int y, int width, int height)
 {
-	return x >= 0 && x < width&& y >= 0 && y < height;
+	return x >= 0 && x < width && y >= 0 && y < height;
 }
 
 Tile* GetTile(TileMap* tileMap, int x, int y)
@@ -218,7 +211,7 @@ void GetSurroundingTilesRadius(TileMap* tileMap,
 		for (int xi = startX; xi <= endX; ++xi)
 		{
 			if (IsInBounds(xi, yi, tileMap->MapWidth, tileMap->MapHeight)
-				&& Distance(x, y, xi, yi) < radius)
+				&& Distance((float)x, (float)y, (float)xi, (float)yi) < radius)
 				outTiles[i] = &tileMap->MapTiles[xi + yi * tileMap->MapWidth];
 			else
 				outTiles[i] = nullptr;
@@ -227,90 +220,249 @@ void GetSurroundingTilesRadius(TileMap* tileMap,
 	}
 }
 
-void PlotLine(int x1, int y1, int x2, int y2)
+void Raytrace2DInt(int x0, int y0, int x1, int y1, bool* values)
 {
-	int delta_x(x2 - x1);
-	// if x1 == x2, then it does not matter what we set here
-	signed char const ix = ((delta_x > 0) - (delta_x < 0));
-	delta_x = abs(delta_x) << 1;
-
-	int delta_y(y2 - y1);
-	// if y1 == y2, then it does not matter what we set here
-	signed char const iy = ((delta_y > 0) - (delta_y < 0));
-	delta_y = abs(delta_y) << 1;
-
-	DrawCircle(x1, y1, 1.0f, GREEN);
-
-	// error may go below zero
-	int error = (delta_y - (delta_x >> 1));
-
-	if (delta_x >= delta_y)
+	int dx = abs(x1 - x0);
+	int dy = abs(y1 - y0);
+	int x = x0;
+	int y = y0;
+	int n = 1 + dx + dy;
+	int xInc = (x1 > x0) ? 1 : -1;
+	int yInc = (y1 > y0) ? 1 : -1;
+	int error = dx - dy;
+	dx *= 2;
+	dy *= 2;
+	for (; n > 0; --n)
 	{
-		while (x1 != x2)
+		if (IsInBounds(x, y, 64, 64))
+			values[x + y * 64] = true;
+		//DrawCircle(x, y, 1, PURPLE);
+
+		if (error > 0)
 		{
-			// reduce error, while taking into account the corner case of error == 0
-			if ((error > 0) || (!error && (ix > 0)))
-			{
-				error -= delta_x;
-				y1 += iy;
-			}
-			// else do nothing
-
-			error += delta_y;
-			x1 += ix;
-			DrawCircle(x1, y1, 1.0f, GREEN);
-		}
-	}
-	else
-	{
-		while (y1 != y2)
+			x += xInc;
+			error -= dy;
+		} else
 		{
-			// reduce error, while taking into account the corner case of error == 0
-			if ((error > 0) || (!error && (iy > 0)))
-			{
-				error -= delta_y;
-				x1 += ix;
-			}
-			// else do nothing
-
-			error += delta_x;
-			y1 += iy;
-
-			DrawCircle(x1, y1, 1.0f, GREEN);
+			y += yInc;
+			error += dx;
 		}
 	}
 }
 
-void GetTilesInCone(TileMap* tileMap, float playerAngle,
-	float x, float y, int distance, Tile** outTiles)
+void Raytrace2D(float x0, float y0, float x1, float y1, bool* values)
 {
-	float playerFov = (90.0f / 2.0f) * (float)DEG2RAD;
+	float dx = fabsf(x1 - x0);
+	float dy = fabsf(y1 - y0);
+	int x = (int)floorf(x0);
+	int y = (int)floorf(y0);
+	int n = 1;
+	int xInc;
+	int yInc;
+	float error;
+	if (dx == 0)
+	{
+		xInc = 0;
+		error = INFINITY;
+	} else if (x1 > x0)
+	{
+		xInc = 1;
+		n += (int)floorf(x1) - x;
+		error = (floorf(x0) + 1 - x0) * dy;
+	} else
+	{
+		xInc = -1;
+		n += x - (int)floorf(x1);
+		error = (x0 - floorf(x0)) * dy;
+	}
 
+	if (dy == 0)
+	{
+		yInc = 0;
+		error -= INFINITY;
+	} else if (y1 > y0)
+	{
+		yInc = 1;
+		n += (int)floorf(y1) - y;
+		error -= (floorf(y0) + 1 - y0) * dx;
+	} else
+	{
+		yInc = -1;
+		n += y - (int)floorf(y1);
+		error -= (y0 - floorf(y0)) * dx;
+	}
+
+	for (; n > 0; --n)
+	{
+		if (IsInBounds(x, y, 64, 64))
+			values[x + y * 64] = true;
+
+		if (error > 0.0f)
+		{
+			y += yInc;
+			error -= dx;
+		} else
+		{
+			x += xInc;
+			error += dy;
+		}
+	}
+}
+
+void Raytrace(float x0, float y0, float x1, float y1, bool* values)
+{
+	float dx = fabsf(x1 - x0);
+	float dy = fabsf(y1 - y0);
+	int x = (int)floorf(x0);
+	int y = (int)floorf(y0);
+	float dt_dx = (1.0f / dx);
+	float dt_dy = (1.0f / dy);
+	float t = 0.0f;
+	int n = 1;
+	int xInc;
+	int yInc;
+	float tNextVertical;
+	float tNextHorizontal;
+	if (dx == 0)
+	{
+		xInc = 0;
+		tNextHorizontal = dt_dx;
+	}
+	else if (x1 > x0)
+	{
+		xInc = 1;
+		n += (int)floorf(x1) - x;
+		tNextHorizontal = (floorf(x0) + 1 - x0) * dt_dx;
+	}
+	else
+	{
+		xInc = -1;
+		n += x - (int)floorf(x1);
+		tNextHorizontal = (x0 - floorf(x0)) * dt_dx;
+	}
+
+	if (dy == 0)
+	{
+		yInc = 0;
+		tNextVertical = dt_dy;
+	} else if (y1 > y0)
+	{
+		yInc = 1;
+		n += (int)floorf(y1) - y;
+		tNextVertical = (floorf(y0) + 1 - y0) * dt_dy;
+	} else
+	{
+		yInc = -1;
+		n += y - (int)floorf(y1);
+		tNextVertical = (y0 - floorf(y0)) * dt_dy;
+	}
+
+	for (; n > 0; --n)
+	{
+		if (IsInBounds(x, y, 64, 64))
+			values[x + y * 64] = true;
+
+		if (tNextVertical < tNextHorizontal)
+		{
+			y += yInc;
+			t = tNextVertical;
+			tNextVertical += dt_dy;
+		}
+		else
+		{
+			x += xInc;
+			t = tNextHorizontal;
+			tNextHorizontal += dt_dx;
+		}
+	}
+}
+
+using namespace Scal::Array;
+
+global_var SArray CoordArray;
+
+void FloodFill(TileMap* tileMap, int x, int y, bool* values)
+{
+	if (!CoordArray.Memory)
+	{
+		ArrayCreate(64 * 64, sizeof(Vector2i), &CoordArray);
+	}
+
+	ArrayClear(&CoordArray);
+
+	Vector2i startCoord = { x, y };
+	ArrayPush(&CoordArray, &startCoord);
+
+	while (CoordArray.Length > 0)
+	{
+		Vector2i popCoord = {};
+		ArrayPop(&CoordArray, &popCoord);
+		int index = popCoord.x + popCoord.y * 64;
+		if (IsInBounds(popCoord.x, popCoord.y, 64, 64) && !values[index])
+		{
+			values[index] = true;
+
+			Vector2i coord = { popCoord.x + 1, popCoord.y };
+			ArrayPush(&CoordArray, &coord);
+
+			coord = { popCoord.x - 1, popCoord.y };
+			ArrayPush(&CoordArray, &coord);
+
+			coord = { popCoord.x, popCoord.y + 1 };
+			ArrayPush(&CoordArray, &coord);
+
+			coord = { popCoord.x, popCoord.y - 1 };
+			ArrayPush(&CoordArray, &coord);
+		}
+	}
+}
+
+global_var bool Values[64 * 64];
+
+void GetTilesInCone(TileMap* tileMap, float playerAngle,
+	float playerFov, float x, float y,
+	int fowardX, int fowardY, float distance,
+	Tile** outTiles)
+{
+	playerFov /= 2;
 	float x0 = cosf(playerAngle + playerFov);
 	float y0 = sinf(playerAngle + playerFov);
 	float x1 = cosf(playerAngle - playerFov);
 	float y1 = sinf(playerAngle - playerFov);
 
 	Vector2 pos0 = { x0, y0 };
-	pos0 = Vector2Normalize(pos0);
 	pos0 = Vector2Scale(pos0, distance);
 
 	Vector2 pos1 = { x1, y1 };
-	pos1 = Vector2Normalize(pos1);
 	pos1 = Vector2Scale(pos1, distance);
 
-	int xp0 = (int)x + (int)pos0.x;
-	int yp0 = (int)y + (int)pos0.y;
-	int xp1 = (int)x + (int)pos1.x;
-	int yp1 = (int)y + (int)pos1.y;
+	Vector3 posFoward = { fowardX * distance, fowardY * distance };
 
-	PlotLine(x, y, xp0, yp0);
-	PlotLine(xp0, yp0, xp1, yp1);
-	PlotLine(x, y, xp1, yp1);
+	float xx = x;
+	float yy = y;
+	float xp0 = xx + pos0.x;
+	float yp0 = yy + pos0.y;
+	float xp1 = xx + pos1.x;
+	float yp1 = yy + pos1.y;
+	float fp0 = xx + posFoward.x;
+	float fp1 = yy + posFoward.y;
+	
+	Scal::Memory::Clear(Values, 64 * 64);
 
-	DrawLine(x, y, x + pos0.x, y + pos0.y, RED);
-	DrawLine(x + pos0.x, y + pos0.y, x + pos1.x, y + pos1.y, RED);
-	DrawLine(x, y, x + pos1.x, y + pos1.y, RED);
+	Raytrace(xx, yy, xp0, yp0, Values);
+	Raytrace(fp0, fp1, xp0, yp0, Values);
+	Raytrace(fp0, fp1, xp1, yp1, Values);
+	Raytrace(xx, yy, xp1, yp1, Values);
+
+	int mapSize = tileMap->MapWidth * tileMap->MapHeight;
+	FloodFill(tileMap, x + (fowardX * 2), y + (fowardY * 2), Values);
+	for (int i = 0; i < mapSize; ++i)
+	{
+		if (Values[i])
+		{
+			tileMap->MapTiles[i].Fow = FOWLevel::FullVision;
+		}
+	}
 }
 
 
@@ -338,7 +490,6 @@ int DistanceInTiles(int x0, int y0, int x1, int y1)
 
 TileType* GetTileInfo(TileMap* tileMap, uint32_t tileId)
 {
-	assert(tileId <
-		tileMap->TileSet->TextureTileWidth* tileMap->TileSet->TextureTileHeight);
+	assert(tileId < tileMap->TileSet->TextureTileWidth * tileMap->TileSet->TextureTileHeight);
 	return &tileMap->TileSet->TileTypes[tileId];
 }

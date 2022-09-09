@@ -24,7 +24,7 @@ void* ReAlloc(void* block, size_t size)
 	return realloc(block, size);
 }
 
-void Copy(void* dst, void* src, size_t size)
+void Copy(void* dst, const void* src, size_t size)
 {
 	memcpy(dst, src, size);
 }

@@ -24,9 +24,9 @@ struct GameApplication
     bool IsRunning;
     bool IsSuspended;
 
-    ENGINE_API bool Start();
-    ENGINE_API void Shutdown();
-    ENGINE_API void Run();
+    SAPI bool Start();
+    SAPI void Shutdown();
+    SAPI void Run();
 };
 
 void UpdateTime(GameApplication* gameApp, int timeChange);
