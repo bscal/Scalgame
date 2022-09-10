@@ -6,17 +6,32 @@ struct Game;
 
 // TODO Think about moving TileType into Tile structure
 
-struct TileType
+enum class TileVisibilty : uint8_t
+{
+	Empty = 0,
+	Solid
+};
+
+enum class TileType : uint8_t
+{
+	Empty = 0,
+	Solid,
+	Floor,
+	Liquid
+};
+
+struct TileData
 {
 	Rectangle TextureSrcRectangle;
-	uint16_t MovementCost;
+	short MovementCost;
+	TileVisibilty TileVisibilty;
+	TileType TileType;
 };
 
 struct TileSet
 {
-	// TODO should a TileSet have a unique Texture?
 	Texture2D TileTexture;
-	TileType* TileTypes;
+	TileData* TileDataArray;
 	uint32_t TextureTileWidth;
 	uint32_t TextureTileHeight;
 };
@@ -43,10 +58,11 @@ struct TileMap
 {
 	TileSet* TileSet;
 	Tile* MapTiles;
+	uint64_t MapSize;
 	uint32_t MapWidth;
 	uint32_t MapHeight;
 	uint16_t MapTileSize;
-	float MapHalfTileSize;
+	uint16_t MapHalfTileSize;
 };
 
 bool LoadTileSet(Texture2D* tileTexture,
@@ -62,28 +78,31 @@ void LoadTileMap(TileMap* tileMap);
 void UnloadTileMap(TileMap* tileMap);
 void RenderTileMap(Game* game, TileMap* tileMap);
 
-bool IsInBounds(int x, int y, int width, int height);
+bool IsInBounds(int tileX, int tileY, int width, int height);
 
-Tile* GetTile(TileMap* tileMap, int x, int y);
-void SetTile(TileMap* tileMap, int x, int y, Tile* srcTile);
+Tile* GetTile(TileMap* tileMap, int tileX, int tileY);
+void SetTile(TileMap* tileMap, int tileX, int tileY, Tile* srcTile);
+TileData* GetTileData(TileMap* tileMap, uint32_t tileId);
 
 // TODO whenever i add dynamic arrays should use those
 
 void GetSurroundingTilesBox(TileMap* tileMap,
 	int x, int y,
 	int boxWidth, int boxHeight,
-	Tile* outTiles[]);
+	Tile** outTiles);
 
 void GetSurroundingTilesRadius(TileMap* tileMap,
 	int x, int y,
 	float radius,
 	Tile** outTiles);
 
-void GetTilesInCone(TileMap* tileMap, float playerAngle,
-	float playerFov, float x, float y,
-	int fowardX, int fowardY, float distance,
-	Tile** outTiles);
+void GetSurronding(TileMap* tileMap, float x, float y,
+	int resolution, float distance);
+
+void GetTilesInCone(TileMap* tileMap,
+	float playerAngle, float playerFov,
+	float x, float y, float distance);
 
 float Distance(float x0, float y0, float x1, float y1);
 
-TileType* GetTileInfo(TileMap* tileMap, uint32_t tileId);
+TileData* GetTileInfo(TileMap* tileMap, uint32_t tileId);

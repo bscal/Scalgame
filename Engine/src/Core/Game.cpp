@@ -1,6 +1,7 @@
 #include "Game.h"
 
 #include "SMemory.h"
+#include "raymath.h"
 
 SAPI bool GameApplication::Start()
 {
@@ -82,13 +83,32 @@ SAPI void GameApplication::Run()
             Game->Camera.rotation = 0.0f;
         }
 
+        if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
+        {
+            // LocalToWorld
+            Matrix invMatCamera =
+                MatrixInvert(GetCameraMatrix2D(Game->Camera));
+            Vector3 transform = Vector3Transform(
+                { (float)GetMouseX(), (float)GetMouseY(), 0.0f }, invMatCamera);
+            
+            int x = transform.x / 16;
+            int y = transform.y / 16;
+            if (IsInBounds(x, y, 64, 64))
+            {
+                Tile tile = {};
+                tile.Fow = FOWLevel::NoVision;
+                tile.TileId = 4;
+                SetTile(&Game->World.MainTileMap, x, y, &tile);
+            }
+        }
+
         UpdatePlayer(this, &Game->Player);
 
         // ***************
         // Render
         // ***************
         BeginDrawing();
-        ClearBackground(RAYWHITE);
+        ClearBackground(BLACK);
        
         BeginMode2D(Game->Camera);
 
@@ -100,7 +120,6 @@ SAPI void GameApplication::Run()
         // ***************
         // UI
         // ***************
-
         UpdateDebugWindow();
         //BeginShaderMode(Resources.SDFFont.Shader);
 

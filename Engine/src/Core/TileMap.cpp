@@ -3,24 +3,26 @@
 #include "Game.h"
 #include "SMemory.h"
 #include "SArray.h"
+#include "Structures/DirectAccessTable.h"
 #include "raymath.h"
 
 #include <cassert>
+
 
 bool InitializeTileMap(TileSet* tileSet,
 	uint32_t width, uint32_t height,
 	uint16_t tileSize, TileMap* outTileMap)
 {
 	outTileMap->TileSet = tileSet;
+	outTileMap->MapSize = width * height;
 	outTileMap->MapWidth = width;
 	outTileMap->MapHeight = height;
 	outTileMap->MapTileSize = tileSize;
-	outTileMap->MapHalfTileSize = (float)tileSize / 2.0f;
+	outTileMap->MapHalfTileSize = tileSize / 2;
 	outTileMap->MapTiles =
-		(Tile*)Scal::Memory::Alloc(width * height * sizeof(Tile));
+		(Tile*)Scal::Memory::Alloc(outTileMap->MapSize * sizeof(Tile));
 
 	TraceLog(LOG_INFO, "Initialized TileMap");
-
 	return true;
 }
 
@@ -35,8 +37,8 @@ bool LoadTileSet(Texture2D* tileTexture,
 	int width = tileTexture->width / tileSizeWidth;
 	int height = tileTexture->height / tileSizeHeight;
 	int totalTiles = width * height;
-	outTileSet->TileTypes =
-		(TileType*)Scal::Memory::Alloc(totalTiles * sizeof(TileType));
+	outTileSet->TileDataArray =
+		(TileData*)Scal::Memory::Alloc(totalTiles * sizeof(TileData));
 
 	for (int y = 0; y < height; ++y)
 	{
@@ -51,11 +53,18 @@ bool LoadTileSet(Texture2D* tileTexture,
 			float rectH = tileSizeHeight;
 			Rectangle rect = { rectX, rectY, rectW, rectH };
 
-			TileType tileType{};
+			TileData tileType{};
 			tileType.TextureSrcRectangle = rect;
 			tileType.MovementCost = 1;
+			tileType.TileVisibilty = TileVisibilty::Empty;
+			tileType.TileType = TileType::Floor;
 
-			outTileSet->TileTypes[i] = tileType;
+			if (i == 4)
+			{
+				tileType.TileType = TileType::Solid;
+			}
+
+			outTileSet->TileDataArray[i] = tileType;
 		}
 	}
 
@@ -89,8 +98,7 @@ void UnloadTileMap(TileMap* tileMap)
 	MemFree(tileMap);
 }
 
-// TODO remove
-global_var Tile* OutTiles[5 * 5 * 5];
+// TODO should be moved
 global_var bool DisableFow = false;
 
 void RenderTileMap(Game* game, TileMap* tileMap)
@@ -98,24 +106,25 @@ void RenderTileMap(Game* game, TileMap* tileMap)
 	float fowValues[5] = { 0.0f, 0.25f, 0.5f, 0.75f, 1.0f };
 	float fowAlphas[5] = { 1.0f, 1.0f, 1.0f, 1.0f, 1.0f };
 	Vector4 colorFullVision = ColorNormalize(WHITE);
-	Vector4 colorNoVision = ColorNormalize(DARKGRAY);
+	Vector4 colorNoVision = ColorNormalize(BLACK);
 
 	Texture2D mapTexture = tileMap->TileSet->TileTexture;
 
 	Player p = game->Player;
-	
 	float playerAngle = AngleFromDirection(p.LookDirection);
-	Vector2i playerTilePos = p.TilePosition;
+	float playerTileX = (float)p.TilePosition.x + 0.5f;
+	float playerTileY = (float)p.TilePosition.y + 0.5f;
 	Vector2i fowardPlayer = PlayerFoward(&p);
+
+	GetSurronding(tileMap, playerTileX, playerTileY,
+		8, 2.0f);
+
 	GetTilesInCone(tileMap,
 		playerAngle,
-		60.0f * DEG2RAD,
-		(float)(p.Position.x / 16.0f) + 0.5f,
-		(float)(p.Position.y / 16.0f) + 0.5f,
-		fowardPlayer.x,
-		fowardPlayer.y,
-		24.0f,
-		nullptr);
+		145.0f / 360.0f,
+		playerTileX,
+		playerTileY,
+		24.0f);
 
 	if (IsKeyPressed(KEY_F1))
 		DisableFow = !DisableFow;
@@ -130,7 +139,7 @@ void RenderTileMap(Game* game, TileMap* tileMap)
 			Tile tile = tileMap->MapTiles[index];
 			uint32_t tileId = tile.TileId;
 			Rectangle textRect =
-				tileMap->TileSet->TileTypes[tileId].TextureSrcRectangle;
+				tileMap->TileSet->TileDataArray[tileId].TextureSrcRectangle;
 			Vector2 pos = { xPos, yPos };
 
 			float fowValue = fowValues[(uint8_t)tile.Fow];
@@ -151,31 +160,36 @@ void RenderTileMap(Game* game, TileMap* tileMap)
 	}
 }
 
-bool IsInBounds(int x, int y, int width, int height)
+bool IsInBounds(int tileX, int tileY, int width, int height)
 {
-	return x >= 0 && x < width && y >= 0 && y < height;
+	return tileX >= 0 && tileX < width&& tileY >= 0 && tileY < height;
 }
 
-Tile* GetTile(TileMap* tileMap, int x, int y)
+Tile* GetTile(TileMap* tileMap, int tileX, int tileY)
 {
-	assert(x >= 0 && x < tileMap->MapWidth);
-	assert(y >= 0 && y < tileMap->MapHeight);
+	assert(tileX >= 0 && tileX < tileMap->MapWidth);
+	assert(tileY >= 0 && tileY < tileMap->MapHeight);
 
-	int index = x + y * tileMap->MapWidth;
+	int index = tileX + tileY * tileMap->MapWidth;
 	return &tileMap->MapTiles[index];
 }
 
-void SetTile(TileMap* tileMap, int x, int y, Tile* srcTile)
+void SetTile(TileMap* tileMap, int tileX, int tileY, Tile* srcTile)
 {
-	assert(x >= 0 && x < tileMap->MapWidth);
-	assert(y >= 0 && y < tileMap->MapHeight);
+	assert(tileX >= 0 && tileX < tileMap->MapWidth);
+	assert(tileY >= 0 && tileY < tileMap->MapHeight);
 
-	int index = x + y * tileMap->MapWidth;
+	int index = tileX + tileY * tileMap->MapWidth;
 	tileMap->MapTiles[index] = *srcTile;
 }
 
+TileData* GetTileData(TileMap* tileMap, uint32_t tileId)
+{
+	return &tileMap->TileSet->TileDataArray[tileId];
+}
+
 void GetSurroundingTilesBox(TileMap* tileMap, int x, int y, int boxWidth, int boxHeight,
-	Tile* outTiles[])
+	Tile** outTiles)
 {
 	int startX = x - boxWidth;
 	int startY = y - boxHeight;
@@ -220,7 +234,8 @@ void GetSurroundingTilesRadius(TileMap* tileMap,
 	}
 }
 
-void Raytrace2DInt(int x0, int y0, int x1, int y1, bool* values)
+void Raytrace2DInt(TileMap* tileMap, int x0, int y0, int x1, int y1,
+	bool (OnVisit)(TileMap* tileMap, int x, int y))
 {
 	int dx = abs(x1 - x0);
 	int dy = abs(y1 - y0);
@@ -234,9 +249,8 @@ void Raytrace2DInt(int x0, int y0, int x1, int y1, bool* values)
 	dy *= 2;
 	for (; n > 0; --n)
 	{
-		if (IsInBounds(x, y, 64, 64))
-			values[x + y * 64] = true;
-		//DrawCircle(x, y, 1, PURPLE);
+		if (OnVisit(tileMap, x, y))
+			return;
 
 		if (error > 0)
 		{
@@ -327,14 +341,12 @@ void Raytrace(float x0, float y0, float x1, float y1, bool* values)
 	{
 		xInc = 0;
 		tNextHorizontal = dt_dx;
-	}
-	else if (x1 > x0)
+	} else if (x1 > x0)
 	{
 		xInc = 1;
 		n += (int)floorf(x1) - x;
 		tNextHorizontal = (floorf(x0) + 1 - x0) * dt_dx;
-	}
-	else
+	} else
 	{
 		xInc = -1;
 		n += x - (int)floorf(x1);
@@ -367,8 +379,7 @@ void Raytrace(float x0, float y0, float x1, float y1, bool* values)
 			y += yInc;
 			t = tNextVertical;
 			tNextVertical += dt_dy;
-		}
-		else
+		} else
 		{
 			x += xInc;
 			t = tNextHorizontal;
@@ -377,18 +388,23 @@ void Raytrace(float x0, float y0, float x1, float y1, bool* values)
 	}
 }
 
+// TODO hardcoded arrays for floodfill
 using namespace Scal::Array;
-
+using namespace Scal::DirectAccess;
 global_var SArray CoordArray;
+global_var Scal::DirectAccessTable VisitedTable;
 
+// Needs some work, Needs some way of storing visited values
+// more reliably
 void FloodFill(TileMap* tileMap, int x, int y, bool* values)
 {
 	if (!CoordArray.Memory)
 	{
-		ArrayCreate(64 * 64, sizeof(Vector2i), &CoordArray);
+		ArrayCreate(tileMap->MapSize, sizeof(Vector2i), &CoordArray);
+		DATCreate(tileMap->MapSize, &VisitedTable);
 	}
-
 	ArrayClear(&CoordArray);
+	DATClear(&VisitedTable);
 
 	Vector2i startCoord = { x, y };
 	ArrayPush(&CoordArray, &startCoord);
@@ -397,11 +413,10 @@ void FloodFill(TileMap* tileMap, int x, int y, bool* values)
 	{
 		Vector2i popCoord = {};
 		ArrayPop(&CoordArray, &popCoord);
+
 		int index = popCoord.x + popCoord.y * 64;
 		if (IsInBounds(popCoord.x, popCoord.y, 64, 64) && !values[index])
 		{
-			values[index] = true;
-
 			Vector2i coord = { popCoord.x + 1, popCoord.y };
 			ArrayPush(&CoordArray, &coord);
 
@@ -417,60 +432,85 @@ void FloodFill(TileMap* tileMap, int x, int y, bool* values)
 	}
 }
 
-global_var bool Values[64 * 64];
-
-void GetTilesInCone(TileMap* tileMap, float playerAngle,
-	float playerFov, float x, float y,
-	int fowardX, int fowardY, float distance,
-	Tile** outTiles)
+internal bool OnVisitSurroundingTile(TileMap* tileMap, int x, int y)
 {
-	playerFov /= 2;
-	float x0 = cosf(playerAngle + playerFov);
-	float y0 = sinf(playerAngle + playerFov);
-	float x1 = cosf(playerAngle - playerFov);
-	float y1 = sinf(playerAngle - playerFov);
-
-	Vector2 pos0 = { x0, y0 };
-	pos0 = Vector2Scale(pos0, distance);
-
-	Vector2 pos1 = { x1, y1 };
-	pos1 = Vector2Scale(pos1, distance);
-
-	Vector3 posFoward = { fowardX * distance, fowardY * distance };
-
-	float xx = x;
-	float yy = y;
-	float xp0 = xx + pos0.x;
-	float yp0 = yy + pos0.y;
-	float xp1 = xx + pos1.x;
-	float yp1 = yy + pos1.y;
-	float fp0 = xx + posFoward.x;
-	float fp1 = yy + posFoward.y;
-	
-	Scal::Memory::Clear(Values, 64 * 64);
-
-	Raytrace(xx, yy, xp0, yp0, Values);
-	Raytrace(fp0, fp1, xp0, yp0, Values);
-	Raytrace(fp0, fp1, xp1, yp1, Values);
-	Raytrace(xx, yy, xp1, yp1, Values);
-
-	int mapSize = tileMap->MapWidth * tileMap->MapHeight;
-	FloodFill(tileMap, x + (fowardX * 2), y + (fowardY * 2), Values);
-	for (int i = 0; i < mapSize; ++i)
+	if (IsInBounds(x, y, tileMap->MapWidth, tileMap->MapHeight))
 	{
-		if (Values[i])
-		{
-			tileMap->MapTiles[i].Fow = FOWLevel::FullVision;
-		}
+		int index = x + y * tileMap->MapWidth;
+		Tile tile = tileMap->MapTiles[index];
+		tile.Fow = FOWLevel::FullVision;
+		TileData* tileData = GetTileData(tileMap, tile.TileId);
+		tileMap->MapTiles[index] = tile;
+		return tileData->TileType == TileType::Solid;
+	}
+	return false;
+}
+
+void GetSurronding(TileMap* tileMap, float x, float y,
+	int resolution, float distance)
+{
+	constexpr float startAngle = 0.0f * TAO;
+	constexpr float endAngle = 1.0f * TAO;
+	for (int i = 0; i < resolution; ++i)
+	{
+		float t = Lerp(startAngle, endAngle, (float)i / (float)resolution - 1.0f);
+		float angleX = cosf(t);
+		float angleY = sinf(t);
+		float vX = x + angleX * distance;
+		float vY = y + angleY * distance;
+		Raytrace2DInt(tileMap, x, y, vX, vY, OnVisitSurroundingTile);
 	}
 }
 
-
-
-constexpr Vector2 CenterOfTile(TileMap* tileMap)
+internal bool OnVisitTile(TileMap* tileMap, int x, int y)
 {
-	float halfTileSize = tileMap->MapTileSize / 2.0f;
-	return { halfTileSize, halfTileSize };
+	if (IsInBounds(x, y, tileMap->MapWidth, tileMap->MapHeight))
+	{
+		int index = x + y * tileMap->MapWidth;
+		tileMap->MapTiles[index].Fow = FOWLevel::FullVision;
+		uint32_t tileId = tileMap->MapTiles[index].TileId;
+		TileData* data = GetTileData(tileMap, tileId);
+		return data->TileType == TileType::Solid;
+	}
+	return false;
+}
+
+void GetTilesInCone(TileMap* tileMap,
+	float playerAngle, float playerFov,
+	float x, float y,
+	float distance)
+{
+	playerFov /= 2;
+	float startAngle = 0.0f * TAO;
+	float endAngle = playerFov * TAO;
+	int resolution = 40;
+	for (int i = 0; i < resolution; ++i)
+	{
+		float t = Lerp(startAngle, endAngle, (float)i / (float)resolution);
+		float x0 = cosf(playerAngle + t);
+		float y0 = sinf(playerAngle + t);
+		float x1 = cosf(playerAngle - t);
+		float y1 = sinf(playerAngle - t);
+
+		float xPos0 = x + x0 * distance;
+		float yPos0 = y + y0 * distance;
+		float xPos1 = x + x1 * distance;
+		float yPos1 = y + y1 * distance;
+
+		Raytrace2DInt(tileMap, x, y, xPos0, yPos0, OnVisitTile);
+		Raytrace2DInt(tileMap, x, y, xPos1, yPos1, OnVisitTile);
+	}
+
+	//Raytrace2DInt(x, y, xFowardPos, yFowardPos, Values);
+	//Raytrace2DInt(xFowardPos, yFowardPos, xPos0, yPos0, Values);
+	//Raytrace2DInt(xFowardPos, yFowardPos, xPos1, yPos1, Values);
+	//int fillStartX = (int)x + ((int)fowardX * 2);
+	//int fillStartY = (int)y + ((int)fowardY * 2);
+	//FloodFill(tileMap, fillStartX, fillStartY);
+	//for (int i = 0; i < tileMap->MapSize; ++i)
+	//{
+	//	if (Values[i]) tileMap->MapTiles[i].Fow = FOWLevel::FullVision;
+	//}
 }
 
 float Distance(float x0, float y0, float x1, float y1)
@@ -488,8 +528,8 @@ int DistanceInTiles(int x0, int y0, int x1, int y1)
 }
 
 
-TileType* GetTileInfo(TileMap* tileMap, uint32_t tileId)
+TileData* GetTileInfo(TileMap* tileMap, uint32_t tileId)
 {
-	assert(tileId < tileMap->TileSet->TextureTileWidth * tileMap->TileSet->TextureTileHeight);
-	return &tileMap->TileSet->TileTypes[tileId];
+	assert(tileId < tileMap->TileSet->TextureTileWidth* tileMap->TileSet->TextureTileHeight);
+	return &tileMap->TileSet->TileDataArray[tileId];
 }
