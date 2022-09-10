@@ -89,8 +89,8 @@ void MovePlayer(GameApplication* gameApp, Player* player, int tileX, int tileY)
 	Tile* tile = GetTile(tileMap, playerTilePos.x, playerTilePos.y);
 	Tile* tileMoveTo = GetTile(tileMap, newPlayerTilePos.x, newPlayerTilePos.y);
 
-	TileData* tileType = GetTileInfo(tileMap, tile->TileId);
-	TileData* tileTypeMoveTo = GetTileInfo(tileMap, tileMoveTo->TileId);
+	TileData* tileType = GetTileData(tileMap, tile->TileId);
+	TileData* tileTypeMoveTo = GetTileData(tileMap, tileMoveTo->TileId);
 
 	if (ProcessEnergy(gameApp, player, tileTypeMoveTo->MovementCost))
 	{

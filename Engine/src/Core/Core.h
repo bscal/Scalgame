@@ -29,6 +29,16 @@ struct Vector2i
 {
 	int x;
 	int y;
+
+	inline bool operator==(Vector2i other) const
+	{
+		return x == other.x && y == other.y;
+	}
+
+	inline bool operator!=(Vector2i other) const
+	{
+		return x != other.x && y != other.y;
+	}
 };
 
 struct Vector2ui

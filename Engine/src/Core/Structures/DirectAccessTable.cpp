@@ -7,33 +7,33 @@ namespace Scal
 namespace DirectAccess
 {
 
-void DATCreate(size_t length, DirectAccessTable* outTable)
+void DASCreate(size_t length, DirectAccessSet* outTable)
 {
 	outTable->Length = length;
 	outTable->Memory = (bool*)Memory::AllocZero(length);
 }
 
-void DATFree(DirectAccessTable* table)
+void DASFree(DirectAccessSet* table)
 {
 	Memory::Free(table->Memory);
 }
 
-void DATInsert(DirectAccessTable* table, size_t index)
+void DASInsert(DirectAccessSet* table, size_t index)
 {
 	table->Memory[index] = true;
 }
 
-bool DATContains(DirectAccessTable* table, size_t index)
+bool DASContains(DirectAccessSet* table, size_t index)
 {
 	return table->Memory[index];
 }
 
-void DATRemove(DirectAccessTable* table, size_t index)
+void DASRemove(DirectAccessSet* table, size_t index)
 {
 	table->Memory[index] = false;
 }
 
-void DATClear(DirectAccessTable* table)
+void DASClear(DirectAccessSet* table)
 {
 	Memory::Clear(table->Memory, table->Length);
 }

@@ -5,7 +5,7 @@
 namespace Scal
 {
 
-struct DirectAccessTable
+struct DirectAccessSet
 {
 	bool* Memory;
 	size_t Length;
@@ -14,12 +14,12 @@ struct DirectAccessTable
 namespace DirectAccess
 {
 
-void DATCreate(size_t length, DirectAccessTable* outTable);
-void DATFree(DirectAccessTable* table);
-void DATInsert(DirectAccessTable* table, size_t index);
-bool DATContains(DirectAccessTable* table, size_t index);
-void DATRemove(DirectAccessTable* table, size_t index);
-void DATClear(DirectAccessTable* table);
+void DASCreate(size_t length, DirectAccessSet* outTable);
+void DASFree(DirectAccessSet* table);
+void DASInsert(DirectAccessSet* table, size_t index);
+bool DASContains(DirectAccessSet* table, size_t index);
+void DASRemove(DirectAccessSet* table, size_t index);
+void DASClear(DirectAccessSet* table);
 
 }
 

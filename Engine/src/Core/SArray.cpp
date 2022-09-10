@@ -6,8 +6,7 @@
 
 namespace Scal
 {
-namespace Array
-{
+
 bool SArrayIterator::HasNext() const
 {
 	return Index <= Array->Length;
@@ -42,7 +41,7 @@ void SArrayIterator::Remove()
 	}
 }
 
-SAPI void ArrayCreate(uint64_t capacity, uint64_t stride, SArray* outSArray)
+SAPI void ArrayCreate(uint64_t capacity, uint64_t stride, ResizableArray* outSArray)
 {
 	assert(outSArray);
 	if (outSArray->Memory)
@@ -50,21 +49,21 @@ SAPI void ArrayCreate(uint64_t capacity, uint64_t stride, SArray* outSArray)
 		TraceLog(LOG_ERROR, "outSArray Memory is already allocated!");
 		return;
 	}
-	SArray sArray = {};
-	sArray.Memory = (SArray*)Memory::Alloc(capacity * stride);
+	ResizableArray sArray = {};
+	sArray.Memory = (ResizableArray*)Memory::Alloc(capacity * stride);
 	sArray.Capacity = capacity;
 	sArray.Stride = stride;
 	*outSArray = sArray;
 }
 
-SAPI void ArrayDestroy(SArray* sArray)
+SAPI void ArrayDestroy(ResizableArray* sArray)
 {
 	assert(sArray);
 	assert(sArray->Memory);
 	Memory::Free(sArray->Memory);
 }
 
-SAPI SArray* ArrayResize(SArray* sArray)
+SAPI ResizableArray* ArrayResize(ResizableArray* sArray)
 {
 	assert(sArray);
 	assert(sArray->Memory);
@@ -74,12 +73,12 @@ SAPI SArray* ArrayResize(SArray* sArray)
 	return sArray;
 }
 
-SAPI uint64_t GetArrayMemorySize(SArray* sArray)
+SAPI uint64_t GetArrayMemorySize(ResizableArray* sArray)
 {
 	return sArray->Capacity * sArray->Stride;
 }
 
-SAPI void ArrayPush(SArray* sArray, const void* valuePtr)
+SAPI void ArrayPush(ResizableArray* sArray, const void* valuePtr)
 {
 	if (sArray->Length >= sArray->Capacity)
 	{
@@ -91,7 +90,7 @@ SAPI void ArrayPush(SArray* sArray, const void* valuePtr)
 	++sArray->Length;
 }
 
-SAPI void ArrayPop(SArray* sArray, void* dest)
+SAPI void ArrayPop(ResizableArray* sArray, void* dest)
 {
 	if (sArray->Length == 0) return;
 	uint64_t offset = (sArray->Length - 1) * sArray->Stride;
@@ -100,7 +99,7 @@ SAPI void ArrayPop(SArray* sArray, void* dest)
 	--sArray->Length;
 }
 
-SAPI void ArraySetAt(SArray* sArray, uint64_t index, const void* valuePtr)
+SAPI void ArraySetAt(ResizableArray* sArray, uint64_t index, const void* valuePtr)
 {
 	assert(index <= sArray->Length);
 
@@ -109,7 +108,7 @@ SAPI void ArraySetAt(SArray* sArray, uint64_t index, const void* valuePtr)
 	Memory::Copy(dest, valuePtr, sArray->Stride);
 }
 
-SAPI void ArrayPopAt(SArray* sArray, uint64_t index, void* dest)
+SAPI void ArrayPopAt(ResizableArray* sArray, uint64_t index, void* dest)
 {
 	assert(index <= sArray->Length);
 
@@ -126,7 +125,7 @@ SAPI void ArrayPopAt(SArray* sArray, uint64_t index, void* dest)
 	--sArray->Length;
 }
 
-SAPI void* ArrayPeekAt(SArray* sArray, uint64_t index)
+SAPI void* ArrayPeekAt(ResizableArray* sArray, uint64_t index)
 {
 	assert(index <= sArray->Length);
 
@@ -134,9 +133,9 @@ SAPI void* ArrayPeekAt(SArray* sArray, uint64_t index)
 	return (char*)(sArray->Memory) + offset;
 }
 
-SAPI void ArrayClear(SArray* sArray)
+SAPI void ArrayClear(ResizableArray* sArray)
 {
 	sArray->Length = 0;
 }
-}
+
 }

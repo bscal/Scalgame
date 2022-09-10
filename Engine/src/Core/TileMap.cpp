@@ -8,6 +8,10 @@
 
 #include <cassert>
 
+// TODO hardcoded arrays for floodfill
+using namespace Scal::DirectAccess;
+global_var Scal::ResizableArray CoordArray;
+global_var Scal::DirectAccessSet VisitedTable;
 
 bool InitializeTileMap(TileSet* tileSet,
 	uint32_t width, uint32_t height,
@@ -47,14 +51,8 @@ bool LoadTileSet(Texture2D* tileTexture,
 			int i = x + y * width;
 			float xTexturePos = (float)x * (float)tileSizeWidth;
 			float yTexturePos = (float)y * (float)tileSizeHeight;
-			float rectX = xTexturePos;
-			float rectY = yTexturePos;
-			float rectW = tileSizeWidth;
-			float rectH = tileSizeHeight;
-			Rectangle rect = { rectX, rectY, rectW, rectH };
-
-			TileData tileType{};
-			tileType.TextureSrcRectangle = rect;
+			TileData tileType = {};
+			tileType.TextureCoord = { xTexturePos, yTexturePos };
 			tileType.MovementCost = 1;
 			tileType.TileVisibilty = TileVisibilty::Empty;
 			tileType.TileType = TileType::Floor;
@@ -74,6 +72,15 @@ bool LoadTileSet(Texture2D* tileTexture,
 	return true;
 }
 
+Tile CreateTile(TileMap* tileMap, uint32_t tileId)
+{
+	Tile tile;
+	tile.TexturePosition = tileMap->TileSet->TileDataArray[tileId].TextureCoord;
+	tile.TileId = tileId;
+	tile.Fow = FOWLevel::NoVision;
+	return tile;
+}
+
 void LoadTileMap(TileMap* tileMap)
 {
 	SetRandomSeed(0);
@@ -82,12 +89,8 @@ void LoadTileMap(TileMap* tileMap)
 		for (uint32_t x = 0; x < tileMap->MapWidth; ++x)
 		{
 			uint32_t index = x + y * tileMap->MapWidth;
-			int tileId = GetRandomValue(1, 2);
-
-			Tile tile{};
-			tile.TileId = (uint32_t)tileId;
-			tile.Fow = FOWLevel::NoVision;
-			tileMap->MapTiles[index] = tile;
+			uint32_t tileId = GetRandomValue(1, 2);
+			tileMap->MapTiles[index] = CreateTile(tileMap, tileId);
 		}
 	}
 }
@@ -108,7 +111,7 @@ void RenderTileMap(Game* game, TileMap* tileMap)
 	Vector4 colorFullVision = ColorNormalize(WHITE);
 	Vector4 colorNoVision = ColorNormalize(BLACK);
 
-	Texture2D mapTexture = tileMap->TileSet->TileTexture;
+	TileSet* tileSet = tileMap->TileSet;
 
 	Player p = game->Player;
 	float playerAngle = AngleFromDirection(p.LookDirection);
@@ -137,10 +140,6 @@ void RenderTileMap(Game* game, TileMap* tileMap)
 			float xPos = (float)x * (float)tileMap->MapTileSize;
 			float yPos = (float)y * (float)tileMap->MapTileSize;
 			Tile tile = tileMap->MapTiles[index];
-			uint32_t tileId = tile.TileId;
-			Rectangle textRect =
-				tileMap->TileSet->TileDataArray[tileId].TextureSrcRectangle;
-			Vector2 pos = { xPos, yPos };
 
 			float fowValue = fowValues[(uint8_t)tile.Fow];
 			Vector4 finalColor;
@@ -154,7 +153,18 @@ void RenderTileMap(Game* game, TileMap* tileMap)
 			if (DisableFow) color = WHITE;
 			#endif
 
-			DrawTextureRec(mapTexture, textRect, pos, color);
+			Rectangle textureRect = {
+				tile.TexturePosition.x,
+				tile.TexturePosition.y,
+				tileSet->TextureTileWidth,
+				tileSet->TextureTileHeight
+			};
+			DrawTextureRec(
+				tileSet->TileTexture,
+				textureRect,
+				{ xPos, yPos }, 
+				color);
+
 			tileMap->MapTiles[index].Fow = FOWLevel::NoVision;
 		}
 	}
@@ -188,8 +198,9 @@ TileData* GetTileData(TileMap* tileMap, uint32_t tileId)
 	return &tileMap->TileSet->TileDataArray[tileId];
 }
 
-void GetSurroundingTilesBox(TileMap* tileMap, int x, int y, int boxWidth, int boxHeight,
-	Tile** outTiles)
+void GetSurroundingTilesBox(TileMap* tileMap,
+	int x, int y, int boxWidth, int boxHeight,
+	Scal::ResizableArray* outTiles)
 {
 	int startX = x - boxWidth;
 	int startY = y - boxHeight;
@@ -201,34 +212,35 @@ void GetSurroundingTilesBox(TileMap* tileMap, int x, int y, int boxWidth, int bo
 		for (int xi = startX; xi <= endX; ++xi)
 		{
 			if (IsInBounds(xi, yi, tileMap->MapWidth, tileMap->MapHeight))
-				outTiles[i] = &tileMap->MapTiles[xi + yi * tileMap->MapWidth];
-			else
-				outTiles[i] = nullptr;
+			{
+				Vector2i coord = { xi, yi };
+				Scal::ArrayPush(outTiles, &coord);
+			}
 			++i;
 		}
 	}
 }
 
-// bounds check for array
+
 void GetSurroundingTilesRadius(TileMap* tileMap,
-	int x, int y,
-	float radius,
-	Tile** outTiles)
+	float x, float y, float radius,
+	Scal::ResizableArray* outTiles)
 {
-	int startX = x - (int)radius;
-	int startY = y - (int)radius;
-	int endX = x + (int)radius;
-	int endY = y + (int)radius;
+	int startX = (int)x - (int)radius;
+	int startY = (int)y - (int)radius;
+	int endX = (int)x + (int)radius;
+	int endY = (int)y + (int)radius;
 	int i = 0;
 	for (int yi = startY; yi <= endY; ++yi)
 	{
 		for (int xi = startX; xi <= endX; ++xi)
 		{
 			if (IsInBounds(xi, yi, tileMap->MapWidth, tileMap->MapHeight)
-				&& Distance((float)x, (float)y, (float)xi, (float)yi) < radius)
-				outTiles[i] = &tileMap->MapTiles[xi + yi * tileMap->MapWidth];
-			else
-				outTiles[i] = nullptr;
+				&& Distance(x, y, (float)xi, (float)yi) < radius)
+			{
+				Vector2i coord = { xi, yi };
+				Scal::ArrayPush(outTiles, &coord);
+			}
 			++i;
 		}
 	}
@@ -388,11 +400,7 @@ void Raytrace(float x0, float y0, float x1, float y1, bool* values)
 	}
 }
 
-// TODO hardcoded arrays for floodfill
-using namespace Scal::Array;
-using namespace Scal::DirectAccess;
-global_var SArray CoordArray;
-global_var Scal::DirectAccessTable VisitedTable;
+
 
 // Needs some work, Needs some way of storing visited values
 // more reliably
@@ -401,10 +409,10 @@ void FloodFill(TileMap* tileMap, int x, int y, bool* values)
 	if (!CoordArray.Memory)
 	{
 		ArrayCreate(tileMap->MapSize, sizeof(Vector2i), &CoordArray);
-		DATCreate(tileMap->MapSize, &VisitedTable);
+		DASCreate(tileMap->MapSize, &VisitedTable);
 	}
 	ArrayClear(&CoordArray);
-	DATClear(&VisitedTable);
+	DASClear(&VisitedTable);
 
 	Vector2i startCoord = { x, y };
 	ArrayPush(&CoordArray, &startCoord);
@@ -525,11 +533,4 @@ int DistanceInTiles(int x0, int y0, int x1, int y1)
 	int xL = x1 - x0;
 	int yL = y1 - y0;
 	return xL + yL;
-}
-
-
-TileData* GetTileInfo(TileMap* tileMap, uint32_t tileId)
-{
-	assert(tileId < tileMap->TileSet->TextureTileWidth* tileMap->TileSet->TextureTileHeight);
-	return &tileMap->TileSet->TileDataArray[tileId];
 }

@@ -3,6 +3,7 @@
 #include <Engine.h>
 
 struct Game;
+struct ResizableArray;
 
 // TODO Think about moving TileType into Tile structure
 
@@ -22,7 +23,7 @@ enum class TileType : uint8_t
 
 struct TileData
 {
-	Rectangle TextureSrcRectangle;
+	Vector2 TextureCoord;
 	short MovementCost;
 	TileVisibilty TileVisibilty;
 	TileType TileType;
@@ -47,6 +48,7 @@ enum class FOWLevel : uint8_t
 
 struct Tile
 {
+	Vector2 TexturePosition;
 	uint32_t TileId;
 	FOWLevel Fow;
 };
@@ -84,25 +86,20 @@ Tile* GetTile(TileMap* tileMap, int tileX, int tileY);
 void SetTile(TileMap* tileMap, int tileX, int tileY, Tile* srcTile);
 TileData* GetTileData(TileMap* tileMap, uint32_t tileId);
 
-// TODO whenever i add dynamic arrays should use those
-
 void GetSurroundingTilesBox(TileMap* tileMap,
-	int x, int y,
-	int boxWidth, int boxHeight,
-	Tile** outTiles);
+	int x, int y, int boxWidth, int boxHeight,
+	ResizableArray* outTiles);
 
 void GetSurroundingTilesRadius(TileMap* tileMap,
-	int x, int y,
-	float radius,
-	Tile** outTiles);
+	int x, int y, float radius,
+	ResizableArray* outTiles);
 
-void GetSurronding(TileMap* tileMap, float x, float y,
-	int resolution, float distance);
+void GetSurronding(TileMap* tileMap, 
+	float x, float y, int resolution, float distance);
 
 void GetTilesInCone(TileMap* tileMap,
 	float playerAngle, float playerFov,
 	float x, float y, float distance);
 
 float Distance(float x0, float y0, float x1, float y1);
-
-TileData* GetTileInfo(TileMap* tileMap, uint32_t tileId);
+int DistanceInTiles(int x0, int y0, int x1, int y1);
