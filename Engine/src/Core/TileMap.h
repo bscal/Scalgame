@@ -82,6 +82,7 @@ void RenderTileMap(Game* game, TileMap* tileMap);
 
 bool IsInBounds(int tileX, int tileY, int width, int height);
 
+Tile CreateTile(TileMap* tileMap, uint32_t tileId);
 Tile* GetTile(TileMap* tileMap, int tileX, int tileY);
 void SetTile(TileMap* tileMap, int tileX, int tileY, Tile* srcTile);
 TileData* GetTileData(TileMap* tileMap, uint32_t tileId);
@@ -94,11 +95,15 @@ void GetSurroundingTilesRadius(TileMap* tileMap,
 	int x, int y, float radius,
 	ResizableArray* outTiles);
 
+void GetSurroundingTilesRadiusCallback(TileMap* tileMap,
+	float x, float y, float radius,
+	void (OnVisit)(TileMap* tileMap, int x, int y));
+
 void GetSurronding(TileMap* tileMap, 
 	float x, float y, int resolution, float distance);
 
 void GetTilesInCone(TileMap* tileMap,
-	float playerAngle, float playerFov,
+	float playerAngle, float playerFov, int resolution,
 	float x, float y, float distance);
 
 float Distance(float x0, float y0, float x1, float y1);

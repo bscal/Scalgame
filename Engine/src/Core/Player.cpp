@@ -18,13 +18,13 @@ bool InitializePlayer(GameApplication* gameApp, Player* outPlayer)
 void UpdatePlayer(GameApplication* gameApp, Player* player)
 {
 	if (IsKeyPressed(KEY_D))
-		MovePlayer(gameApp, player, 1, 0);
+		PlayerMove(gameApp, player, Direction::East);
 	else if (IsKeyPressed(KEY_A))
-		MovePlayer(gameApp, player, -1, 0);
+		PlayerMove(gameApp, player, Direction::West);
 	else if (IsKeyPressed(KEY_S))
-		MovePlayer(gameApp, player, 0, 1);
+		PlayerMove(gameApp, player, Direction::South);
 	else if (IsKeyPressed(KEY_W))
-		MovePlayer(gameApp, player, 0, -1);
+		PlayerMove(gameApp, player, Direction::North);
 }
 
 void RenderPlayer(GameApplication* gameApp, Player* player)
@@ -43,11 +43,11 @@ void RenderPlayer(GameApplication* gameApp, Player* player)
 
 }
 
-constexpr global_var float DirectionAngles[4] =
-	{ 0.75f * TAO, 0.0f * TAO, 0.25f * TAO, 0.5f * TAO };
+constexpr float DirectionAngles[4] =
+{ 0.75f * TAO, 0.0f * TAO, 0.25f * TAO, 0.5f * TAO };
 
-constexpr global_var Vector2i PlayerFowardVectors[4] =
-	{ { 0, -1 }, { 1, 0 }, { 0, 1 }, { -1, 0 } };
+constexpr Vector2i PlayerFowardVectors[4] =
+{ { 0, -1 }, { 1, 0 }, { 0, 1 }, { -1, 0 } };
 
 float AngleFromDirection(Direction dir)
 {
@@ -56,35 +56,30 @@ float AngleFromDirection(Direction dir)
 	return DirectionAngles[(uint8_t)dir];
 }
 
-Vector2i PlayerFoward(Player* player)
+Vector2i DirectionToVec(Direction dir)
 {
-	assert((uint8_t)player->LookDirection > -1);
-	assert((uint8_t)player->LookDirection < (uint8_t)Direction::MaxDirections);
-	return PlayerFowardVectors[(uint8_t)player->LookDirection];
+	assert((uint8_t)dir > -1);
+	assert((uint8_t)dir < (uint8_t)Direction::MaxDirections);
+	return PlayerFowardVectors[(uint8_t)dir];
 }
 
-void MovePlayer(GameApplication* gameApp, Player* player, int tileX, int tileY)
+Vector2i PlayerFoward(Player* player)
 {
-	Vector2i playerTilePos = player->TilePosition;
-	Vector2i newPlayerTilePos = playerTilePos;
-	newPlayerTilePos.x += tileX;
-	newPlayerTilePos.y += tileY;
+	return DirectionToVec(player->LookDirection);
+}
 
-	if (tileX < 0)
-		player->LookDirection = Direction::West;
-	else if (tileX > 0)
-		player->LookDirection = Direction::East;
-	else if (tileY < 0)
-		player->LookDirection = Direction::North;
-	else if (tileY > 0)
-		player->LookDirection = Direction::South;
-
+void PlayerMove(GameApplication* gameApp, Player* player, Direction direction)
+{
 	TileMap* tileMap = &gameApp->Game->World.MainTileMap;
+	Vector2i playerTilePos = player->TilePosition;
+	Vector2i newPlayerDir = DirectionToVec(direction);
+	Vector2i newPlayerTilePos = { playerTilePos.x + newPlayerDir.x, playerTilePos.y + newPlayerDir.y };
+
+	player->LookDirection = direction;
+
 	if (!IsInBounds(newPlayerTilePos.x, newPlayerTilePos.y,
 		tileMap->MapWidth, tileMap->MapHeight))
-	{
 		return;
-	}
 
 	Tile* tile = GetTile(tileMap, playerTilePos.x, playerTilePos.y);
 	Tile* tileMoveTo = GetTile(tileMap, newPlayerTilePos.x, newPlayerTilePos.y);
@@ -92,17 +87,19 @@ void MovePlayer(GameApplication* gameApp, Player* player, int tileX, int tileY)
 	TileData* tileType = GetTileData(tileMap, tile->TileId);
 	TileData* tileTypeMoveTo = GetTileData(tileMap, tileMoveTo->TileId);
 
-	if (ProcessEnergy(gameApp, player, tileTypeMoveTo->MovementCost))
+	if (tileTypeMoveTo->TileType == TileType::Solid)
+		return;
+
+	if (PlayerProcessEnergy(gameApp, player, tileTypeMoveTo->MovementCost))
 	{
 		player->TilePosition.x = newPlayerTilePos.x;
 		player->TilePosition.y = newPlayerTilePos.y;
-		player->Position.x += (float)tileX * 16.0f;
-		player->Position.y += (float)tileY * 16.0f;
+		player->Position.x += (float)newPlayerDir.x * 16.0f;
+		player->Position.y += (float)newPlayerDir.y * 16.0f;
 	}
-
 }
 
-bool ProcessEnergy(GameApplication* gameApp, Player* player, int cost)
+bool PlayerProcessEnergy(GameApplication* gameApp, Player* player, int cost)
 {
 	int newEnergy = player->Energy - cost;
 	if (newEnergy < 0) return false;

@@ -8,10 +8,8 @@
 
 #include <cassert>
 
-// TODO hardcoded arrays for floodfill
-using namespace Scal::DirectAccess;
-global_var Scal::ResizableArray CoordArray;
-global_var Scal::DirectAccessSet VisitedTable;
+// TODO temp
+global_var Scal::ResizableArray TilesInLOS;
 
 bool InitializeTileMap(TileSet* tileSet,
 	uint32_t width, uint32_t height,
@@ -25,6 +23,8 @@ bool InitializeTileMap(TileSet* tileSet,
 	outTileMap->MapHalfTileSize = tileSize / 2;
 	outTileMap->MapTiles =
 		(Tile*)Scal::Memory::Alloc(outTileMap->MapSize * sizeof(Tile));
+
+	Scal::ArrayCreate(width * height, sizeof(Vector2i), &TilesInLOS);
 
 	TraceLog(LOG_INFO, "Initialized TileMap");
 	return true;
@@ -74,7 +74,7 @@ bool LoadTileSet(Texture2D* tileTexture,
 
 Tile CreateTile(TileMap* tileMap, uint32_t tileId)
 {
-	Tile tile;
+	Tile tile = {};
 	tile.TexturePosition = tileMap->TileSet->TileDataArray[tileId].TextureCoord;
 	tile.TileId = tileId;
 	tile.Fow = FOWLevel::NoVision;
@@ -111,6 +111,8 @@ void RenderTileMap(Game* game, TileMap* tileMap)
 	Vector4 colorFullVision = ColorNormalize(WHITE);
 	Vector4 colorNoVision = ColorNormalize(BLACK);
 
+	//Scal::ArrayClear(&TilesInLOS);
+
 	TileSet* tileSet = tileMap->TileSet;
 
 	Player p = game->Player;
@@ -125,9 +127,31 @@ void RenderTileMap(Game* game, TileMap* tileMap)
 	GetTilesInCone(tileMap,
 		playerAngle,
 		145.0f / 360.0f,
+		32,
 		playerTileX,
 		playerTileY,
 		24.0f);
+
+	//for (int i = 0; i < TilesInLOS.Length; ++i)
+	//{
+	//	Vector2i coord = *(Vector2i*)Scal::ArrayPeekAt(&TilesInLOS, i);
+	//	if (coord.x > -1)
+	//	{
+	//		Tile* tile = GetTile(tileMap, coord.x, coord.y);
+	//		if (tile->Fow == FOWLevel::FullVision)
+	//		{
+	//			GetSurroundingTilesRadiusCallback(tileMap, coord.x, coord.y, 2.0f,
+	//			[](TileMap* tileMap, int x, int y)
+	//			{
+	//				Tile* tile = GetTile(tileMap, x, y);
+	//				if (tile->Fow != FOWLevel::FullVision)
+	//				{
+	//					tile->Fow = FOWLevel::PeripheralVision;
+	//				}
+	//			});
+	//		}
+	//	}
+	//}
 
 	if (IsKeyPressed(KEY_F1))
 		DisableFow = !DisableFow;
@@ -156,8 +180,8 @@ void RenderTileMap(Game* game, TileMap* tileMap)
 			Rectangle textureRect = {
 				tile.TexturePosition.x,
 				tile.TexturePosition.y,
-				tileSet->TextureTileWidth,
-				tileSet->TextureTileHeight
+				(float)tileSet->TextureTileWidth,
+				(float)tileSet->TextureTileHeight
 			};
 			DrawTextureRec(
 				tileSet->TileTexture,
@@ -240,6 +264,29 @@ void GetSurroundingTilesRadius(TileMap* tileMap,
 			{
 				Vector2i coord = { xi, yi };
 				Scal::ArrayPush(outTiles, &coord);
+			}
+			++i;
+		}
+	}
+}
+
+void GetSurroundingTilesRadiusCallback(TileMap* tileMap,
+	float x, float y, float radius,
+	void (OnVisit)(TileMap* tileMap, int x, int y))
+{
+	int startX = (int)x - (int)radius;
+	int startY = (int)y - (int)radius;
+	int endX = (int)x + (int)radius;
+	int endY = (int)y + (int)radius;
+	int i = 0;
+	for (int yi = startY; yi <= endY; ++yi)
+	{
+		for (int xi = startX; xi <= endX; ++xi)
+		{
+			if (IsInBounds(xi, yi, tileMap->MapWidth, tileMap->MapHeight)
+				&& Distance(x, y, (float)xi, (float)yi) < radius)
+			{
+				OnVisit(tileMap, xi, yi);
 			}
 			++i;
 		}
@@ -402,40 +449,39 @@ void Raytrace(float x0, float y0, float x1, float y1, bool* values)
 
 
 
-// Needs some work, Needs some way of storing visited values
+//  TODO Needs some work, Needs some way of storing visited values
 // more reliably
 void FloodFill(TileMap* tileMap, int x, int y, bool* values)
 {
-	if (!CoordArray.Memory)
-	{
-		ArrayCreate(tileMap->MapSize, sizeof(Vector2i), &CoordArray);
-		DASCreate(tileMap->MapSize, &VisitedTable);
-	}
-	ArrayClear(&CoordArray);
-	DASClear(&VisitedTable);
+	// TODO THIS IS BROKEN
+	assert(false);
+	//Scal::ArrayCreate(tileMap->MapSize, sizeof(Vector2i), 0);
+	//Scal::DATCreate(tileMap->MapSize, sizeof(Vector2i), 0);
+	//Scal::ArrayClear(&CoordArray);
+	//DASClear(&VisitedTable);
 
 	Vector2i startCoord = { x, y };
-	ArrayPush(&CoordArray, &startCoord);
+	//ArrayPush(&CoordArray, &startCoord);
 
-	while (CoordArray.Length > 0)
+	//while (CoordArray.Length > 0)
 	{
 		Vector2i popCoord = {};
-		ArrayPop(&CoordArray, &popCoord);
+		//ArrayPop(&CoordArray, &popCoord);
 
 		int index = popCoord.x + popCoord.y * 64;
 		if (IsInBounds(popCoord.x, popCoord.y, 64, 64) && !values[index])
 		{
 			Vector2i coord = { popCoord.x + 1, popCoord.y };
-			ArrayPush(&CoordArray, &coord);
+			//ArrayPush(&CoordArray, &coord);
 
 			coord = { popCoord.x - 1, popCoord.y };
-			ArrayPush(&CoordArray, &coord);
+			//ArrayPush(&CoordArray, &coord);
 
 			coord = { popCoord.x, popCoord.y + 1 };
-			ArrayPush(&CoordArray, &coord);
+			//ArrayPush(&CoordArray, &coord);
 
 			coord = { popCoord.x, popCoord.y - 1 };
-			ArrayPush(&CoordArray, &coord);
+			//ArrayPush(&CoordArray, &coord);
 		}
 	}
 }
@@ -470,6 +516,19 @@ void GetSurronding(TileMap* tileMap, float x, float y,
 	}
 }
 
+internal bool OnVisitTile2(TileMap* tileMap, int x, int y)
+{
+	if (IsInBounds(x, y, tileMap->MapWidth, tileMap->MapHeight))
+	{
+		int index = x + y * tileMap->MapWidth;
+		tileMap->MapTiles[index].Fow = FOWLevel::SemiVision;
+		uint32_t tileId = tileMap->MapTiles[index].TileId;
+		TileData* data = GetTileData(tileMap, tileId);
+		return data->TileType == TileType::Solid;
+	}
+	return false;
+}
+
 internal bool OnVisitTile(TileMap* tileMap, int x, int y)
 {
 	if (IsInBounds(x, y, tileMap->MapWidth, tileMap->MapHeight))
@@ -484,14 +543,32 @@ internal bool OnVisitTile(TileMap* tileMap, int x, int y)
 }
 
 void GetTilesInCone(TileMap* tileMap,
-	float playerAngle, float playerFov,
-	float x, float y,
-	float distance)
-{
+	float playerAngle, float playerFov, int resolution,
+	float x, float y, float distance)
+{	
+	//float o = ((playerFov + 30.0f / 360.0f) * TAO) / 2.0f;
 	playerFov /= 2;
 	float startAngle = 0.0f * TAO;
 	float endAngle = playerFov * TAO;
-	int resolution = 40;
+	//float endOther = o;
+
+	//for (int i = 0; i < 8; ++i)
+	//{
+	//	float t = Lerp(endAngle, endOther, (float)i / (float)8);
+	//	float x0 = cosf(playerAngle + t);
+	//	float y0 = sinf(playerAngle + t);
+	//	float x1 = cosf(playerAngle - t);
+	//	float y1 = sinf(playerAngle - t);
+
+	//	float xPos0 = x + x0 * distance;
+	//	float yPos0 = y + y0 * distance;
+	//	float xPos1 = x + x1 * distance;
+	//	float yPos1 = y + y1 * distance;
+
+	//	Raytrace2DInt(tileMap, x, y, xPos0, yPos0, OnVisitTile2);
+	//	Raytrace2DInt(tileMap, x, y, xPos1, yPos1, OnVisitTile2);
+	//}
+
 	for (int i = 0; i < resolution; ++i)
 	{
 		float t = Lerp(startAngle, endAngle, (float)i / (float)resolution);
@@ -508,17 +585,6 @@ void GetTilesInCone(TileMap* tileMap,
 		Raytrace2DInt(tileMap, x, y, xPos0, yPos0, OnVisitTile);
 		Raytrace2DInt(tileMap, x, y, xPos1, yPos1, OnVisitTile);
 	}
-
-	//Raytrace2DInt(x, y, xFowardPos, yFowardPos, Values);
-	//Raytrace2DInt(xFowardPos, yFowardPos, xPos0, yPos0, Values);
-	//Raytrace2DInt(xFowardPos, yFowardPos, xPos1, yPos1, Values);
-	//int fillStartX = (int)x + ((int)fowardX * 2);
-	//int fillStartY = (int)y + ((int)fowardY * 2);
-	//FloodFill(tileMap, fillStartX, fillStartY);
-	//for (int i = 0; i < tileMap->MapSize; ++i)
-	//{
-	//	if (Values[i]) tileMap->MapTiles[i].Fow = FOWLevel::FullVision;
-	//}
 }
 
 float Distance(float x0, float y0, float x1, float y1)

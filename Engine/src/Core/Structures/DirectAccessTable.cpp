@@ -4,40 +4,50 @@
 
 namespace Scal
 {
-namespace DirectAccess
-{
 
-void DASCreate(size_t length, DirectAccessSet* outTable)
+void DATCreate(size_t length, size_t stride, DirectAccessTable* outTable)
 {
 	outTable->Length = length;
-	outTable->Memory = (bool*)Memory::AllocZero(length);
+	outTable->Stride = stride;
+	outTable->ContainsMemory = (bool*)Memory::AllocZero(length);
+	outTable->ValuesMemory = Memory::AllocZero(length * stride);
 }
 
-void DASFree(DirectAccessSet* table)
+void DATFree(DirectAccessTable* table)
 {
-	Memory::Free(table->Memory);
+	Memory::Free(table->ContainsMemory);
+	Memory::Free(table->ValuesMemory);
 }
 
-void DASInsert(DirectAccessSet* table, size_t index)
+void DATInsert(DirectAccessTable* table, size_t index, const void* src)
 {
-	table->Memory[index] = true;
+	table->ContainsMemory[index] = true;
+	bool* dest = ((bool*)table->ValuesMemory) + (index * table->Stride);
+	Memory::Copy(dest, src, table->Stride);
 }
 
-bool DASContains(DirectAccessSet* table, size_t index)
+bool DATContains(DirectAccessTable* table, size_t index)
 {
-	return table->Memory[index];
+	return table->ContainsMemory[index];
 }
 
-void DASRemove(DirectAccessSet* table, size_t index)
+void DATGet(DirectAccessTable* table, size_t index, void* outDest)
 {
-	table->Memory[index] = false;
+	if (!table->ContainsMemory[index])
+		return;
+
+	bool* src = ((bool*)table->ValuesMemory) + (index * table->Stride);
+	Memory::Copy(outDest, src, table->Stride);
 }
 
-void DASClear(DirectAccessSet* table)
+void DATRemove(DirectAccessTable* table, size_t index)
 {
-	Memory::Clear(table->Memory, table->Length);
+	table->ContainsMemory[index] = false;
+}
+
+void DATClear(DirectAccessTable* table)
+{
+	Memory::Clear(table->ContainsMemory, table->Length);
 }
 
 }
-}
-

@@ -17,23 +17,15 @@ SAPI bool GameApplication::Start()
     //SetTargetFPS(60);
 
     Resources = (struct Resources*)Scal::Memory::AllocZero(sizeof(struct Resources));
-
     InitializeResources(Resources);
     InitiailizeDebugWindow(&Resources->MainFont, 10, 30, DARKGREEN);
 
     Game = (struct Game*)Scal::Memory::AllocZero(sizeof(struct Game));
+    InitializeTileMap(&Resources->MainTileSet, 64, 64, 16, &Game->World.MainTileMap);
+    LoadTileMap(&Game->World.MainTileMap);
+    InitializePlayer(this, &Game->Player);
     Game->Camera.zoom = 2.0f;
 
-    InitializeTileMap(&Resources->MainTileSet,
-        64,
-        64,
-        16,
-        &Game->World.MainTileMap
-    );
-    LoadTileMap(&Game->World.MainTileMap);
-
-    InitializePlayer(this, &Game->Player);
-   
     return IsInitialized = true;
 }
 
@@ -95,9 +87,7 @@ SAPI void GameApplication::Run()
             int y = transform.y / 16;
             if (IsInBounds(x, y, 64, 64))
             {
-                Tile tile = {};
-                tile.Fow = FOWLevel::NoVision;
-                tile.TileId = 4;
+                Tile tile = CreateTile(&Game->World.MainTileMap, 4);
                 SetTile(&Game->World.MainTileMap, x, y, &tile);
             }
         }
