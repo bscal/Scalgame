@@ -25,6 +25,11 @@
 #define Megabytes(n) (Kilobytes(n) * 1024)
 #define Gigabytes(n) (Megabytes(n) * 1024)
 
+#define BitGet(state, bit) ((state >> bit) & 1U)
+#define BitSet(state, bit) (state | 1U << bit)
+#define BitClear(state, bit) (state & ~(1U << bit))
+#define BitToggle(state, bit) (state ^ 1U << bit)
+
 struct Vector2i
 {
 	int x;

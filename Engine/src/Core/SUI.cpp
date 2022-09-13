@@ -25,6 +25,7 @@ applications, and to alter it and redistribute it freely, subject to the followi
 
 #include "Core.h"
 #include "SMemory.h"
+#include <stdio.h>
 
 #define RAYLIB_NUKLEAR_DEFAULT_ARC_SEGMENTS 20
 
@@ -358,4 +359,22 @@ void RenderUI(UIState* state)
 bool IsMouseHoveringUI(UIState* state)
 {
 	return nk_window_is_any_hovered(&state->Ctx) != 0;
+}
+
+void RenderMemoryUsage(UIState* state, uint64_t length, 
+	const uint32_t* usage, const char* const* usageName)
+{
+	if (nk_begin(&state->Ctx, "Memory Usage", { 10, 10, 240, 240 },
+		NK_WINDOW_BORDER | NK_WINDOW_MOVABLE | NK_WINDOW_SCALABLE |
+		NK_WINDOW_MINIMIZABLE | NK_WINDOW_TITLE))
+	{
+		for (int i = 0; i < length; ++i)
+		{
+			nk_layout_row_dynamic(&state->Ctx, 30, 1);
+			char str[32];
+			sprintf(str, "%s: %u", usageName[i], usage[i]);
+			nk_label(&state->Ctx, str, NK_TEXT_LEFT);
+		}
+	}
+	nk_end(&state->Ctx);
 }

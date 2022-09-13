@@ -1,6 +1,7 @@
 #include "SMemory.h"
 
 #include <memory>
+#include "SUI.h"
 
 namespace Scal
 {
@@ -34,6 +35,22 @@ void MemClear(void* block, size_t size)
 void MemFree(void* block)
 {
 	free(block);
+}
+
+constexpr global_var uint32_t MemoryTagUsage[MaxTags] = {};
+constexpr global_var const char* MemoryTagStrings[MaxTags] =
+{
+	"Unknown",
+	"Array",
+	"List",
+	"Application",
+	"Game",
+	"Resources",
+};
+
+void ShowMemoryUsage(UIState* uiState)
+{
+	RenderMemoryUsage(uiState, MaxTags, MemoryTagUsage, MemoryTagStrings);
 }
 
 }

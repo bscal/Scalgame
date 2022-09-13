@@ -2,9 +2,9 @@
 
 #include "Game.h"
 
-#include <cassert>
-#include <cstring>
-#include <cstdio>
+#include <assert.h>
+#include <string.h>
+#include <stdio.h>
 
 struct DebugWindowState
 {

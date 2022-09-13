@@ -1,13 +1,10 @@
 #include "SArray.h"
 
-#include "SMemory.h"
+#include "Core/SMemory.h"
 
-#include <cassert>
+#include <assert.h>
 
-namespace Scal
-{
-
-SAPI void ArrayCreate(uint64_t capacity, uint64_t stride, ResizableArray* outSArray)
+SAPI void ArrayCreate(uint64_t capacity, uint64_t stride, SArray* outSArray)
 {
 	assert(stride > 0, "capacity must be > 0");
 	assert(outSArray != nullptr, "outSArray cannot be nullptr");
@@ -15,7 +12,7 @@ SAPI void ArrayCreate(uint64_t capacity, uint64_t stride, ResizableArray* outSAr
 	if (capacity == 0)
 	{
 		TraceLog(LOG_WARNING, "capacity is equal to 0, setting to DEFAULT_SIZE");
-		capacity = ARRAY_DEFAULT_SIZE;
+		capacity = SARRAY_DEFAULT_SIZE;
 	}
 	if (outSArray->Memory)
 	{
@@ -23,14 +20,14 @@ SAPI void ArrayCreate(uint64_t capacity, uint64_t stride, ResizableArray* outSAr
 		return;
 	}
 
-	ResizableArray sArray = {};
-	sArray.Memory = (ResizableArray*)Memory::Alloc(capacity * stride);
+	SArray sArray = {};
+	sArray.Memory = (SArray*)MemAlloc(capacity * stride);
 	sArray.Capacity = capacity;
 	sArray.Stride = stride;
 	*outSArray = sArray;
 }
 
-SAPI void ArrayFree(ResizableArray* sArray)
+SAPI void ArrayFree(SArray* sArray)
 {
 	assert(sArray);
 	if (!sArray->Memory)
@@ -38,25 +35,25 @@ SAPI void ArrayFree(ResizableArray* sArray)
 		TraceLog(LOG_ERROR, "outSArray Memory is already freed!");
 		return;
 	}
-	Memory::Free(sArray->Memory);
+	Scal::MemFree(sArray->Memory);
 }
 
-SAPI void ArrayResize(ResizableArray* sArray)
+SAPI void ArrayResize(SArray* sArray)
 {
 	assert(sArray);
 	assert(sArray->Memory);
-	sArray->Capacity *= ARRAY_DEFAULT_RESIZE;
+	sArray->Capacity *= SARRAY_DEFAULT_RESIZE;
 	uint64_t newSize = sArray->Capacity * sArray->Stride;
-	sArray->Memory = Memory::ReAlloc(sArray->Memory, newSize);
+	sArray->Memory = Scal::MemRealloc(sArray->Memory, newSize);
 }
 
-SAPI uint64_t GetArrayMemorySize(ResizableArray* sArray)
+SAPI uint64_t GetArrayMemorySize(SArray* sArray)
 {
 	assert(sArray);
 	return sArray->Capacity * sArray->Stride;
 }
 
-SAPI void ArrayPush(ResizableArray* sArray, const void* valuePtr)
+SAPI void ArrayPush(SArray* sArray, const void* valuePtr)
 {
 	assert(sArray);
 	assert(sArray->Memory);
@@ -67,11 +64,11 @@ SAPI void ArrayPush(ResizableArray* sArray, const void* valuePtr)
 	}
 	uint64_t offset = sArray->Length * sArray->Stride;
 	char* dest = (char*)sArray->Memory;
-	Memory::Copy(dest + offset, valuePtr, sArray->Stride);
+	Scal::MemCopy(dest + offset, valuePtr, sArray->Stride);
 	++sArray->Length;
 }
 
-SAPI void ArrayPop(ResizableArray* sArray, void* dest)
+SAPI void ArrayPop(SArray* sArray, void* dest)
 {
 	assert(sArray);
 	assert(sArray->Memory);
@@ -79,11 +76,11 @@ SAPI void ArrayPop(ResizableArray* sArray, void* dest)
 	if (sArray->Length == 0) return;
 	uint64_t offset = (sArray->Length - 1) * sArray->Stride;
 	const char* src = (char*)(sArray->Memory);
-	Memory::Copy(dest, src + offset, sArray->Stride);
+	Scal::MemCopy(dest, src + offset, sArray->Stride);
 	--sArray->Length;
 }
 
-SAPI void ArraySetAt(ResizableArray* sArray, uint64_t index, const void* valuePtr)
+SAPI void ArraySetAt(SArray* sArray, uint64_t index, const void* valuePtr)
 {
 	assert(sArray);
 	assert(sArray->Memory);
@@ -91,10 +88,10 @@ SAPI void ArraySetAt(ResizableArray* sArray, uint64_t index, const void* valuePt
 
 	uint64_t offset = index * sArray->Stride;
 	char* dest = (char*)(sArray->Memory) + offset;
-	Memory::Copy(dest, valuePtr, sArray->Stride);
+	Scal::MemCopy(dest, valuePtr, sArray->Stride);
 }
 
-SAPI void ArrayPopAt(ResizableArray* sArray, uint64_t index, void* dest)
+SAPI void ArrayPopAt(SArray* sArray, uint64_t index, void* dest)
 {
 	assert(sArray);
 	assert(sArray->Memory);
@@ -102,18 +99,18 @@ SAPI void ArrayPopAt(ResizableArray* sArray, uint64_t index, void* dest)
 
 	uint64_t offset = index * sArray->Stride;
 	char* popAtAddress = (char*)(sArray->Memory) + offset;
-	Memory::Copy(dest, popAtAddress, sArray->Stride);
+	Scal::MemCopy(dest, popAtAddress, sArray->Stride);
 	if (index != sArray->Length)
 	{
 		// Moves last element in array popped position
 		uint64_t lastIndexOffset = sArray->Length * sArray->Stride;
 		char* lastIndexAddress = (char*)(sArray->Memory) + lastIndexOffset;
-		Memory::Copy(popAtAddress, lastIndexAddress, sArray->Stride);
+		Scal::MemCopy(popAtAddress, lastIndexAddress, sArray->Stride);
 	}
 	--sArray->Length;
 }
 
-SAPI void* ArrayPeekAt(ResizableArray* sArray, uint64_t index)
+SAPI void* ArrayPeekAt(SArray* sArray, uint64_t index)
 {
 	assert(sArray);
 	assert(sArray->Memory);
@@ -123,10 +120,8 @@ SAPI void* ArrayPeekAt(ResizableArray* sArray, uint64_t index)
 	return (char*)(sArray->Memory) + offset;
 }
 
-SAPI void ArrayClear(ResizableArray* sArray)
+SAPI void ArrayClear(SArray* sArray)
 {
 	assert(sArray);
 	sArray->Length = 0;
-}
-
 }

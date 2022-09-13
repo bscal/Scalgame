@@ -2,7 +2,7 @@
 
 #include "Game.h"
 #include "SMemory.h"
-#include "SArray.h"
+#include "Structures/SArray.h"
 #include "Structures/DirectAccessTable.h"
 #include "raymath.h"
 
@@ -211,7 +211,7 @@ TileData* GetTileData(TileMap* tileMap, uint32_t tileId)
 
 void GetSurroundingTilesBox(TileMap* tileMap,
 	int tileX, int tileY, int boxWidth, int boxHeight,
-	Scal::SArray* outTileCoordsVector2i)
+	SArray* outTileCoordsVector2i)
 {
 	int startX = tileX - boxWidth;
 	int startY = tileY - boxHeight;
@@ -225,7 +225,7 @@ void GetSurroundingTilesBox(TileMap* tileMap,
 			if (IsInBounds(xi, yi, tileMap->MapWidth, tileMap->MapHeight))
 			{
 				Vector2i coord = { xi, yi };
-				Scal::ArrayPush(outTileCoordsVector2i, &coord);
+				ArrayPush(outTileCoordsVector2i, &coord);
 			}
 			++i;
 		}
@@ -234,7 +234,7 @@ void GetSurroundingTilesBox(TileMap* tileMap,
 
 void GetSurroundingTilesRadius(TileMap* tileMap,
 	int tileX, int tileY, float radius,
-	Scal::SArray* outTileCoordsVector2i)
+	SArray* outTileCoordsVector2i)
 {
 	int startX = (int)tileX - (int)radius;
 	int startY = (int)tileX - (int)radius;
@@ -246,10 +246,10 @@ void GetSurroundingTilesRadius(TileMap* tileMap,
 		for (int xi = startX; xi <= endX; ++xi)
 		{
 			if (IsInBounds(xi, yi, tileMap->MapWidth, tileMap->MapHeight)
-				&& Distance(tileX, tileX, (float)xi, (float)yi) < radius)
+				&& Distance((float)tileX, (float)tileX, (float)xi, (float)yi) < radius)
 			{
 				Vector2i coord = { xi, yi };
-				Scal::ArrayPush(outTileCoordsVector2i, &coord);
+				ArrayPush(outTileCoordsVector2i, &coord);
 			}
 			++i;
 		}
@@ -498,7 +498,7 @@ void ProcessFOVSurroundingPos(TileMap* tileMap, float x, float y,
 		float angleY = sinf(t);
 		float vX = x + angleX * distance;
 		float vY = y + angleY * distance;
-		Raytrace2DInt(tileMap, x, y, vX, vY, OnVisitSurroundingTile);
+		Raytrace2DInt(tileMap, (int)x, (int)y, (int)vX, (int)vY, OnVisitSurroundingTile);
 	}
 }
 

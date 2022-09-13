@@ -4,8 +4,8 @@
 #include "SMemory.h"
 #include "raymath.h"
 #include "SUI.h"
-#include "SArray.h"
 #include "Structures/SArray.h"
+#include "Structures/SList.h"
 
 SAPI bool GameApplication::Start()
 {
@@ -60,52 +60,57 @@ SAPI void GameApplication::Run()
         // Update
         // ***************
 
-        if (IsKeyDown(KEY_L)) Game->Camera.target.x += 512.0f * DeltaTime;
-        else if (IsKeyDown(KEY_J)) Game->Camera.target.x -= 512.0f * DeltaTime;
-        if (IsKeyDown(KEY_K)) Game->Camera.target.y += 512.0f * DeltaTime;
-        else if (IsKeyDown(KEY_I)) Game->Camera.target.y -= 512.0f * DeltaTime;
+        if (!UIState->IsMouseHoveringUI)
+        {   
+            if (IsKeyDown(KEY_L)) Game->Camera.target.x += 512.0f * DeltaTime;
+            else if (IsKeyDown(KEY_J)) Game->Camera.target.x -= 512.0f * DeltaTime;
+            if (IsKeyDown(KEY_K)) Game->Camera.target.y += 512.0f * DeltaTime;
+            else if (IsKeyDown(KEY_I)) Game->Camera.target.y -= 512.0f * DeltaTime;
 
-        // Camera rotation controls
-        if (IsKeyDown(KEY_Q)) Game->Camera.rotation--;
-        else if (IsKeyDown(KEY_E)) Game->Camera.rotation++;
+            // Camera rotation controls
+            if (IsKeyDown(KEY_Q)) Game->Camera.rotation--;
+            else if (IsKeyDown(KEY_E)) Game->Camera.rotation++;
 
-        // Limit camera rotation to 80 degrees (-40 to 40)
-        if (Game->Camera.rotation > 40) Game->Camera.rotation = 40;
-        else if (Game->Camera.rotation < -40) Game->Camera.rotation = -40;
+            // Limit camera rotation to 80 degrees (-40 to 40)
+            if (Game->Camera.rotation > 40) Game->Camera.rotation = 40;
+            else if (Game->Camera.rotation < -40) Game->Camera.rotation = -40;
 
-        // Camera zoom controls
-        Game->Camera.zoom += ((float)GetMouseWheelMove() * 0.2f);
-
-        if (Game->Camera.zoom > 3.0f) Game->Camera.zoom = 3.0f;
-        else if (Game->Camera.zoom < 0.2f) Game->Camera.zoom = 0.2f;
-
-        // Camera reset (zoom and rotation)
-        if (IsKeyPressed(KEY_R))
-        {
-            Game->Camera.zoom = 1.0f;
-            Game->Camera.rotation = 0.0f;
-        }
-
-        if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && !UIState->IsMouseHoveringUI)
-        {
-            // LocalToWorld
-            Matrix invMatCamera =
-                MatrixInvert(GetCameraMatrix2D(Game->Camera));
-            Vector3 transform = Vector3Transform(
-                { (float)GetMouseX(), (float)GetMouseY(), 0.0f }, invMatCamera);
-            
-            int x = transform.x / 16;
-            int y = transform.y / 16;
-            if (IsInBounds(x, y, 64, 64))
+            // Camera reset (zoom and rotation)
+            if (IsKeyPressed(KEY_R))
             {
-                Tile tile = CreateTile(&Game->World.MainTileMap, 4);
-                SetTile(&Game->World.MainTileMap, x, y, &tile);
+                Game->Camera.zoom = 1.0f;
+                Game->Camera.rotation = 0.0f;
+            }
+
+            // Camera zoom controls
+            Game->Camera.zoom += ((float)GetMouseWheelMove() * 0.2f);
+
+            if (Game->Camera.zoom > 3.0f) Game->Camera.zoom = 3.0f;
+            else if (Game->Camera.zoom < 0.2f) Game->Camera.zoom = 0.2f;
+
+            // Debug place tiles
+            if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && !UIState->IsMouseHoveringUI)
+            {
+                // LocalToWorld
+                Matrix invMatCamera =
+                    MatrixInvert(GetCameraMatrix2D(Game->Camera));
+                Vector3 transform = Vector3Transform(
+                    { (float)GetMouseX(), (float)GetMouseY(), 0.0f }, invMatCamera);
+
+                int x = transform.x / 16;
+                int y = transform.y / 16;
+                if (IsInBounds(x, y, 64, 64))
+                {
+                    Tile tile = CreateTile(&Game->World.MainTileMap, 4);
+                    SetTile(&Game->World.MainTileMap, x, y, &tile);
+                }
             }
         }
 
         UpdatePlayer(this, &Game->Player);
 
         UpdateUI(UIState);
+        Scal::ShowMemoryUsage(UIState);
 
         // ***************
         // Render

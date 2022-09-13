@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Core.h"
 #include "Nuklear/nuklear.h"
 
 struct Font;
@@ -18,3 +19,6 @@ void UpdateUI(UIState* state);
 void RenderUI(UIState* state);
 
 bool IsMouseHoveringUI(UIState* state);
+
+void RenderMemoryUsage(UIState* state, uint64_t length,
+	const uint32_t* usage, const char* const *usageName);

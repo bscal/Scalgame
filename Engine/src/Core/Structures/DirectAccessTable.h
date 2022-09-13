@@ -2,9 +2,6 @@
 
 #include "Core/Core.h"
 
-namespace Scal
-{
-
 struct DirectAccessTable
 {
 	bool* ContainsMemory;
@@ -21,4 +18,3 @@ void DATGet(DirectAccessTable* table, size_t index, void* dest);
 void DATRemove(DirectAccessTable* table, size_t index);
 void DATClear(DirectAccessTable* table);
 
-}
