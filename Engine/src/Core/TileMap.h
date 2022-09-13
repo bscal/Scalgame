@@ -3,7 +3,7 @@
 #include <Engine.h>
 
 struct Game;
-struct ResizableArray;
+struct SArray;
 
 // TODO Think about moving TileType into Tile structure
 
@@ -88,23 +88,25 @@ void SetTile(TileMap* tileMap, int tileX, int tileY, Tile* srcTile);
 TileData* GetTileData(TileMap* tileMap, uint32_t tileId);
 
 void GetSurroundingTilesBox(TileMap* tileMap,
-	int x, int y, int boxWidth, int boxHeight,
-	ResizableArray* outTiles);
+	int tileX, int tileY, int boxWidth, int boxHeight,
+	SArray* outTileCoordsVector2i);
 
 void GetSurroundingTilesRadius(TileMap* tileMap,
-	int x, int y, float radius,
-	ResizableArray* outTiles);
+	int tileX, int tileY, float radius,
+	SArray* outTileCoordsVector2i);
 
 void GetSurroundingTilesRadiusCallback(TileMap* tileMap,
 	float x, float y, float radius,
-	void (OnVisit)(TileMap* tileMap, int x, int y));
+	void (OnVisit)(TileMap* tileMap, int tileX, int tileY));
 
-void GetSurronding(TileMap* tileMap, 
-	float x, float y, int resolution, float distance);
+void ProcessFOVSurroundingPos(TileMap* tileMap,
+	float x, float y, int rayResolution, float distance);
 
 void GetTilesInCone(TileMap* tileMap,
-	float playerAngle, float playerFov, int resolution,
+	float playerAngleRadians, float coneFovRadians, int rayResolution,
 	float x, float y, float distance);
 
+float DegreesToRadians(float degrees);
+float TurnsToRadians(float turn);
 float Distance(float x0, float y0, float x1, float y1);
 int DistanceInTiles(int x0, int y0, int x1, int y1);

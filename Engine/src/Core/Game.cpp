@@ -1,7 +1,11 @@
 #include "Game.h"
 
+#include "ResourceManager.h"
 #include "SMemory.h"
 #include "raymath.h"
+#include "SUI.h"
+#include "SArray.h"
+#include "Structures/SArray.h"
 
 SAPI bool GameApplication::Start()
 {
@@ -16,15 +20,22 @@ SAPI bool GameApplication::Start()
     InitWindow(screenWidth, screenHeight, "Some roguelike game");
     //SetTargetFPS(60);
 
-    Resources = (struct Resources*)Scal::Memory::AllocZero(sizeof(struct Resources));
-    InitializeResources(Resources);
-    InitiailizeDebugWindow(&Resources->MainFont, 10, 30, DARKGREEN);
+    SetTraceLogLevel(LOG_ALL);
 
-    Game = (struct Game*)Scal::Memory::AllocZero(sizeof(struct Game));
+    Resources = (struct Resources*)Scal::MemAllocZero(sizeof(struct Resources));
+    InitializeResources(Resources);
+
+    UIState = (struct UIState*)Scal::MemAllocZero(sizeof(struct UIState));
+    InitializeUI(&Resources->MainFontS, 16.0f, UIState);
+    InitiailizeDebugWindow(&Resources->MainFontM, 10, 30, DARKGREEN);
+
+    Game = (struct Game*)Scal::MemAllocZero(sizeof(struct Game));
     InitializeTileMap(&Resources->MainTileSet, 64, 64, 16, &Game->World.MainTileMap);
     LoadTileMap(&Game->World.MainTileMap);
     InitializePlayer(this, &Game->Player);
     Game->Camera.zoom = 2.0f;
+
+    Test();
 
     return IsInitialized = true;
 }
@@ -75,7 +86,7 @@ SAPI void GameApplication::Run()
             Game->Camera.rotation = 0.0f;
         }
 
-        if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
+        if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && !UIState->IsMouseHoveringUI)
         {
             // LocalToWorld
             Matrix invMatCamera =
@@ -94,12 +105,14 @@ SAPI void GameApplication::Run()
 
         UpdatePlayer(this, &Game->Player);
 
+        UpdateUI(UIState);
+
         // ***************
         // Render
         // ***************
         BeginDrawing();
         ClearBackground(BLACK);
-       
+
         BeginMode2D(Game->Camera);
 
         RenderTileMap(Game, &Game->World.MainTileMap);
@@ -120,7 +133,11 @@ SAPI void GameApplication::Run()
         DisplayDebugText("Energy = %d/%d", Game->Player.Energy, Game->Player.MaxEnergy);
         //EndShaderMode();
 
+        RenderUI(UIState);
+
         EndDrawing();
+
+
     }
     IsRunning = false;
 }

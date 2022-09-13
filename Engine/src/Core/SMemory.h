@@ -4,15 +4,12 @@
 
 namespace Scal
 {
-namespace Memory
-{
-void* Alloc(size_t size);
-void* AllocZero(size_t size);
-void* ReAlloc(void* block, size_t size);
-void Copy(void* dst, const void* src, size_t size);
-void Clear(void* block, size_t size);
-void Free(void* block);
-}
-}
 
+void* MemAlloc(size_t size);
+void* MemAllocZero(size_t size);
+void* MemRealloc(void* block, size_t size);
+void MemCopy(void* dst, const void* src, size_t size);
+void MemClear(void* block, size_t size);
+void MemFree(void* block);
 
+}

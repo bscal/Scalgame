@@ -1,9 +1,10 @@
 #include "Player.h"
 
 #include "Game.h"
+#include "ResourceManager.h"
 #include "TileMap.h"
 
-#include <cassert>
+#include <assert.h>
 
 bool InitializePlayer(GameApplication* gameApp, Player* outPlayer)
 {

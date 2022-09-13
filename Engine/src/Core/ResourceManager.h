@@ -17,8 +17,8 @@ struct Resources
 	Texture2D EntitySpriteSheet;
 	Texture2D TileSheet;
 	TileSet MainTileSet;
-	SDFFont SDFFont;
-	Font MainFont;
+	Font MainFontM;
+	Font MainFontS;
 	bool IsInitialized;
 };
 

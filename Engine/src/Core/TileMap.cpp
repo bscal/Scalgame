@@ -6,10 +6,7 @@
 #include "Structures/DirectAccessTable.h"
 #include "raymath.h"
 
-#include <cassert>
-
-// TODO temp
-global_var Scal::ResizableArray TilesInLOS;
+#include <assert.h>
 
 bool InitializeTileMap(TileSet* tileSet,
 	uint32_t width, uint32_t height,
@@ -21,10 +18,7 @@ bool InitializeTileMap(TileSet* tileSet,
 	outTileMap->MapHeight = height;
 	outTileMap->MapTileSize = tileSize;
 	outTileMap->MapHalfTileSize = tileSize / 2;
-	outTileMap->MapTiles =
-		(Tile*)Scal::Memory::Alloc(outTileMap->MapSize * sizeof(Tile));
-
-	Scal::ArrayCreate(width * height, sizeof(Vector2i), &TilesInLOS);
+	outTileMap->MapTiles = (Tile*)Scal::MemAlloc(outTileMap->MapSize * sizeof(Tile));
 
 	TraceLog(LOG_INFO, "Initialized TileMap");
 	return true;
@@ -42,7 +36,7 @@ bool LoadTileSet(Texture2D* tileTexture,
 	int height = tileTexture->height / tileSizeHeight;
 	int totalTiles = width * height;
 	outTileSet->TileDataArray =
-		(TileData*)Scal::Memory::Alloc(totalTiles * sizeof(TileData));
+		(TileData*)Scal::MemAlloc(totalTiles * sizeof(TileData));
 
 	for (int y = 0; y < height; ++y)
 	{
@@ -111,8 +105,6 @@ void RenderTileMap(Game* game, TileMap* tileMap)
 	Vector4 colorFullVision = ColorNormalize(WHITE);
 	Vector4 colorNoVision = ColorNormalize(BLACK);
 
-	//Scal::ArrayClear(&TilesInLOS);
-
 	TileSet* tileSet = tileMap->TileSet;
 
 	Player p = game->Player;
@@ -121,16 +113,11 @@ void RenderTileMap(Game* game, TileMap* tileMap)
 	float playerTileY = (float)p.TilePosition.y + 0.5f;
 	Vector2i fowardPlayer = PlayerFoward(&p);
 
-	GetSurronding(tileMap, playerTileX, playerTileY,
+	ProcessFOVSurroundingPos(tileMap, playerTileX, playerTileY,
 		8, 2.0f);
 
-	GetTilesInCone(tileMap,
-		playerAngle,
-		145.0f / 360.0f,
-		32,
-		playerTileX,
-		playerTileY,
-		24.0f);
+	GetTilesInCone(tileMap, playerAngle, DegreesToRadians(160.0f),
+		32, playerTileX, playerTileY, 24.0f);
 
 	//for (int i = 0; i < TilesInLOS.Length; ++i)
 	//{
@@ -223,13 +210,13 @@ TileData* GetTileData(TileMap* tileMap, uint32_t tileId)
 }
 
 void GetSurroundingTilesBox(TileMap* tileMap,
-	int x, int y, int boxWidth, int boxHeight,
-	Scal::ResizableArray* outTiles)
+	int tileX, int tileY, int boxWidth, int boxHeight,
+	Scal::SArray* outTileCoordsVector2i)
 {
-	int startX = x - boxWidth;
-	int startY = y - boxHeight;
-	int endX = x + boxWidth;
-	int endY = y + boxHeight;
+	int startX = tileX - boxWidth;
+	int startY = tileY - boxHeight;
+	int endX = tileX + boxWidth;
+	int endY = tileY + boxHeight;
 	int i = 0;
 	for (int yi = startY; yi <= endY; ++yi)
 	{
@@ -238,32 +225,31 @@ void GetSurroundingTilesBox(TileMap* tileMap,
 			if (IsInBounds(xi, yi, tileMap->MapWidth, tileMap->MapHeight))
 			{
 				Vector2i coord = { xi, yi };
-				Scal::ArrayPush(outTiles, &coord);
+				Scal::ArrayPush(outTileCoordsVector2i, &coord);
 			}
 			++i;
 		}
 	}
 }
 
-
 void GetSurroundingTilesRadius(TileMap* tileMap,
-	float x, float y, float radius,
-	Scal::ResizableArray* outTiles)
+	int tileX, int tileY, float radius,
+	Scal::SArray* outTileCoordsVector2i)
 {
-	int startX = (int)x - (int)radius;
-	int startY = (int)y - (int)radius;
-	int endX = (int)x + (int)radius;
-	int endY = (int)y + (int)radius;
+	int startX = (int)tileX - (int)radius;
+	int startY = (int)tileX - (int)radius;
+	int endX = (int)tileX + (int)radius;
+	int endY = (int)tileX + (int)radius;
 	int i = 0;
 	for (int yi = startY; yi <= endY; ++yi)
 	{
 		for (int xi = startX; xi <= endX; ++xi)
 		{
 			if (IsInBounds(xi, yi, tileMap->MapWidth, tileMap->MapHeight)
-				&& Distance(x, y, (float)xi, (float)yi) < radius)
+				&& Distance(tileX, tileX, (float)xi, (float)yi) < radius)
 			{
 				Vector2i coord = { xi, yi };
-				Scal::ArrayPush(outTiles, &coord);
+				Scal::ArrayPush(outTileCoordsVector2i, &coord);
 			}
 			++i;
 		}
@@ -500,7 +486,7 @@ internal bool OnVisitSurroundingTile(TileMap* tileMap, int x, int y)
 	return false;
 }
 
-void GetSurronding(TileMap* tileMap, float x, float y,
+void ProcessFOVSurroundingPos(TileMap* tileMap, float x, float y,
 	int resolution, float distance)
 {
 	constexpr float startAngle = 0.0f * TAO;
@@ -543,39 +529,19 @@ internal bool OnVisitTile(TileMap* tileMap, int x, int y)
 }
 
 void GetTilesInCone(TileMap* tileMap,
-	float playerAngle, float playerFov, int resolution,
+	float playerAngleRadians, float coneFovRadians, int rayResolution,
 	float x, float y, float distance)
 {	
-	//float o = ((playerFov + 30.0f / 360.0f) * TAO) / 2.0f;
-	playerFov /= 2;
-	float startAngle = 0.0f * TAO;
-	float endAngle = playerFov * TAO;
-	//float endOther = o;
-
-	//for (int i = 0; i < 8; ++i)
-	//{
-	//	float t = Lerp(endAngle, endOther, (float)i / (float)8);
-	//	float x0 = cosf(playerAngle + t);
-	//	float y0 = sinf(playerAngle + t);
-	//	float x1 = cosf(playerAngle - t);
-	//	float y1 = sinf(playerAngle - t);
-
-	//	float xPos0 = x + x0 * distance;
-	//	float yPos0 = y + y0 * distance;
-	//	float xPos1 = x + x1 * distance;
-	//	float yPos1 = y + y1 * distance;
-
-	//	Raytrace2DInt(tileMap, x, y, xPos0, yPos0, OnVisitTile2);
-	//	Raytrace2DInt(tileMap, x, y, xPos1, yPos1, OnVisitTile2);
-	//}
-
-	for (int i = 0; i < resolution; ++i)
+	coneFovRadians /= 2;
+	float startAngle = 0.0f;
+	float endAngle = coneFovRadians;
+	for (int i = 0; i < rayResolution; ++i)
 	{
-		float t = Lerp(startAngle, endAngle, (float)i / (float)resolution);
-		float x0 = cosf(playerAngle + t);
-		float y0 = sinf(playerAngle + t);
-		float x1 = cosf(playerAngle - t);
-		float y1 = sinf(playerAngle - t);
+		float t = Lerp(startAngle, endAngle, (float)i / (float)rayResolution);
+		float x0 = cosf(playerAngleRadians + t);
+		float y0 = sinf(playerAngleRadians + t);
+		float x1 = cosf(playerAngleRadians - t);
+		float y1 = sinf(playerAngleRadians - t);
 
 		float xPos0 = x + x0 * distance;
 		float yPos0 = y + y0 * distance;
@@ -585,6 +551,20 @@ void GetTilesInCone(TileMap* tileMap,
 		Raytrace2DInt(tileMap, x, y, xPos0, yPos0, OnVisitTile);
 		Raytrace2DInt(tileMap, x, y, xPos1, yPos1, OnVisitTile);
 	}
+}
+
+float DegreesToRadians(float degrees)
+{
+	return degrees * DEG2RAD;
+}
+
+float TurnsToRadians(float turn)
+{
+	assert(turn < 0.0f);
+	assert(turn > 1.0f);
+	if (turn < 0.0f) turn = 0;
+	if (turn > 1.0f) turn = 1;
+	return turn * TAO;
 }
 
 float Distance(float x0, float y0, float x1, float y1)

@@ -1,5 +1,7 @@
 #include "ResourceManager.h"
 
+#define NUM_OF_FONT_GLYPHS 95
+
 #define ENTITY_SHEET_PATH "assets/textures/SpriteSheet.png"
 #define TILE_MAP_TEXTURE_PATH "assets/textures/tiles/16x16.png"
 
@@ -12,14 +14,14 @@ bool InitializeResources(Resources* resources)
 {
     resources->EntitySpriteSheet = LoadTexture(ENTITY_SHEET_PATH);
 	resources->TileSheet = LoadTexture(TILE_MAP_TEXTURE_PATH);
-	resources->MainFont = LoadFont(FONT_PATH);
-    //resources->SDFFont = LoadSDFFont();
+
+	resources->MainFontM = LoadFont(FONT_PATH);
+    resources->MainFontS = LoadFontEx(FONT_PATH, 16, 0, 0);
 
 	LoadTileSet(&resources->TileSheet, 16, 16,
 		&resources->MainTileSet);
 
 	TraceLog(LOG_INFO, "Initialized Resources");
-
 	return resources->IsInitialized = true;
 }
 

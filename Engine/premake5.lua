@@ -10,7 +10,8 @@ project "Engine"
     files
     {
         "src/**.cpp",
-        "src/**.h"
+        "src/**.h",
+        "vendor/Nuklear/nuklear.h"
     }
     
     defines

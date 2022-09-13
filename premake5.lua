@@ -26,8 +26,6 @@ newoption
     default = "opengl43"
 }
 
-require "vscode"
-
 include "Engine/vendor/raylib_premake5.lua"
 include "Engine"
 include "Game"
