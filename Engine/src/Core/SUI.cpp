@@ -60,8 +60,11 @@ bool InitializeUI(Font* font, float fontSize, UIState* outState)
 	outState->Font.width = CalculateTextWidth;
 	outState->Allocator.alloc = MemAlloc;
 	outState->Allocator.free = MemFree;
-	
-	nk_bool res = nk_init(&outState->Ctx, &outState->Allocator, &outState->Font);
+
+	//&outState->Allocator
+	size_t size = Megabytes(8);
+	void* memory = Scal::MemAlloc(size);
+	nk_bool res = nk_init_fixed(&outState->Ctx, memory, size, &outState->Font);
 	if (!res)
 		TraceLog(LOG_ERROR, "Nuklear could not initialize");
 	else
@@ -371,8 +374,9 @@ void RenderMemoryUsage(UIState* state, uint64_t length,
 		for (int i = 0; i < length; ++i)
 		{
 			nk_layout_row_dynamic(&state->Ctx, 30, 1);
+			auto memSize = FindMemSize(usage[i]);
 			char str[32];
-			sprintf(str, "%s: %u", usageName[i], usage[i]);
+			sprintf(str, "%s: %u %cBs", usageName[i], memSize.Size, memSize.BytePrefix);
 			nk_label(&state->Ctx, str, NK_TEXT_LEFT);
 		}
 	}

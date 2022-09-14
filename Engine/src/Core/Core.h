@@ -30,21 +30,24 @@
 #define BitClear(state, bit) (state & ~(1U << bit))
 #define BitToggle(state, bit) (state ^ 1U << bit)
 
+struct MemorySizeData
+{
+	float Size;
+	char BytePrefix;
+};
+
+MemorySizeData FindMemSize(uint64_t size);
+
 struct Vector2i
 {
 	int x;
 	int y;
 
-	inline bool operator==(Vector2i other) const
-	{
-		return x == other.x && y == other.y;
-	}
-
-	inline bool operator!=(Vector2i other) const
-	{
-		return x != other.x && y != other.y;
-	}
+	bool Vector2i::operator == (const Vector2i& rhs) const;
+	bool Vector2i::operator != (const Vector2i& rhs) const;
 };
+
+Vector2i Vec2iAdd(Vector2i v0, Vector2i v1);
 
 struct Vector2ui
 {

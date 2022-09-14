@@ -18,8 +18,7 @@ SAPI bool GameApplication::Start()
     const int screenWidth = 1600;
     const int screenHeight = 900;
     InitWindow(screenWidth, screenHeight, "Some roguelike game");
-    //SetTargetFPS(60);
-
+    SetTargetFPS(60);
     SetTraceLogLevel(LOG_ALL);
 
     Resources = (struct Resources*)Scal::MemAllocZero(sizeof(struct Resources));
@@ -89,7 +88,7 @@ SAPI void GameApplication::Run()
             else if (Game->Camera.zoom < 0.2f) Game->Camera.zoom = 0.2f;
 
             // Debug place tiles
-            if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && !UIState->IsMouseHoveringUI)
+            if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
             {
                 // LocalToWorld
                 Matrix invMatCamera =

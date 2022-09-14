@@ -44,24 +44,20 @@ void RenderPlayer(GameApplication* gameApp, Player* player)
 
 }
 
-constexpr float DirectionAngles[4] =
+constexpr float DirectionAngles[(int)Direction::MaxDirections] =
 { 0.75f * TAO, 0.0f * TAO, 0.25f * TAO, 0.5f * TAO };
 
-constexpr Vector2i PlayerFowardVectors[4] =
+constexpr Vector2i PlayerFowardVectors[(int)Direction::MaxDirections] =
 { { 0, -1 }, { 1, 0 }, { 0, 1 }, { -1, 0 } };
 
 float AngleFromDirection(Direction dir)
 {
-	assert((uint8_t)dir > -1);
-	assert((uint8_t)dir < (uint8_t)Direction::MaxDirections);
-	return DirectionAngles[(uint8_t)dir];
+	return DirectionAngles[(int)dir];
 }
 
 Vector2i DirectionToVec(Direction dir)
 {
-	assert((uint8_t)dir > -1);
-	assert((uint8_t)dir < (uint8_t)Direction::MaxDirections);
-	return PlayerFowardVectors[(uint8_t)dir];
+	return PlayerFowardVectors[(int)dir];
 }
 
 Vector2i PlayerFoward(Player* player)

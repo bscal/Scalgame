@@ -3,7 +3,7 @@
 #include "Game.h"
 #include "SMemory.h"
 #include "Structures/SArray.h"
-#include "Structures/DirectAccessTable.h"
+#include "Structures/SList.h"
 #include "raymath.h"
 
 #include <assert.h>
@@ -98,6 +98,8 @@ void UnloadTileMap(TileMap* tileMap)
 // TODO should be moved
 global_var bool DisableFow = false;
 
+void LOSUpdate(TileMap* tileMap, Player* player);
+
 void RenderTileMap(Game* game, TileMap* tileMap)
 {
 	float fowValues[5] = { 0.0f, 0.25f, 0.5f, 0.75f, 1.0f };
@@ -107,38 +109,19 @@ void RenderTileMap(Game* game, TileMap* tileMap)
 
 	TileSet* tileSet = tileMap->TileSet;
 
-	Player p = game->Player;
-	float playerAngle = AngleFromDirection(p.LookDirection);
-	float playerTileX = (float)p.TilePosition.x + 0.5f;
-	float playerTileY = (float)p.TilePosition.y + 0.5f;
-	Vector2i fowardPlayer = PlayerFoward(&p);
+	LOSUpdate(tileMap, &game->Player);
 
-	ProcessFOVSurroundingPos(tileMap, playerTileX, playerTileY,
-		8, 2.0f);
+	//Player p = game->Player;
+	//float playerAngle = AngleFromDirection(p.LookDirection);
+	//float playerTileX = (float)p.TilePosition.x + 0.5f;
+	//float playerTileY = (float)p.TilePosition.y + 0.5f;
+	//Vector2i fowardPlayer = PlayerFoward(&p);
 
-	GetTilesInCone(tileMap, playerAngle, DegreesToRadians(160.0f),
-		32, playerTileX, playerTileY, 24.0f);
+	//ProcessFOVSurroundingPos(tileMap, playerTileX, playerTileY,
+	//	16, 3.0f);
 
-	//for (int i = 0; i < TilesInLOS.Length; ++i)
-	//{
-	//	Vector2i coord = *(Vector2i*)Scal::ArrayPeekAt(&TilesInLOS, i);
-	//	if (coord.x > -1)
-	//	{
-	//		Tile* tile = GetTile(tileMap, coord.x, coord.y);
-	//		if (tile->Fow == FOWLevel::FullVision)
-	//		{
-	//			GetSurroundingTilesRadiusCallback(tileMap, coord.x, coord.y, 2.0f,
-	//			[](TileMap* tileMap, int x, int y)
-	//			{
-	//				Tile* tile = GetTile(tileMap, x, y);
-	//				if (tile->Fow != FOWLevel::FullVision)
-	//				{
-	//					tile->Fow = FOWLevel::PeripheralVision;
-	//				}
-	//			});
-	//		}
-	//	}
-	//}
+	//GetTilesInCone(tileMap, playerAngle, DegreesToRadians(160.0f),
+	//	32, playerTileX, playerTileY, 24.0f);
 
 	if (IsKeyPressed(KEY_F1))
 		DisableFow = !DisableFow;
@@ -502,6 +485,39 @@ void ProcessFOVSurroundingPos(TileMap* tileMap, float x, float y,
 	}
 }
 
+void GetBorderTiles(SList<Vector2i>* tileCoords, SList<Vector2i>* outTiles)
+{
+	for (int i = 0; i < tileCoords->Length; ++i)
+	{
+		Vector2i coord = tileCoords->Memory[i];
+		Vector2i n = Vec2iAdd(coord, NORTH);
+		Vector2i e = Vec2iAdd(coord, EAST);
+		Vector2i s = Vec2iAdd(coord, SOUTH);
+		Vector2i w = Vec2iAdd(coord, WEST);
+
+		bool containsN = false;
+		bool containsE = false;
+		bool containsS = false;
+		bool containsW = false;
+		for (int j = 0; j < tileCoords->Length; ++j)
+		{
+			Vector2i searchCoord = tileCoords->Memory[j];
+			if (!containsN)
+				containsN = searchCoord == n;
+			if (!containsE)
+				containsE = searchCoord == e;
+			if (!containsS)
+				containsS = searchCoord == s;
+			if (!containsW)
+				containsW = searchCoord == w;
+		}
+		if (!containsN || !containsE || !containsS || !containsW)
+		{
+			outTiles->Push(&coord);
+		}
+	}
+}
+
 internal bool OnVisitTile2(TileMap* tileMap, int x, int y)
 {
 	if (IsInBounds(x, y, tileMap->MapWidth, tileMap->MapHeight))
@@ -579,4 +595,74 @@ int DistanceInTiles(int x0, int y0, int x1, int y1)
 	int xL = x1 - x0;
 	int yL = y1 - y0;
 	return xL + yL;
+}
+
+global_var SList<Vector2i> TilesInLos;
+
+internal bool LOSRayHit(TileMap* tileMap, int tileX, int tileY)
+{
+	if (IsInBounds(tileX, tileY, tileMap->MapWidth, tileMap->MapHeight))
+	{
+		Vector2i coord = { tileX, tileY };
+		TilesInLos.Push(&coord);
+
+		auto tile = GetTile(tileMap, tileX, tileY);
+		tile->Fow = FOWLevel::FullVision;
+		auto tileData = GetTileData(tileMap, tile->TileId);
+		if (tileData->TileType == TileType::Solid)
+			return true;
+	}
+	return false;
+}
+
+internal void LOSUpdate(TileMap* tileMap, Player* player)
+{
+	// TODO temp
+	if (!TilesInLos.Memory)
+	{
+		TilesInLos.InitializeEx(64, 2);
+	}
+	TilesInLos.Clear();
+
+	auto position = player->TilePosition;
+	float playerAngleRadians = AngleFromDirection(player->LookDirection);
+	float coneFov = (160.0f * DEG2RAD) / 2.0f;
+	float x = (float)position.x + 0.5f;
+	float y = (float)position.y + 0.5f;
+	float startAngle = 0.0f;
+	float endAngle = coneFov;
+	float distance = 24.0f;
+
+	int rayResolution = 32;
+	for (int i = 0; i < rayResolution; ++i)
+	{
+		float t = Lerp(startAngle, endAngle, (float)i / (float)rayResolution);
+		float x0 = cosf(playerAngleRadians + t);
+		float y0 = sinf(playerAngleRadians + t);
+		float x1 = cosf(playerAngleRadians - t);
+		float y1 = sinf(playerAngleRadians - t);
+
+		float xPos0 = x + x0 * distance;
+		float yPos0 = y + y0 * distance;
+		float xPos1 = x + x1 * distance;
+		float yPos1 = y + y1 * distance;
+
+		Raytrace2DInt(tileMap, x, y, xPos0, yPos0, LOSRayHit);
+		Raytrace2DInt(tileMap, x, y, xPos1, yPos1, LOSRayHit);
+	}
+	
+	float sphereDistance = 3.0f;
+	float sphereStartAngle = 0.0f * TAO;
+	float sphereEndAngle = 1.0f * TAO;
+	int raySphereResolution = 16;
+	for (int i = 0; i < raySphereResolution; ++i)
+	{
+		float t = Lerp(sphereStartAngle, sphereEndAngle,
+			(float)i / (float)raySphereResolution - 1.0f);
+		float angleX = cosf(t);
+		float angleY = sinf(t);
+		float vX = x + angleX * sphereDistance;
+		float vY = y + angleY * sphereDistance;
+		Raytrace2DInt(tileMap, (int)x, (int)y, (int)vX, (int)vY, LOSRayHit);
+	}
 }

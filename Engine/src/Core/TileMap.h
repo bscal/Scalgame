@@ -7,6 +7,11 @@ struct SArray;
 
 // TODO Think about moving TileType into Tile structure
 
+#define NORTH { 0, -1 }
+#define EAST  { 1,  0 }
+#define SOUTH { 0,  1 }
+#define WEST  {-1,  0 }
+
 enum class TileVisibilty : uint8_t
 {
 	Empty = 0,

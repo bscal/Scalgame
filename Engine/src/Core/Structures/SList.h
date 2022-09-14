@@ -20,6 +20,7 @@ struct SList
 	bool InitializeEx(uint64_t capacity, uint64_t resizeIncrease);
 	bool Free();
 	void Resize();
+	void EnsureCapacity(uint64_t capacity);
 
 	void Push(const T* valueSrc);
 	void PushAt(uint64_t index, const T* valueSrc);
@@ -71,7 +72,7 @@ inline bool SList<T>::InitializeEx(uint64_t capacity, uint64_t resizeIncrease)
 	Capacity = capacity;
 	Stride = sizeof(T);
 	ResizeIncrease = resizeIncrease;
-	Memory = Scal::MemAllocZero(Capacity * Stride);
+	Memory = (T*)Scal::MemAllocZero(Capacity * Stride);
 	return true;
 }
 
@@ -103,6 +104,22 @@ inline void SList<T>::Resize()
 	Capacity *= ResizeIncrease;
 	Memory = (T*)Scal::MemRealloc(Memory, Capacity * Stride);
 	assert(Memory);
+}
+
+template<typename T>
+inline void SList<T>::EnsureCapacity(uint64_t capacity)
+{
+	if (!Memory)
+	{
+		TraceLog(LOG_ERROR, "Memory was null");
+		return;
+	}
+
+	if (capacity <= Capacity) 
+		return;
+
+	Capacity = capacity;
+	Memory = (T*)Scal::MemRealloc(Memory, Capacity * Stride);
 }
 
 template<typename T>
@@ -301,7 +318,7 @@ inline void SList<T>::Clear()
 }
 
 
-void Test()
+inline void Test()
 {
 	SList<int> list = {};
 	list.Initialize();

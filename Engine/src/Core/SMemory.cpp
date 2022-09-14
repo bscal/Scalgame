@@ -22,6 +22,11 @@ void* MemRealloc(void* block, size_t size)
 	return realloc(block, size);
 }
 
+void MemFree(void* block)
+{
+	free(block);
+}
+
 void MemCopy(void* dst, const void* src, size_t size)
 {
 	memcpy(dst, src, size);
@@ -32,12 +37,7 @@ void MemClear(void* block, size_t size)
 	memset(block, 0, size);
 }
 
-void MemFree(void* block)
-{
-	free(block);
-}
 
-constexpr global_var uint32_t MemoryTagUsage[MaxTags] = {};
 constexpr global_var const char* MemoryTagStrings[MaxTags] =
 {
 	"Unknown",
@@ -47,6 +47,31 @@ constexpr global_var const char* MemoryTagStrings[MaxTags] =
 	"Game",
 	"Resources",
 };
+global_var uint32_t MemoryTagUsage[MaxTags] = {};
+
+void* MemAllocTag(size_t size, MemoryTag tag)
+{
+	if (tag == MemoryTag::Unknown)
+	{
+		TraceLog(LOG_ERROR, "Cannot allocate memory with Unknown tag");
+		return nullptr;
+	}
+
+	MemoryTagUsage[tag] += size;
+	return MemAlloc(size);
+}
+
+void MemFreeTag(void* block, size_t size, MemoryTag tag)
+{
+	if (tag == MemoryTag::Unknown)
+	{
+		TraceLog(LOG_ERROR, "Cannot free memory with Unknown tag");
+		return;
+	}
+
+	MemoryTagUsage[tag] -= size;
+	Scal::MemFree(block);
+}
 
 void ShowMemoryUsage(UIState* uiState)
 {
