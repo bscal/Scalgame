@@ -336,6 +336,7 @@ void Raytrace2D(float x0, float y0, float x1, float y1, bool* values)
 
 	for (; n > 0; --n)
 	{
+		// TODO CHANGE 64
 		if (IsInBounds(x, y, 64, 64))
 			values[x + y * 64] = true;
 
@@ -399,6 +400,7 @@ void Raytrace(float x0, float y0, float x1, float y1, bool* values)
 
 	for (; n > 0; --n)
 	{
+		// TODO CHANGE VALUE 64
 		if (IsInBounds(x, y, 64, 64))
 			values[x + y * 64] = true;
 
@@ -620,7 +622,7 @@ internal void LOSUpdate(TileMap* tileMap, Player* player)
 	// TODO temp
 	if (!TilesInLos.Memory)
 	{
-		TilesInLos.InitializeEx(64, 2);
+		TilesInLos.InitializeEx(256, 2);
 	}
 	TilesInLos.Clear();
 

@@ -29,7 +29,7 @@ SAPI bool GameApplication::Start()
     InitiailizeDebugWindow(&Resources->MainFontM, 10, 30, DARKGREEN);
 
     Game = (struct Game*)Scal::MemAllocZero(sizeof(struct Game));
-    InitializeTileMap(&Resources->MainTileSet, 64, 64, 16, &Game->World.MainTileMap);
+    InitializeTileMap(&Resources->MainTileSet, 128, 128, 16, &Game->World.MainTileMap);
     LoadTileMap(&Game->World.MainTileMap);
     InitializePlayer(this, &Game->Player);
     Game->Camera.zoom = 2.0f;
