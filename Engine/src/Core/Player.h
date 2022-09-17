@@ -37,6 +37,7 @@ float AngleFromDirection(Direction direction);
 Vector2i PlayerFoward(Player* player);
 
 void PlayerMove(GameApplication* gameApp, Player* player, Direction direction);
+void PlayerOnNewTurn(GameApplication* gameApp, Player* player);
 bool PlayerProcessEnergy(GameApplication* gameApp, Player* player, int cost);
 
 constexpr Direction Vector2iToDirection(Vector2i v)

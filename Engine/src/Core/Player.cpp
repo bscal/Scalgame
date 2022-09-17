@@ -96,6 +96,11 @@ void PlayerMove(GameApplication* gameApp, Player* player, Direction direction)
 	}
 }
 
+void PlayerOnNewTurn(GameApplication* gameApp, Player* player)
+{
+	player->Energy = player->MaxEnergy;
+}
+
 bool PlayerProcessEnergy(GameApplication* gameApp, Player* player, int cost)
 {
 	int newEnergy = player->Energy - cost;

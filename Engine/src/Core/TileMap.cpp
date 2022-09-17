@@ -2,11 +2,15 @@
 
 #include "Game.h"
 #include "SMemory.h"
+#include "SRandom.h"
 #include "Structures/SArray.h"
 #include "Structures/SList.h"
+
 #include "raymath.h"
 
 #include <assert.h>
+
+global_var SRandom Random;
 
 bool InitializeTileMap(TileSet* tileSet,
 	uint32_t width, uint32_t height,
@@ -19,6 +23,8 @@ bool InitializeTileMap(TileSet* tileSet,
 	outTileMap->MapTileSize = tileSize;
 	outTileMap->MapHalfTileSize = tileSize / 2;
 	outTileMap->MapTiles = (Tile*)Scal::MemAlloc(outTileMap->MapSize * sizeof(Tile));
+	
+	SRandomInitialize(&Random, 1);
 
 	TraceLog(LOG_INFO, "Initialized TileMap");
 	return true;
@@ -83,7 +89,7 @@ void LoadTileMap(TileMap* tileMap)
 		for (uint32_t x = 0; x < tileMap->MapWidth; ++x)
 		{
 			uint32_t index = x + y * tileMap->MapWidth;
-			uint32_t tileId = GetRandomValue(1, 2);
+			uint32_t tileId = SRandNextRange(&Random, 1, 2);
 			tileMap->MapTiles[index] = CreateTile(tileMap, tileId);
 		}
 	}
