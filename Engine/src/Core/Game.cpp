@@ -29,6 +29,7 @@ SAPI bool GameApplication::Start()
     InitiailizeDebugWindow(&Resources->MainFontM, 10, 30, DARKGREEN);
 
     Game = (struct Game*)Scal::MemAllocZero(sizeof(struct Game));
+    WorldInitialize(&Game->World);
     InitializeTileMap(&Resources->MainTileSet, 128, 128, 16, &Game->World.MainTileMap);
     LoadTileMap(&Game->World.MainTileMap);
     InitializePlayer(this, &Game->Player);
@@ -42,6 +43,11 @@ SAPI bool GameApplication::Start()
 SAPI void GameApplication::Shutdown()
 {
     CloseWindow();
+}
+
+internal void TestActionFunc(World* world, Action* action)
+{
+    TraceLog(LOG_INFO, "Testing!");
 }
 
 SAPI void GameApplication::Run()
@@ -104,6 +110,14 @@ SAPI void GameApplication::Run()
                     SetTile(&Game->World.MainTileMap, x, y, &tile);
                 }
             }
+
+            if (IsKeyPressed(KEY_ONE))
+            {
+                Action testAction = {};
+                testAction.Cost = 100;
+                testAction.ActionFunction = TestActionFunc;
+                AddAction(&Game->World, &testAction);
+            }
         }
 
         UpdatePlayer(this, &Game->Player);
@@ -119,8 +133,7 @@ SAPI void GameApplication::Run()
 
         BeginMode2D(Game->Camera);
 
-        RenderTileMap(Game, &Game->World.MainTileMap);
-        RenderPlayer(this, &Game->Player);
+        WorldUpdate(&Game->World, this);
 
         EndMode2D();
 
@@ -150,4 +163,7 @@ void UpdateTime(GameApplication* gameApp, int timeChange)
 {
     gameApp->Game->Time += timeChange;
     gameApp->Game->Player.Energy = gameApp->Game->Player.MaxEnergy;
+
+    ProcessActions(&gameApp->Game->World);
+    gameApp->Game->World.EntityActionsList.Clear();
 }
