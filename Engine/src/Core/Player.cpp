@@ -67,13 +67,17 @@ Vector2i PlayerFoward(Player* player)
 
 void PlayerMove(GameApplication* gameApp, Player* player, Direction direction)
 {
-	TileMap* tileMap = &gameApp->Game->World.MainTileMap;
 	Vector2i playerTilePos = player->TilePosition;
 	Vector2i newPlayerDir = DirectionToVec(direction);
-	Vector2i newPlayerTilePos = { playerTilePos.x + newPlayerDir.x, playerTilePos.y + newPlayerDir.y };
+	Vector2i newPlayerTilePos = 
+	{
+		playerTilePos.x + newPlayerDir.x,
+		playerTilePos.y + newPlayerDir.y
+	};
 
 	player->LookDirection = direction;
 
+	TileMap* tileMap = &gameApp->Game->World.MainTileMap;
 	if (!IsInBounds(newPlayerTilePos.x, newPlayerTilePos.y,
 		tileMap->MapWidth, tileMap->MapHeight))
 		return;

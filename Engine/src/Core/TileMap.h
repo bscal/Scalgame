@@ -58,9 +58,6 @@ struct Tile
 	FOWLevel Fow;
 };
 
-
-#define NULL_TILE { 999999999, FOWLevel::NoVision } 
-
 struct TileMap
 {
 	TileSet* TileSet;

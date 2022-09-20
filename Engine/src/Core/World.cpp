@@ -1,10 +1,21 @@
 #include "World.h"
 
 #include "Game.h"
+#include "ResourceManager.h"
+
+#include <assert.h>
+
+World::World() : TileCoordsInLOS()
+{
+	this->WorldCreatures = {};
+	this->EntityActionsList = {};
+	this->MainTileMap = {};
+}
 
 bool WorldInitialize(World* world)
 {
 	world->EntityActionsList.Initialize();
+	world->WorldCreatures.Initialize();
 	return true;
 }
 
@@ -16,11 +27,13 @@ void WorldUpdate(World* world, GameApplication* gameApp)
 	{
 		Creature creature = world->WorldCreatures.Memory[i];
 		CreatureUpdate(&creature, gameApp->Game);
-		CreatureRender(&creature);
+		CreatureRender(gameApp->Resources, &creature);
 	}
+}
 
-	UpdatePlayer(gameApp, &world->Player);
-	RenderPlayer(gameApp, &world->Player);
+void WorldCreateCreature(World* world, Creature* creature)
+{
+	world->WorldCreatures.Push(creature);
 }
 
 void TurnEnd(World* world, Game* game, int timeChange)

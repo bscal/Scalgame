@@ -1,11 +1,15 @@
 #pragma once
 
+#include "Core.h"
 #include "TileMap.h"
 #include "Creature.h"
-#include "Player.h"
 #include "Structures/SList.h"
 
+#include <unordered_set>
+
 struct GameApplication;
+struct Game;
+struct Resources;
 struct Action;
 
 struct WorldTime
@@ -20,10 +24,12 @@ struct World
 {
 	TileMap MainTileMap;
 	SList<Action> EntityActionsList;
-
-	Player Player;
+	// TODO add own set struct
+	std::unordered_set<Vector2i, PackVector2i> TileCoordsInLOS;
 	//SList<Player> WorldPlayers;
 	SList<Creature> WorldCreatures;
+
+	World();
 };
 
 struct Action
@@ -38,6 +44,7 @@ struct Action
 bool WorldInitialize(World* world);
 void WorldUpdate(World* world, GameApplication* game);
 
+void WorldCreateCreature(World* world, Creature* creature);
 void TurnEnd(World* world, Game* game, int timeChange);
 void AddAction(World* world, Action* action);
 void ProcessActions(World* world);

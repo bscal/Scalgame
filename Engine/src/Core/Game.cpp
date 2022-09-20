@@ -7,6 +7,10 @@
 #include "Structures/SArray.h"
 #include "Structures/SList.h"
 
+//Game::Game() : World()
+//{
+//}
+
 SAPI bool GameApplication::Start()
 {
     if (IsInitialized)
@@ -28,12 +32,18 @@ SAPI bool GameApplication::Start()
     InitializeUI(&Resources->MainFontS, 16.0f, UIState);
     InitiailizeDebugWindow(&Resources->MainFontM, 10, 30, DARKGREEN);
 
+    //this->Game = new struct Game();
     Game = (struct Game*)Scal::MemAllocZero(sizeof(struct Game));
+    new (&Game->World) struct World();
     WorldInitialize(&Game->World);
     InitializeTileMap(&Resources->MainTileSet, 128, 128, 16, &Game->World.MainTileMap);
     LoadTileMap(&Game->World.MainTileMap);
     InitializePlayer(this, &Game->Player);
     Game->Camera.zoom = 2.0f;
+
+    Creature creature;
+    CreatureInitialize(&creature, &ZOMBIE);
+    WorldCreateCreature(&Game->World, &creature);
 
     Test();
 
@@ -120,8 +130,6 @@ SAPI void GameApplication::Run()
             }
         }
 
-        UpdatePlayer(this, &Game->Player);
-
         UpdateUI(UIState);
         Scal::ShowMemoryUsage(UIState);
 
@@ -135,6 +143,8 @@ SAPI void GameApplication::Run()
 
         WorldUpdate(&Game->World, this);
 
+        UpdatePlayer(this, &Game->Player);
+        RenderPlayer(this, &Game->Player);
         EndMode2D();
 
         // ***************

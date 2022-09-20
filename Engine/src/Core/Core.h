@@ -47,6 +47,25 @@ struct Vector2i
 	bool Vector2i::operator != (const Vector2i& rhs) const;
 };
 
+
+struct PackVector2i
+{
+	size_t operator()(const Vector2i& v) const
+	{
+		size_t packedVec = ((size_t(v.x) & 0xffL) << 32);
+		packedVec |= (v.y & 0xffL);
+		return packedVec;
+	}
+};
+
+inline int64_t PackVec2i(const Vector2i& v)
+{
+	size_t packedVec = ((size_t(v.x) & 0xffL) << 32);
+	packedVec |= (v.y & 0xffL);
+	return packedVec;
+}
+
+
 Vector2i Vec2iAdd(Vector2i v0, Vector2i v1);
 
 struct Vector2ui

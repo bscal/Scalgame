@@ -357,7 +357,6 @@ inline void Test()
 	list.PushAt(0, &i);
 
 	int peek0 = list.PeekAt(1);
-	if (peek0 == 1);
 
 	i = 999;
 	list.PushAtFast(1, &i);

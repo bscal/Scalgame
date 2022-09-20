@@ -101,75 +101,6 @@ void UnloadTileMap(TileMap* tileMap)
 	MemFree(tileMap);
 }
 
-// TODO should be moved
-global_var bool DisableFow = false;
-
-void LOSUpdate(TileMap* tileMap, Player* player);
-
-void RenderTileMap(Game* game, TileMap* tileMap)
-{
-	float fowValues[5] = { 0.0f, 0.25f, 0.5f, 0.75f, 1.0f };
-	float fowAlphas[5] = { 1.0f, 1.0f, 1.0f, 1.0f, 1.0f };
-	Vector4 colorFullVision = ColorNormalize(WHITE);
-	Vector4 colorNoVision = ColorNormalize(BLACK);
-
-	TileSet* tileSet = tileMap->TileSet;
-
-	LOSUpdate(tileMap, &game->Player);
-
-	//Player p = game->Player;
-	//float playerAngle = AngleFromDirection(p.LookDirection);
-	//float playerTileX = (float)p.TilePosition.x + 0.5f;
-	//float playerTileY = (float)p.TilePosition.y + 0.5f;
-	//Vector2i fowardPlayer = PlayerFoward(&p);
-
-	//ProcessFOVSurroundingPos(tileMap, playerTileX, playerTileY,
-	//	16, 3.0f);
-
-	//GetTilesInCone(tileMap, playerAngle, DegreesToRadians(160.0f),
-	//	32, playerTileX, playerTileY, 24.0f);
-
-	if (IsKeyPressed(KEY_F1))
-		DisableFow = !DisableFow;
-
-	for (uint32_t y = 0; y < tileMap->MapHeight; ++y)
-	{
-		for (uint32_t x = 0; x < tileMap->MapWidth; ++x)
-		{
-			uint32_t index = x + y * tileMap->MapWidth;
-			float xPos = (float)x * (float)tileMap->MapTileSize;
-			float yPos = (float)y * (float)tileMap->MapTileSize;
-			Tile tile = tileMap->MapTiles[index];
-
-			float fowValue = fowValues[(uint8_t)tile.Fow];
-			Vector4 finalColor;
-			finalColor.x = Lerp(colorNoVision.x, colorFullVision.x, fowValue);
-			finalColor.y = Lerp(colorNoVision.y, colorFullVision.y, fowValue);
-			finalColor.z = Lerp(colorNoVision.z, colorFullVision.z, fowValue);
-			finalColor.w = fowAlphas[(uint8_t)tile.Fow];
-
-			Color color = ColorFromNormalized(finalColor);
-			#if SCAL_DEBUG
-			if (DisableFow) color = WHITE;
-			#endif
-
-			Rectangle textureRect = {
-				tile.TexturePosition.x,
-				tile.TexturePosition.y,
-				(float)tileSet->TextureTileWidth,
-				(float)tileSet->TextureTileHeight
-			};
-			DrawTextureRec(
-				tileSet->TileTexture,
-				textureRect,
-				{ xPos, yPos }, 
-				color);
-
-			tileMap->MapTiles[index].Fow = FOWLevel::NoVision;
-		}
-	}
-}
-
 bool IsInBounds(int tileX, int tileY, int width, int height)
 {
 	return tileX >= 0 && tileX < width&& tileY >= 0 && tileY < height;
@@ -284,6 +215,36 @@ void Raytrace2DInt(TileMap* tileMap, int x0, int y0, int x1, int y1,
 	for (; n > 0; --n)
 	{
 		if (OnVisit(tileMap, x, y))
+			return;
+
+		if (error > 0)
+		{
+			x += xInc;
+			error -= dy;
+		} else
+		{
+			y += yInc;
+			error += dx;
+		}
+	}
+}
+
+void Raytrace2DIntWorld(World* world, int x0, int y0, int x1, int y1,
+	bool (OnVisit)(World* world, int x, int y))
+{
+	int dx = abs(x1 - x0);
+	int dy = abs(y1 - y0);
+	int x = x0;
+	int y = y0;
+	int n = 1 + dx + dy;
+	int xInc = (x1 > x0) ? 1 : -1;
+	int yInc = (y1 > y0) ? 1 : -1;
+	int error = dx - dy;
+	dx *= 2;
+	dy *= 2;
+	for (; n > 0; --n)
+	{
+		if (OnVisit(world, x, y))
 			return;
 
 		if (error > 0)
@@ -605,32 +566,35 @@ int DistanceInTiles(int x0, int y0, int x1, int y1)
 	return xL + yL;
 }
 
-global_var SList<Vector2i> TilesInLos;
-
-internal bool LOSRayHit(TileMap* tileMap, int tileX, int tileY)
+internal bool LOSRayHit(World* world, int tileX, int tileY)
 {
-	if (IsInBounds(tileX, tileY, tileMap->MapWidth, tileMap->MapHeight))
+	if (IsInBounds(tileX, tileY,
+		world->MainTileMap.MapWidth,
+		world->MainTileMap.MapHeight))
 	{
 		Vector2i coord = { tileX, tileY };
-		TilesInLos.Push(&coord);
 
-		auto tile = GetTile(tileMap, tileX, tileY);
+		world->TileCoordsInLOS.insert(coord);
+
+		auto tile = GetTile(&world->MainTileMap, tileX, tileY);
 		tile->Fow = FOWLevel::FullVision;
-		auto tileData = GetTileData(tileMap, tile->TileId);
+		auto tileData = GetTileData(&world->MainTileMap, tile->TileId);
 		if (tileData->TileType == TileType::Solid)
 			return true;
 	}
 	return false;
 }
 
-internal void LOSUpdate(TileMap* tileMap, Player* player)
+internal void LOSUpdate(World* world, Player* player)
 {
-	// TODO temp
-	if (!TilesInLos.Memory)
-	{
-		TilesInLos.InitializeEx(256, 2);
-	}
-	TilesInLos.Clear();
+	world->TileCoordsInLOS.clear();
+
+	//// TODO temp
+	//if (!TilesInLos.Memory)
+	//{
+	//	TilesInLos.InitializeEx(256, 2);
+	//}
+	//TilesInLos.Clear();
 
 	auto position = player->TilePosition;
 	float playerAngleRadians = AngleFromDirection(player->LookDirection);
@@ -655,8 +619,8 @@ internal void LOSUpdate(TileMap* tileMap, Player* player)
 		float xPos1 = x + x1 * distance;
 		float yPos1 = y + y1 * distance;
 
-		Raytrace2DInt(tileMap, x, y, xPos0, yPos0, LOSRayHit);
-		Raytrace2DInt(tileMap, x, y, xPos1, yPos1, LOSRayHit);
+		Raytrace2DIntWorld(world, x, y, xPos0, yPos0, LOSRayHit);
+		Raytrace2DIntWorld(world, x, y, xPos1, yPos1, LOSRayHit);
 	}
 	
 	float sphereDistance = 3.0f;
@@ -671,6 +635,61 @@ internal void LOSUpdate(TileMap* tileMap, Player* player)
 		float angleY = sinf(t);
 		float vX = x + angleX * sphereDistance;
 		float vY = y + angleY * sphereDistance;
-		Raytrace2DInt(tileMap, (int)x, (int)y, (int)vX, (int)vY, LOSRayHit);
+		Raytrace2DIntWorld(world, (int)x, (int)y, (int)vX, (int)vY, LOSRayHit);
+	}
+}
+
+// TODO should be moved
+global_var bool DisableFow = false;
+
+void RenderTileMap(Game* game, TileMap* tileMap)
+{
+	float fowValues[5] = { 0.0f, 0.25f, 0.5f, 0.75f, 1.0f };
+	float fowAlphas[5] = { 1.0f, 1.0f, 1.0f, 1.0f, 1.0f };
+	Vector4 colorFullVision = ColorNormalize(WHITE);
+	Vector4 colorNoVision = ColorNormalize(BLACK);
+
+	TileSet* tileSet = tileMap->TileSet;
+
+	LOSUpdate(&game->World, &game->Player);
+
+	if (IsKeyPressed(KEY_F1))
+		DisableFow = !DisableFow;
+
+	for (uint32_t y = 0; y < tileMap->MapHeight; ++y)
+	{
+		for (uint32_t x = 0; x < tileMap->MapWidth; ++x)
+		{
+			uint32_t index = x + y * tileMap->MapWidth;
+			float xPos = (float)x * (float)tileMap->MapTileSize;
+			float yPos = (float)y * (float)tileMap->MapTileSize;
+			Tile tile = tileMap->MapTiles[index];
+
+			float fowValue = fowValues[(uint8_t)tile.Fow];
+			Vector4 finalColor;
+			finalColor.x = Lerp(colorNoVision.x, colorFullVision.x, fowValue);
+			finalColor.y = Lerp(colorNoVision.y, colorFullVision.y, fowValue);
+			finalColor.z = Lerp(colorNoVision.z, colorFullVision.z, fowValue);
+			finalColor.w = fowAlphas[(uint8_t)tile.Fow];
+
+			Color color = ColorFromNormalized(finalColor);
+			#if SCAL_DEBUG
+			if (DisableFow) color = WHITE;
+			#endif
+
+			Rectangle textureRect = {
+				tile.TexturePosition.x,
+				tile.TexturePosition.y,
+				(float)tileSet->TextureTileWidth,
+				(float)tileSet->TextureTileHeight
+			};
+			DrawTextureRec(
+				tileSet->TileTexture,
+				textureRect,
+				{ xPos, yPos },
+				color);
+
+			tileMap->MapTiles[index].Fow = FOWLevel::NoVision;
+		}
 	}
 }
