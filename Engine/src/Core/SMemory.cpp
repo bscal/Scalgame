@@ -47,6 +47,7 @@ constexpr global_var const char* MemoryTagStrings[MaxTags] =
 	"Game",
 	"Resources",
 };
+
 global_var uint32_t MemoryTagUsage[MaxTags] = {};
 
 void* MemAllocTag(size_t size, MemoryTag tag)
@@ -57,7 +58,7 @@ void* MemAllocTag(size_t size, MemoryTag tag)
 		return nullptr;
 	}
 
-	MemoryTagUsage[tag] += size;
+	MemoryTagUsage[tag] += (uint32_t)size;
 	return MemAlloc(size);
 }
 
@@ -69,7 +70,7 @@ void MemFreeTag(void* block, size_t size, MemoryTag tag)
 		return;
 	}
 
-	MemoryTagUsage[tag] -= size;
+	MemoryTagUsage[tag] -= (uint32_t)size;
 	Scal::MemFree(block);
 }
 

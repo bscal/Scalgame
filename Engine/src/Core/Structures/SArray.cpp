@@ -6,8 +6,8 @@
 
 SAPI void ArrayCreate(uint64_t capacity, uint64_t stride, SArray* outSArray)
 {
-	assert(stride > 0, "capacity must be > 0");
-	assert(outSArray != nullptr, "outSArray cannot be nullptr");
+	assert(stride > 0);
+	assert(outSArray != nullptr);
 
 	if (capacity == 0)
 	{
@@ -21,7 +21,7 @@ SAPI void ArrayCreate(uint64_t capacity, uint64_t stride, SArray* outSArray)
 	}
 
 	SArray sArray = {};
-	sArray.Memory = (SArray*)MemAlloc(capacity * stride);
+	sArray.Memory = (SArray*)Scal::MemAlloc(capacity * stride);
 	sArray.Capacity = capacity;
 	sArray.Stride = stride;
 	*outSArray = sArray;

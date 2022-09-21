@@ -25,11 +25,9 @@ struct World
 	TileMap MainTileMap;
 	SList<Action> EntityActionsList;
 	// TODO add own set struct
-	std::unordered_set<Vector2i, PackVector2i> TileCoordsInLOS;
+	std::unordered_set<Vector2i, PackVector2i>* TileCoordsInLOS;
 	//SList<Player> WorldPlayers;
 	SList<Creature> WorldCreatures;
-
-	World();
 };
 
 struct Action

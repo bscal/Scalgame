@@ -108,8 +108,8 @@ bool IsInBounds(int tileX, int tileY, int width, int height)
 
 Tile* GetTile(TileMap* tileMap, int tileX, int tileY)
 {
-	assert(tileX >= 0 && tileX < tileMap->MapWidth);
-	assert(tileY >= 0 && tileY < tileMap->MapHeight);
+	assert(tileX >= 0 && (uint32_t)tileX < tileMap->MapWidth);
+	assert(tileY >= 0 && (uint32_t)tileY < tileMap->MapHeight);
 
 	int index = tileX + tileY * tileMap->MapWidth;
 	return &tileMap->MapTiles[index];
@@ -533,8 +533,8 @@ void GetTilesInCone(TileMap* tileMap,
 		float xPos1 = x + x1 * distance;
 		float yPos1 = y + y1 * distance;
 
-		Raytrace2DInt(tileMap, x, y, xPos0, yPos0, OnVisitTile);
-		Raytrace2DInt(tileMap, x, y, xPos1, yPos1, OnVisitTile);
+		Raytrace2DInt(tileMap, (int)x, (int)y, (int)xPos0, (int)yPos0, OnVisitTile);
+		Raytrace2DInt(tileMap, (int)x, (int)y, (int)xPos1, (int)yPos1, OnVisitTile);
 	}
 }
 
@@ -574,7 +574,7 @@ internal bool LOSRayHit(World* world, int tileX, int tileY)
 	{
 		Vector2i coord = { tileX, tileY };
 
-		world->TileCoordsInLOS.insert(coord);
+		world->TileCoordsInLOS->insert(coord);
 
 		auto tile = GetTile(&world->MainTileMap, tileX, tileY);
 		tile->Fow = FOWLevel::FullVision;
@@ -587,14 +587,7 @@ internal bool LOSRayHit(World* world, int tileX, int tileY)
 
 internal void LOSUpdate(World* world, Player* player)
 {
-	world->TileCoordsInLOS.clear();
-
-	//// TODO temp
-	//if (!TilesInLos.Memory)
-	//{
-	//	TilesInLos.InitializeEx(256, 2);
-	//}
-	//TilesInLos.Clear();
+	world->TileCoordsInLOS->clear();
 
 	auto position = player->TilePosition;
 	float playerAngleRadians = AngleFromDirection(player->LookDirection);
@@ -644,15 +637,14 @@ global_var bool DisableFow = false;
 
 void RenderTileMap(Game* game, TileMap* tileMap)
 {
-	float fowValues[5] = { 0.0f, 0.25f, 0.5f, 0.75f, 1.0f };
-	float fowAlphas[5] = { 1.0f, 1.0f, 1.0f, 1.0f, 1.0f };
-	Vector4 colorFullVision = ColorNormalize(WHITE);
-	Vector4 colorNoVision = ColorNormalize(BLACK);
-
-	TileSet* tileSet = tileMap->TileSet;
+	const float fowValues[5] = { 0.0f, 0.25f, 0.5f, 0.75f, 1.0f };
+	const float fowAlphas[5] = { 1.0f, 1.0f, 1.0f, 1.0f, 1.0f };
+	const Vector4 colorFullVision = ColorNormalize(WHITE);
+	const Vector4 colorNoVision = ColorNormalize(BLACK);
 
 	LOSUpdate(&game->World, &game->Player);
 
+	// TODO debug
 	if (IsKeyPressed(KEY_F1))
 		DisableFow = !DisableFow;
 
@@ -680,11 +672,11 @@ void RenderTileMap(Game* game, TileMap* tileMap)
 			Rectangle textureRect = {
 				tile.TexturePosition.x,
 				tile.TexturePosition.y,
-				(float)tileSet->TextureTileWidth,
-				(float)tileSet->TextureTileHeight
+				(float)tileMap->TileSet->TextureTileWidth,
+				(float)tileMap->TileSet->TextureTileHeight
 			};
 			DrawTextureRec(
-				tileSet->TileTexture,
+				tileMap->TileSet->TileTexture,
 				textureRect,
 				{ xPos, yPos },
 				color);

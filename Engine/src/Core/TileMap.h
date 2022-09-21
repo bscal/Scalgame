@@ -69,6 +69,29 @@ struct TileMap
 	uint16_t MapHalfTileSize;
 };
 
+struct ChunkManager
+{
+	SList<MapChunk> Chunks;
+
+	void TryLoadUnloadChunks(World* world);
+	void UpdateChunks(World* world);
+
+	MapChunk* GetChunk(int chunkX, int chunkY) const;
+	bool LoadChunk(int chunkX, int chunkY);
+	bool UnloadChunk(int chunkX, int chunkY);
+	bool IsChunkLoaded(int chunkX, int chunkY);
+};
+
+struct MapChunk
+{
+	Tile* TileMemory;
+	uint32_t Size;
+	uint16_t Width;
+	uint16_t Height;
+	int16_t Layer;
+	bool IsLoaded;
+};
+
 bool LoadTileSet(Texture2D* tileTexture,
 	uint16_t tileSizeWidth, uint16_t tileSizeHeight,
 	TileSet* outTileSet);

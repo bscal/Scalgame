@@ -22,7 +22,7 @@ SAPI bool GameApplication::Start()
     const int screenWidth = 1600;
     const int screenHeight = 900;
     InitWindow(screenWidth, screenHeight, "Some roguelike game");
-    SetTargetFPS(60);
+    //SetTargetFPS(60);
     SetTraceLogLevel(LOG_ALL);
 
     Resources = (struct Resources*)Scal::MemAllocZero(sizeof(struct Resources));
@@ -32,11 +32,9 @@ SAPI bool GameApplication::Start()
     InitializeUI(&Resources->MainFontS, 16.0f, UIState);
     InitiailizeDebugWindow(&Resources->MainFontM, 10, 30, DARKGREEN);
 
-    //this->Game = new struct Game();
     Game = (struct Game*)Scal::MemAllocZero(sizeof(struct Game));
-    new (&Game->World) struct World();
     WorldInitialize(&Game->World);
-    InitializeTileMap(&Resources->MainTileSet, 128, 128, 16, &Game->World.MainTileMap);
+    InitializeTileMap(&Resources->MainTileSet, 1000, 1000, 16, &Game->World.MainTileMap);
     LoadTileMap(&Game->World.MainTileMap);
     InitializePlayer(this, &Game->Player);
     Game->Camera.zoom = 2.0f;
@@ -145,6 +143,7 @@ SAPI void GameApplication::Run()
 
         UpdatePlayer(this, &Game->Player);
         RenderPlayer(this, &Game->Player);
+
         EndMode2D();
 
         // ***************

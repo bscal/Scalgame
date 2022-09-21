@@ -21,6 +21,7 @@ struct Creature
 {
 	Rectangle SpriteTextureRect;
 	Vector2 Position;
+	Vector2i TilePosition;
 	uint32_t EntityId;
 	uint32_t Health;
 	uint32_t MaxHealth;

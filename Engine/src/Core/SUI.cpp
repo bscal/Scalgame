@@ -376,7 +376,7 @@ void RenderMemoryUsage(UIState* state, uint64_t length,
 			nk_layout_row_dynamic(&state->Ctx, 30, 1);
 			auto memSize = FindMemSize(usage[i]);
 			char str[32];
-			sprintf(str, "%s: %u %cBs", usageName[i], memSize.Size, memSize.BytePrefix);
+			sprintf(str, "%s: %f %cBs", usageName[i], memSize.Size, memSize.BytePrefix);
 			nk_label(&state->Ctx, str, NK_TEXT_LEFT);
 		}
 	}

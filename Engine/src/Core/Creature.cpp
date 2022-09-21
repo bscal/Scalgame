@@ -11,6 +11,7 @@ bool CreatureInitialize(Creature* creature, const CreatureType* type)
 	creature->MaxMana = type->MaxMana;
 
 	creature->Position = { 16, 16 };
+	creature->TilePosition = { 1, 1 };
 	creature->Health = creature->MaxHealth;
 	creature->Mana = creature->MaxMana;
 	creature->Difficulty = 1;

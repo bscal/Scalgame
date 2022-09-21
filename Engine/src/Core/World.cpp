@@ -5,17 +5,18 @@
 
 #include <assert.h>
 
-World::World() : TileCoordsInLOS()
-{
-	this->WorldCreatures = {};
-	this->EntityActionsList = {};
-	this->MainTileMap = {};
-}
-
 bool WorldInitialize(World* world)
 {
+	assert(world);
+
+	// TODO call unordered_set constructor without allocating memory
+	//new (&world->TileCoordsInLOS) std::unordered_set<Vector2i, PackVector2i>();
+
+	world->TileCoordsInLOS = new std::unordered_set<Vector2i, PackVector2i>();
 	world->EntityActionsList.Initialize();
 	world->WorldCreatures.Initialize();
+
+	assert(&world->TileCoordsInLOS);
 	return true;
 }
 
@@ -27,7 +28,12 @@ void WorldUpdate(World* world, GameApplication* gameApp)
 	{
 		Creature creature = world->WorldCreatures.Memory[i];
 		CreatureUpdate(&creature, gameApp->Game);
-		CreatureRender(gameApp->Resources, &creature);
+
+		auto find = world->TileCoordsInLOS->find(creature.TilePosition);
+		if (find != world->TileCoordsInLOS->end())
+		{
+			CreatureRender(gameApp->Resources, &creature);
+		}
 	}
 }
 
