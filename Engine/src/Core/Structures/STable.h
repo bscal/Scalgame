@@ -9,11 +9,94 @@
 
 global_var constexpr uint64_t STABLE_FULL = UINT64_MAX;
 
+template<typename K, typename V>
 struct STableEntry
 {
-	void* Key;
-	void* Value;
+	K Key;
+	V Value;
+	STableEntry<K, V>* Next;
 };
+
+template<typename K, typename V>
+struct STable
+{
+	uint64_t Size;
+	uint64_t Capacity;
+	STableEntry<K, V>** Entries;
+};
+
+template<typename K, typename V>
+void STableCreate(STable<K, V>* sTable, uint64_t capacity)
+{
+	if (!sTable)
+	{
+		TraceLog(LOG_ERROR, "sTable cannot be nullptr");
+		return;
+	}
+
+	if (capacity < 1)
+	{
+		capacity = 1;
+	}
+
+	sTable->Size = 0;
+	sTable->Capacity = capacity;
+	sTable->Entries = (STableEntry<K, V>**)
+		Scal::MemAllocZero(capacity * sizeof(STableEntry));
+
+	assert(sTable->Entries);
+}
+
+template<typename K, typename V>
+void STablePut(STable<K, V>* sTable, const K* key, const V* value)
+{
+	assert(sTable);
+	if (!key)
+	{
+		TraceLog(LOG_ERROR, "key cannot be null");
+		return;
+	}
+	if (!value)
+	{
+		TraceLog(LOG_ERROR, "value cannot be null");
+		return;
+	}
+
+	uint64_t bucket = 0;
+	STableEntry<K, V>* entry = sTable->Entries[bucket];
+
+	if (!entry) // If emptry insert
+	{
+		entry->Key = *key;
+		entry->Value = *value;
+		entry->Next = 0;
+		sTable->Entries[bucket] = entry;
+	}
+
+	STableEntry<K, V>* previous;
+	while (entry)
+	{
+		// TODO
+		if (true) // see if equal
+		{
+
+		}
+
+		previous = entry;
+		entry = previous->Next;
+	}
+
+	entry->Key = *key;
+	entry->Value = *value;
+	entry->Next = 0;
+	previous->Next = entry;
+}
+
+template<typename K, typename V>
+V* STableGet(STable<K, V>* sTable, const K* key)
+{
+	return 0;
+}
 
 
 template<typename T>
