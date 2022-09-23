@@ -23,7 +23,20 @@ struct STable
 	uint64_t Size;
 	uint64_t Capacity;
 	STableEntry<K, V>** Entries;
+	uint64_t(*KeyHashFunction)(const K* key);
+	bool(*KeyEqualsFunction)(const K* v0, const K* v1);
 };
+
+template<typename K, typename V>
+STableEntry<K, V>* CreateEntry(const K* key, const V* value)
+{
+	STableEntry<K, V>* entry = (STableEntry<K, V>*)
+		Scal::MemAllocZero(sizeof(STableEntry<K, V>));
+	entry->Key = *key;
+	entry->Value = *value;
+	return entry;
+}
+
 
 template<typename K, typename V>
 void STableCreate(STable<K, V>* sTable, uint64_t capacity)
@@ -42,7 +55,7 @@ void STableCreate(STable<K, V>* sTable, uint64_t capacity)
 	sTable->Size = 0;
 	sTable->Capacity = capacity;
 	sTable->Entries = (STableEntry<K, V>**)
-		Scal::MemAllocZero(capacity * sizeof(STableEntry));
+		Scal::MemAllocZero(capacity * sizeof(STableEntry<K, V>*));
 
 	assert(sTable->Entries);
 }
@@ -62,120 +75,134 @@ void STablePut(STable<K, V>* sTable, const K* key, const V* value)
 		return;
 	}
 
-	uint64_t bucket = 0;
-	STableEntry<K, V>* entry = sTable->Entries[bucket];
+	uint64_t hash = sTable->KeyHashFunction(key);
+	hash %= sTable->Capacity;
+	STableEntry<K, V>* entry = sTable->Entries[hash];
 
 	if (!entry) // If emptry insert
 	{
-		entry->Key = *key;
-		entry->Value = *value;
-		entry->Next = 0;
-		sTable->Entries[bucket] = entry;
+		sTable->Entries[hash] = CreateEntry(key, value);
 	}
-
-	STableEntry<K, V>* previous;
-	while (entry)
+	else
 	{
-		// TODO
-		if (true) // see if equal
+		STableEntry<K, V>* previous;
+		while (entry)
 		{
+			if (sTable->KeyEqualsFunction(key, &entry->Key))
+			{
+				return;
+			}
 
+			previous = entry;
+			entry = previous->Next;
 		}
 
-		previous = entry;
-		entry = previous->Next;
+		entry = CreateEntry(key, value);
+		previous->Next = entry;
 	}
-
-	entry->Key = *key;
-	entry->Value = *value;
-	entry->Next = 0;
-	previous->Next = entry;
 }
 
 template<typename K, typename V>
 V* STableGet(STable<K, V>* sTable, const K* key)
 {
-	return 0;
-}
-
-
-template<typename T>
-struct Bucket
-{
-	uint64_t Hash;
-	T Value;
-	bool InUse;
-};
-
-template<typename K, typename V>
-struct HashMap
-{
-	uint64_t Size;
-	uint64_t Capacity;
-	Bucket<V>* BucketMemory;
-	uint64_t(*KeyHashFunc)(K key);
-
-	bool Initialize();
-	void Free();
-	void Clear();
-	void Rehash();
-
-	uint64_t Hash(K key);
-
-	void* Get();
-
-	V* Put(K key, V value);
-	void* Remove();
-	bool Contains();
-
-};
-
-template<typename K, typename V>
-bool HashMap<K, V>::Initialize()
-{
-	BucketMemory = (Bucket*)Scal::MemAlloc(sizeof(Bucket));
-	assert(BucketMemory);
-
-	Capacity = STABLE_DEFAULT_CAPACITY;
-}
-
-template<typename K, typename V>
-uint64_t HashMap<K, V>::Hash(K key)
-{
-	/* If full, return immediately */
-	if (Size == Capacity)
-		return STABLE_FULL;
-
-	/* Find the best index */
-	uint64_t curr = KeyHashFunc(key);
-
-	/* Linear probling */
-	for (uint64_t i = 0; i < Size; ++i)
+	assert(sTable);
+	if (!key)
 	{
-		if (!BucketMemory[curr].IsUsed)
-			return curr;
-
-		if (BucketMemory[curr].Hash == key && BucketMemory[curr].IsUsed)
-			return curr;
-
-		curr = (curr + 1) % Size;
-	}
-	
-	return STABLE_FULL
-}
-
-template<typename K, typename V>
-V* HashMap<K, V>::Put(K key, V value)
-{
-	uint64_t index = Hash(key);
-	while (index == STABLE_FULL)
-	{
-		Rehash();
-		index = Hash(key);
+		TraceLog(LOG_ERROR, "key cannot be null");
+		return nullptr;
 	}
 
-	BucketMemory[index].Hash = index;
-	BucketMemory[index].Value = value;
-	BucketMemory[index].IsUsed = true;
-	++Size;
+	uint64_t hash = sTable->KeyHashFunction(key);
+	hash %= sTable->Capacity;
+	STableEntry<K, V>* entry = sTable->Entries[hash];
+	if (!entry)
+	{
+		return nullptr;
+	}
+
+	while (entry)
+	{
+		if (sTable->KeyEqualsFunction(key, &entry->Key))
+		{
+			return &entry->Value;
+		}
+		entry = entry->Next;
+	}
+
+	return nullptr;
+}
+
+template<typename K, typename V>
+bool STableContains(STable<K, V>* sTable, const K* key)
+{
+	assert(sTable);
+	if (!key)
+	{
+		TraceLog(LOG_ERROR, "key cannot be null");
+		return false;
+	}
+
+	uint64_t bucket = 0;
+	STableEntry<K, V>* entry = sTable->Entries[bucket];
+	if (!entry)
+	{
+		return false;
+	}
+
+	while (entry)
+	{
+		if (true) // TODO equals
+		{
+			return true
+		}
+		entry = entry->Next;
+	}
+
+	return false;
+}
+
+template<typename K, typename V>
+void STableDump(STable<K, V>* sTable)
+{
+	TraceLog(LOG_DEBUG, LOG_DEBUG"Printing STable:");
+	for (int i = 0; i < sTable->Size; ++i)
+	{
+		STableEntry<K, V>* entry = sTable->Entries[i];
+		if (entry)
+		{
+			TraceLog(LOG_DEBUG, "* Bucket(%d)", i);
+			for (;;)
+			{
+				TraceLog(LOG_DEBUG, "%s=%s", entry->Key, entry->Value);
+				if (entry->Next)
+					entry = entry->Next;
+				else
+					break;
+			}
+		}
+	}
+	TraceLog(LOG_DEBUG, "");
+}
+
+inline void TestSTable()
+{
+	STable<Vector2i, int> table = {};
+	STableCreate(&table, 10);
+
+	table.KeyHashFunction = [](const Vector2i* key)
+	{
+		return (uint64_t)PackVec2i(*key);
+	};
+	table.KeyEqualsFunction = [](const Vector2i* k0, const Vector2i* k1)
+	{
+		return *k0 == *k1;
+	};
+
+	Vector2i k = { 2, 2 };
+	int v = 8;
+	STablePut(&table, &k, &v);
+
+	int* get = STableGet(&table, &k);
+	int value = *get;
+	TraceLog(LOG_INFO, "%d", value);
 }

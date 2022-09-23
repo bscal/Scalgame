@@ -58,7 +58,7 @@ struct PackVector2i
 	}
 };
 
-inline int64_t PackVec2i(const Vector2i& v)
+inline int64_t PackVec2i(Vector2i v)
 {
 	size_t packedVec = ((size_t(v.x) & 0xffL) << 32);
 	packedVec |= (v.y & 0xffL);

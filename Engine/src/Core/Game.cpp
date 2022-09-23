@@ -6,6 +6,7 @@
 #include "SUI.h"
 #include "Structures/SArray.h"
 #include "Structures/SList.h"
+#include "Structures/STable.h"
 
 //Game::Game() : World()
 //{
@@ -44,6 +45,8 @@ SAPI bool GameApplication::Start()
     WorldCreateCreature(&Game->World, &creature);
 
     Test();
+
+    TestSTable();
 
     return IsInitialized = true;
 }
