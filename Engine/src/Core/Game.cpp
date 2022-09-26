@@ -8,10 +8,6 @@
 #include "Structures/SList.h"
 #include "Structures/STable.h"
 
-//Game::Game() : World()
-//{
-//}
-
 SAPI bool GameApplication::Start()
 {
     if (IsInitialized)
@@ -23,7 +19,7 @@ SAPI bool GameApplication::Start()
     const int screenWidth = 1600;
     const int screenHeight = 900;
     InitWindow(screenWidth, screenHeight, "Some roguelike game");
-    //SetTargetFPS(60);
+    SetTargetFPS(60);
     SetTraceLogLevel(LOG_ALL);
 
     Resources = (struct Resources*)Scal::MemAllocZero(sizeof(struct Resources));
@@ -35,7 +31,7 @@ SAPI bool GameApplication::Start()
 
     Game = (struct Game*)Scal::MemAllocZero(sizeof(struct Game));
     WorldInitialize(&Game->World);
-    InitializeTileMap(&Resources->MainTileSet, 1000, 1000, 16, &Game->World.MainTileMap);
+    InitializeTileMap(&Resources->MainTileSet, 128, 128, 16, &Game->World.MainTileMap);
     LoadTileMap(&Game->World.MainTileMap);
     InitializePlayer(this, &Game->Player);
     Game->Camera.zoom = 2.0f;
