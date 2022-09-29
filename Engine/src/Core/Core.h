@@ -30,6 +30,14 @@
 #define BitClear(state, bit) (state & ~(1U << bit))
 #define BitToggle(state, bit) (state ^ 1U << bit)
 
+#if SCAL_DEBUG
+#define S_LOG_DEBUG(msg, args) TraceLog(LOG_DEBUG, msg, args)
+#else
+#define S_LOG_DEBUG(msg, args)
+#endif
+
+#define S_LOG_ERR(msg, args) TraceLog(LOG_ERROR, msg, args)
+
 struct MemorySizeData
 {
 	float Size;
