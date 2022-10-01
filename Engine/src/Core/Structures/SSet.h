@@ -10,18 +10,6 @@ struct SSet
 };
 
 template<typename T>
-void SSetInitialize(SSet<T>* set, uint64_t capacity);
-
-template<typename T>
-void SSetPut(SSet<T>* set, const T* key);
-
-template<typename T>
-void SSetRemove(SSet<T>* set, const T* key);
-
-template<typename T>
-bool SSetContains(SSet<T>* set, const T* key);
-
-template<typename T>
 void SSetInitialize(SSet<T>* set, uint64_t capacity)
 {
 	STableCreate(set->Keys, capacity);

@@ -49,3 +49,6 @@ bool CreatureInitialize(Creature* creature, const CreatureType* creatureType);
 
 void CreatureUpdate(Creature* creature, Game* game);
 void CreatureRender(Resources* resources, Creature* creature);
+
+void CreatureAIPathfind(Creature* creature, Game* game);
+void CreatureMove(Creature* creature, int tileX, int tileY);

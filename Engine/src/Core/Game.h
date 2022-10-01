@@ -8,6 +8,8 @@
 struct Resources;
 struct UIState;
 
+
+
 struct Game
 {
     Camera2D Camera;

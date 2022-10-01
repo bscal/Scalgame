@@ -21,7 +21,7 @@ bool CreatureInitialize(Creature* creature, const CreatureType* type)
 
 void CreatureUpdate(Creature* creature, Game* game)
 {
-
+	
 }
 
 void CreatureRender(Resources* resources, Creature* creature)
@@ -30,4 +30,14 @@ void CreatureRender(Resources* resources, Creature* creature)
 		creature->SpriteTextureRect,
 		creature->Position,
 		WHITE);
+}
+
+void CreatureAIPathfind(Creature* creature, Game* game)
+{
+
+}
+
+void CreatureMove(Creature* creature, int tileX, int tileY)
+{
+
 }
