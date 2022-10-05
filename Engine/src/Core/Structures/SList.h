@@ -36,6 +36,10 @@ struct SList
 	void RemoveAtFast(uint64_t index);
 
 	T PeekAt(uint64_t index) const;
+
+	T& operator[](size_t i) { return Memory[i]; }
+	const T& operator[](size_t i) const { return Memory[i]; }
+
 	bool Contains(const T* value) const;
 	void Clear();
 };

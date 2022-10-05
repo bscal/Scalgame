@@ -6,7 +6,6 @@ SET debugPath="bin/Debug-windows-x86_64"
 SET releasePath="bin/Release-windows-x86_64"
 
 IF "%~1" == "" GOTO PrintHelp
-if "%~1" == "gen_vscode" GOTO GenerateVSCode
 IF "%~1" == "gen" GOTO Generate
 IF "%~1" == "build" GOTO Build
 IF "%~1" == "run" GOTO Run
