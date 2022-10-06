@@ -20,27 +20,42 @@ global_var uint32_t NextComponentId;
 template<typename T>
 struct Component
 {
-	const static uint32_t ID = NextComponentId++;
-	const static size_t SIZE = sizeof<T>;
+	const static uint32_t ID;
+	const static size_t SIZE;
 };
 
-struct ComponentManager
+template<typename T>
+const uint32_t Component<T>::ID = NextComponentId++;
+
+template<typename T>
+const size_t Component<T>::SIZE = sizeof(T);
+
+struct Health : public Component<Health>
 {
-	STable<uint32_t, SList<void*>> ComponentMap;
+	uint32_t Health;
+	uint32_t MaxHealth;
 };
 
-struct EntityManager
+struct EntitiesManager
 {
-	SList<Entity> EntityList;
-	STable<uint32_t, Entity*> EntityDataTable;
-
-	uint32_t NextEntityId;
+	STable<uint32_t, SList<char*>> ComponentMap;
+	SList<Entity> EntityArray;
 };
 
-constexpr void RegisterEntityTypes();
+void InitializeEntitiesManager(EntitiesManager* entityManager);
 
-void EntityManagerInitialize(EntityManager* entityManager);
+Entity* CreateEntity();
 
-bool EntityInitialize(Entity* entity);
+template<typename T>
+bool AddComponent(EntitiesManager* entityManager,
+	Entity* entity, Component<T> component)
+{
+	entity->Components.SetBit(componentId, true);
 
-Entity* FindEntity(EntityManager* entityManager, uint32_t entityId);
+	auto componentsMap = entityManager->ComponentMap.Get(&componentId);
+	auto componentList = componentsMap->PeekAt(entity->EntityId);
+
+	Scal::MemCopy()
+}
+
+void TestEntities(EntitiesManager* entityManager);
