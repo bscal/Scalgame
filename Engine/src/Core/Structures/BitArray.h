@@ -5,7 +5,7 @@
 template<uint32_t FieldSizeInBytes>
 struct BitArray
 {
-	bool[FieldSizeInBytes] Data;
+	bool Data[FieldSizeInBytes];
 
 	bool GetBit(uint32_t index) const;
 	void SetBit(uint32_t index, bool value);

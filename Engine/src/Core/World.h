@@ -3,6 +3,7 @@
 #include "Core.h"
 #include "TileMap.h"
 #include "Creature.h"
+#include "Entity.h"
 #include "Structures/SList.h"
 
 #include <unordered_set>
@@ -24,6 +25,7 @@ struct World
 {
 	TileMap MainTileMap;
 	SList<Action> EntityActionsList;
+	EntitiesManager EntitiesManager;
 	// TODO add own set struct
 	std::unordered_set<Vector2i, PackVector2i>* TileCoordsInLOS;
 	//SList<Player> WorldPlayers;

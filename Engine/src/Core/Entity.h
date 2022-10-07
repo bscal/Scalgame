@@ -13,6 +13,7 @@ struct Entity
 {
 	BitArray<MAX_COMPONENTS> Components;
 	uint64_t EntityId;
+	uint64_t EntityIndex;
 };
 
 global_var uint32_t NextComponentId;
@@ -40,19 +41,21 @@ struct EntitiesManager
 {
 	STable<uint32_t, SList<char*>> ComponentMap;
 	SList<Entity> EntityArray;
+	uint64_t NextEntityId;
 };
 
 void InitializeEntitiesManager(EntitiesManager* entityManager);
 
 Entity* CreateEntity();
+void EntityRemove(Entity* entity, EntitiesManager* entityManager);
 
 template<typename T>
 bool AddComponent(EntitiesManager* entityManager,
 	Entity* entity, Component<T> component)
 {
-	entity->Components.SetBit(componentId, true);
+	entity->Components.SetBit(component.ID, true);
 
-	auto componentsMap = entityManager->ComponentMap.Get(&componentId);
+	auto componentsMap = entityManager->ComponentMap.Get(&component.ID);
 	auto componentList = componentsMap->PeekAt(entity->EntityId);
 
 	Scal::MemCopy()

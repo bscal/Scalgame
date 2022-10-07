@@ -54,7 +54,7 @@ internal void FreeEntry(STableEntry<K, V>* entry)
 }
 
 template<typename K, typename V>
-internal uint64_t HashKey(STable<K, V>* sTable, const K* key)
+internal uint64_t HashKey(const STable<K, V>* sTable, const K* key)
 {
 	uint64_t hash = sTable->KeyHashFunction(key);
 	return hash % sTable->Capacity;
@@ -64,7 +64,7 @@ template<typename K, typename V>
 internal STable<K, V> Rehash(STable<K, V>* sTable)
 {
 	STable<K, V> sTable2 = *sTable;
-	STableCreate(&sTable2, sTable->Capacity);
+	sTable2.Initialize(sTable->Capacity);
 
 	for (int i = 0; i < sTable->Capacity; ++i)
 	{
@@ -74,19 +74,18 @@ internal STable<K, V> Rehash(STable<K, V>* sTable)
 			while (entry->Next)
 			{
 				auto next = entry->Next;
-				STablePut(&sTable2, &next->Key, &next->Value);
-				STableRemove(sTable, &next->Key);
+				sTable2.Put(&next->Key, &next->Value);
+				sTable->Remove(&next->Key);
 			}
-			STablePut(&sTable2, &entry->Key, &entry->Value);
-			STableRemove(sTable, &entry->Key);
+			sTable2.Put(&entry->Key, &entry->Value);
+			sTable->Remove(&entry->Key);
 		}
 	}
 
 	Scal::MemFree(sTable->Entries);
 
-	sTable->Entries = sTable2.Entries;
-
-	return sTable2;
+	*sTable = sTable2;
+	return *sTable;
 }
 
 template<typename K, typename V>
@@ -117,7 +116,6 @@ void STable<typename K, typename V>::Initialize(uint64_t capacity)
 template<typename K, typename V>
 void STable<typename K, typename V>::Resize(uint64_t newCapacity)
 {
-	assert(sTable);
 	if (newCapacity < Capacity)
 	{
 		newCapacity = Capacity * 2;
@@ -146,7 +144,7 @@ bool STable<typename K, typename V>::Put(const K* key, const V* value)
 		Resize(Capacity * 2);
 	}
 
-	uint64_t hash = HashKey(sTable, key);
+	uint64_t hash = HashKey(this, key);
 	STableEntry<K, V>* entry = Entries[hash];
 	if (!entry)
 	{
@@ -183,7 +181,7 @@ V* STable<typename K, typename V>::Get(const K* key)
 		return nullptr;
 	}
 
-	uint64_t hash = HashKey(sTable, key);
+	uint64_t hash = HashKey(this, key);
 	STableEntry<K, V>* entry = Entries[hash];
 	while (entry)
 	{
@@ -205,7 +203,7 @@ bool STable<typename K, typename V>::Contains(const K* key) const
 		return false;
 	}
 
-	uint64_t hash = HashKey(sTable, key);
+	uint64_t hash = HashKey(this, key);
 	STableEntry<K, V>* entry = Entries[hash];
 	while (entry)
 	{
@@ -225,7 +223,7 @@ bool STable<typename K, typename V>::Remove(const K* key)
 		return false;
 	}
 
-	uint64_t hash = HashKey(sTable, key);
+	uint64_t hash = HashKey(this, key);
 	STableEntry<K, V>* entry = Entries[hash];
 	if (!entry) return false;
 	if (!entry->Next)

@@ -16,6 +16,10 @@ bool WorldInitialize(World* world)
 	world->EntityActionsList.Initialize();
 	world->WorldCreatures.Initialize();
 
+	InitializeEntitiesManager(&world->EntitiesManager);
+
+	TestEntities(&world->EntitiesManager);
+
 	assert(&world->TileCoordsInLOS);
 	return true;
 }
