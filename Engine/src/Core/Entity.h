@@ -5,6 +5,7 @@
 #include "Structures/STable.h"
 #include "Structures/BitArray.h"
 
+#include <unordered_map>
 #include <bitset>
 
 #define MAX_COMPONENTS 256
@@ -57,12 +58,17 @@ struct ComponentStorage
 struct EntitiesManager
 {
 	SList<ComponentRegisterEntry> ComponentRegistry;
-	STable<uint32_t, SList<void*>> ComponentMap;
+	STable<uint32_t, void*> ComponentMap;
+	//std::unordered_map<uint32_t, Component<void*>*> ComponentMap;
 	SList<Entity> EntityArray;
 	uint64_t NextEntityId;
 };
 
 void InitializeEntitiesManager(EntitiesManager* entityManager);
+
+template<typename T>
+void RegisterComponent(EntitiesManager* entityManager, 
+	uint32_t componentId, size_t size);
 
 Entity* CreateEntity();
 void EntityRemove(Entity* entity, EntitiesManager* entityManager);
@@ -74,10 +80,13 @@ bool AddComponent(EntitiesManager* entityManager,
 {
 	component->OwningEntity = entity;
 
-	auto componentsList = entityManager->ComponentMap.Get(&component->ID);
-	componentsList->Push(component);
+	void** list = entityManager->ComponentMap.Get(&component->ID);
 
-	uint32_t insertedAt = componentsList->Length - 1;
+	void* c = *list;
+	SList<Component<T>>* components = c;
+	components->Push(component);
+
+	uint32_t insertedAt = components->Length - 1;
 	entity->Components[component->ID] = insertedAt;
 	return true;
 }

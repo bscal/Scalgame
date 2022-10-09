@@ -29,7 +29,7 @@ struct STable
 
 	void Initialize(uint64_t capacity);
 	void Resize(uint64_t newCapacity);
-	bool Put(const K* key, const V* value);
+	bool Put(const K* key, V* value);
 	V* Get(const K* key);
 	bool Remove(const K* key);
 	bool Contains(const K* key) const;
@@ -126,7 +126,7 @@ void STable<typename K, typename V>::Resize(uint64_t newCapacity)
 }
 
 template<typename K, typename V>
-bool STable<typename K, typename V>::Put(const K* key, const V* value)
+bool STable<typename K, typename V>::Put(const K* key, V* value)
 {
 	if (!key)
 	{
