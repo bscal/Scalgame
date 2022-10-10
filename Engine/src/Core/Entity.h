@@ -1,12 +1,10 @@
 #pragma once
 
 #include "Core.h"
+#include "Structures/SArray.h"
 #include "Structures/SList.h"
 #include "Structures/STable.h"
 #include "Structures/BitArray.h"
-
-#include <unordered_map>
-#include <bitset>
 
 #define MAX_COMPONENTS 256
 #define EMPTY_COMPONENT UINT32_MAX
@@ -25,12 +23,16 @@ struct Entity
 
 global_var uint32_t NextComponentId;
 
+struct BaseComponent
+{
+	void* OwningEntity;
+};
+
 template<typename T>
-struct Component
+struct Component : public BaseComponent
 {
 	const static uint32_t ID;
 	const static size_t SIZE;
-	void* OwningEntity;
 };
 
 template<typename T>
@@ -45,20 +47,9 @@ struct Health : public Component<Health>
 	uint32_t MaxHealth;
 };
 
-struct ComponentRegisterEntry
-{
-	size_t Size;
-};
-
-struct ComponentStorage
-{
-	SList<uint8_t> Memory;
-};
-
 struct EntitiesManager
 {
-	SList<ComponentRegisterEntry> ComponentRegistry;
-	STable<uint32_t, void*> ComponentMap;
+	STable<uint32_t, SArray> ComponentMap;
 	//std::unordered_map<uint32_t, Component<void*>*> ComponentMap;
 	SList<Entity> EntityArray;
 	uint64_t NextEntityId;
@@ -68,7 +59,7 @@ void InitializeEntitiesManager(EntitiesManager* entityManager);
 
 template<typename T>
 void RegisterComponent(EntitiesManager* entityManager, 
-	uint32_t componentId, size_t size);
+	uint32_t componentId);
 
 Entity* CreateEntity();
 void EntityRemove(Entity* entity, EntitiesManager* entityManager);
@@ -80,13 +71,9 @@ bool AddComponent(EntitiesManager* entityManager,
 {
 	component->OwningEntity = entity;
 
-	void** list = entityManager->ComponentMap.Get(&component->ID);
-
-	void* c = *list;
-	SList<Component<T>>* components = c;
-	components->Push(component);
-
-	uint32_t insertedAt = components->Length - 1;
+	SList<BaseComponent>* list = entityManager->ComponentMap.Get(&component->ID);
+	list->Push(component);
+	uint32_t insertedAt = list->Length - 1;
 	entity->Components[component->ID] = insertedAt;
 	return true;
 }

@@ -6,6 +6,8 @@
 
 #define DEFAULT_COMPONENT 256
 
+
+
 internal uint64_t EntityHash(const uint32_t* key)
 {
 	return *key;
@@ -25,21 +27,20 @@ void InitializeEntitiesManager(EntitiesManager* entityManager)
 	entityManager->ComponentMap.KeyEqualsFunction = EntityEquals;
 	entityManager->ComponentMap.Initialize(DEFAULT_COMPONENT);
 
-	RegisterComponent<Health>(entityManager, Health::ID, Health::SIZE);
+	RegisterComponent<Health>(entityManager, Health::ID);
 }
 
 template<typename T>
 void RegisterComponent(EntitiesManager* entityManager,
-	uint32_t componentId, size_t size)
+	uint32_t componentId)
 {
 	ComponentRegisterEntry entry;
-	entry.Size = size;
+	entry.Size = sizeof(T);
 	entityManager->ComponentRegistry.Push(&entry);
 
-	SList<T>* componentList = new SList<T>();
-	componentList->InitializeEx(16, 2);
-	void* ptr = componentList;
-	entityManager->ComponentMap.Put(&componentId, &ptr);
+	SList<BaseComponent> componentList = {};
+	componentList.InitializeExStride(32, 2, sizeof(T));
+	entityManager->ComponentMap.Put(&componentId, &componentList);
 }
 
 Entity* CreateEntity(EntitiesManager* entityManager)
