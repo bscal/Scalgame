@@ -23,6 +23,15 @@ SAPI void ArraySetAt(SArray* sArray, uint64_t index, const void* valuePtr);
 SAPI void ArrayPopAt(SArray* sArray, uint64_t index, void* dest);
 SAPI void* ArrayPeekAt(SArray* sArray, uint64_t index);
 SAPI void ArrayClear(SArray* sArray);
+SAPI bool ArrayRemoveAt(SArray* sArray, uint64_t index);
+
+template<typename T>
+SAPI T* Index(SArray* sArray, uint64_t index)
+{
+	assert(sArray);
+	T* typedMem = sArray->Memory;
+	return typedMem[index];
+}
 
 #define SArrayCreate(stride, outSArray) ArrayCreate(SARRAY_DEFAULT_SIZE, stride, outSArray)
 #define SArrayPush(sArray, value) \

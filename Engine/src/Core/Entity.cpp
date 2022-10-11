@@ -5,7 +5,7 @@
 #include <assert.h>
 
 #define DEFAULT_COMPONENT 256
-
+#define COMPONENTS_ARRAY_SIZE DEFAULT_COMPONENT * sizeof(void*)
 
 
 internal uint64_t EntityHash(const uint32_t* key)
@@ -20,33 +20,31 @@ internal bool EntityEquals(const uint32_t* key0, const uint32_t* key1)
 
 void InitializeEntitiesManager(EntitiesManager* entityManager)
 {
-	entityManager->ComponentRegistry.InitializeEx(DEFAULT_COMPONENT, 2);
-	entityManager->EntityArray.InitializeEx(DEFAULT_COMPONENT, 2);
-
+	entityManager->EntityArray.InitializeCap(DEFAULT_COMPONENT);
 	entityManager->ComponentMap.KeyHashFunction = EntityHash;
 	entityManager->ComponentMap.KeyEqualsFunction = EntityEquals;
 	entityManager->ComponentMap.Initialize(DEFAULT_COMPONENT);
 
+	RegisterComponent<Transform2D>(entityManager, Transform2D::ID);
 	RegisterComponent<Health>(entityManager, Health::ID);
+
+	assert(entityManager->ComponentMap.Size == NextComponentId);
 }
 
 template<typename T>
 void RegisterComponent(EntitiesManager* entityManager,
 	uint32_t componentId)
 {
-	ComponentRegisterEntry entry;
-	entry.Size = sizeof(T);
-	entityManager->ComponentRegistry.Push(&entry);
-
-	SList<BaseComponent> componentList = {};
-	componentList.InitializeExStride(32, 2, sizeof(T));
-	entityManager->ComponentMap.Put(&componentId, &componentList);
+	SArray componentsArray = {};
+	ArrayCreate(32, sizeof(T), &componentsArray);
+	entityManager->ComponentMap.Put(&componentId, &componentsArray);
 }
 
 Entity* CreateEntity(EntitiesManager* entityManager)
 {
 	Entity entity = {};
-	entity.Components.InitializeEx(MAX_COMPONENTS, 2);
+	entity.Components.InitializeCap(MAX_COMPONENTS);
+	Scal::MemSet(entity.Components.Memory, 0xff, COMPONENTS_ARRAY_SIZE);
 	entity.EntityId = entityManager->NextEntityId++;
 	entity.EntityIndex = entityManager->EntityArray.Length;
 
@@ -76,46 +74,53 @@ Entity* GetEntity(EntitiesManager* entityManager, uint32_t entityId)
 	return nullptr;
 }
 
+template<typename T>
+bool AddComponent(EntitiesManager* entityManager,
+	Entity* entity, Component<T>* component)
+{
+	component->OwningEntity = entity;
+
+	SArray* components = entityManager->ComponentMap.Get(&component->ID);
+	ArrayPush(components, component);
+	uint32_t insertedAt = components->Length - 1;
+	entity->Components[component->ID] = insertedAt;
+	return true;
+}
+
 internal bool ComponentDeleteInternal(EntitiesManager* entityManager,
 	uint32_t componentId, uint32_t componentIndex)
 {
-	SList<char>* components = (SList<char>*)entityManager->ComponentMap.Get(&componentId);
-	if (!components)
-	{
-		TraceLog(LOG_ERROR, "Components list does not exist!");
-		return false;
-	}
+	SArray* components = entityManager->ComponentMap.Get(&componentId);
+
+	assert(components);
 	assert(components->Memory);
+
 	if (components->Length == 0)
 	{
-		TraceLog(LOG_ERROR, "Deleting a component from a empty list!");
+		TraceLog(LOG_WARNING, "Deleting a component from a empty list!");
 		return false;
 	}
 
-	//char* memory = (char*)components->Memory;
-	size_t stride = components->Stride;
-	size_t dstOffset = stride * (components->Length - 1);
-	size_t srcOffset = stride * componentIndex;
-	Scal::MemCopy(components->Memory + dstOffset, components->Memory + srcOffset, stride);
-
-	// TODO not sure if this is a good way, Component only contains
-	// 1 value uint64_t of OwningEntityId. But its templated to have
-	// some additional data. Could this template be remove? But to avoid
-	// having another struct to inherit from containing the OwningEntityId
-	// We can just cast straight to the uint64_t
-	Entity* moveOwningEntity = (Entity*)(components->Memory + (components->Length - 1));
-	moveOwningEntity->Components[componentId] = componentIndex;
+	bool movedLasted = ArrayRemoveAt(components, componentIndex);
+	if (movedLasted)
+	{
+		BaseComponent* movedComponent = (BaseComponent*)ArrayPeekAt(components, componentIndex);
+		movedComponent->OwningEntity->Components[componentId] = componentIndex;
+	}
 }
 
 bool RemoveComponent(EntitiesManager* entityManager,
 	Entity* entity, uint32_t componentId)
 {
 	assert(entityManager);
+	assert(componentId <= MAX_COMPONENTS);
+
 	if (!entity)
 	{
 		TraceLog(LOG_ERROR, "Entity is not valid!");
 		return false;
 	}
+
 	uint32_t componentIndex = entity->Components[componentId];
 	if (componentIndex == EMPTY_COMPONENT) return false;
 	ComponentDeleteInternal(entityManager, componentId, componentIndex);
@@ -127,10 +132,18 @@ void TestEntities(EntitiesManager* entityManager)
 {
 	auto entity = CreateEntity(entityManager);
 
+	Transform2D transform2D = {};
+	transform2D.Position = { 5, 10 };
+	transform2D.ZIndex = 1;
+	AddComponent(entityManager, entity, &transform2D);
+
 	Health health = {};
 	health.MaxHealth = 20;
 	health.Health = health.MaxHealth;
 	AddComponent(entityManager, entity, &health);
+
+	Transform2D* trans = GetComponent<Transform2D>(
+		entityManager, entity, Transform2D::ID);
 
 	RemoveComponent(entityManager, entity, health.ID);
 

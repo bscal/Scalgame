@@ -32,6 +32,11 @@ void MemCopy(void* dst, const void* src, size_t size)
 	memcpy(dst, src, size);
 }
 
+void MemSet(void* block, int value, size_t size)
+{
+	memset(block, value, size);
+}
+
 void MemClear(void* block, size_t size)
 {
 	memset(block, 0, size);

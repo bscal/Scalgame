@@ -17,9 +17,9 @@ struct SList
 	uint64_t ResizeIncrease;
 
 	bool Initialize();
-	bool InitializeEx(uint64_t capacity, uint64_t resizeIncrease);
-	bool InitializeExStride(uint64_t capacity, uint64_t resizeIncrease,
-		uint64_t stride);
+	bool InitializeCap(uint64_t capacity);
+	bool InitializeEx(uint64_t capacity, uint64_t resizeIncrease, uint64_t stride);
+
 	bool Free();
 	void Resize();
 	void EnsureCapacity(uint64_t capacity);
@@ -45,6 +45,7 @@ struct SList
 
 	bool Contains(const T* value) const;
 	void Clear();
+	size_t MemSize() const;
 };
 
 // ********************
@@ -66,7 +67,7 @@ inline bool SList<T>::Initialize()
 }
 
 template<typename T>
-inline bool SList<T>::InitializeEx(uint64_t capacity, uint64_t resizeIncrease)
+inline bool SList<T>::InitializeCap(uint64_t capacity)
 {
 	if (Memory)
 	{
@@ -75,17 +76,16 @@ inline bool SList<T>::InitializeEx(uint64_t capacity, uint64_t resizeIncrease)
 		return false;
 	}
 	if (capacity == 0) capacity = 1;
-	if (resizeIncrease == 0) resizeIncrease = SLIST_DEFAULT_RESIZE;
 	Capacity = capacity;
 	Stride = sizeof(T);
-	ResizeIncrease = resizeIncrease;
+	ResizeIncrease = SLIST_DEFAULT_RESIZE;
 	Memory = (T*)Scal::MemAllocZero(Capacity * Stride);
 	return true;
 }
 
 template<typename T>
-inline bool SList<T>::InitializeExStride(uint64_t capacity, 
-	uint64_t resizeIncrease, uint64_t stride)
+inline bool SList<T>::InitializeEx(uint64_t capacity, uint64_t resizeIncrease,
+	uint64_t stride)
 {
 	if (Memory)
 	{
@@ -349,6 +349,12 @@ template<typename T>
 inline void SList<T>::Clear()
 {
 	Length = 0;
+}
+
+template<typename T>
+inline size_t SList<T>::MemSize() const
+{
+	return Capacity * Stride;
 }
 
 

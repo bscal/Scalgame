@@ -58,10 +58,11 @@ SAPI void ArrayPush(SArray* sArray, const void* valuePtr)
 	assert(sArray);
 	assert(sArray->Memory);
 
-	if (sArray->Length >= sArray->Capacity)
+	if (sArray->Length == sArray->Capacity)
 	{
 		ArrayResize(sArray);
 	}
+
 	uint64_t offset = sArray->Length * sArray->Stride;
 	char* dest = (char*)sArray->Memory;
 	Scal::MemCopy(dest + offset, valuePtr, sArray->Stride);
@@ -124,4 +125,24 @@ SAPI void ArrayClear(SArray* sArray)
 {
 	assert(sArray);
 	sArray->Length = 0;
+}
+
+SAPI bool ArrayRemoveAt(SArray* sArray, uint64_t index)
+{
+	assert(sArray);
+	assert(sArray->Memory);
+	assert(index <= sArray->Length);
+
+	size_t offset = index * sArray->Stride;
+	char* address = ((char*)(sArray->Memory)) + offset;
+	bool shouldMoveLast = sArray->Length != 0 && index != (sArray->Length - 1);
+	if (shouldMoveLast)
+	{
+		// Moves last element in array popped position
+		uint64_t lastIndexOffset = (sArray->Length - 1) * sArray->Stride;
+		char* lastIndexAddress = ((char*)(sArray->Memory)) + lastIndexOffset;
+		Scal::MemCopy(address, lastIndexAddress, sArray->Stride);
+	}
+	--sArray->Length;
+	return shouldMoveLast;
 }

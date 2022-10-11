@@ -28,6 +28,7 @@ void* MemAllocTag(size_t size, MemoryTag tag);
 void  MemFreeTag(void* block, size_t size, MemoryTag tag);
 
 void MemCopy(void* dst, const void* src, size_t size);
+void MemSet(void* block, int value, size_t size);
 void MemClear(void* block, size_t size);
 
 void ShowMemoryUsage(UIState* uiState);
