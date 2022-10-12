@@ -62,11 +62,25 @@ struct Health : public Component<Health>
 	uint32_t MaxHealth;
 };
 
+struct EntitiesManager;
+
 struct System
 {
 	SList<uint64_t> Entities;
 
-	void Update(EntitiesManager* manager, GameApplication* gameApp, uint32_t entityId);
+	virtual void Update(EntitiesManager* manager, GameApplication* gameApp, uint32_t entityId);
+
+	
+};
+
+struct HealthSystem : public System
+{
+	SArray* HealthComponents;
+
+	void Update(EntitiesManager* manager, GameApplication* gameApp, 
+		uint32_t entityId, SList<BaseComponent> components)
+	{
+	}
 };
 
 struct EntitiesManager

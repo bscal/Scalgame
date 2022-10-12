@@ -26,7 +26,7 @@ SAPI void ArrayClear(SArray* sArray);
 SAPI bool ArrayRemoveAt(SArray* sArray, uint64_t index);
 
 template<typename T>
-SAPI T* Index(SArray* sArray, uint64_t index)
+SAPI T ArrayIndex(SArray* sArray, uint64_t index)
 {
 	assert(sArray);
 	T* typedMem = sArray->Memory;
