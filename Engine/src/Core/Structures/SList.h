@@ -38,6 +38,7 @@ struct SList
 	void RemoveAtFast(uint64_t index);
 
 	T PeekAt(uint64_t index) const;
+	T* PeekAtPtr(uint64_t index) const;
 	T* Last() const;
 
 	T& operator[](size_t i) { return Memory[i]; }
@@ -323,6 +324,15 @@ inline T SList<T>::PeekAt(uint64_t index) const
 	if (index > Length) index = Length;
 	return Memory[index];
 }
+
+template<typename T>
+inline T* SList<T>::PeekAtPtr(uint64_t index) const
+{
+	assert(Memory);
+	if (index > Length) index = Length;
+	return &Memory[index];
+}
+
 
 template<typename T>
 inline T* SList<T>::Last() const

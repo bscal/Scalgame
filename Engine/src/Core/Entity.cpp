@@ -43,8 +43,8 @@ void RegisterComponent(EntitiesManager* entityManager,
 Entity* CreateEntity(EntitiesManager* entityManager)
 {
 	Entity entity = {};
-	entity.Components.InitializeCap(MAX_COMPONENTS);
-	Scal::MemSet(entity.Components.Memory, 0xff, COMPONENTS_ARRAY_SIZE);
+	//entity.Components.InitializeCap(MAX_COMPONENTS);
+	Scal::MemSet(&entity.Components, 0xff, COMPONENTS_ARRAY_SIZE);
 	entity.EntityId = entityManager->NextEntityId++;
 	entity.EntityIndex = entityManager->EntityArray.Length;
 
@@ -56,14 +56,14 @@ void EntityRemove(Entity* entity, EntitiesManager* entityManager)
 {
 	uint64_t index = entity->EntityIndex;
 
-	for (int i = 0; i < entity->Components.Length; ++i)
+	for (int i = 0; i < MAX_COMPONENTS; ++i)
 	{
 		uint32_t componentIndex = entity->Components[i];
 		if (componentIndex == EMPTY_COMPONENT) continue;
 		ComponentDeleteInternal(entityManager, i, componentIndex);
 	}
 
-	entity->Components.Free();
+	//entity->Components.Free();
 
 	entityManager->EntityArray.RemoveAtFast(index);
 	entityManager->EntityArray.Memory[index].EntityIndex = index;
@@ -105,7 +105,8 @@ internal bool ComponentDeleteInternal(EntitiesManager* entityManager,
 	if (movedLasted)
 	{
 		BaseComponent* movedComponent = (BaseComponent*)ArrayPeekAt(components, componentIndex);
-		movedComponent->OwningEntity->Components[componentId] = componentIndex;
+		Entity* entity = entityManager->EntityArray.PeekAtPtr(movedComponent->OwningEntity);
+		entity->Components[componentId] = componentIndex;
 	}
 }
 

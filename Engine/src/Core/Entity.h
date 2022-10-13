@@ -14,9 +14,9 @@
 
 struct Entity
 {
-	SList<uint32_t> Components;
-	uint64_t EntityId;
-	uint64_t EntityIndex;
+	uint32_t Components[MAX_COMPONENTS];
+	uint32_t EntityId;
+	uint32_t EntityIndex;
 
 	inline bool Has(uint32_t componentId) 
 	{ 
@@ -24,11 +24,22 @@ struct Entity
 	}
 };
 
+internal bool ComponentDeleteInternal(EntitiesManager* entityManager,
+	uint32_t componentId, uint32_t componentIndex);
+
 global_var uint32_t NextComponentId;
+
+template<typename T>
+struct ComponentRegisterData
+{
+	T* (*AllocateComponent)();
+	void(*FreeComponent)();
+	T(*CreateComponent)();
+};
 
 struct BaseComponent
 {
-	Entity* OwningEntity;
+	uint32_t OwningEntity;
 };
 
 template<typename T>
@@ -58,8 +69,14 @@ struct Transform2D : public Component<Transform2D>
 
 struct Health : public Component<Health>
 {
-	uint32_t Health;
-	uint32_t MaxHealth;
+	int Health;
+	int MaxHealth;
+};
+
+struct Burnable : public Component<Burnable>
+{
+	float BurnTime;
+	uint32_t BurnLevel;
 };
 
 struct EntitiesManager;
@@ -67,28 +84,89 @@ struct EntitiesManager;
 struct System
 {
 	SList<uint64_t> Entities;
+	bool IsEnabled;
 
-	virtual void Update(EntitiesManager* manager, GameApplication* gameApp, uint32_t entityId);
-
-	
+	void Initialize(size_t initialCapacity);
+	void Free();
 };
 
-struct HealthSystem : public System
+struct BurnSystem : public System
 {
-	SArray* HealthComponents;
+	float SystemTickCounter;
 
-	void Update(EntitiesManager* manager, GameApplication* gameApp, 
-		uint32_t entityId, SList<BaseComponent> components)
+	void Update(EntitiesManager* manager, GameApplication* gameApp,
+		uint32_t entityId, Health* health, Burnable* burnable)
 	{
+		SystemTickCounter += gameApp->DeltaTime;
+		if (SystemTickCounter > 1.0f)
+		{
+			SystemTickCounter = 0.0f;
+
+			burnable->BurnTime -= gameApp->DeltaTime;
+			if (burnable->BurnTime <= 0)
+			{
+
+			}
+
+			health->Health -= 1.0f;
+		}
 	}
 };
+
+struct ComponentAddEvent
+{
+	Entity* Entity;
+	BaseComponent Component;
+	void(*SetComponentValues)(EntitiesManager* entityManager, BaseComponent* component);
+	uint32_t ComponentId;
+};
+
+struct ComponentEvent
+{
+	uint32_t EntityId;
+	uint32_t ComponentId;
+};
+
+void PostProcessComponents(EntitiesManager* entityManager)
+{
+	for (int i = 0; i < entityManager->ComponentRemoval.Length; ++i)
+	{
+		auto evt = entityManager->ComponentRemoval[i];
+		ComponentDeleteInternal(entityManager, evt.EntityId, evt.ComponentId);
+	}
+
+	for (int i = 0; i < entityManager->ComponentAddition.Length; ++i)
+	{
+		auto evt = entityManager->ComponentAddition[i];
+		
+		evt.Component.OwningEntity = evt.Entity->EntityId;
+
+		if (evt.SetComponentValues)
+			evt.SetComponentValues(entityManager, &evt.Component);
+
+		SArray* components = entityManager->ComponentMap.Get(&evt.ComponentId);
+		ArrayPush(components, &evt.Component);
+		uint32_t insertedAt = components->Length - 1;
+		evt.Entity->Components[evt.ComponentId] = insertedAt;
+	}
+
+	Health h = {};
+
+	ComponentAddEvent c = {};
+	c.Component = h;
+}
 
 struct EntitiesManager
 {
 	STable<uint32_t, SArray> ComponentMap;
 	//std::unordered_map<uint32_t, Component<void*>*> ComponentMap;
 	SList<Entity> EntityArray;
-	SArray Systems;
+
+	SList<ComponentEvent> ComponentRemoval;
+	SList<ComponentAddEvent> ComponentAddition;
+
+	BurnSystem BurnSystem;
+
 	uint64_t NextEntityId;
 };
 
@@ -136,18 +214,13 @@ void RemoveSystem(EntitiesManager* entityManager, System* system)
 
 void ProcessSystems(EntitiesManager* entityManager, GameApplication* gameApp)
 {
-	for (uint32_t i = 0; i < entityManager->Systems.Length; ++i)
+
+	for (uint32_t i = 0; i < entityManager->BurnSystem.Entities.Length; ++i)
 	{
-		System* system = (System*)ArrayPeekAt(&entityManager->Systems, i);
-		for (uint32_t j = 0; j < system->Entities.Length; ++j)
-		{
-			system->Update(entityManager, gameApp, j);
-		}
+		uint32_t entityId = entityManager->BurnSystem.Entities[i];
 	}
+
 }
 
-
-internal bool ComponentDeleteInternal(EntitiesManager* entityManager,
-	uint32_t componentId, uint32_t componentIndex);
 
 void TestEntities(EntitiesManager* entityManager);
