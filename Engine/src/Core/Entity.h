@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Core.h"
-#include "Game.h"
 #include "Structures/SArray.h"
 #include "Structures/SList.h"
 #include "Structures/STable.h"
@@ -12,11 +11,30 @@
 #define MAX_COMPONENTS 256
 #define EMPTY_COMPONENT UINT32_MAX
 
-struct Entity
+struct GameApplication;
+
+global_var uint32_t NextComponentId;
+
+struct EntityHandle
 {
-	uint32_t Components[MAX_COMPONENTS];
 	uint32_t EntityId;
 	uint32_t EntityIndex;
+
+	inline bool EntityHandle::operator == (EntityHandle rhs) const
+	{
+		return EntityId == rhs.EntityId && EntityIndex == rhs.EntityIndex;
+	}
+
+	inline bool EntityHandle::operator != (EntityHandle rhs) const
+	{
+		return !(*this == rhs);
+	}
+};
+
+struct Entity
+{
+	EntityHandle Handle;
+	uint32_t Components[MAX_COMPONENTS];
 
 	inline bool Has(uint32_t componentId) 
 	{ 
@@ -24,22 +42,9 @@ struct Entity
 	}
 };
 
-internal bool ComponentDeleteInternal(EntitiesManager* entityManager,
-	uint32_t componentId, uint32_t componentIndex);
-
-global_var uint32_t NextComponentId;
-
-template<typename T>
-struct ComponentRegisterData
-{
-	T* (*AllocateComponent)();
-	void(*FreeComponent)();
-	T(*CreateComponent)();
-};
-
 struct BaseComponent
 {
-	uint32_t OwningEntity;
+	EntityHandle OwningEntityHandle;
 };
 
 template<typename T>
@@ -95,30 +100,7 @@ struct BurnSystem : public System
 	float SystemTickCounter;
 
 	void Update(EntitiesManager* manager, GameApplication* gameApp,
-		uint32_t entityId, Health* health, Burnable* burnable)
-	{
-		SystemTickCounter += gameApp->DeltaTime;
-		if (SystemTickCounter > 1.0f)
-		{
-			SystemTickCounter = 0.0f;
-
-			burnable->BurnTime -= gameApp->DeltaTime;
-			if (burnable->BurnTime <= 0)
-			{
-
-			}
-
-			health->Health -= 1.0f;
-		}
-	}
-};
-
-struct ComponentAddEvent
-{
-	Entity* Entity;
-	BaseComponent Component;
-	void(*SetComponentValues)(EntitiesManager* entityManager, BaseComponent* component);
-	uint32_t ComponentId;
+		uint32_t entityId, Health* health, Burnable* burnable);
 };
 
 struct ComponentEvent
@@ -127,47 +109,24 @@ struct ComponentEvent
 	uint32_t ComponentId;
 };
 
-void PostProcessComponents(EntitiesManager* entityManager)
+void PostProcessComponents(EntitiesManager* entityManager);
+
+struct ComponentRegisterData
 {
-	for (int i = 0; i < entityManager->ComponentRemoval.Length; ++i)
-	{
-		auto evt = entityManager->ComponentRemoval[i];
-		ComponentDeleteInternal(entityManager, evt.EntityId, evt.ComponentId);
-	}
-
-	for (int i = 0; i < entityManager->ComponentAddition.Length; ++i)
-	{
-		auto evt = entityManager->ComponentAddition[i];
-		
-		evt.Component.OwningEntity = evt.Entity->EntityId;
-
-		if (evt.SetComponentValues)
-			evt.SetComponentValues(entityManager, &evt.Component);
-
-		SArray* components = entityManager->ComponentMap.Get(&evt.ComponentId);
-		ArrayPush(components, &evt.Component);
-		uint32_t insertedAt = components->Length - 1;
-		evt.Entity->Components[evt.ComponentId] = insertedAt;
-	}
-
-	Health h = {};
-
-	ComponentAddEvent c = {};
-	c.Component = h;
-}
+	void(*CreateComponent)(BaseComponent* component);
+	void(*FreeComponent)();
+};
 
 struct EntitiesManager
 {
 	STable<uint32_t, SArray> ComponentMap;
-	//std::unordered_map<uint32_t, Component<void*>*> ComponentMap;
+	STable<uint32_t, ComponentRegisterData> ComponentTypes;
 	SList<Entity> EntityArray;
-
 	SList<ComponentEvent> ComponentRemoval;
-	SList<ComponentAddEvent> ComponentAddition;
 
 	BurnSystem BurnSystem;
 
-	uint64_t NextEntityId;
+	uint32_t NextEntityId;
 };
 
 void InitializeEntitiesManager(EntitiesManager* entityManager);
@@ -182,10 +141,13 @@ Entity* GetEntity(uint32_t entityId);
 
 template<typename T>
 bool AddComponent(EntitiesManager* entityManager,
-	Entity* entity, Component<T>* component);
+	EntityHandle entityHandle, Component<T>* component);
 
 bool RemoveComponent(EntitiesManager* entityManager,
 	Entity* entity, uint32_t componentId);
+
+void SystemRemoveComponent(EntitiesManager* entityManager,
+	uint32_t entity, uint32_t componentId);
 
 template<typename T>
 T* GetComponent(EntitiesManager* entityManager,
@@ -202,25 +164,6 @@ T* GetComponent(EntitiesManager* entityManager,
 	return &component;
 }
 
-void AddSystem(EntitiesManager* entityManager, System* system)
-{
-
-}
-
-void RemoveSystem(EntitiesManager* entityManager, System* system)
-{
-
-}
-
-void ProcessSystems(EntitiesManager* entityManager, GameApplication* gameApp)
-{
-
-	for (uint32_t i = 0; i < entityManager->BurnSystem.Entities.Length; ++i)
-	{
-		uint32_t entityId = entityManager->BurnSystem.Entities[i];
-	}
-
-}
-
+void ProcessSystems(EntitiesManager* entityManager, GameApplication* gameApp);
 
 void TestEntities(EntitiesManager* entityManager);
