@@ -6,7 +6,7 @@
 #include <assert.h>
 
 #define DEFAULT_COMPONENT 256
-#define COMPONENTS_ARRAY_SIZE DEFAULT_COMPONENT * sizeof(void*)
+#define COMPONENTS_ARRAY_SIZE (DEFAULT_COMPONENT * sizeof(void*))
 
 #define EMPTY_ENTITY EntityHandle{ UINT32_MAX, UINT32_MAX }
 
@@ -54,7 +54,7 @@ Entity* CreateEntity(EntitiesManager* entityManager)
 		entityManager->NextEntityId++,
 		(uint32_t)entityManager->EntityArray.Length
 	};
-	Scal::MemSet(&entity.Components, 0xff, COMPONENTS_ARRAY_SIZE);
+	Scal::MemSet(&entity.Components, EMPTY_COMPONENT, COMPONENTS_ARRAY_SIZE);
 
 	entityManager->EntityArray.Push(&entity);
 	return entityManager->EntityArray.Last();
@@ -97,6 +97,10 @@ template<typename T>
 bool AddComponent(EntitiesManager* entityManager,
 	EntityHandle entityHandle, Component<T>* component)
 {
+	assert(entityManager);
+	assert(entityHandle != EMPTY_ENTITY);
+	assert(component);
+
 	SArray* components = entityManager->ComponentMap.Get(&component->ID);
 	ArrayPush(components, component);
 	uint32_t insertedAt = components->Length - 1;
@@ -131,17 +135,23 @@ internal bool ComponentDeleteInternal(EntitiesManager* entityManager,
 }
 
 bool RemoveComponent(EntitiesManager* entityManager,
-	Entity* entity, uint32_t componentId)
+	EntityHandle entityHandle, uint32_t componentId)
 {
 	assert(entityManager);
 	assert(componentId <= MAX_COMPONENTS);
 
-	if (!entity)
+	if (componentId >= MAX_COMPONENTS)
+	{
+		TraceLog(LOG_ERROR, "ComponentId is > MAX_COMPONENTS");
+		return false;
+	}
+	if (entityHandle == EMPTY_ENTITY)
 	{
 		TraceLog(LOG_ERROR, "Entity is not valid!");
 		return false;
 	}
 
+	Entity* entity = entityManager->EntityArray.PeekAtPtr(entityHandle.EntityIndex);
 	uint32_t componentIndex = entity->Components[componentId];
 	if (componentIndex == EMPTY_COMPONENT) return false;
 	ComponentDeleteInternal(entityManager, componentId, componentIndex);
@@ -150,10 +160,10 @@ bool RemoveComponent(EntitiesManager* entityManager,
 }
 
 void SystemRemoveComponent(EntitiesManager* entityManager,
-	uint32_t entity, uint32_t componentId)
+	EntityHandle entityHandle, uint32_t componentId)
 {
 	ComponentEvent evt = {};
-	evt.EntityId = entity;
+	evt.EntityHandle = entityHandle;
 	evt.ComponentId = componentId;
 	entityManager->ComponentRemoval.Push(&evt);
 }
@@ -163,8 +173,7 @@ void PostProcessComponents(EntitiesManager* entityManager)
 	for (int i = 0; i < entityManager->ComponentRemoval.Length; ++i)
 	{
 		auto evt = entityManager->ComponentRemoval[i];
-		Entity* entity = entityManager->EntityArray.PeekAtPtr(evt.EntityId);
-		RemoveComponent(entityManager, entity, evt.ComponentId);
+		RemoveComponent(entityManager, evt.EntityHandle, evt.ComponentId);
 	}
 
 	entityManager->ComponentRemoval.Clear();
@@ -197,7 +206,7 @@ void TestEntities(EntitiesManager* entityManager)
 	Transform2D* trans = GetComponent<Transform2D>(
 		entityManager, entity, Transform2D::ID);
 
-	RemoveComponent(entityManager, entity, health.ID);
+	RemoveComponent(entityManager, entity->Handle, health.ID);
 
 	EntityRemove(entity, entityManager);
 

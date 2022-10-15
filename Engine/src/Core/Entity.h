@@ -9,7 +9,7 @@
 #include <type_traits>
 
 #define MAX_COMPONENTS 256
-#define EMPTY_COMPONENT UINT32_MAX
+#define EMPTY_COMPONENT uint32_t(UINT32_MAX)
 
 struct GameApplication;
 
@@ -105,8 +105,8 @@ struct BurnSystem : public System
 
 struct ComponentEvent
 {
-	uint32_t EntityId;
-	uint32_t ComponentId;
+	EntityHandle EntityHandle;
+	uint64_t ComponentId;
 };
 
 void PostProcessComponents(EntitiesManager* entityManager);
@@ -143,8 +143,11 @@ template<typename T>
 bool AddComponent(EntitiesManager* entityManager,
 	EntityHandle entityHandle, Component<T>* component);
 
+void AddComponentId(EntitiesManager* entityManager,
+	EntityHandle entityHandle, uint32_t componentId);
+
 bool RemoveComponent(EntitiesManager* entityManager,
-	Entity* entity, uint32_t componentId);
+	EntityHandle entityHandle, uint32_t componentId);
 
 void SystemRemoveComponent(EntitiesManager* entityManager,
 	uint32_t entity, uint32_t componentId);
