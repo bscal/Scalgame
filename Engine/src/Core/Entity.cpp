@@ -25,14 +25,18 @@ internal bool EntityEquals(const uint32_t* key0, const uint32_t* key1)
 
 void InitializeEntitiesManager(EntitiesManager* entityManager)
 {
+	assert(entityManager);
+
 	entityManager->EntityArray.InitializeCap(10);
 	entityManager->ComponentMap.KeyHashFunction = EntityHash;
 	entityManager->ComponentMap.KeyEqualsFunction = EntityEquals;
 	entityManager->ComponentMap.Initialize(DEFAULT_COMPONENT);
 	entityManager->ComponentRemoval.InitializeCap(64);
 	entityManager->ComponentTypes.Initialize(MAX_COMPONENTS);
+
 	RegisterComponent<Transform2D>(entityManager, Transform2D::ID);
 	RegisterComponent<Health>(entityManager, Health::ID);
+	RegisterComponent<Burnable>(entityManager, Burnable::ID);
 
 	assert(entityManager->ComponentMap.Size == NextComponentId);
 }
@@ -48,13 +52,14 @@ void RegisterComponent(EntitiesManager* entityManager,
 
 Entity* CreateEntity(EntitiesManager* entityManager)
 {
-	Entity entity;
+	Entity entity = {};
 	entity.Handle =
 	{
 		entityManager->NextEntityId++,
 		(uint32_t)entityManager->EntityArray.Length
 	};
-	Scal::MemSet(&entity.Components, EMPTY_COMPONENT, COMPONENTS_ARRAY_SIZE);
+	entity.ComponentsLength = MAX_COMPONENTS;
+	Scal::MemSet(&entity.Components, EMPTY_COMPONENT, sizeof(entity.Components));
 
 	entityManager->EntityArray.Push(&entity);
 	return entityManager->EntityArray.Last();
@@ -62,6 +67,12 @@ Entity* CreateEntity(EntitiesManager* entityManager)
 
 void EntityRemove(Entity* entity, EntitiesManager* entityManager)
 {
+	if (!entity || entity->Handle == EMPTY_ENTITY)
+	{
+		TraceLog(LOG_ERROR, "Cannot remove null entity");
+		return;
+	}
+
 	for (int i = 0; i < MAX_COMPONENTS; ++i)
 	{
 		uint32_t componentIndex = entity->Components[i];
@@ -108,6 +119,32 @@ bool AddComponent(EntitiesManager* entityManager,
 	Entity* entity = entityManager->EntityArray.PeekAtPtr(entityHandle.EntityIndex);
 	entity->Components[component->ID] = insertedAt;
 	return true;
+}
+
+void AddComponentId(EntitiesManager* entityManager,
+	EntityHandle entityHandle, uint32_t componentId)
+{
+	assert(entityManager);
+	assert(componentId <= MAX_COMPONENTS);
+
+	if (entityHandle == EMPTY_ENTITY)
+	{
+		TraceLog(LOG_WARNING, "AddComponentId is using an empty EntityHandle!");
+		return;
+	}
+
+	SArray* components = entityManager->ComponentMap.Get(&componentId);
+	ComponentRegisterData* componentData 
+		= entityManager->ComponentTypes.Get(&componentId);
+
+	BaseComponent* newComponent = componentData->AllocateComponent();
+	componentData->CreateComponent(newComponent);
+
+	ArrayPush(components, newComponent);
+	uint32_t insertedAt = components->Length - 1;
+
+	Entity* entity = entityManager->EntityArray.PeekAtPtr(entityHandle.EntityIndex);
+	entity->Components[componentId] = insertedAt;
 }
 
 internal bool ComponentDeleteInternal(EntitiesManager* entityManager,
@@ -159,6 +196,19 @@ bool RemoveComponent(EntitiesManager* entityManager,
 	return true;
 }
 
+void* GetComponent(EntitiesManager* entityManager, EntityHandle entHandle,
+	uint32_t componentId)
+{
+	uint32_t index = 
+		entityManager->EntityArray[entHandle.EntityIndex].Components[componentId];
+
+	if (index == EMPTY_COMPONENT)
+		return nullptr;
+
+	SArray* array = entityManager->ComponentMap.Get(&componentId);
+	return ArrayPeekAt(array, index);
+}
+
 void SystemRemoveComponent(EntitiesManager* entityManager,
 	EntityHandle entityHandle, uint32_t componentId)
 {
@@ -179,11 +229,24 @@ void PostProcessComponents(EntitiesManager* entityManager)
 	entityManager->ComponentRemoval.Clear();
 }
 
-void ProcessSystems(EntitiesManager* entityManager, GameApplication* gameApp)
+void UpdateSystems(EntitiesManager* entityManager, GameApplication* gameApp)
 {
+	local_persist BurnSystem s;
+
+	SArray* b = entityManager->ComponentMap.Get(&Burnable::ID);
+	for (uint32_t i = 0; i < b->Length; ++i)
+	{
+		Burnable* burn = (Burnable*)ArrayPeekAt(b, i);
+		Health* hp = 
+			(Health*)GetComponent(entityManager, burn->OwningEntityHandle, Health::ID);
+		s.Update(entityManager, gameApp, burn->OwningEntityHandle, hp, burn);
+	}
+
+
 	for (uint32_t i = 0; i < entityManager->BurnSystem.Entities.Length; ++i)
 	{
 		uint32_t entityId = entityManager->BurnSystem.Entities[i];
+		
 	}
 
 	PostProcessComponents(entityManager);
@@ -206,14 +269,19 @@ void TestEntities(EntitiesManager* entityManager)
 	Transform2D* trans = GetComponent<Transform2D>(
 		entityManager, entity, Transform2D::ID);
 
-	RemoveComponent(entityManager, entity->Handle, health.ID);
+	Burnable burn = {};
+	burn.BurnTime = 600;
+	burn.BurnLevel = 1;
+	AddComponent(entityManager, entity->Handle, &burn);
 
-	EntityRemove(entity, entityManager);
+	//RemoveComponent(entityManager, entity->Handle, health.ID);
+
+	//EntityRemove(entity, entityManager);
 
 }
 
 void BurnSystem::Update(EntitiesManager* manager, GameApplication* gameApp,
-	uint32_t entityId, Health* health, Burnable* burnable)
+	EntityHandle entityHandle, Health* health, Burnable* burnable)
 {
 	SystemTickCounter += gameApp->DeltaTime;
 	if (SystemTickCounter > 1.0f)
@@ -223,7 +291,9 @@ void BurnSystem::Update(EntitiesManager* manager, GameApplication* gameApp,
 		burnable->BurnTime -= gameApp->DeltaTime;
 		if (burnable->BurnTime <= 0)
 		{
-
+			SystemRemoveComponent(
+				manager, entityHandle, Burnable::ID
+			);
 		}
 
 		health->Health -= 1.0f;

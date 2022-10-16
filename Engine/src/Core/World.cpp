@@ -28,6 +28,8 @@ void WorldUpdate(World* world, GameApplication* gameApp)
 {
 	RenderTileMap(gameApp->Game, &world->MainTileMap);
 
+	UpdateSystems(&world->EntitiesManager, gameApp);
+
 	for (int i = 0; i < world->WorldCreatures.Length; ++i)
 	{
 		Creature creature = world->WorldCreatures.Memory[i];

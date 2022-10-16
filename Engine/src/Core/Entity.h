@@ -34,6 +34,7 @@ struct EntityHandle
 struct Entity
 {
 	EntityHandle Handle;
+	size_t ComponentsLength;
 	uint32_t Components[MAX_COMPONENTS];
 
 	inline bool Has(uint32_t componentId) 
@@ -100,7 +101,7 @@ struct BurnSystem : public System
 	float SystemTickCounter;
 
 	void Update(EntitiesManager* manager, GameApplication* gameApp,
-		uint32_t entityId, Health* health, Burnable* burnable);
+		EntityHandle entityHandle, Health* health, Burnable* burnable);
 };
 
 struct ComponentEvent
@@ -113,8 +114,9 @@ void PostProcessComponents(EntitiesManager* entityManager);
 
 struct ComponentRegisterData
 {
-	void(*CreateComponent)(BaseComponent* component);
-	void(*FreeComponent)();
+	void (*CreateComponent)(BaseComponent* component);
+	BaseComponent* (*AllocateComponent)();
+	void (*FreeComponent)();
 };
 
 struct EntitiesManager
@@ -135,7 +137,7 @@ template<typename T>
 void RegisterComponent(EntitiesManager* entityManager, 
 	uint32_t componentId);
 
-Entity* CreateEntity();
+Entity* CreateEntity(EntitiesManager* entityManager);
 void EntityRemove(Entity* entity, EntitiesManager* entityManager);
 Entity* GetEntity(uint32_t entityId);
 
@@ -149,8 +151,11 @@ void AddComponentId(EntitiesManager* entityManager,
 bool RemoveComponent(EntitiesManager* entityManager,
 	EntityHandle entityHandle, uint32_t componentId);
 
+void* GetComponent(EntitiesManager* entityManager, EntityHandle entHandle,
+	uint32_t componentId);
+
 void SystemRemoveComponent(EntitiesManager* entityManager,
-	uint32_t entity, uint32_t componentId);
+	EntityHandle entityHandle, uint32_t componentId);
 
 template<typename T>
 T* GetComponent(EntitiesManager* entityManager,
@@ -167,6 +172,6 @@ T* GetComponent(EntitiesManager* entityManager,
 	return &component;
 }
 
-void ProcessSystems(EntitiesManager* entityManager, GameApplication* gameApp);
+void UpdateSystems(EntitiesManager* entityManager, GameApplication* gameApp);
 
 void TestEntities(EntitiesManager* entityManager);
