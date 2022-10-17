@@ -9,7 +9,7 @@ template<typename T>
 struct SLinkedListEntry
 {
 	SLinkedListEntry<T>* Next;
-	T* Value;
+	T Value;
 };
 
 template<typename T>
@@ -23,6 +23,7 @@ struct SLinkedList
 template<typename T>
 internal SLinkedListEntry<T>* CreateEntry(T* value)
 {
+	assert(value);
 	SLinkedListEntry<T>* entry = (SLinkedListEntry<T>*)
 		Scal::MemAllocZero(sizeof(T*));
 	entry->Value = value;
@@ -30,20 +31,31 @@ internal SLinkedListEntry<T>* CreateEntry(T* value)
 }
 
 template<typename T>
-void SLinkedListFree(SLinkedList<T>* list)
+internal SLinkedListEntry<T>* FreeEntry(SLinkedListEntry<T>* entry)
 {
-	SLinkedListEntry<T>* nextEntry = list->First->Next;
-	bool hasNext = list->First->Next != nullptr;
-	while (hasNext)
-	{
-		Scal::MemFree(&nextEntry->Value);
-		nextEntry = nextEntry->Next;
-		hasNext = nextEntry->Next != nullptr;
-	}
+	assert(list);
+	assert(entry);
+	auto next = entry->Next;
+	Scal::MemFree(entry);
+	return next;
 }
 
 template<typename T>
-void SLinkedListPush(SLinkedList<T>* list, const T* value)
+void SLinkedFree(SLinkedList<T>* list)
+{
+	assert(list);
+	SLinkedListEntry<T>* next = list->First;
+	while (next)
+	{
+		next = FreeEntry(next);
+	}
+	list->First = nullptr;
+	list->Last = nullptr;
+	list->Size = 0;
+}
+
+template<typename T>
+void SLinkedListPush(SLinkedList<T>* list, T* value)
 {
 	assert(list);
 	if (!value)
@@ -53,21 +65,20 @@ void SLinkedListPush(SLinkedList<T>* list, const T* value)
 	}
 
 	auto newEntry = CreateEntry(value);
-	if (list->First)
+
+	if (!list->First)
+		list->First = newEntry;
+
+	if (list->Last)
 	{
 		list->Last->Next = newEntry;
-		list->Last = newEntry;
 	}
-	else
-	{
-		list->First = newEntry;
-	}
-
+	list->Last = newEntry;
 	++list->Size;
 }
 
 template<typename T>
-T* SLinkedListPop(SLinkedList<T>* list)
+void SLinkedListPop(SLinkedList<T>* list)
 {
 	assert(list);
 	if (!value)
@@ -75,19 +86,21 @@ T* SLinkedListPop(SLinkedList<T>* list)
 		S_LOG_ERR("value cannot be nullptr");
 		return;
 	}
+
 	if (list->Size == 0)
+		return;
+
+	auto freedEntryNext = FreeEntry(list->First);
+
+	if (freedEntryNext)
 	{
-		return nullptr;
+		list->First = freedEntryNext;
+	}
+	else
+	{
+		list->First = nullptr;
+		list->Last = nullptr;
 	}
 
 	--list->Size;
-
-	SLinkedListEntry<T>* firstEntry = list->First;
-
-	if (firstEntry->Next)
-		list->First = firstEntry->Next;
-	else
-		list->First = nullptr;
-
-	return firstEntry->Value;
 }

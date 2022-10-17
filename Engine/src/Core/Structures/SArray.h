@@ -26,16 +26,16 @@ SAPI void ArrayClear(SArray* sArray);
 SAPI bool ArrayRemoveAt(SArray* sArray, uint64_t index);
 
 template<typename T>
-T ArrayIndex(SArray* sArray, uint64_t index)
+SArray ArrayCreate(uint64_t capacity)
 {
-	assert(sArray);
-	T* typedMem = sArray->Memory;
-	return typedMem[index];
+	SArray arr = {};
+	ArrayCreate(capacity, sizeof(T), &arr);
+	return arr;
 }
 
-#define SArrayCreate(stride, outSArray) ArrayCreate(SARRAY_DEFAULT_SIZE, stride, outSArray)
-#define SArrayPush(sArray, value) \
-{ \
-	auto tmp = value; \
-	Scal::ArrayPush(sArray, &tmp); \
-} \
+template<typename T>
+T* ArrayIndex(SArray* sArray, uint64_t index)
+{
+	T* castedArray = (T*)sArray->Memory;
+	return &castedArray[index];
+}

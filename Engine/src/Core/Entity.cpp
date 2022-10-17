@@ -196,6 +196,21 @@ bool RemoveComponent(EntitiesManager* entityManager,
 	return true;
 }
 
+template<typename T>
+T* GetComponent(EntitiesManager* entityManager,
+	Entity* entity, uint32_t componentId)
+{
+	static_assert(!std::is_same<BaseComponent, T>());
+
+	auto componentIndex = entity->Components[componentId];
+	if (componentIndex == EMPTY_COMPONENT)
+		return nullptr;
+
+	SArray* componentArray = entityManager->ComponentMap.Get(&componentId);
+	T component = ((T*)componentArray->Memory)[componentIndex];
+	return &component;
+}
+
 void* GetComponent(EntitiesManager* entityManager, EntityHandle entHandle,
 	uint32_t componentId)
 {
@@ -233,20 +248,14 @@ void UpdateSystems(EntitiesManager* entityManager, GameApplication* gameApp)
 {
 	local_persist BurnSystem s;
 
-	SArray* b = entityManager->ComponentMap.Get(&Burnable::ID);
-	for (uint32_t i = 0; i < b->Length; ++i)
+	SArray* hpComponents = entityManager->ComponentMap.Get(&Health::ID);
+	SArray* burnComponents = entityManager->ComponentMap.Get(&Burnable::ID);
+	for (uint32_t i = 0; i < burnComponents->Length; ++i)
 	{
-		Burnable* burn = (Burnable*)ArrayPeekAt(b, i);
-		Health* hp = 
-			(Health*)GetComponent(entityManager, burn->OwningEntityHandle, Health::ID);
+		Burnable* burn = (Burnable*)ArrayPeekAt(burnComponents, i);
+		Entity* entity = entityManager->EntityArray.PeekAtPtr(burn->OwningEntityHandle.EntityIndex);
+		Health* hp = ArrayIndex<Health>(hpComponents, entity->Components[Health::ID]);
 		s.Update(entityManager, gameApp, burn->OwningEntityHandle, hp, burn);
-	}
-
-
-	for (uint32_t i = 0; i < entityManager->BurnSystem.Entities.Length; ++i)
-	{
-		uint32_t entityId = entityManager->BurnSystem.Entities[i];
-		
 	}
 
 	PostProcessComponents(entityManager);
@@ -270,7 +279,7 @@ void TestEntities(EntitiesManager* entityManager)
 		entityManager, entity, Transform2D::ID);
 
 	Burnable burn = {};
-	burn.BurnTime = 600;
+	burn.BurnTime = 10;
 	burn.BurnLevel = 1;
 	AddComponent(entityManager, entity->Handle, &burn);
 
@@ -288,8 +297,9 @@ void BurnSystem::Update(EntitiesManager* manager, GameApplication* gameApp,
 	{
 		SystemTickCounter = 0.0f;
 
-		burnable->BurnTime -= gameApp->DeltaTime;
-		if (burnable->BurnTime <= 0)
+		burnable->BurnTime -= 1.0f;
+		TraceLog(LOG_INFO, "Time: %f", burnable->BurnTime);
+		if (burnable->BurnTime <= 0.0f)
 		{
 			SystemRemoveComponent(
 				manager, entityHandle, Burnable::ID
@@ -298,4 +308,5 @@ void BurnSystem::Update(EntitiesManager* manager, GameApplication* gameApp,
 
 		health->Health -= 1.0f;
 	}
+
 }

@@ -139,7 +139,7 @@ void RegisterComponent(EntitiesManager* entityManager,
 
 Entity* CreateEntity(EntitiesManager* entityManager);
 void EntityRemove(Entity* entity, EntitiesManager* entityManager);
-Entity* GetEntity(uint32_t entityId);
+Entity* GetEntity(EntitiesManager* entityManager, EntityHandle entityHandle);
 
 template<typename T>
 bool AddComponent(EntitiesManager* entityManager,
@@ -159,18 +159,7 @@ void SystemRemoveComponent(EntitiesManager* entityManager,
 
 template<typename T>
 T* GetComponent(EntitiesManager* entityManager,
-	Entity* entity, uint32_t componentId)
-{
-	static_assert(!std::is_same<BaseComponent, T>());
-
-	auto componentIndex = entity->Components[componentId];
-	if (componentIndex == EMPTY_COMPONENT)
-		return nullptr;
-
-	SArray* componentArray = entityManager->ComponentMap.Get(&componentId);
-	T component = ((T*)componentArray->Memory)[componentIndex];
-	return &component;
-}
+	Entity* entity, uint32_t componentId);
 
 void UpdateSystems(EntitiesManager* entityManager, GameApplication* gameApp);
 

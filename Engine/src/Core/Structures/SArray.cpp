@@ -146,3 +146,4 @@ SAPI bool ArrayRemoveAt(SArray* sArray, uint64_t index)
 	--sArray->Length;
 	return shouldMoveLast;
 }
+
