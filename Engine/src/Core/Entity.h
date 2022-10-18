@@ -8,7 +8,7 @@
 
 #include <type_traits>
 
-#define MAX_COMPONENTS 256
+#define MAX_COMPONENTS 32
 #define EMPTY_COMPONENT uint32_t(UINT32_MAX)
 
 struct GameApplication;
@@ -89,19 +89,22 @@ struct EntitiesManager;
 
 struct System
 {
-	SList<uint64_t> Entities;
 	bool IsEnabled;
-
-	void Initialize(size_t initialCapacity);
-	void Free();
 };
 
 struct BurnSystem : public System
 {
-	float SystemTickCounter;
+	SArray* Burnables;
+	SArray* Healths;
+	float CounterTime;
+	const float CounterIntervalInSec = 1.0f;
 
-	void Update(EntitiesManager* manager, GameApplication* gameApp,
-		EntityHandle entityHandle, Health* health, Burnable* burnable);
+	void Initialize(EntitiesManager* manager);
+
+	void Process(EntitiesManager* manager, GameApplication* gameApp);
+
+	void UpdateComponent(EntitiesManager* manager, GameApplication* gameApp,
+		EntityHandle entityHandle, Health* health, Burnable* burnable) const;
 };
 
 struct ComponentEvent

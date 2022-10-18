@@ -38,6 +38,8 @@ void InitializeEntitiesManager(EntitiesManager* entityManager)
 	RegisterComponent<Health>(entityManager, Health::ID);
 	RegisterComponent<Burnable>(entityManager, Burnable::ID);
 
+	entityManager->BurnSystem.Initialize(entityManager);
+
 	assert(entityManager->ComponentMap.Size == NextComponentId);
 }
 
@@ -246,18 +248,7 @@ void PostProcessComponents(EntitiesManager* entityManager)
 
 void UpdateSystems(EntitiesManager* entityManager, GameApplication* gameApp)
 {
-	local_persist BurnSystem s;
-
-	SArray* hpComponents = entityManager->ComponentMap.Get(&Health::ID);
-	SArray* burnComponents = entityManager->ComponentMap.Get(&Burnable::ID);
-	for (uint32_t i = 0; i < burnComponents->Length; ++i)
-	{
-		Burnable* burn = (Burnable*)ArrayPeekAt(burnComponents, i);
-		Entity* entity = entityManager->EntityArray.PeekAtPtr(burn->OwningEntityHandle.EntityIndex);
-		Health* hp = ArrayIndex<Health>(hpComponents, entity->Components[Health::ID]);
-		s.Update(entityManager, gameApp, burn->OwningEntityHandle, hp, burn);
-	}
-
+	entityManager->BurnSystem.Process(entityManager, gameApp);
 	PostProcessComponents(entityManager);
 }
 
@@ -289,24 +280,41 @@ void TestEntities(EntitiesManager* entityManager)
 
 }
 
-void BurnSystem::Update(EntitiesManager* manager, GameApplication* gameApp,
-	EntityHandle entityHandle, Health* health, Burnable* burnable)
+void BurnSystem::Initialize(EntitiesManager* manager)
 {
-	SystemTickCounter += gameApp->DeltaTime;
-	if (SystemTickCounter > 1.0f)
+	Burnables = manager->ComponentMap.Get(&Burnable::ID);
+	Healths = manager->ComponentMap.Get(&Health::ID);
+}
+
+void BurnSystem::Process(EntitiesManager* manager, GameApplication* gameApp)
+{
+	CounterTime += gameApp->DeltaTime;
+	if (CounterTime > CounterIntervalInSec)
 	{
-		SystemTickCounter = 0.0f;
+		CounterTime = 0.0f;
 
-		burnable->BurnTime -= 1.0f;
-		TraceLog(LOG_INFO, "Time: %f", burnable->BurnTime);
-		if (burnable->BurnTime <= 0.0f)
+		for (uint32_t i = 0; i < Burnables->Length; ++i)
 		{
-			SystemRemoveComponent(
-				manager, entityHandle, Burnable::ID
-			);
+			Burnable* burn = (Burnable*)ArrayPeekAt(Burnables, i);
+			Entity* entity = manager->EntityArray
+				.PeekAtPtr(burn->OwningEntityHandle.EntityIndex);
+			Health* hp =
+				ArrayIndex<Health>(Healths, entity->Components[Health::ID]);
+			UpdateComponent(manager, gameApp, burn->OwningEntityHandle, hp, burn);
 		}
-
-		health->Health -= 1.0f;
 	}
+}
 
+void BurnSystem::UpdateComponent(EntitiesManager* manager, GameApplication* gameApp,
+	EntityHandle entityHandle, Health* health, Burnable* burnable) const
+{
+	burnable->BurnTime -= CounterIntervalInSec;
+	TraceLog(LOG_INFO, "Time: %f", burnable->BurnTime);
+	if (burnable->BurnTime <= 0.0f)
+	{
+		SystemRemoveComponent(
+			manager, entityHandle, Burnable::ID
+		);
+	}
+	health->Health -= 1.0f;
 }

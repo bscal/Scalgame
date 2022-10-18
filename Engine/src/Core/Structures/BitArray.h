@@ -2,30 +2,38 @@
 
 #include "Core/Core.h"
 
-template<uint32_t FieldSizeInBytes>
+template<size_t SizeInInt64>
 struct BitArray
 {
-	bool Data[FieldSizeInBytes];
+	uint64_t Data[SizeInInt64];
 
 	bool GetBit(uint32_t index) const;
 	void SetBit(uint32_t index, bool value);
 	void ClearBit(uint32_t index);
 };
 
-template<uint32_t FieldSizeInBytes>
-bool BitArray<FieldSizeInBytes>::GetBit(uint32_t index) const
+template<size_t SizeInInt64>
+bool BitArray<SizeInInt64>::GetBit(uint32_t index) const
 {
-	return Data[index];
+	size_t index = (size_t)index / SizeInInt64;
+	size_t bit = (size_t)index % SizeInInt64;
+	uint64_t value = Data[index];
+	return BitGet(value, bit);
 }
 
-template<uint32_t FieldSizeInBytes>
-void BitArray<FieldSizeInBytes>::SetBit(uint32_t index, bool value)
+template<size_t SizeInInt64>
+void BitArray<SizeInInt64>::SetBit(uint32_t index, bool value)
 {
-	Data[index] = value;
+	size_t index = (size_t)index / SizeInInt64;
+	size_t bit = (size_t)index % SizeInInt64;
+	Data[index] = BitSet(Data[index], bit);
 }
 
-template<uint32_t FieldSizeInBytes>
-void BitArray<FieldSizeInBytes>::ClearBit(uint32_t index)
+template<size_t SizeInInt64>
+void BitArray<SizeInInt64>::ClearBit(uint32_t index)
 {
-	Data[index] = 0;
+	for (int i = 0; i < sizeof(Data); ++i)
+	{
+		Data[i] = 0x00;
+	}
 }
