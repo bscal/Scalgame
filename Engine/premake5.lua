@@ -13,7 +13,7 @@ project "Engine"
         "src/**.h",
         "vendor/Nuklear/nuklear.h"
     }
-    
+
     defines
     {
         "SCAL_BUILD_DLL"
