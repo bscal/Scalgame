@@ -53,6 +53,8 @@ struct Vector2i
 
 	bool Vector2i::operator == (const Vector2i& rhs) const;
 	bool Vector2i::operator != (const Vector2i& rhs) const;
+
+	int64_t ToInt64() const;
 };
 
 
@@ -73,6 +75,7 @@ inline int64_t PackVec2i(Vector2i v)
 	return packedVec;
 }
 
+Vector2i Vec2iFromInt64(int64_t packedVec2i);
 
 Vector2i Vec2iAdd(Vector2i v0, Vector2i v1);
 

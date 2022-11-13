@@ -28,6 +28,10 @@ struct STable
 	bool (*KeyEqualsFunction)(const K* v0, const K* v1);
 
 	void Initialize(uint64_t capacity);
+	void InitializeEx(uint64_t capacity,
+		uint64_t(*KeyHashFunction)(const K* key),
+		bool (*KeyEqualsFunction)(const K* v0, const K* v1));
+	void Free();
 	void Resize(uint64_t newCapacity);
 	bool Put(const K* key, V* value);
 	V* Get(const K* key);
@@ -88,29 +92,78 @@ internal STable<K, V> Rehash(STable<K, V>* sTable)
 	return *sTable;
 }
 
+template<typename K>
+internal uint64_t DefaultHash(const K* key)
+{
+	return 0;
+}
+
+template<typename K>
+internal bool DefaultEquals(const K* k0, const K* k1)
+{
+	return *k0 == *k1;
+}
+
 template<typename K, typename V>
 void STable<typename K, typename V>::Initialize(uint64_t capacity)
 {
-	if (capacity < 1)
-	{
-		capacity = S_TABLE_DEFAULT_CAPACITY;
-	}
+	if (capacity < 1) capacity = S_TABLE_DEFAULT_CAPACITY;
 
-	// TODO add a way to do this better
 	if (!KeyHashFunction)
 	{
-		TraceLog(LOG_ERROR, "sTable must have a KeyHashFunction");
-		return;
+		KeyHashFunction = &DefaultHash;
 	}
 	if (!KeyEqualsFunction)
 	{
-		TraceLog(LOG_ERROR, "sTable must have a KeyEqualsFunction");
-		return;
+		KeyEqualsFunction = &DefaultEquals;
 	}
 
 	Size = 0;
 	Capacity = capacity;
-	Entries = (STableEntry<K, V>**)Scal::MemAllocZero(Capacity * sizeof(STableEntry<K, V>*));
+	Entries = (STableEntry<K, V>**)
+		Scal::MemAllocZero(Capacity * sizeof(STableEntry<K, V>*));
+}
+
+template<typename K, typename V>
+void STable<typename K, typename V>::InitializeEx(uint64_t capacity,
+	uint64_t(*keyHashFunction)(const K* key),
+	bool (*keyEqualsFunction)(const K* v0, const K* v1))
+{
+	if (capacity < 1) capacity = S_TABLE_DEFAULT_CAPACITY;
+
+	assert(keyHashFunction);
+	KeyHashFunction = keyHashFunction;
+
+	assert(keyEqualsFunction);
+	KeyEqualsFunction = keyEqualsFunction;
+
+	Size = 0;
+	Capacity = capacity;
+	Entries = (STableEntry<K, V>**)
+		Scal::MemAllocZero(Capacity * sizeof(STableEntry<K, V>*));
+}
+
+
+template<typename K, typename V>
+void STable<typename K, typename V>::Free()
+{
+	for (uint64_t i = 0; i < Capacity; ++i)
+	{
+		STableEntry<K, V>* entry = Entries[i];
+		if (!entry) continue;
+
+		auto nextEntry = entry->Next;
+		while (nextEntry)
+		{
+			nextEntry = entry->Next;
+			FreeEntry(entry);
+			entry = nextEntry;
+		}
+	}
+
+	Scal::MemFree(Entries);
+	Size = 0;
+	Capacity = 0;
 }
 
 template<typename K, typename V>

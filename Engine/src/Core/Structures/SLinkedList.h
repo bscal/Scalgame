@@ -33,11 +33,13 @@ internal SLinkedListEntry<T>* CreateEntry(T* value)
 template<typename T>
 internal SLinkedListEntry<T>* FreeEntry(SLinkedListEntry<T>* entry)
 {
-	assert(list);
-	assert(entry);
-	auto next = entry->Next;
-	Scal::MemFree(entry);
-	return next;
+	if (entry)
+	{
+		auto next = entry->Next;
+		Scal::MemFree(entry);
+		return next;
+	}
+	return nullptr;
 }
 
 template<typename T>

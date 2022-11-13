@@ -12,12 +12,13 @@ typedef Vector2i TileCoord;
 
 struct TileMapTile
 {
-
+	uint64_t TileId;
 };
 
 struct TileMapChunk
 {
 	SList<TileMapTile> Tiles;
+	ChunkCoord ChunkCoord;
 };
 
 struct ThreadedTileMap
@@ -28,13 +29,15 @@ struct ThreadedTileMap
 	SLinkedList<ChunkCoord> ChunksToUnload;
 	Vector2i TileMapDimensionsInChunks;
 	Vector2i ChunkDimensionsInTiles;
+	uint32_t ChunkSize;
+	float LoadDistance;
 };
 
-void TileMapInitialize(ThreadedTileMap* tilemap, Vector2i tileMapDimensionsInChunks,
+void ThreadedTileMapInitialize(ThreadedTileMap* tilemap, Vector2i tileMapDimensionsInChunks,
 	Vector2i chunkDimensionsInTiles);
-void TileMapFree(ThreadedTileMap* tilemap);
+void ThreadedTileMapFree(ThreadedTileMap* tilemap);
 
-void UpdateChunks(ThreadedTileMap* tilemap, GameApplication* game);
+void ThreadedTileMapUpdate(ThreadedTileMap* tilemap, GameApplication* game);
 
 TileMapChunk* LoadChunk(ThreadedTileMap* tilemap, ChunkCoord coord);
 void UnloadChunk(ThreadedTileMap* tilemap, ChunkCoord coord);
