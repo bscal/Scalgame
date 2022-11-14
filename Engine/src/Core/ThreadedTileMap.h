@@ -10,9 +10,16 @@
 typedef Vector2i ChunkCoord;
 typedef Vector2i TileCoord;
 
+struct TileCoord
+{
+	uint16_t X;
+	uint16_t Y;
+};
+
 struct TileMapTile
 {
-	uint64_t TileId;
+	TileCoord TextureCoord;
+	uint8_t FowLevel;
 };
 
 struct TileMapChunk
@@ -38,9 +45,12 @@ void ThreadedTileMapInitialize(ThreadedTileMap* tilemap, Vector2i tileMapDimensi
 void ThreadedTileMapFree(ThreadedTileMap* tilemap);
 
 void ThreadedTileMapUpdate(ThreadedTileMap* tilemap, GameApplication* game);
+void UpdateChunk(ThreadedTileMap* tilmap,
+	TileMapChunk* chunk, GameApplication* game);
 
 TileMapChunk* LoadChunk(ThreadedTileMap* tilemap, ChunkCoord coord);
 void UnloadChunk(ThreadedTileMap* tilemap, ChunkCoord coord);
 bool IsChunkLoaded(ThreadedTileMap* tilemap, ChunkCoord coord);
 
 TileMapChunk* GetChunk(ThreadedTileMap* tilemap, ChunkCoord coord);
+
