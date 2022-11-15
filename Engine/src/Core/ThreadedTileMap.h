@@ -8,7 +8,6 @@
 #include "Structures/STable.h"
 
 typedef Vector2i ChunkCoord;
-typedef Vector2i TileCoord;
 
 struct TileCoord
 {
@@ -34,14 +33,15 @@ struct ThreadedTileMap
 	STable<ChunkCoord, TileMapChunk*> ChunksMap;
 	SLinkedList<ChunkCoord> ChunksToLoad;
 	SLinkedList<ChunkCoord> ChunksToUnload;
+	TileSet* TileSet;
 	Vector2i TileMapDimensionsInChunks;
 	Vector2i ChunkDimensionsInTiles;
 	uint32_t ChunkSize;
 	float LoadDistance;
 };
 
-void ThreadedTileMapInitialize(ThreadedTileMap* tilemap, Vector2i tileMapDimensionsInChunks,
-	Vector2i chunkDimensionsInTiles);
+void ThreadedTileMapInitialize(ThreadedTileMap* tilemap, TileSet* tileSet,
+	Vector2i tileMapDimensionsInChunks, Vector2i chunkDimensionsInTiles);
 void ThreadedTileMapFree(ThreadedTileMap* tilemap);
 
 void ThreadedTileMapUpdate(ThreadedTileMap* tilemap, GameApplication* game);

@@ -11,19 +11,23 @@ internal bool ChunkMapEquals(const ChunkCoord* lhs, const ChunkCoord* rhs)
 	return *lhs == *rhs;
 }
 
-void ThreadedTileMapInitialize(ThreadedTileMap* tilemap, Vector2i tileMapDimensionsInChunks,
-	Vector2i chunkDimensionsInTiles)
+void ThreadedTileMapInitialize(ThreadedTileMap* tilemap, TileSet* tileSet,
+	Vector2i tileMapDimensionsInChunks, Vector2i chunkDimensionsInTiles)
 {
 	if (!tilemap)
 	{
-		TraceLog(LOG_ERROR, "tilemap cannot be nullptr");
+		TraceLog(LOG_ERROR, "ThreadedTileMapInitialize: tilemap cannot be nullptr");
+		return;
+	}
+	if (!tileSet)
+	{
+		TraceLog(LOG_ERROR, "ThreadedTileMapInitialize: tileSet cannot be nullptr");
 		return;
 	}
 
 	tilemap->TileMapDimensionsInChunks = tileMapDimensionsInChunks;
 	tilemap->ChunkDimensionsInTiles = chunkDimensionsInTiles;
 	tilemap->ChunkSize = chunkDimensionsInTiles.x * chunkDimensionsInTiles.y;
-
 	tilemap->ChunksList.Initialize();
 	tilemap->ChunksMap.InitializeEx(16, &ChunkMapHash, &ChunkMapEquals);
 }
@@ -32,7 +36,7 @@ void ThreadedTileMapFree(ThreadedTileMap* tilemap)
 {
 	if (!tilemap)
 	{
-		TraceLog(LOG_ERROR, "tilemap cannot be nullptr");
+		TraceLog(LOG_ERROR, "ThreadedTileMapFree: tilemap cannot be nullptr");
 		return;
 	}
 
@@ -57,25 +61,25 @@ void UpdateChunk(ThreadedTileMap* tilemap,
 	{
 		for (uint32_t x = 0; x < tilemap->ChunkDimensionsInTiles.x; ++x)
 		{
-			uint32_t worldX = chunk->ChunkCoord.x + x;
-			uint32_t worldY = chunk->ChunkCoord.y + y;
 			uint32_t index = x + y * tilemap->ChunkDimensionsInTiles.x;
 			TileMapTile tile = chunk->Tiles[index];
 
 			Rectangle textureRect;
-			textureRect.x = tile.TextureCoord.X;
-			textureRect.y = tile.TextureCoord.Y;
+			textureRect.x = (float)tile.TextureCoord.X;
+			textureRect.y = (float)tile.TextureCoord.Y;
 			textureRect.width = 16.0f;
 			textureRect.height = 16.0f;
 
+			uint32_t worldX = chunk->ChunkCoord.x + x;
+			uint32_t worldY = chunk->ChunkCoord.y + y;
 			Vector2 worldPosition;
 			worldPosition.x = worldX * 16.0f;
 			worldPosition.y = worldY * 16.0f;
 
 			DrawTextureRec(
-				game->Game->World.MainTileMap.TileSet->TileTexture,
+				tilemap->TileSet->TileTexture,
 				textureRect,
-				worldPosition
+				worldPosition,
 				WHITE);
 		}
 	}

@@ -69,7 +69,7 @@ bool InitializeUI(Font* font, float fontSize, UIState* outState)
 		TraceLog(LOG_ERROR, "Nuklear could not initialize");
 	else
 		TraceLog(LOG_INFO, "Ui Initialized");
-	return res;
+	return (res == 1);
 }
 
 internal Color ColorFromNuklear(struct nk_color color)

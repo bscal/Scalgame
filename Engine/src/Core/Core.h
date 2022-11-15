@@ -31,12 +31,17 @@
 #define BitToggle(state, bit) (state ^ 1U << bit)
 
 #if SCAL_DEBUG
-#define S_LOG_DEBUG(msg, args) TraceLog(LOG_DEBUG, msg, args)
+#define S_LOG_DEBUG(msg, ...) TraceLog(LOG_DEBUG, msg, __VA_ARGS__)
 #else
-#define S_LOG_DEBUG(msg, args)
+#define S_LOG_DEBUG(msg, ...)
 #endif
 
-#define S_LOG_ERR(msg, args) TraceLog(LOG_ERROR, msg, args)
+#define S_LOG_INFO(msg, ...) TraceLog(LOG_INFO, msg, __VA_ARGS__)
+#define S_LOG_ERR(msg, ...) TraceLog(LOG_ERROR, msg, __VA_ARGS__)
+
+internal void SCrash();
+#define S_LOG_CRASH(msg, ...) TraceLog(LOG_FATAL, msg, __VA_ARGS__); \
+SCrash() \
 
 struct MemorySizeData
 {
@@ -55,8 +60,19 @@ struct Vector2i
 	bool Vector2i::operator != (const Vector2i& rhs) const;
 
 	int64_t ToInt64() const;
+	static Vector2i FromInt64(int64_t src);
 };
 
+struct Vector2iu
+{
+	uint32_t x;
+	uint32_t y;
+
+	bool AreEquals(const Vector2iu o) const;
+	uint64_t ToUInt64() const;
+
+	static Vector2iu FromUInt64(uint64_t src);
+};
 
 struct PackVector2i
 {
@@ -78,9 +94,3 @@ inline int64_t PackVec2i(Vector2i v)
 Vector2i Vec2iFromInt64(int64_t packedVec2i);
 
 Vector2i Vec2iAdd(Vector2i v0, Vector2i v1);
-
-struct Vector2ui
-{
-	uint32_t x;
-	uint32_t y;
-};

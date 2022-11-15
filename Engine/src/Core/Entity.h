@@ -6,8 +6,6 @@
 #include "Structures/STable.h"
 #include "Structures/BitArray.h"
 
-#include <type_traits>
-
 #define MAX_COMPONENTS 32
 #define EMPTY_COMPONENT uint32_t(UINT32_MAX)
 

@@ -209,8 +209,8 @@ T* GetComponent(EntitiesManager* entityManager,
 		return nullptr;
 
 	SArray* componentArray = entityManager->ComponentMap.Get(&componentId);
-	T component = ((T*)componentArray->Memory)[componentIndex];
-	return &component;
+	T* component = &((T*)componentArray->Memory)[componentIndex];
+	return component;
 }
 
 void* GetComponent(EntitiesManager* entityManager, EntityHandle entHandle,
