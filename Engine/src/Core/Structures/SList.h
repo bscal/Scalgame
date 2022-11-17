@@ -47,6 +47,7 @@ struct SList
 	bool Contains(const T* value) const;
 	void Clear();
 	size_t MemSize() const;
+	bool IsInitialized() const;
 };
 
 // ********************
@@ -366,6 +367,13 @@ inline size_t SList<T>::MemSize() const
 {
 	return Capacity * Stride;
 }
+
+template<typename T>
+inline bool SList<T>::IsInitialized() const
+{
+	return (Memory);
+}
+
 
 
 inline void Test()

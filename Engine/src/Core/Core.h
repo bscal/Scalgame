@@ -37,6 +37,7 @@
 #endif
 
 #define S_LOG_INFO(msg, ...) TraceLog(LOG_INFO, msg, __VA_ARGS__)
+#define S_LOG_WARN(msg, ...) TraceLog(LOG_WARNING, msg, __VA_ARGS__)
 #define S_LOG_ERR(msg, ...) TraceLog(LOG_ERROR, msg, __VA_ARGS__)
 
 internal void SCrash();

@@ -1,5 +1,11 @@
 #include "ThreadedTileMap.h"
 
+#include "SRandom.h"
+
+#include <assert.h>
+
+// TODO
+global_var SRandom Random;
 
 internal uint64_t ChunkMapHash(const ChunkCoord* key)
 {
@@ -25,6 +31,7 @@ void ThreadedTileMapInitialize(ThreadedTileMap* tilemap, TileSet* tileSet,
 		return;
 	}
 
+	SRandomInitialize(&Random, 0);
 	tilemap->TileMapDimensionsInChunks = tileMapDimensionsInChunks;
 	tilemap->ChunkDimensionsInTiles = chunkDimensionsInTiles;
 	tilemap->ChunkSize = chunkDimensionsInTiles.x * chunkDimensionsInTiles.y;
@@ -115,6 +122,32 @@ void UnloadChunk(ThreadedTileMap* tilemap, ChunkCoord coord)
 	}
 }
 
+void GenerateChunk(ThreadedTileMap* tilemap, TileMapChunk* chunk)
+{
+	assert(chunk);
+	if (chunk->IsChunkGenerated)
+	{
+		S_LOG_WARN("Trying to generate an already generated chunk!");
+		return;
+	}
+	chunk->IsChunkGenerated = true;
+
+	uint32_t index;
+	for (uint32_t y = 0; y < tilemap->ChunkDimensionsInTiles.y; ++y)
+	{
+		for (uint32_t x = 0; x < tilemap->ChunkDimensionsInTiles.x; ++x)
+		{
+			uint32_t tileId = SRandNextRange(&Random, 1, 2);
+			TileMapTile tile = {};
+			tile.TileId = tileId;
+			uint16_t texX = tileId % 16;
+			uint16_t texY = tileId / 16;
+			tile.TextureCoord = { texX, texY };
+			tile.FowLevel = 0;
+			chunk->Tiles[index++] = tile;
+		}
+	}
+}
 
 bool IsChunkLoaded(ThreadedTileMap* tilemap, ChunkCoord coord)
 {
@@ -124,4 +157,54 @@ bool IsChunkLoaded(ThreadedTileMap* tilemap, ChunkCoord coord)
 TileMapChunk* GetChunk(ThreadedTileMap* tilemap, ChunkCoord coord)
 {
 	return *tilemap->ChunksMap.Get(&coord);
+}
+
+ChunkCoord TileToChunk(ThreadedTileMap* tilemap,
+	int64_t tileX, int64_t tileY)
+{
+	int chunkX = tileX / (int64_t)tilemap->TileMapDimensionsInChunks.x;
+	int chunkY = tileY / (int64_t)tilemap->TileMapDimensionsInChunks.y;
+	return { chunkX, chunkY };
+}
+
+uint32_t TileToChunkTileIndex(ThreadedTileMap* tilemap,
+	int64_t tileX, int64_t tileY)
+{
+	int tileChunkX = tileX % (int64_t)tilemap->ChunkDimensionsInTiles.x;
+	int tileChunkY = tileY % (int64_t)tilemap->ChunkDimensionsInTiles.y;
+	return tileChunkX + tileChunkY * tilemap->ChunkDimensionsInTiles.x;
+}
+
+void SetTile(ThreadedTileMap* tilemap, TileMapTile* tile,
+	int64_t tileX, int64_t tileY)
+{
+	ChunkCoord chunkCoord = TileToChunk(tilemap, tileX, tileY);
+	uint32_t tileChunkCoord = TileToChunkTileIndex(tilemap, tileX, tileY);
+	TileMapChunk** chunk = tilemap->ChunksMap.Get(&chunkCoord);
+	if (!chunk)
+	{
+		#if SCAL_DEBUG
+			assert(false);
+		#endif
+		return;
+	}
+	assert(((*chunk)->Tiles.IsInitialized()));
+	(*chunk)->Tiles[tileChunkCoord] = *tile;
+}
+
+TileMapTile* GetTile(ThreadedTileMap* tilemap,
+	int64_t tileX, int64_t tileY)
+{
+	ChunkCoord chunkCoord = TileToChunk(tilemap, tileX, tileY);
+	uint32_t tileChunkCoord = TileToChunkTileIndex(tilemap, tileX, tileY);
+	TileMapChunk** chunk = tilemap->ChunksMap.Get(&chunkCoord);
+	if (!chunk)
+	{
+		#if SCAL_DEBUG
+			assert(false);
+		#endif
+		return nullptr;
+	}
+	assert(((*chunk)->Tiles.IsInitialized()));
+	return (*chunk)->Tiles.PeekAtPtr(tileChunkCoord);
 }

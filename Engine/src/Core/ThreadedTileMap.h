@@ -17,6 +17,7 @@ struct TileCoord
 
 struct TileMapTile
 {
+	uint32_t TileId;
 	TileCoord TextureCoord;
 	uint8_t FowLevel;
 };
@@ -25,6 +26,7 @@ struct TileMapChunk
 {
 	SList<TileMapTile> Tiles;
 	ChunkCoord ChunkCoord;
+	bool IsChunkGenerated;
 };
 
 struct ThreadedTileMap
@@ -52,5 +54,19 @@ TileMapChunk* LoadChunk(ThreadedTileMap* tilemap, ChunkCoord coord);
 void UnloadChunk(ThreadedTileMap* tilemap, ChunkCoord coord);
 bool IsChunkLoaded(ThreadedTileMap* tilemap, ChunkCoord coord);
 
+void GenerateChunk(ThreadedTileMap* tilemap, TileMapChunk* chunk);
+
 TileMapChunk* GetChunk(ThreadedTileMap* tilemap, ChunkCoord coord);
+
+ChunkCoord TileToChunk(ThreadedTileMap* tilemap, 
+	int64_t tileX, int64_t tileY);
+
+uint32_t TileToChunkTileIndex(ThreadedTileMap* tilemap,
+	int64_t tileX, int64_t tileY);
+
+void SetTile(ThreadedTileMap* tilemap, TileMapTile* tile,
+	int64_t tileX, int64_t tileY);
+
+TileMapTile* GetTile(ThreadedTileMap* tilemap,
+	int64_t tileX, int64_t tileY);
 
