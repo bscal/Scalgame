@@ -9,16 +9,16 @@ global_var SRandom Random;
 
 internal uint64_t ChunkMapHash(const ChunkCoord* key)
 {
-	return key->ToInt64();
+	return static_cast<uint64_t>(key->ToUInt64());
 }
 
 internal bool ChunkMapEquals(const ChunkCoord* lhs, const ChunkCoord* rhs)
 {
-	return *lhs == *rhs;
+	return lhs->AreEquals(*rhs);
 }
 
 void ThreadedTileMapInitialize(ThreadedTileMap* tilemap, TileSet* tileSet,
-	Vector2i tileMapDimensionsInChunks, Vector2i chunkDimensionsInTiles)
+	Vector2iu tileMapDimensionsInChunks, Vector2iu chunkDimensionsInTiles)
 {
 	if (!tilemap)
 	{
@@ -53,8 +53,26 @@ void ThreadedTileMapFree(ThreadedTileMap* tilemap)
 	SLinkedFree<Vector2i>(&tilemap->ChunksToLoad);
 }
 
+void ThreadedTileMapCreate(ThreadedTileMap* tilemap, int loadWidth,
+	int loadHeight)
+{
+	for (int y = 0; y < loadHeight; ++y)
+	{
+		for (int x = 0; x < loadWidth; ++x)
+		{
+			ChunkCoord chunkCoord;
+			chunkCoord.x = x;
+			chunkCoord.y = y;
+			TileMapChunk* chunk = LoadChunk(tilemap, chunkCoord);
+			assert(chunk);
+			GenerateChunk(tilemap, chunk);
+		}
+	}
+}
+
 void ThreadedTileMapUpdate(ThreadedTileMap* tilemap, GameApplication* game)
 {
+	assert(tilemap);
 	for (uint64_t i = 0; i < tilemap->ChunksList.Length; ++i)
 	{
 		UpdateChunk(tilemap, tilemap->ChunksList.PeekAtPtr(i), game);
@@ -64,11 +82,13 @@ void ThreadedTileMapUpdate(ThreadedTileMap* tilemap, GameApplication* game)
 void UpdateChunk(ThreadedTileMap* tilemap,
 	TileMapChunk* chunk, GameApplication* game)
 {
+	assert(chunk);
+	assert(chunk->IsChunkGenerated);
 	for (uint32_t y = 0; y < tilemap->ChunkDimensionsInTiles.y; ++y)
 	{
 		for (uint32_t x = 0; x < tilemap->ChunkDimensionsInTiles.x; ++x)
 		{
-			uint32_t index = x + y * tilemap->ChunkDimensionsInTiles.x;
+			size_t index = x + y * tilemap->ChunkDimensionsInTiles.x;
 			TileMapTile tile = chunk->Tiles[index];
 
 			Rectangle textureRect;
@@ -77,11 +97,11 @@ void UpdateChunk(ThreadedTileMap* tilemap,
 			textureRect.width = 16.0f;
 			textureRect.height = 16.0f;
 
-			uint32_t worldX = chunk->ChunkCoord.x + x;
-			uint32_t worldY = chunk->ChunkCoord.y + y;
+			int worldX = chunk->ChunkCoord.x + x;
+			int worldY = chunk->ChunkCoord.y + y;
 			Vector2 worldPosition;
-			worldPosition.x = worldX * 16.0f;
-			worldPosition.y = worldY * 16.0f;
+			worldPosition.x = (float)worldX * 16.0f;
+			worldPosition.y = (float)worldY * 16.0f;
 
 			DrawTextureRec(
 				tilemap->TileSet->TileTexture,
@@ -94,7 +114,7 @@ void UpdateChunk(ThreadedTileMap* tilemap,
 
 TileMapChunk* LoadChunk(ThreadedTileMap* tilemap, ChunkCoord coord)
 {
-	TileMapChunk chunk{};
+	TileMapChunk chunk = {};
 	chunk.Tiles.InitializeCap(tilemap->ChunkSize);
 	chunk.ChunkCoord = coord;
 
@@ -113,7 +133,7 @@ void UnloadChunk(ThreadedTileMap* tilemap, ChunkCoord coord)
 
 	// TODO maybe look into storing index in Chunk, and swapping
 	// with last chunk here?
-	for (int i = 0; i < tilemap->ChunksList.Length; ++i)
+	for (size_t i = 0; i < tilemap->ChunksList.Length; ++i)
 	{
 		if (tilemap->ChunksList[i].ChunkCoord == coord)
 		{
@@ -132,12 +152,12 @@ void GenerateChunk(ThreadedTileMap* tilemap, TileMapChunk* chunk)
 	}
 	chunk->IsChunkGenerated = true;
 
-	uint32_t index;
+	uint32_t index = 0;
 	for (uint32_t y = 0; y < tilemap->ChunkDimensionsInTiles.y; ++y)
 	{
 		for (uint32_t x = 0; x < tilemap->ChunkDimensionsInTiles.x; ++x)
 		{
-			uint32_t tileId = SRandNextRange(&Random, 1, 2);
+			uint32_t tileId = (uint32_t)SRandNextRange(&Random, 1, 2);
 			TileMapTile tile = {};
 			tile.TileId = tileId;
 			uint16_t texX = tileId % 16;
@@ -170,8 +190,8 @@ ChunkCoord TileToChunk(ThreadedTileMap* tilemap,
 uint32_t TileToChunkTileIndex(ThreadedTileMap* tilemap,
 	int64_t tileX, int64_t tileY)
 {
-	int tileChunkX = tileX % (int64_t)tilemap->ChunkDimensionsInTiles.x;
-	int tileChunkY = tileY % (int64_t)tilemap->ChunkDimensionsInTiles.y;
+	uint64_t tileChunkX = tileX % (int64_t)tilemap->ChunkDimensionsInTiles.x;
+	uint64_t tileChunkY = tileY % (int64_t)tilemap->ChunkDimensionsInTiles.y;
 	return tileChunkX + tileChunkY * tilemap->ChunkDimensionsInTiles.x;
 }
 

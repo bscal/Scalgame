@@ -7,7 +7,7 @@
 #include "Structures/SLinkedList.h"
 #include "Structures/STable.h"
 
-typedef Vector2i ChunkCoord;
+typedef Vector2iu ChunkCoord;
 
 struct TileCoord
 {
@@ -36,15 +36,18 @@ struct ThreadedTileMap
 	SLinkedList<ChunkCoord> ChunksToLoad;
 	SLinkedList<ChunkCoord> ChunksToUnload;
 	TileSet* TileSet;
-	Vector2i TileMapDimensionsInChunks;
-	Vector2i ChunkDimensionsInTiles;
-	uint32_t ChunkSize;
+	Vector2iu TileMapDimensionsInChunks;
+	Vector2iu ChunkDimensionsInTiles;
+	uint64_t ChunkSize;
 	float LoadDistance;
 };
 
 void ThreadedTileMapInitialize(ThreadedTileMap* tilemap, TileSet* tileSet,
-	Vector2i tileMapDimensionsInChunks, Vector2i chunkDimensionsInTiles);
+	Vector2iu tileMapDimensionsInChunks, Vector2iu chunkDimensionsInTiles);
 void ThreadedTileMapFree(ThreadedTileMap* tilemap);
+
+void ThreadedTileMapCreate(ThreadedTileMap* tilemap, int loadWidth,
+	int loadHeight);
 
 void ThreadedTileMapUpdate(ThreadedTileMap* tilemap, GameApplication* game);
 void UpdateChunk(ThreadedTileMap* tilmap,
