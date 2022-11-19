@@ -1,5 +1,6 @@
 #include "ThreadedTileMap.h"
 
+#include "Game.h"
 #include "SRandom.h"
 
 #include <assert.h>
@@ -32,6 +33,7 @@ void ThreadedTileMapInitialize(ThreadedTileMap* tilemap, TileSet* tileSet,
 	}
 
 	SRandomInitialize(&Random, 0);
+	tilemap->TileSet = tileSet;
 	tilemap->TileMapDimensionsInChunks = tileMapDimensionsInChunks;
 	tilemap->ChunkDimensionsInTiles = chunkDimensionsInTiles;
 	tilemap->ChunkSize = chunkDimensionsInTiles.x * chunkDimensionsInTiles.y;
@@ -49,8 +51,8 @@ void ThreadedTileMapFree(ThreadedTileMap* tilemap)
 
 	tilemap->ChunksList.Free();
 	tilemap->ChunksMap.Free();
-	SLinkedFree<Vector2i>(&tilemap->ChunksToUnload);
-	SLinkedFree<Vector2i>(&tilemap->ChunksToLoad);
+	SLinkedFree<ChunkCoord>(&tilemap->ChunksToUnload);
+	SLinkedFree<ChunkCoord>(&tilemap->ChunksToLoad);
 }
 
 void ThreadedTileMapCreate(ThreadedTileMap* tilemap, int loadWidth,
@@ -92,16 +94,18 @@ void UpdateChunk(ThreadedTileMap* tilemap,
 			TileMapTile tile = chunk->Tiles[index];
 
 			Rectangle textureRect;
-			textureRect.x = (float)tile.TextureCoord.X;
-			textureRect.y = (float)tile.TextureCoord.Y;
-			textureRect.width = 16.0f;
-			textureRect.height = 16.0f;
+			textureRect.x = (float)tile.TextureCoord.x;
+			textureRect.y = (float)tile.TextureCoord.y;
+			textureRect.width = (float)tile.TextureCoord.w;
+			textureRect.height = (float)tile.TextureCoord.h;
 
-			int worldX = chunk->ChunkCoord.x + x;
-			int worldY = chunk->ChunkCoord.y + y;
+			float worldX = (float)chunk->ChunkCoord.x *
+				((float)tilemap->ChunkDimensionsInTiles.x * 16.0f);
+			float worldY = (float)chunk->ChunkCoord.y *
+				((float)tilemap->ChunkDimensionsInTiles.y * 16.0f);
 			Vector2 worldPosition;
-			worldPosition.x = (float)worldX * 16.0f;
-			worldPosition.y = (float)worldY * 16.0f;
+			worldPosition.x = worldX + (float)x * 16.0f;
+			worldPosition.y = worldY + (float)y * 16.0f;
 
 			DrawTextureRec(
 				tilemap->TileSet->TileTexture,
@@ -135,7 +139,7 @@ void UnloadChunk(ThreadedTileMap* tilemap, ChunkCoord coord)
 	// with last chunk here?
 	for (size_t i = 0; i < tilemap->ChunksList.Length; ++i)
 	{
-		if (tilemap->ChunksList[i].ChunkCoord == coord)
+		if (tilemap->ChunksList[i].ChunkCoord.AreEquals(coord))
 		{
 			tilemap->ChunksList.RemoveAtFast(i);
 		}
@@ -160,9 +164,12 @@ void GenerateChunk(ThreadedTileMap* tilemap, TileMapChunk* chunk)
 			uint32_t tileId = (uint32_t)SRandNextRange(&Random, 1, 2);
 			TileMapTile tile = {};
 			tile.TileId = tileId;
-			uint16_t texX = tileId % 16;
-			uint16_t texY = tileId / 16;
-			tile.TextureCoord = { texX, texY };
+			uint16_t texX = (tileId % 16) * 16;
+			uint16_t texY = (tileId / 16) * 16;
+			tile.TextureCoord.x = texX;
+			tile.TextureCoord.y = texY;
+			tile.TextureCoord.w = 16;
+			tile.TextureCoord.h = 16;
 			tile.FowLevel = 0;
 			chunk->Tiles[index++] = tile;
 		}
@@ -180,23 +187,23 @@ TileMapChunk* GetChunk(ThreadedTileMap* tilemap, ChunkCoord coord)
 }
 
 ChunkCoord TileToChunk(ThreadedTileMap* tilemap,
-	int64_t tileX, int64_t tileY)
+	uint64_t tileX, uint64_t tileY)
 {
-	int chunkX = tileX / (int64_t)tilemap->TileMapDimensionsInChunks.x;
-	int chunkY = tileY / (int64_t)tilemap->TileMapDimensionsInChunks.y;
-	return { chunkX, chunkY };
+	uint64_t chunkX = tileX / (uint64_t)tilemap->TileMapDimensionsInChunks.x;
+	uint64_t chunkY = tileY / (uint64_t)tilemap->TileMapDimensionsInChunks.y;
+	return { (uint32_t)chunkX, (uint32_t)chunkY };
 }
 
 uint32_t TileToChunkTileIndex(ThreadedTileMap* tilemap,
-	int64_t tileX, int64_t tileY)
+	uint64_t tileX, uint64_t tileY)
 {
-	uint64_t tileChunkX = tileX % (int64_t)tilemap->ChunkDimensionsInTiles.x;
-	uint64_t tileChunkY = tileY % (int64_t)tilemap->ChunkDimensionsInTiles.y;
+	uint64_t tileChunkX = tileX % (uint64_t)tilemap->ChunkDimensionsInTiles.x;
+	uint64_t tileChunkY = tileY % (uint64_t)tilemap->ChunkDimensionsInTiles.y;
 	return tileChunkX + tileChunkY * tilemap->ChunkDimensionsInTiles.x;
 }
 
 void SetTile(ThreadedTileMap* tilemap, TileMapTile* tile,
-	int64_t tileX, int64_t tileY)
+	uint64_t tileX, uint64_t tileY)
 {
 	ChunkCoord chunkCoord = TileToChunk(tilemap, tileX, tileY);
 	uint32_t tileChunkCoord = TileToChunkTileIndex(tilemap, tileX, tileY);
@@ -213,7 +220,7 @@ void SetTile(ThreadedTileMap* tilemap, TileMapTile* tile,
 }
 
 TileMapTile* GetTile(ThreadedTileMap* tilemap,
-	int64_t tileX, int64_t tileY)
+	uint64_t tileX, uint64_t tileY)
 {
 	ChunkCoord chunkCoord = TileToChunk(tilemap, tileX, tileY);
 	uint32_t tileChunkCoord = TileToChunkTileIndex(tilemap, tileX, tileY);

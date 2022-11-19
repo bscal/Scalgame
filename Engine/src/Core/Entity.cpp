@@ -28,9 +28,8 @@ void InitializeEntitiesManager(EntitiesManager* entityManager)
 	assert(entityManager);
 
 	entityManager->EntityArray.InitializeCap(10);
-	entityManager->ComponentMap.KeyHashFunction = EntityHash;
-	entityManager->ComponentMap.KeyEqualsFunction = EntityEquals;
-	entityManager->ComponentMap.Initialize(DEFAULT_COMPONENT);
+	entityManager->ComponentMap.InitializeEx(DEFAULT_COMPONENT,
+		EntityHash, EntityEquals);
 	entityManager->ComponentRemoval.InitializeCap(64);
 	entityManager->ComponentTypes.Initialize(MAX_COMPONENTS);
 
@@ -202,7 +201,8 @@ template<typename T>
 T* GetComponent(EntitiesManager* entityManager,
 	Entity* entity, uint32_t componentId)
 {
-	static_assert(!std::is_same<BaseComponent, T>());
+	static_assert(!std::is_same<BaseComponent, T>(),
+		"Template type is not BaseComponent");
 
 	auto componentIndex = entity->Components[componentId];
 	if (componentIndex == EMPTY_COMPONENT)
@@ -269,7 +269,7 @@ void TestEntities(EntitiesManager* entityManager)
 	Transform2D* trans = GetComponent<Transform2D>(
 		entityManager, entity, Transform2D::ID);
 
-	Burnable burn = {};
+	Burnable burn;
 	burn.BurnTime = 10;
 	burn.BurnLevel = 1;
 	AddComponent(entityManager, entity->Handle, &burn);
@@ -282,6 +282,7 @@ void TestEntities(EntitiesManager* entityManager)
 
 void BurnSystem::Initialize(EntitiesManager* manager)
 {
+	CounterIntervalInSec = 1.0f;
 	Burnables = manager->ComponentMap.Get(&Burnable::ID);
 	Healths = manager->ComponentMap.Get(&Health::ID);
 }

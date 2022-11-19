@@ -1,24 +1,35 @@
 #pragma once
 
 #include "Core.h"
-#include "Game.h"
 #include "Structures/SArray.h"
 #include "Structures/SList.h"
 #include "Structures/SLinkedList.h"
 #include "Structures/STable.h"
 
-typedef Vector2iu ChunkCoord;
+struct TileSet;
+struct GameApplication;
 
-struct TileCoord
+typedef Vector2iu ChunkCoord;
+typedef Vector2iu TileWorldCoord;
+
+struct TileTextureCoord
 {
-	uint16_t X;
-	uint16_t Y;
+	uint16_t x;
+	uint16_t y;
+};
+
+struct TextureCoord
+{
+	uint16_t x;
+	uint16_t y;
+	uint16_t w;
+	uint16_t h;
 };
 
 struct TileMapTile
 {
+	TextureCoord TextureCoord;
 	uint32_t TileId;
-	TileCoord TextureCoord;
 	uint8_t FowLevel;
 };
 
@@ -62,14 +73,14 @@ void GenerateChunk(ThreadedTileMap* tilemap, TileMapChunk* chunk);
 TileMapChunk* GetChunk(ThreadedTileMap* tilemap, ChunkCoord coord);
 
 ChunkCoord TileToChunk(ThreadedTileMap* tilemap, 
-	int64_t tileX, int64_t tileY);
+	uint64_t tileX, uint64_t tileY);
 
 uint32_t TileToChunkTileIndex(ThreadedTileMap* tilemap,
-	int64_t tileX, int64_t tileY);
+	uint64_t tileX, uint64_t tileY);
 
 void SetTile(ThreadedTileMap* tilemap, TileMapTile* tile,
-	int64_t tileX, int64_t tileY);
+	uint64_t tileX, uint64_t tileY);
 
 TileMapTile* GetTile(ThreadedTileMap* tilemap,
-	int64_t tileX, int64_t tileY);
+	uint64_t tileX, uint64_t tileY);
 

@@ -95,7 +95,7 @@ struct BurnSystem : public System
 	SArray* Burnables;
 	SArray* Healths;
 	float CounterTime;
-	const float CounterIntervalInSec = 1.0f;
+	float CounterIntervalInSec;
 
 	void Initialize(EntitiesManager* manager);
 

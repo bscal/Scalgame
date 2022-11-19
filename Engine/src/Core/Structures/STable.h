@@ -68,7 +68,8 @@ template<typename K, typename V>
 internal STable<K, V> Rehash(STable<K, V>* sTable)
 {
 	STable<K, V> sTable2 = *sTable;
-	sTable2.Initialize(sTable->Capacity);
+	sTable2.InitializeEx(sTable->Capacity,
+		sTable->KeyHashFunction, sTable->KeyEqualsFunction);
 
 	for (int i = 0; i < sTable->Capacity; ++i)
 	{
@@ -95,7 +96,7 @@ internal STable<K, V> Rehash(STable<K, V>* sTable)
 template<typename K>
 internal uint64_t DefaultHash(const K* key)
 {
-	return 0;
+	return static_cast<uint64_t>(*key);
 }
 
 template<typename K>
@@ -310,16 +311,15 @@ bool STable<typename K, typename V>::Remove(const K* key)
 
 inline void TestSTable()
 {
-	STable<Vector2i, char> table = {};
-	table.KeyHashFunction = [](const Vector2i* key)
-	{
-		return (uint64_t)PackVec2i(*key);
-	};
-	table.KeyEqualsFunction = [](const Vector2i* k0, const Vector2i* k1)
-	{
-		return *k0 == *k1;
-	};
-	table.Initialize(5);
+	STable<Vector2i, char> table;
+	table.InitializeEx(5, [](const Vector2i* key)
+		{
+			return (uint64_t)PackVec2i(*key);
+		},
+		[](const Vector2i* k0, const Vector2i* k1)
+		{
+			return *k0 == *k1;
+		});
 
 	assert(table.Entries);
 

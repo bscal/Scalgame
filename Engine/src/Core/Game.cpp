@@ -40,6 +40,10 @@ SAPI bool GameApplication::Start()
     CreatureInitialize(&creature, &ZOMBIE);
     WorldCreateCreature(&Game->World, &creature);
 
+    ThreadedTileMapInitialize(&Game->World.TTileMap, &Resources->MainTileSet,
+        { 2, 2 }, { 16, 16 });
+    ThreadedTileMapCreate(&Game->World.TTileMap, 2, 2);
+
     Test();
 
     TestSTable();
@@ -139,6 +143,8 @@ SAPI void GameApplication::Run()
         BeginMode2D(Game->Camera);
 
         WorldUpdate(&Game->World, this);
+
+        ThreadedTileMapUpdate(&Game->World.TTileMap, this);
 
         UpdatePlayer(this, &Game->Player);
         RenderPlayer(this, &Game->Player);
