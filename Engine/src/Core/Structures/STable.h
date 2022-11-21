@@ -43,7 +43,7 @@ template<typename K, typename V>
 internal STableEntry<K, V>* CreateEntry(const K* key, const V* value)
 {
 	STableEntry<K, V>* entry = (STableEntry<K, V>*)
-		Scal::MemAlloc(sizeof(STableEntry<K, V>));
+		Scal::MemAllocZero(sizeof(STableEntry<K, V>));
 	entry->Key = *key;
 	entry->Value = *value;
 	entry->Next = 0;
@@ -65,10 +65,10 @@ internal uint64_t HashKey(const STable<K, V>* sTable, const K* key)
 }
 
 template<typename K, typename V>
-internal STable<K, V> Rehash(STable<K, V>* sTable)
+internal STable<K, V>* Rehash(STable<K, V>* sTable, size_t newCapacity)
 {
-	STable<K, V> sTable2 = *sTable;
-	sTable2.InitializeEx(sTable->Capacity,
+	STable<K, V> sTable2;
+	sTable2.InitializeEx(newCapacity,
 		sTable->KeyHashFunction, sTable->KeyEqualsFunction);
 
 	for (int i = 0; i < sTable->Capacity; ++i)
@@ -76,21 +76,22 @@ internal STable<K, V> Rehash(STable<K, V>* sTable)
 		STableEntry<K, V>* entry = sTable->Entries[i];
 		if (entry)
 		{
-			while (entry->Next)
+			STableEntry<K, V>* next = entry->Next;
+			while (next)
 			{
-				auto next = entry->Next;
 				sTable2.Put(&next->Key, &next->Value);
-				sTable->Remove(&next->Key);
+				FreeEntry(next);
+				next = entry->Next;
 			}
 			sTable2.Put(&entry->Key, &entry->Value);
-			sTable->Remove(&entry->Key);
+			FreeEntry(entry);
 		}
 	}
-
 	Scal::MemFree(sTable->Entries);
-
-	*sTable = sTable2;
-	return *sTable;
+	sTable->Entries = sTable2.Entries;
+	sTable->Size = sTable2.Size;
+	sTable->Capacity = sTable2.Capacity;
+	return sTable;
 }
 
 template<typename K>
@@ -170,12 +171,7 @@ void STable<typename K, typename V>::Free()
 template<typename K, typename V>
 void STable<typename K, typename V>::Resize(uint64_t newCapacity)
 {
-	if (newCapacity < Capacity)
-	{
-		newCapacity = Capacity * 2;
-	}
-	Capacity = newCapacity;
-	Rehash(this);
+	Rehash(this, newCapacity);
 	TraceLog(LOG_INFO, "Resizing!");
 }
 
@@ -207,23 +203,21 @@ bool STable<typename K, typename V>::Put(const K* key, V* value)
 		return true;
 	}
 
-	STableEntry<K, V>* previous = entry;
 	while (entry)
 	{
 		if (KeyEqualsFunction(key, &entry->Key))
 		{
 			return false;
 		}
-
-		previous = entry;
-		entry = previous->Next;
+		if (!entry->Next)
+		{
+			entry->Next = CreateEntry(key, value);
+			++Size;
+			return true;
+		}
+		entry = entry->Next;
 	}
-
-	// Collision, add entry to next
-	entry = CreateEntry(key, value);
-	previous->Next = entry;
-	++Size;
-	return true;
+	return false;
 }
 
 template<typename K, typename V>
