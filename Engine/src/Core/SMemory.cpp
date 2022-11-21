@@ -14,7 +14,9 @@ void* MemAlloc(size_t size)
 
 void* MemAllocZero(size_t size)
 {
-	return calloc(size, size);
+	void* memory = MemAlloc(size);
+	MemSet(memory, 0, size);
+	return memory;
 }
 
 void* MemRealloc(void* block, size_t size)

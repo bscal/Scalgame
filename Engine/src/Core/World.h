@@ -2,7 +2,7 @@
 
 #include "Core.h"
 #include "TileMap.h"
-#include "ThreadedTileMap.h"
+#include "ChunkedTileMap.h"
 #include "Creature.h"
 #include "Entity.h"
 #include "Structures/SList.h"
@@ -24,7 +24,7 @@ struct WorldTime
 
 struct World
 {
-	ThreadedTileMap TTileMap;
+	ChunkedTileMap::ChunkedTileMap TTileMap;
 	TileMap MainTileMap;
 	SList<Action> EntityActionsList;
 	EntitiesManager EntitiesManager;

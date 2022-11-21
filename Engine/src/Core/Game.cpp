@@ -31,7 +31,7 @@ SAPI bool GameApplication::Start()
 
     Game = (struct Game*)Scal::MemAllocZero(sizeof(struct Game));
     WorldInitialize(&Game->World);
-    InitializeTileMap(&Resources->MainTileSet, 128, 128, 16, &Game->World.MainTileMap);
+    InitializeTileMap(&Resources->MainTileSet, 32, 32, 16, &Game->World.MainTileMap);
     LoadTileMap(&Game->World.MainTileMap);
     InitializePlayer(this, &Game->Player);
     Game->Camera.zoom = 2.0f;
@@ -40,9 +40,9 @@ SAPI bool GameApplication::Start()
     CreatureInitialize(&creature, &ZOMBIE);
     WorldCreateCreature(&Game->World, &creature);
 
-    ThreadedTileMapInitialize(&Game->World.TTileMap, &Resources->MainTileSet,
-        { 2, 2 }, { 16, 16 });
-    ThreadedTileMapCreate(&Game->World.TTileMap, 2, 2);
+    ChunkedTileMap::Initialize(&Game->World.TTileMap, &Resources->MainTileSet,
+        { 16, 16 }, { 64, 64 });
+    ChunkedTileMap::Create(&Game->World.TTileMap, 2, 2);
 
     Test();
 
@@ -144,7 +144,7 @@ SAPI void GameApplication::Run()
 
         WorldUpdate(&Game->World, this);
 
-        ThreadedTileMapUpdate(&Game->World.TTileMap, this);
+        ChunkedTileMap::Update(&Game->World.TTileMap, this);
 
         UpdatePlayer(this, &Game->Player);
         RenderPlayer(this, &Game->Player);

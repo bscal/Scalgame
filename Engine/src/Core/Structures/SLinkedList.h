@@ -66,7 +66,7 @@ void SLinkedListPush(SLinkedList<T>* list, T* value)
 		return;
 	}
 
-	auto newEntry = CreateEntry(value);
+	SLinkedListEntry<T>* newEntry = CreateEntry<T>(value);
 
 	if (!list->First)
 		list->First = newEntry;

@@ -165,11 +165,13 @@ internal bool ComponentDeleteInternal(EntitiesManager* entityManager,
 	bool movedLasted = ArrayRemoveAt(components, componentIndex);
 	if (movedLasted)
 	{
-		BaseComponent* movedComponent = (BaseComponent*)ArrayPeekAt(components, componentIndex);
+		BaseComponent* movedComponent = 
+			(BaseComponent*)ArrayPeekAt(components, componentIndex);
 		Entity* entity = entityManager->EntityArray.PeekAtPtr(
 			movedComponent->OwningEntityHandle.EntityIndex);
 		entity->Components[componentId] = componentIndex;
 	}
+	return true;
 }
 
 bool RemoveComponent(EntitiesManager* entityManager,
