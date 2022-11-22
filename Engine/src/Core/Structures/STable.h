@@ -6,8 +6,8 @@
 #include <assert.h>
 
 #define S_TABLE_DEFAULT_CAPACITY 10
-#define S_TABLE_DEFAULT_SPACE = 0.75f
-#define S_TABLE_DEFAULT_RESIZE = 2
+#define S_TABLE_DEFAULT_SPACE 0.75f
+#define S_TABLE_DEFAULT_RESIZE 2
 
 template<typename K, typename V>
 struct STableEntry
@@ -32,7 +32,7 @@ struct STable
 		uint64_t(*KeyHashFunction)(const K* key),
 		bool (*KeyEqualsFunction)(const K* v0, const K* v1));
 	void Free();
-	void Resize(uint64_t newCapacity);
+	void Rehash(uint64_t newCapacity);
 	bool Put(const K* key, V* value);
 	V* Get(const K* key);
 	bool Remove(const K* key);
@@ -43,10 +43,10 @@ template<typename K, typename V>
 internal STableEntry<K, V>* CreateEntry(const K* key, const V* value)
 {
 	STableEntry<K, V>* entry = (STableEntry<K, V>*)
-		Scal::MemAllocZero(sizeof(STableEntry<K, V>));
+		Scal::MemAlloc(sizeof(STableEntry<K, V>));
 	entry->Key = *key;
 	entry->Value = *value;
-	entry->Next = 0;
+	entry->Next = nullptr;
 	return entry;
 }
 
@@ -54,7 +54,6 @@ template<typename K, typename V>
 internal void FreeEntry(STableEntry<K, V>* entry)
 {
 	Scal::MemFree(entry);
-	entry = 0;
 }
 
 template<typename K, typename V>
@@ -65,33 +64,35 @@ internal uint64_t HashKey(const STable<K, V>* sTable, const K* key)
 }
 
 template<typename K, typename V>
-internal STable<K, V>* Rehash(STable<K, V>* sTable, size_t newCapacity)
+void STable<typename K, typename V>::Rehash(size_t newCapacity)
 {
+	TraceLog(LOG_INFO, "Resizing!");
+
 	STable<K, V> sTable2;
 	sTable2.InitializeEx(newCapacity,
-		sTable->KeyHashFunction, sTable->KeyEqualsFunction);
+		KeyHashFunction, KeyEqualsFunction);
 
-	for (int i = 0; i < sTable->Capacity; ++i)
+	for (int i = 0; i < Capacity; ++i)
 	{
-		STableEntry<K, V>* entry = sTable->Entries[i];
+		STableEntry<K, V>* entry = Entries[i];
 		if (entry)
 		{
 			STableEntry<K, V>* next = entry->Next;
 			while (next)
 			{
 				sTable2.Put(&next->Key, &next->Value);
+				auto tmpNext = next->Next;
 				FreeEntry(next);
-				next = entry->Next;
+				next = tmpNext;
 			}
 			sTable2.Put(&entry->Key, &entry->Value);
 			FreeEntry(entry);
 		}
 	}
-	Scal::MemFree(sTable->Entries);
-	sTable->Entries = sTable2.Entries;
-	sTable->Size = sTable2.Size;
-	sTable->Capacity = sTable2.Capacity;
-	return sTable;
+	Scal::MemFree(Entries);
+	Entries = sTable2.Entries;
+	Size = sTable2.Size;
+	Capacity = sTable2.Capacity;
 }
 
 template<typename K>
@@ -169,13 +170,6 @@ void STable<typename K, typename V>::Free()
 }
 
 template<typename K, typename V>
-void STable<typename K, typename V>::Resize(uint64_t newCapacity)
-{
-	Rehash(this, newCapacity);
-	TraceLog(LOG_INFO, "Resizing!");
-}
-
-template<typename K, typename V>
 bool STable<typename K, typename V>::Put(const K* key, V* value)
 {
 	if (!key)
@@ -189,25 +183,25 @@ bool STable<typename K, typename V>::Put(const K* key, V* value)
 		return false;
 	}
 
-	if ((float)Size >= (float)Capacity * 0.75f)
+	if ((float)Size >= (float)Capacity * S_TABLE_DEFAULT_SPACE)
 	{
-		Resize(Capacity * 2);
+		Rehash(Capacity * S_TABLE_DEFAULT_RESIZE);
 	}
 
 	uint64_t hash = HashKey(this, key);
 	STableEntry<K, V>* entry = Entries[hash];
-	if (!entry)
+	if (!entry) // No entry at hash
 	{
 		Entries[hash] = CreateEntry(key, value);
 		++Size;
 		return true;
 	}
 
-	while (entry)
+	while (entry) // Loop till end of linked list to insert, break if duplicate
 	{
 		if (KeyEqualsFunction(key, &entry->Key))
 		{
-			return false;
+			break;
 		}
 		if (!entry->Next)
 		{
@@ -274,28 +268,34 @@ bool STable<typename K, typename V>::Remove(const K* key)
 	uint64_t hash = HashKey(this, key);
 	STableEntry<K, V>* entry = Entries[hash];
 	if (!entry) return false;
-	if (!entry->Next)
-	{
-		FreeEntry(entry);
-		Entries[hash] = 0;
-		--Size;
-		return true;
-	}
 
 	STableEntry<K, V>* previous = 0;
-	while (entry->Next)
+	while (entry)
 	{
 		if (KeyEqualsFunction(key, &entry->Key))
 		{
+			if (entry->Next)
+			{
+				if (previous)
+					previous->Next = entry->Next;
+				else
+					Entries[hash] = entry->Next;
+			}
+			else if (previous)
+			{
+				previous->Next = 0;
+			}
+			else if (!previous)
+			{
+				Entries[hash] = 0;
+			}
 			FreeEntry(entry);
-
-			if (previous)
-				previous->Next = entry->Next;
-			else
-				Entries[hash] = entry->Next;
-
 			--Size;
 			return true;
+		}
+		if (!entry->Next)
+		{
+			break;
 		}
 		previous = entry;
 		entry = entry->Next;

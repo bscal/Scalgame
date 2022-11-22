@@ -105,7 +105,7 @@ void FindChunksInView(ChunkedTileMap* tilemap, Game* game)
 				GenerateChunk(tilemap, chunk);
 			}
 			TraceLog(LOG_INFO, "Chunk Loaded: X: %d, Y: %d "
-				"WasGenerated: %b, Total Chunks: %d",
+				"WasGenerated: %d, Total Chunks: %d",
 				x, y, chunk->IsChunkGenerated, tilemap->ChunksList.Length);
 			//SLinkedListPush(&tilemap->ChunksToLoad, &nextChunkCoord);
 		}
@@ -119,7 +119,7 @@ void Update(ChunkedTileMap* tilemap, GameApplication* gameApp)
 	{
 		UpdateChunk(tilemap, tilemap->ChunksList.PeekAtPtr(i), gameApp);
 	}
-	//FindChunksInView(tilemap, gameApp->Game);
+	FindChunksInView(tilemap, gameApp->Game);
 }
 
 void UpdateChunk(ChunkedTileMap* tilemap,
