@@ -52,6 +52,8 @@ struct ChunkedTileMap
 	TileSet* TileSet;
 	Vector2iu TileMapDimensionsInChunks;
 	Vector2iu ChunkDimensionsInTiles;
+	uint64_t WorldBoundsX;
+	uint64_t WorldBoundsY;
 	uint64_t ChunkSize;
 	Vector2 ViewDistanceInChunk;
 };
@@ -90,5 +92,7 @@ TileMapTile* GetTile(ChunkedTileMap* tilemap,
 	uint64_t tileX, uint64_t tileY);
 
 bool IsChunkInBounds(ChunkedTileMap* tilemap, uint32_t chunkX, uint32_t chunkY);
+
+bool IsTileInBounds(ChunkedTileMap* tilemap, uint64_t worldTileX, uint64_t worldTileY);
 
 }

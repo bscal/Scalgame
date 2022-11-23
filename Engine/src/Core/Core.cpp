@@ -70,3 +70,14 @@ Vector2iu Vector2iu::FromUInt64(uint64_t src)
 	uint32_t x = (uint32_t)(src >> 32);
 	return { x, y };
 }
+
+// TODO move
+
+#include <functional>
+
+template <class T>
+void HashCombine(size_t seed, const T& v)
+{
+	std::hash<T> hasher;
+	seed ^= hasher(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+}

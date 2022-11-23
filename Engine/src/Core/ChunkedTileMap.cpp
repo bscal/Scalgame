@@ -40,11 +40,17 @@ void Initialize(ChunkedTileMap* tilemap, TileSet* tileSet,
 	tilemap->TileSet = tileSet;
 	tilemap->TileMapDimensionsInChunks = tileMapDimensionsInChunks;
 	tilemap->ChunkDimensionsInTiles = chunkDimensionsInTiles;
+	tilemap->WorldBoundsX = (uint64_t)tilemap->TileMapDimensionsInChunks.x
+		* (uint64_t)tilemap->ChunkDimensionsInTiles.x;
+	tilemap->WorldBoundsY = (uint64_t)tilemap->TileMapDimensionsInChunks.y
+		* (uint64_t)tilemap->ChunkDimensionsInTiles.y;
 	tilemap->ChunkSize = chunkDimensionsInTiles.x * chunkDimensionsInTiles.y;
-	tilemap->ChunksList.Initialize();
-	tilemap->ChunksMap.InitializeEx(16, &ChunkMapHash, &ChunkMapEquals);
 	tilemap->ViewDistanceInChunk.x = 4;
 	tilemap->ViewDistanceInChunk.y = 3;
+	size_t estimatedCapacity = tilemap->ViewDistanceInChunk.x
+		* tilemap->ViewDistanceInChunk.y;
+	tilemap->ChunksList.InitializeCap(estimatedCapacity);
+	tilemap->ChunksMap.InitializeEx(estimatedCapacity, &ChunkMapHash, &ChunkMapEquals);
 }
 
 void Free(ChunkedTileMap* tilemap)
@@ -281,6 +287,11 @@ bool IsChunkInBounds(ChunkedTileMap* tilemap, uint32_t chunkX, uint32_t chunkY)
 {
 	return chunkX < tilemap->TileMapDimensionsInChunks.x &&
 		chunkY < tilemap->TileMapDimensionsInChunks.y;
+}
+
+bool IsTileInBounds(ChunkedTileMap* tilemap, uint64_t worldTileX, uint64_t worldTileY)
+{
+	return worldTileX < tilemap->WorldBoundsX && worldTileY < tilemap->WorldBoundsY;
 }
 
 }

@@ -64,6 +64,15 @@ struct Vector2i
 	static Vector2i FromInt64(int64_t src);
 };
 
+struct Vector2i64
+{
+	int64_t x;
+	int64_t y;
+
+	bool IsEquals(const Vector2i64& other) const;
+	int64_t Hash() const;
+};
+
 struct Vector2iu
 {
 	uint32_t x;
@@ -95,3 +104,11 @@ inline int64_t PackVec2i(Vector2i v)
 Vector2i Vec2iFromInt64(int64_t packedVec2i);
 
 Vector2i Vec2iAdd(Vector2i v0, Vector2i v1);
+
+template <class T>
+void HashCombine(size_t seed, const T& v);
+
+inline size_t HashCombine(size_t h0, size_t h1)
+{
+	return (h0 ^ (h1 << 1));
+}
