@@ -7,6 +7,7 @@
 #include "Structures/SArray.h"
 #include "Structures/SList.h"
 #include "Structures/STable.h"
+#include "SUtil.h"
 
 SAPI bool GameApplication::Start()
 {
@@ -47,6 +48,8 @@ SAPI bool GameApplication::Start()
     Test();
 
     TestSTable();
+
+    TestHashes();
 
     return IsInitialized = true;
 }

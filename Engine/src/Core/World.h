@@ -29,7 +29,7 @@ struct World
 	SList<Action> EntityActionsList;
 	EntitiesManager EntitiesManager;
 	// TODO add own set struct
-	std::unordered_set<Vector2i, PackVector2i>* TileCoordsInLOS;
+	std::unordered_set<Vector2i>* TileCoordsInLOS;
 	//SList<Player> WorldPlayers;
 	SList<Creature> WorldCreatures;
 };
@@ -46,6 +46,7 @@ struct Action
 bool WorldInitialize(World* world);
 void WorldUpdate(World* world, GameApplication* game);
 
+void MoveActor(World* world, Vector2 position);
 void WorldCreateCreature(World* world, Creature* creature);
 void TurnEnd(World* world, Game* game, int timeChange);
 void AddAction(World* world, Action* action);

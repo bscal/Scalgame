@@ -1,6 +1,7 @@
 #pragma once
 
 #include "DebugWindow.h"
+#include "Vector2i.h"
 
 #include <raylib/src/raylib.h>
 #include <stdint.h>
@@ -40,9 +41,10 @@
 #define S_LOG_WARN(msg, ...) TraceLog(LOG_WARNING, msg, __VA_ARGS__)
 #define S_LOG_ERR(msg, ...) TraceLog(LOG_ERROR, msg, __VA_ARGS__)
 
-internal void SCrash();
-#define S_LOG_CRASH(msg, ...) TraceLog(LOG_FATAL, msg, __VA_ARGS__); \
-SCrash() \
+internal void SCrash(const char* file, int line);
+#define S_CRASH(msg, ...)	TraceLog(LOG_FATAL, msg, __VA_ARGS__); \
+							SCrash(__FILE__, __LINE__) \
+
 
 struct MemorySizeData
 {
@@ -51,64 +53,3 @@ struct MemorySizeData
 };
 
 MemorySizeData FindMemSize(uint64_t size);
-
-struct Vector2i
-{
-	int x;
-	int y;
-
-	bool Vector2i::operator == (const Vector2i& rhs) const;
-	bool Vector2i::operator != (const Vector2i& rhs) const;
-
-	int64_t ToInt64() const;
-	static Vector2i FromInt64(int64_t src);
-};
-
-struct Vector2i64
-{
-	int64_t x;
-	int64_t y;
-
-	bool IsEquals(const Vector2i64& other) const;
-	int64_t Hash() const;
-};
-
-struct Vector2iu
-{
-	uint32_t x;
-	uint32_t y;
-
-	bool AreEquals(const Vector2iu o) const;
-	uint64_t ToUInt64() const;
-
-	static Vector2iu FromUInt64(uint64_t src);
-};
-
-struct PackVector2i
-{
-	size_t operator()(const Vector2i& v) const
-	{
-		size_t packedVec = ((size_t(v.x) & 0xffL) << 32);
-		packedVec |= (v.y & 0xffL);
-		return packedVec;
-	}
-};
-
-inline int64_t PackVec2i(Vector2i v)
-{
-	size_t packedVec = ((size_t(v.x) & 0xffL) << 32);
-	packedVec |= (v.y & 0xffL);
-	return packedVec;
-}
-
-Vector2i Vec2iFromInt64(int64_t packedVec2i);
-
-Vector2i Vec2iAdd(Vector2i v0, Vector2i v1);
-
-template <class T>
-void HashCombine(size_t seed, const T& v);
-
-inline size_t HashCombine(size_t h0, size_t h1)
-{
-	return (h0 ^ (h1 << 1));
-}

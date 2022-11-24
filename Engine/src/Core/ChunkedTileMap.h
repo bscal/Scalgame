@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core.h"
+#include "Vector2i.h"
 #include "Structures/SArray.h"
 #include "Structures/SList.h"
 #include "Structures/SLinkedList.h"
@@ -9,8 +10,8 @@
 struct TileSet;
 struct GameApplication;
 
-typedef Vector2iu ChunkCoord;
-typedef Vector2iu TileWorldCoord;
+typedef Vector2i ChunkCoord;
+typedef Vector2i TileWorldCoord;
 
 namespace ChunkedTileMap
 {
@@ -50,8 +51,8 @@ struct ChunkedTileMap
 	SLinkedList<ChunkCoord> ChunksToLoad;
 	SLinkedList<ChunkCoord> ChunksToUnload;
 	TileSet* TileSet;
-	Vector2iu TileMapDimensionsInChunks;
-	Vector2iu ChunkDimensionsInTiles;
+	Vector2i TileMapDimensionsInChunks;
+	Vector2i ChunkDimensionsInTiles;
 	uint64_t WorldBoundsX;
 	uint64_t WorldBoundsY;
 	uint64_t ChunkSize;
@@ -59,7 +60,7 @@ struct ChunkedTileMap
 };
 
 void Initialize(ChunkedTileMap* tilemap, TileSet* tileSet,
-	Vector2iu tileMapDimensionsInChunks, Vector2iu chunkDimensionsInTiles);
+	Vector2i tileMapDimensionsInChunks, Vector2i chunkDimensionsInTiles);
 void Free(ChunkedTileMap* tilemap);
 
 void Create(ChunkedTileMap* tilemap, int loadWidth,

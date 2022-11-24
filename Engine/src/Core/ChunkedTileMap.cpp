@@ -2,6 +2,7 @@
 
 #include "Game.h"
 #include "SRandom.h"
+#include "SUtil.h"
 #include "Structures/SLinkedList.h"
 
 #include <assert.h>
@@ -14,16 +15,16 @@ global_var SRandom Random;
 
 internal uint64_t ChunkMapHash(const ChunkCoord* key)
 {
-	return static_cast<uint64_t>(key->ToUInt64());
+	return std::hash<Vector2i>{}(*key);
 }
 
 internal bool ChunkMapEquals(const ChunkCoord* lhs, const ChunkCoord* rhs)
 {
-	return lhs->AreEquals(*rhs);
+	return lhs->Equals(*rhs);
 }
 
 void Initialize(ChunkedTileMap* tilemap, TileSet* tileSet,
-	Vector2iu tileMapDimensionsInChunks, Vector2iu chunkDimensionsInTiles)
+	Vector2i tileMapDimensionsInChunks, Vector2i chunkDimensionsInTiles)
 {
 	if (!tilemap)
 	{
@@ -99,10 +100,8 @@ void FindChunksInView(ChunkedTileMap* tilemap, Game* game)
 	{
 		for (int chunkX = startX; chunkX < endX; ++chunkX)
 		{
-			uint32_t x = static_cast<uint32_t>(chunkX);
-			uint32_t y = static_cast<uint32_t>(chunkY);
-			ChunkCoord nextChunkCoord = { x, y };
-			if (!IsChunkInBounds(tilemap, x, y)) continue;
+			ChunkCoord nextChunkCoord = { chunkX, chunkY };
+			if (!IsChunkInBounds(tilemap, chunkX, chunkY)) continue;
 			if (IsChunkLoaded(tilemap, nextChunkCoord)) continue;
 			// TODO think its safe to do this
 			const auto chunk = LoadChunk(tilemap, nextChunkCoord);
@@ -112,7 +111,7 @@ void FindChunksInView(ChunkedTileMap* tilemap, Game* game)
 			}
 			TraceLog(LOG_INFO, "Chunk Loaded: X: %d, Y: %d "
 				"WasGenerated: %d, Total Chunks: %d",
-				x, y, chunk->IsChunkGenerated, tilemap->ChunksList.Length);
+				chunkX, chunkY, chunk->IsChunkGenerated, tilemap->ChunksList.Length);
 			//SLinkedListPush(&tilemap->ChunksToLoad, &nextChunkCoord);
 		}
 	}
@@ -186,7 +185,7 @@ void UnloadChunk(ChunkedTileMap* tilemap, ChunkCoord coord)
 	// with last chunk here?
 	for (size_t i = 0; i < tilemap->ChunksList.Length; ++i)
 	{
-		if (tilemap->ChunksList[i].ChunkCoord.AreEquals(coord))
+		if (tilemap->ChunksList[i].ChunkCoord.Equals(coord))
 		{
 			tilemap->ChunksList.RemoveAtFast(i);
 		}
@@ -234,11 +233,11 @@ TileMapChunk* GetChunk(ChunkedTileMap* tilemap, ChunkCoord coord)
 }
 
 ChunkCoord GetWorldTileToChunkCoord(ChunkedTileMap* tilemap,
-	uint64_t tileX, uint64_t tileY)
+	int tileX, int tileY)
 {
-	uint64_t chunkX = tileX / (uint64_t)tilemap->TileMapDimensionsInChunks.x;
-	uint64_t chunkY = tileY / (uint64_t)tilemap->TileMapDimensionsInChunks.y;
-	return { (uint32_t)chunkX, (uint32_t)chunkY };
+	int chunkX = tileX / tilemap->TileMapDimensionsInChunks.x;
+	int chunkY = tileY / tilemap->TileMapDimensionsInChunks.y;
+	return { chunkX, chunkY };
 }
 
 uint32_t GetWorldTileToChunkIndex(ChunkedTileMap* tilemap,

@@ -1,5 +1,7 @@
 #include "Vector2i.h"
 
+#include <raymath.h>
+
 int64_t Vec2iPackInt64(Vector2i v)
 {
     return (int64_t)v.x << 32 | v.y;

@@ -1,7 +1,9 @@
 #pragma once
 
 #include <stdint.h>
-#include <raymath.h>
+#include <functional>
+
+struct Vector2;
 
 struct Vector2i
 {
@@ -33,3 +35,14 @@ Vector2i Vec2iOne();
 Vector2i Vec2iZero();
 Vector2i Vec2fToVec2i(Vector2 v);
 Vector2  Vec2iToVec2f(Vector2i v);
+
+template<>
+struct std::hash<Vector2i>
+{
+    std::size_t operator()(const Vector2i& v) const noexcept
+    {
+        std::size_t i0 = std::hash<int>{}(v.x);
+        std::size_t i1 = std::hash<int>{}(v.y);
+        return i0 ^ (i1 << 1);
+    }
+};

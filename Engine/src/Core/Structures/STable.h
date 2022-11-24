@@ -32,7 +32,7 @@ struct STable
 		uint64_t(*KeyHashFunction)(const K* key),
 		bool (*KeyEqualsFunction)(const K* v0, const K* v1));
 	void Free();
-	void Rehash(uint64_t newCapacity);
+	void Rehash(size_t newCapacity);
 	bool Put(const K* key, V* value);
 	V* Get(const K* key);
 	bool Remove(const K* key);
@@ -303,72 +303,74 @@ bool STable<typename K, typename V>::Remove(const K* key)
 	return false;
 }
 
+
+#include "SUtil.h"
 inline void TestSTable()
 {
-	STable<Vector2i, char> table;
-	table.InitializeEx(5, [](const Vector2i* key)
-		{
-			return (uint64_t)PackVec2i(*key);
-		},
-		[](const Vector2i* k0, const Vector2i* k1)
-		{
-			return *k0 == *k1;
-		});
+	//STable<Vector3, char> table;
+	//table.InitializeEx(5, [](const Vector3* key)
+	//	{
+	//		return Hash
+	//	},
+	//	[](const Vector3* k0, const Vector3* k1)
+	//	{
+	//		return *k0 == *k1;
+	//	});
 
-	assert(table.Entries);
+	//assert(table.Entries);
 
-	Vector2i k = { 1, 2 };
-	char v = 1;
-	table.Put(&k, &v);
+	//Vector2i k = { 1, 2 };
+	//char v = 1;
+	//table.Put(&k, &v);
 
-	Vector2i kk = { 2, 2 };
-	char vv = 2;
-	table.Put(&kk, &vv);
+	//Vector2i kk = { 2, 2 };
+	//char vv = 2;
+	//table.Put(&kk, &vv);
 
-	Vector2i kk1 = { 3, 2 };
-	char vv1 = 3;
-	table.Put(&kk1, &vv1);
+	//Vector2i kk1 = { 3, 2 };
+	//char vv1 = 3;
+	//table.Put(&kk1, &vv1);
 
-	Vector2i kk2 = { 4, 2 };
-	char vv2 = 4;
-	table.Put(&kk2, &vv2);
+	//Vector2i kk2 = { 4, 2 };
+	//char vv2 = 4;
+	//table.Put(&kk2, &vv2);
 
-	Vector2i kk3 = { 5, 2 };
-	char vv3 = 5;
-	table.Put(&kk3, &vv3);
+	//Vector2i kk3 = { 5, 2 };
+	//char vv3 = 5;
+	//table.Put(&kk3, &vv3);
 
-	Vector2i kk4 = { 6, 2 };
-	char vv4 = 6;
-	table.Put(&kk4, &vv4);
+	//Vector2i kk4 = { 6, 2 };
+	//char vv4 = 6;
+	//table.Put(&kk4, &vv4);
 
-	assert(table.Size == 6);
+	//assert(table.Size == 6);
 
-	Vector2i k1 = { 100, 15 };
-	char v1 = 255;
-	table.Put(&k1, &v1);
+	//Vector2i k1 = { 100, 15 };
+	//char v1 = 255;
+	//table.Put(&k1, &v1);
 
-	assert(table.Size == 7);
+	//assert(table.Size == 7);
 
-	Vector2i k2 = { 2, 2 };
-	char v2 = 64;
-	table.Put(&k2, &v2);
+	//Vector2i k2 = { 2, 2 };
+	//char v2 = 64;
+	//table.Put(&k2, &v2);
 
-	assert(table.Size == 7);
+	//assert(table.Size == 7);
 
-	char* get = table.Get(&k);
-	assert(*get == v);
+	//char* get = table.Get(&k);
+	//assert(*get == v);
 
-	bool contains = table.Contains(&k1);
+	//bool contains = table.Contains(&k1);
 
-	assert(contains == true);
+	//assert(contains == true);
 
-	bool removed = table.Remove(&kk);
+	//bool removed = table.Remove(&kk);
 
-	assert(removed == true);
+	//assert(removed == true);
 
-	Vector2i k3 = { 2, 2 };
-	char v3 = 128;
-	bool added = table.Put(&k3, &v3);
+	//Vector2i k3 = { 2, 2 };
+	//char v3 = 128;
+	//bool added = table.Put(&k3, &v3);
 
-	assert(added == true);
+	//assert(added == true);
 }
