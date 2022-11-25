@@ -42,7 +42,7 @@ SAPI bool GameApplication::Start()
     WorldCreateCreature(&Game->World, &creature);
 
     ChunkedTileMap::Initialize(&Game->World.TTileMap, &Resources->MainTileSet,
-        { 16, 16 }, { 64, 64 });
+        { 0, 0 }, { 16, 16 }, { 64, 64 });
     ChunkedTileMap::Create(&Game->World.TTileMap, 2, 2);
 
     Test();

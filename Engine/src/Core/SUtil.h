@@ -13,10 +13,33 @@ uint32_t DJBHash(const char* str, uint32_t length)
     return hash;
 }
 
+uint64_t SDBMHash(const char* str, size_t length)
+{
+    uint64_t hash = 0;
+    size_t i = 0;
+    for (i = 0; i < length; ++str, ++i)
+    {
+        hash = (*str) + (hash << 6) + (hash << 16) - hash;
+        i++;
+    }
+    return hash;
+}
+
+uint32_t SDBMHash(const char* str, uint32_t length)
+{
+    uint32_t hash = 0;
+    uint32_t i = 0;
+    for (i = 0; i < length; ++str, ++i)
+    {
+        hash = (*str) + (hash << 6) + (hash << 16) - hash;
+    }
+    return hash;
+}
+
 template<typename T>
 uint64_t Hash(const T* object)
 {
-    return DJBHash((const char*)object, sizeof(T));
+    return SDBMHash((const char*)object, sizeof(T));
 }
 
 struct TestHashStruct
@@ -36,4 +59,7 @@ inline void TestHashes()
 
     TestHashStruct sss = { 5, -1, 5 };
     auto hash3 = Hash(&sss);
+
+    TestHashStruct s4 = { 6, 1, 5 };
+    auto hash4 = Hash(&s4);
 }

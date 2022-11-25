@@ -48,19 +48,18 @@ struct ChunkedTileMap
 {
 	SList<TileMapChunk> ChunksList;
 	STable<ChunkCoord, TileMapChunk*> ChunksMap;
-	SLinkedList<ChunkCoord> ChunksToLoad;
 	SLinkedList<ChunkCoord> ChunksToUnload;
 	TileSet* TileSet;
-	Vector2i TileMapDimensionsInChunks;
+	Vector2i StartPos;
+	Vector2i EndPos;
+	Vector2i WorldDimensionsInTiles;
 	Vector2i ChunkDimensionsInTiles;
-	uint64_t WorldBoundsX;
-	uint64_t WorldBoundsY;
-	uint64_t ChunkSize;
-	Vector2 ViewDistanceInChunk;
+	Vector2 ViewDistance;
+	size_t ChunkTileSize;
 };
 
-void Initialize(ChunkedTileMap* tilemap, TileSet* tileSet,
-	Vector2i tileMapDimensionsInChunks, Vector2i chunkDimensionsInTiles);
+void Initialize(ChunkedTileMap* tilemap, TileSet* tileSet, Vector2i mapStartPos,
+	Vector2i mapEndPos, Vector2i chunkDimensions);
 void Free(ChunkedTileMap* tilemap);
 
 void Create(ChunkedTileMap* tilemap, int loadWidth,
@@ -91,9 +90,5 @@ void SetTile(ChunkedTileMap* tilemap, TileMapTile* tile,
 
 TileMapTile* GetTile(ChunkedTileMap* tilemap,
 	uint64_t tileX, uint64_t tileY);
-
-bool IsChunkInBounds(ChunkedTileMap* tilemap, uint32_t chunkX, uint32_t chunkY);
-
-bool IsTileInBounds(ChunkedTileMap* tilemap, uint64_t worldTileX, uint64_t worldTileY);
 
 }

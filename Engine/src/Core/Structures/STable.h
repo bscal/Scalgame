@@ -37,6 +37,7 @@ struct STable
 	V* Get(const K* key);
 	bool Remove(const K* key);
 	bool Contains(const K* key) const;
+	bool IsInitialized() const;
 };
 
 template<typename K, typename V>
@@ -150,6 +151,7 @@ void STable<typename K, typename V>::InitializeEx(uint64_t capacity,
 template<typename K, typename V>
 void STable<typename K, typename V>::Free()
 {
+	// TODO look at this
 	for (uint64_t i = 0; i < Capacity; ++i)
 	{
 		STableEntry<K, V>* entry = Entries[i];
@@ -303,6 +305,11 @@ bool STable<typename K, typename V>::Remove(const K* key)
 	return false;
 }
 
+template<typename K, typename V>
+bool STable<typename K, typename V>::IsInitialized() const
+{
+	return (Entries != nullptr);
+}
 
 #include "SUtil.h"
 inline void TestSTable()

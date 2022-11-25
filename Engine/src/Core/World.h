@@ -22,6 +22,8 @@ struct WorldTime
 	uint8_t Minute;
 };
 
+bool Equals(const Vector2i& l, const Vector2i& r);
+
 struct World
 {
 	ChunkedTileMap::ChunkedTileMap TTileMap;
@@ -29,7 +31,7 @@ struct World
 	SList<Action> EntityActionsList;
 	EntitiesManager EntitiesManager;
 	// TODO add own set struct
-	std::unordered_set<Vector2i>* TileCoordsInLOS;
+	std::unordered_set<Vector2i> TileCoordsInLOS;
 	//SList<Player> WorldPlayers;
 	SList<Creature> WorldCreatures;
 };

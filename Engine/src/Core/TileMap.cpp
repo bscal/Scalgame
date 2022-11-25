@@ -459,10 +459,10 @@ void GetBorderTiles(SList<Vector2i>* tileCoords, SList<Vector2i>* outTiles)
 	for (int i = 0; i < tileCoords->Length; ++i)
 	{
 		Vector2i coord = tileCoords->Memory[i];
-		Vector2i n = Vec2iAdd(coord, NORTH);
-		Vector2i e = Vec2iAdd(coord, EAST);
-		Vector2i s = Vec2iAdd(coord, SOUTH);
-		Vector2i w = Vec2iAdd(coord, WEST);
+		Vector2i n = coord.Add(NORTH);
+		Vector2i e = coord.Add(EAST);
+		Vector2i s = coord.Add(SOUTH);
+		Vector2i w = coord.Add(WEST);
 
 		bool containsN = false;
 		bool containsE = false;
@@ -472,13 +472,13 @@ void GetBorderTiles(SList<Vector2i>* tileCoords, SList<Vector2i>* outTiles)
 		{
 			Vector2i searchCoord = tileCoords->Memory[j];
 			if (!containsN)
-				containsN = searchCoord == n;
+				containsN = searchCoord.Equals(n);
 			if (!containsE)
-				containsE = searchCoord == e;
+				containsE = searchCoord.Equals(e);
 			if (!containsS)
-				containsS = searchCoord == s;
+				containsS = searchCoord.Equals(s);
 			if (!containsW)
-				containsW = searchCoord == w;
+				containsW = searchCoord.Equals(w);
 		}
 		if (!containsN || !containsE || !containsS || !containsW)
 		{
@@ -574,7 +574,7 @@ internal bool LOSRayHit(World* world, int tileX, int tileY)
 	{
 		Vector2i coord = { tileX, tileY };
 
-		world->TileCoordsInLOS->insert(coord);
+		world->TileCoordsInLOS.insert(coord);
 
 		auto tile = GetTile(&world->MainTileMap, tileX, tileY);
 		tile->Fow = FOWLevel::FullVision;
@@ -587,7 +587,7 @@ internal bool LOSRayHit(World* world, int tileX, int tileY)
 
 internal void LOSUpdate(World* world, Player* player)
 {
-	world->TileCoordsInLOS->clear();
+	world->TileCoordsInLOS.clear();
 
 	auto position = player->TilePosition;
 	float playerAngleRadians = AngleFromDirection(player->LookDirection);

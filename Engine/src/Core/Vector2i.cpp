@@ -139,3 +139,8 @@ bool Vector2i::Equals(Vector2i other) const
 {
     return (x == other.x) && (y == other.y);
 }
+
+bool Vector2i::IsInBounds(Vector2i srcStart, Vector2i srcEnd) const
+{
+    return srcStart.x >= x && srcStart.y >= y && srcEnd.x <= x && srcEnd.y <= y;
+}
