@@ -574,7 +574,7 @@ internal bool LOSRayHit(World* world, int tileX, int tileY)
 	{
 		Vector2i coord = { tileX, tileY };
 
-		world->TileCoordsInLOS.insert(coord);
+		world->TileCoordsInLOS->insert(coord);
 
 		auto tile = GetTile(&world->MainTileMap, tileX, tileY);
 		tile->Fow = FOWLevel::FullVision;
@@ -587,7 +587,7 @@ internal bool LOSRayHit(World* world, int tileX, int tileY)
 
 internal void LOSUpdate(World* world, Player* player)
 {
-	world->TileCoordsInLOS.clear();
+	world->TileCoordsInLOS->clear();
 
 	auto position = player->TilePosition;
 	float playerAngleRadians = AngleFromDirection(player->LookDirection);

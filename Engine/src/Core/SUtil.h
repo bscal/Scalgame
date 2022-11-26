@@ -1,46 +1,10 @@
 #pragma once
 
-#include <stdint.h>
+#include "SHash.hpp"
 
-uint32_t DJBHash(const char* str, uint32_t length)
-{
-    uint32_t hash = 5381;
-    uint32_t i = 0;
-    for (i = 0; i < length; ++str, ++i)
-    {
-        hash = ((hash << 5) + hash) + (*str);
-    }
-    return hash;
-}
 
-uint64_t SDBMHash(const char* str, size_t length)
-{
-    uint64_t hash = 0;
-    size_t i = 0;
-    for (i = 0; i < length; ++str, ++i)
-    {
-        hash = (*str) + (hash << 6) + (hash << 16) - hash;
-        i++;
-    }
-    return hash;
-}
 
-uint32_t SDBMHash(const char* str, uint32_t length)
-{
-    uint32_t hash = 0;
-    uint32_t i = 0;
-    for (i = 0; i < length; ++str, ++i)
-    {
-        hash = (*str) + (hash << 6) + (hash << 16) - hash;
-    }
-    return hash;
-}
-
-template<typename T>
-uint64_t Hash(const T* object)
-{
-    return SDBMHash((const char*)object, sizeof(T));
-}
+// TODO hash test stuff remove
 
 struct TestHashStruct
 {
@@ -52,14 +16,40 @@ struct TestHashStruct
 inline void TestHashes()
 {
     TestHashStruct s = { 5, 1, 5 };
-    auto hash = Hash(&s);
+    auto hash = SHashMerge(0, s);
 
-    TestHashStruct ss = { 19191, 112412, 50000 };
-    auto hash2 = Hash(&ss);
+    TestHashStruct ss = { 5, 2, 5 };
+    auto hash2 = SHashMerge(0, ss);
 
     TestHashStruct sss = { 5, -1, 5 };
-    auto hash3 = Hash(&sss);
+    auto hash3 = SHashMerge(0, sss);
 
-    TestHashStruct s4 = { 6, 1, 5 };
-    auto hash4 = Hash(&s4);
+    TestHashStruct s4 = { 1, 5, 1 };
+    auto hash4 = SHashMerge(0, s4);
+
+    TestHashStruct s5 = { 6, 1, 5 };
+    auto hash5 = SHashMerge(0, s5);
+
+    TestHashStruct s6 = { 4, 1, 5 };
+    auto hash6 = SHashMerge(0, s6);
+
+    TestHashStruct s7 = { 5, 1, 6 };
+    auto hash7 = SHashMerge(0, s7);
+
+    TestHashStruct s8 = { -5, 1, 5 };
+    auto hash8 = SHashMerge(0, s8);
+
+    TestHashStruct s9 = { 5, 1, 4 };
+    auto hash9 = SHashMerge(0, s9);
+
+    size_t mod = 8 * 2;
+    auto hashM = hash % mod;
+    auto hashM2 = hash2 % mod;
+    auto hashM3 = hash3 % mod;
+    auto hashM4 = hash4 % mod;
+    auto hashM5 = hash5 % mod;
+    auto hashM6 = hash6 % mod;
+    auto hashM7 = hash7 % mod;
+    auto hashM8 = hash8 % mod;
+    auto hashM9 = hash9 % mod;
 }

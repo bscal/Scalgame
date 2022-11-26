@@ -34,6 +34,10 @@ int64_t  Vec2iPackInt64(Vector2i v);
 Vector2i Vec2iUnpackInt64(int64_t packedVector);
 Vector2i Vec2iOne();
 Vector2i Vec2iZero();
+Vector2i Vec2iUp();
+Vector2i Vec2iDown();
+Vector2i Vec2iLeft();
+Vector2i Vec2iRight();
 Vector2i Vec2fToVec2i(Vector2 v);
 Vector2  Vec2iToVec2f(Vector2i v);
 

@@ -22,7 +22,21 @@ struct WorldTime
 	uint8_t Minute;
 };
 
-bool Equals(const Vector2i& l, const Vector2i& r);
+struct Hash
+{
+	[[nodiscard]] constexpr size_t operator()(const Vector2i& v) const
+	{
+		 return SHashMerge(0, v);
+	}
+};
+
+struct Equals
+{
+	[[nodiscard]] constexpr bool operator()(const Vector2i& l, const Vector2i& r) const
+	{
+		return l.Equals(r);
+	}
+};
 
 struct World
 {
@@ -31,7 +45,7 @@ struct World
 	SList<Action> EntityActionsList;
 	EntitiesManager EntitiesManager;
 	// TODO add own set struct
-	std::unordered_set<Vector2i> TileCoordsInLOS;
+	std::unordered_set<Vector2i, Hash, Equals>* TileCoordsInLOS;
 	//SList<Player> WorldPlayers;
 	SList<Creature> WorldCreatures;
 };

@@ -80,15 +80,15 @@ void GenerateChunk(ChunkedTileMap* tilemap, TileMapChunk* chunk);
 TileMapChunk* GetChunk(ChunkedTileMap* tilemap, ChunkCoord coord);
 
 ChunkCoord GetWorldTileToChunkCoord(ChunkedTileMap* tilemap,
-	uint64_t tileX, uint64_t tileY);
+	int tileX, int tileY);
 
-uint32_t GetWorldTileToChunkIndex(ChunkedTileMap* tilemap,
-	uint64_t tileX, uint64_t tileY);
+size_t GetWorldTileToChunkIndex(ChunkedTileMap* tilemap,
+	int tileX, int tileY);
 
 void SetTile(ChunkedTileMap* tilemap, TileMapTile* tile,
-	uint64_t tileX, uint64_t tileY);
+	int tileX, int tileY);
 
 TileMapTile* GetTile(ChunkedTileMap* tilemap,
-	uint64_t tileX, uint64_t tileY);
+	int tileX, int tileY);
 
 }

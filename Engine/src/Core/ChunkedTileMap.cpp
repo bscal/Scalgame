@@ -268,7 +268,7 @@ size_t GetWorldTileToChunkIndex(ChunkedTileMap* tilemap,
 }
 
 void SetTile(ChunkedTileMap* tilemap, TileMapTile* tile,
-	uint64_t tileX, uint64_t tileY)
+	int tileX, int tileY)
 {
 	ChunkCoord chunkCoord = GetWorldTileToChunkCoord(tilemap, tileX, tileY);
 	uint32_t tileChunkCoord = GetWorldTileToChunkIndex(tilemap, tileX, tileY);
@@ -285,7 +285,7 @@ void SetTile(ChunkedTileMap* tilemap, TileMapTile* tile,
 }
 
 TileMapTile* GetTile(ChunkedTileMap* tilemap,
-	uint64_t tileX, uint64_t tileY)
+	int tileX, int tileY)
 {
 	ChunkCoord chunkCoord = GetWorldTileToChunkCoord(tilemap, tileX, tileY);
 	uint32_t tileChunkCoord = GetWorldTileToChunkIndex(tilemap, tileX, tileY);

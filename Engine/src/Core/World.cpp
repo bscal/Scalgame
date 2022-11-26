@@ -12,7 +12,7 @@ bool WorldInitialize(World* world)
 	// TODO call unordered_set constructor without allocating memory
 	//new (&world->TileCoordsInLOS) std::unordered_set<Vector2i, PackVector2i>();
 
-	world->TileCoordsInLOS = new std::unordered_set<Vector2i, PackVector2i>();
+	world->TileCoordsInLOS = new std::unordered_set<Vector2i, Hash, Equals>();
 	world->EntityActionsList.Initialize();
 	world->WorldCreatures.Initialize();
 
@@ -46,6 +46,11 @@ void WorldUpdate(World* world, GameApplication* gameApp)
 void WorldCreateCreature(World* world, Creature* creature)
 {
 	world->WorldCreatures.Push(creature);
+}
+
+void MoveActor(World* world, Vector2 position)
+{
+
 }
 
 void TurnEnd(World* world, Game* game, int timeChange)
