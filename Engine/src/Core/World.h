@@ -48,6 +48,7 @@ struct World
 	std::unordered_set<Vector2i, Hash, Equals>* TileCoordsInLOS;
 	//SList<Player> WorldPlayers;
 	SList<Creature> WorldCreatures;
+	bool IsLoaded;
 };
 
 struct Action
@@ -60,9 +61,11 @@ struct Action
 };
 
 bool WorldInitialize(World* world);
+void WorldFree(World* world);
 void WorldUpdate(World* world, GameApplication* game);
 
 void MoveActor(World* world, Vector2 position);
+void MoveActorTile(World* world, Vector2i position);
 void WorldCreateCreature(World* world, Creature* creature);
 void TurnEnd(World* world, Game* game, int timeChange);
 void AddAction(World* world, Action* action);

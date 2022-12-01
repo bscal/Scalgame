@@ -5,28 +5,57 @@
 
 #include <assert.h>
 
-bool WorldInitialize(World* world)
+bool WorldInitialize(World* world, TileSet* tileSet)
 {
 	assert(world);
 
 	// TODO call unordered_set constructor without allocating memory
-	//new (&world->TileCoordsInLOS) std::unordered_set<Vector2i, PackVector2i>();
+	//auto c = CALL_CONSTRUCTOR(&world->TileCoordsInLOS)
+	//	std::unordered_set<Vector2i, Hash, Equals>();
 
 	world->TileCoordsInLOS = new std::unordered_set<Vector2i, Hash, Equals>();
 	world->EntityActionsList.Initialize();
 	world->WorldCreatures.Initialize();
 
+	ChunkedTileMap::Initialize(&world->TTileMap, tileSet,
+		{ 0, 0 }, { 16, 16 }, { 64, 64 });
+	ChunkedTileMap::Create(&world->TTileMap, 2, 2);
+
 	InitializeEntitiesManager(&world->EntitiesManager);
 
 	TestEntities(&world->EntitiesManager);
 
+	// TODO
+	world->IsLoaded = true;
 	assert(&world->TileCoordsInLOS);
 	return true;
+}
+
+void WorldFree(World* world)
+{
+	if (!world)
+	{
+		S_LOG_ERR("Trying to unload a null world");
+		return;
+	}
+
+	if (world->IsLoaded)
+	{
+
+	}
+	world->IsLoaded = false;
+
+	delete world->TileCoordsInLOS;
+	ChunkedTileMap::Free(&world->TTileMap);
+	world->EntityActionsList.Free();
+	world->WorldCreatures.Free();
 }
 
 void WorldUpdate(World* world, GameApplication* gameApp)
 {
 	RenderTileMap(gameApp->Game, &world->MainTileMap);
+
+	ChunkedTileMap::Update(&world->TTileMap, gameApp);
 
 	UpdateSystems(&world->EntitiesManager, gameApp);
 
@@ -49,6 +78,11 @@ void WorldCreateCreature(World* world, Creature* creature)
 }
 
 void MoveActor(World* world, Vector2 position)
+{
+
+}
+
+void MoveActorTile(World* world, Vector2i position)
 {
 
 }

@@ -41,10 +41,6 @@ SAPI bool GameApplication::Start()
     CreatureInitialize(&creature, &ZOMBIE);
     WorldCreateCreature(&Game->World, &creature);
 
-    ChunkedTileMap::Initialize(&Game->World.TTileMap, &Resources->MainTileSet,
-        { 0, 0 }, { 16, 16 }, { 64, 64 });
-    ChunkedTileMap::Create(&Game->World.TTileMap, 2, 2);
-
     Test();
 
     TestSTable();
@@ -146,8 +142,6 @@ SAPI void GameApplication::Run()
         BeginMode2D(Game->Camera);
 
         WorldUpdate(&Game->World, this);
-
-        ChunkedTileMap::Update(&Game->World.TTileMap, this);
 
         UpdatePlayer(this, &Game->Player);
         RenderPlayer(this, &Game->Player);

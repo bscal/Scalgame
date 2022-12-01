@@ -2,14 +2,14 @@
 
 #include "Core.h"
 
-enum class TileType
+enum class TileType : uint8_t
 {
 	Solid,
 	Empty,
 	Floor
 };
 
-enum class TileLOS
+enum class TileLOS : uint8_t
 {
 	NoVision,
 	FullVision,
@@ -32,6 +32,7 @@ struct Tile
 	uint32_t TileDataId;
 	TileLOS LOS;
 	bool IsUndiscovered;
+	bool IsOccupied;
 };
 
 #define MAX_TILES 255

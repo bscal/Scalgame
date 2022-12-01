@@ -7,7 +7,8 @@
 constexpr size_t FNV_offset_basis = 0xcbf29ce484222325;
 constexpr size_t FNV_prime = 0x100000001b3;
 
-[[nodiscard]] constexpr size_t SDBMHashMerge(size_t seed, const unsigned char* const str, size_t length)
+[[nodiscard]] constexpr size_t SDBMHashMerge(
+    size_t seed, const unsigned char* const str, size_t length)
 {
     for (size_t i = 0; i < length; ++i)
     {
@@ -16,7 +17,8 @@ constexpr size_t FNV_prime = 0x100000001b3;
     return seed;
 }
 
-[[nodiscard]] constexpr size_t FNVHash(const unsigned char* const str, size_t length)
+[[nodiscard]] constexpr size_t FNVHash(
+    const unsigned char* const str, size_t length)
 {
     size_t val = FNV_offset_basis;
     for (size_t i = 0; i < length; ++i)
@@ -27,7 +29,8 @@ constexpr size_t FNV_prime = 0x100000001b3;
     return val;
 }
 
-[[nodiscard]] constexpr size_t FNVHashMerge(size_t val, const unsigned char* const str, size_t length)
+[[nodiscard]] constexpr size_t FNVHashMerge(
+    size_t val, const unsigned char* const str, size_t length)
 {
     for (size_t i = 0; i < length; ++i)
     {

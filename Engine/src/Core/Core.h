@@ -45,6 +45,7 @@ internal void SCrash(const char* file, int line);
 #define S_CRASH(msg, ...)	TraceLog(LOG_FATAL, msg, __VA_ARGS__); \
 							SCrash(__FILE__, __LINE__) \
 
+#define CALL_CONSTRUCTOR(object) new (object)
 
 struct MemorySizeData
 {
