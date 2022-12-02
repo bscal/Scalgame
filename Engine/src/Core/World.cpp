@@ -15,7 +15,6 @@ bool WorldInitialize(World* world, TileSet* tileSet)
 
 	world->TileCoordsInLOS = new std::unordered_set<Vector2i, Hash, Equals>();
 	world->EntityActionsList.Initialize();
-	world->WorldCreatures.Initialize();
 
 	ChunkedTileMap::Initialize(&world->TTileMap, tileSet,
 		{ 0, 0 }, { 16, 16 }, { 64, 64 });
@@ -48,7 +47,6 @@ void WorldFree(World* world)
 	delete world->TileCoordsInLOS;
 	ChunkedTileMap::Free(&world->TTileMap);
 	world->EntityActionsList.Free();
-	world->WorldCreatures.Free();
 }
 
 void WorldUpdate(World* world, GameApplication* gameApp)
@@ -59,22 +57,17 @@ void WorldUpdate(World* world, GameApplication* gameApp)
 
 	UpdateSystems(&world->EntitiesManager, gameApp);
 
-	for (int i = 0; i < world->WorldCreatures.Length; ++i)
-	{
-		Creature creature = world->WorldCreatures.Memory[i];
-		CreatureUpdate(&creature, gameApp->Game);
+	//for (int i = 0; i < world->WorldCreatures.Length; ++i)
+	//{
+	//	Creature creature = world->WorldCreatures.Memory[i];
+	//	CreatureUpdate(&creature, gameApp->Game);
 
-		auto find = world->TileCoordsInLOS->find(creature.TilePosition);
-		if (find != world->TileCoordsInLOS->end())
-		{
-			CreatureRender(gameApp->Resources, &creature);
-		}
-	}
-}
-
-void WorldCreateCreature(World* world, Creature* creature)
-{
-	world->WorldCreatures.Push(creature);
+	//	auto find = world->TileCoordsInLOS->find(creature.TilePosition);
+	//	if (find != world->TileCoordsInLOS->end())
+	//	{
+	//		CreatureRender(gameApp->Resources, &creature);
+	//	}
+	//}
 }
 
 void MoveActor(World* world, Vector2 position)

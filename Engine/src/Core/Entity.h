@@ -59,11 +59,6 @@ const uint32_t Component<T>::ID = NextComponentId++;
 template<typename T>
 const size_t Component<T>::SIZE = sizeof(T);
 
-struct GameObject : public Component<GameObject>
-{
-	Transform Transform;
-};
-
 struct Transform2D : public Component<Transform2D>
 {
 	Vector2 Position;

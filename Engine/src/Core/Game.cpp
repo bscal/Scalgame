@@ -8,6 +8,9 @@
 #include "Structures/SList.h"
 #include "Structures/STable.h"
 #include "SUtil.h"
+#include "Actor.h"
+
+global_var GameApplication* GameAppPtr;
 
 SAPI bool GameApplication::Start()
 {
@@ -31,15 +34,17 @@ SAPI bool GameApplication::Start()
     InitiailizeDebugWindow(&Resources->MainFontM, 10, 30, DARKGREEN);
 
     Game = (struct Game*)Scal::MemAllocZero(sizeof(struct Game));
-    WorldInitialize(&Game->World);
-    InitializeTileMap(&Resources->MainTileSet, 32, 32, 16, &Game->World.MainTileMap);
-    LoadTileMap(&Game->World.MainTileMap);
-    InitializePlayer(this, &Game->Player);
+    //WorldInitialize(&Game->World);
+    //InitializeTileMap(&Resources->MainTileSet, 32, 32, 16, &Game->World.MainTileMap);
+    //LoadTileMap(&Game->World.MainTileMap);
+    //InitializePlayer(this, &Game->Player);
     Game->Camera.zoom = 2.0f;
 
-    Creature creature;
-    CreatureInitialize(&creature, &ZOMBIE);
-    WorldCreateCreature(&Game->World, &creature);
+    TestCreature(Game);
+
+    //Creature creature;
+    //CreatureInitialize(&creature, &ZOMBIE);
+    //WorldCreateCreature(&Game->World, &creature);
 
     Test();
 
@@ -47,6 +52,7 @@ SAPI bool GameApplication::Start()
 
     TestHashes();
 
+    GameAppPtr = this;
     return IsInitialized = true;
 }
 
@@ -168,6 +174,13 @@ SAPI void GameApplication::Run()
 
     }
     IsRunning = false;
+}
+
+
+GameApplication* const GetGameApp()
+{
+    assert(GameAppPtr);
+    return GameAppPtr;
 }
 
 void UpdateTime(GameApplication* gameApp, int timeChange)

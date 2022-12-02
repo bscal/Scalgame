@@ -8,8 +8,6 @@
 struct Resources;
 struct UIState;
 
-
-
 struct Game
 {
     Camera2D Camera;
@@ -33,6 +31,8 @@ struct GameApplication
     SAPI void Shutdown();
     SAPI void Run();
 };
+
+GameApplication* const GetGameApp();
 
 void UpdateTime(GameApplication* gameApp, int timeChange);
 
