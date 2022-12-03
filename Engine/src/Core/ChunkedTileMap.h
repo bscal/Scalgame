@@ -50,10 +50,11 @@ struct ChunkedTileMap
 	STable<ChunkCoord, TileMapChunk*> ChunksMap;
 	SLinkedList<ChunkCoord> ChunksToUnload;
 	TileSet* TileSet;
-	Vector2i StartPos;
-	Vector2i EndPos;
-	Vector2i WorldDimensionsInTiles;
-	Vector2i ChunkDimensionsInTiles;
+	Vector2i BoundsStart;
+	Vector2i BoundsEnd;
+	Vector2i StartChunkCoords;
+	Vector2i EndChunkCoords;
+	Vector2i ChunkDimensions;
 	Vector2 ViewDistance;
 	size_t ChunkTileSize;
 };

@@ -9,4 +9,4 @@ struct uint128
 };
 
 constexpr uint128 MurmurHash3_x64_128(
-    uint64_t seed, const unsigned char* const key, uint64_t len);
+    uint64_t seed, const char* const key, uint64_t len);

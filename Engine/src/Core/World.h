@@ -4,6 +4,7 @@
 #include "TileMap.h"
 #include "ChunkedTileMap.h"
 #include "Entity.h"
+#include "Creature.h"
 #include "Structures/SList.h"
 
 #include <unordered_set>
@@ -39,13 +40,12 @@ struct Equals
 
 struct World
 {
-	ChunkedTileMap::ChunkedTileMap TTileMap;
-	TileMap MainTileMap;
+	ChunkedTileMap::ChunkedTileMap ChunkedTileMap;
+	Scal::Creature::EntityMgr EntityMgr;
 	SList<Action> EntityActionsList;
-	EntitiesManager EntitiesManager;
-	// TODO add own set struct
-	std::unordered_set<Vector2i, Hash, Equals>* TileCoordsInLOS;
-	//SList<Player> WorldPlayers;
+	std::unordered_set<Vector2i,
+		Hash, Equals, SAllocator<Vector2i>> TileCoordsInLOS;
+	Vector2i TileScale;
 	bool IsLoaded;
 };
 
@@ -58,12 +58,15 @@ struct Action
 	int16_t Cost;
 };
 
-bool WorldInitialize(World* world);
+bool WorldInitialize(World* world, TileSet* tileset);
 void WorldFree(World* world);
 void WorldUpdate(World* world, GameApplication* game);
 
-void MoveActor(World* world, Vector2 position);
-void MoveActorTile(World* world, Vector2i position);
+bool IsInBounds(Vector2i startPos, Vector2i endPos,
+	Vector2i current);
+bool CanMoveToTile(World* world, Vector2i position);
+Vector2 WorldPosToTilePos(World* world, Vector2 pos);
+
 void TurnEnd(World* world, Game* game, int timeChange);
 void AddAction(World* world, Action* action);
 void ProcessActions(World* world);

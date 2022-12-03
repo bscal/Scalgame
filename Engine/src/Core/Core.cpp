@@ -2,7 +2,7 @@
 
 #include <assert.h>
 
-internal void SCrash(const char* file, int line)
+void SCrash(const char* file, int line)
 {
 	TraceLog(LOG_FATAL, "Attempting to break! File: %s. Line: %d");
 	assert(false);

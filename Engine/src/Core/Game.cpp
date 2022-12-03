@@ -8,7 +8,7 @@
 #include "Structures/SList.h"
 #include "Structures/STable.h"
 #include "SUtil.h"
-#include "Actor.h"
+#include "Creature.h"
 
 global_var GameApplication* GameAppPtr;
 
@@ -34,25 +34,19 @@ SAPI bool GameApplication::Start()
     InitiailizeDebugWindow(&Resources->MainFontM, 10, 30, DARKGREEN);
 
     Game = (struct Game*)Scal::MemAllocZero(sizeof(struct Game));
-    //WorldInitialize(&Game->World);
-    //InitializeTileMap(&Resources->MainTileSet, 32, 32, 16, &Game->World.MainTileMap);
-    //LoadTileMap(&Game->World.MainTileMap);
-    //InitializePlayer(this, &Game->Player);
-    Game->Camera.zoom = 2.0f;
+    if (!InitializeGame(this))
+    {
+        S_CRASH("Game failed to initialized!");
+        return false;
+    }
 
-    TestCreature(Game);
-
-    //Creature creature;
-    //CreatureInitialize(&creature, &ZOMBIE);
-    //WorldCreateCreature(&Game->World, &creature);
-
-    Test();
-
-    TestSTable();
-
-    TestHashes();
 
     GameAppPtr = this;
+
+    Scal::Creature::TestCreature(Game);
+    Test();
+    TestSTable();
+    TestHashes();
     return IsInitialized = true;
 }
 
@@ -122,8 +116,8 @@ SAPI void GameApplication::Run()
                 int y = transform.y / 16;
                 if (IsInBounds(x, y, 64, 64))
                 {
-                    Tile tile = CreateTile(&Game->World.MainTileMap, 4);
-                    SetTile(&Game->World.MainTileMap, x, y, &tile);
+                    //Tile tile = CreateTile(&Game->World.MainTileMap, 4);
+                    //SetTile(&Game->World.MainTileMap, x, y, &tile);
                 }
             }
 
@@ -149,9 +143,6 @@ SAPI void GameApplication::Run()
 
         WorldUpdate(&Game->World, this);
 
-        UpdatePlayer(this, &Game->Player);
-        RenderPlayer(this, &Game->Player);
-
         EndMode2D();
 
         // ***************
@@ -161,10 +152,13 @@ SAPI void GameApplication::Run()
         //BeginShaderMode(Resources.SDFFont.Shader);
 
         DisplayDebugText("Zoom = %.2f", Game->Camera.zoom);
-        DisplayDebugText("cX = %.1f, cY = %.1f", Game->Camera.target.x, Game->Camera.target.y);
-        DisplayDebugText("pX = %.1f, pY = %.1f", Game->Player.Position.x / 16.0f, Game->Player.Position.y / 16.0f);
-        DisplayDebugText("Time = %d", Game->Time);
-        DisplayDebugText("Energy = %d/%d", Game->Player.Energy, Game->Player.MaxEnergy);
+        DisplayDebugText("cX = %.1f, cY = %.1f",
+            Game->Camera.target.x, Game->Camera.target.y);
+        const Scal::Creature::Player* p = Game->World.EntityMgr.GetPlayer(0);
+        DisplayDebugText("pX = %d, pY = %d",
+            p->Transform.TilePos.x, p->Transform.TilePos.y);
+        //DisplayDebugText("Time = %d", Game->Time);
+        //DisplayDebugText("Energy = %d/%d", Game->Player.Energy, Game->Player.MaxEnergy);
         //EndShaderMode();
 
         RenderUI(UIState);
@@ -183,11 +177,28 @@ GameApplication* const GetGameApp()
     return GameAppPtr;
 }
 
-void UpdateTime(GameApplication* gameApp, int timeChange)
+inline float GetDeltaTime()
 {
-    gameApp->Game->Time += timeChange;
-    gameApp->Game->Player.Energy = gameApp->Game->Player.MaxEnergy;
+    return GetFrameTime();
+}
 
-    ProcessActions(&gameApp->Game->World);
-    gameApp->Game->World.EntityActionsList.Clear();
+//void UpdateTime(GameApplication* gameApp, int timeChange)
+//{
+//    gameApp->Game->Time += timeChange;
+//    gameApp->Game->Player.Energy = gameApp->Game->Player.MaxEnergy;
+//
+//    ProcessActions(&gameApp->Game->World);
+//    gameApp->Game->World.EntityActionsList.Clear();
+//}
+
+internal bool InitializeGame(GameApplication* gameApp)
+{
+    CALL_CONSTRUCTOR(gameApp->Game) Game();
+
+    WorldInitialize(&gameApp->Game->World, &gameApp->Resources->MainTileSet);
+
+    gameApp->Game->Camera.zoom = 2.0f;
+
+    S_LOG_INFO("Game Initialized!");
+    return true;
 }

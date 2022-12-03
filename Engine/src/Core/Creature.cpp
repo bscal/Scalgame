@@ -1,12 +1,25 @@
 #include "Creature.h"
 
 #include "Game.h"
+#include "ResourceManager.h"
+#include "Player.h"
+#include "World.h"
 #include "SMemory.h"
 
 namespace Scal
 {
 namespace Creature
 {
+
+constexpr global_var Vector2 PlayerFowardVectors[TileDirection::MaxDirs] =
+{ { 0.0f, -1.0f }, { 1.0f, 0.0f }, { 0.0f, 1.0f }, { -1.0f, 0.0f } };
+
+Vector2 TileDirToVec2(TileDirection dir)
+{
+	assert(dir >= 0);
+	assert(dir < TileDirection::MaxDirs);
+	return PlayerFowardVectors[dir];
+}
 
 internal void InternalRemoveEntity(EntityMgr* mgr, uint32_t entityId)
 {
@@ -59,6 +72,7 @@ void EntityMgr::Update(::Game* game, float dt)
 {
 	for (size_t i = 0; i < Players.size(); ++i)
 	{
+		Players[i].UpdatePlayer(game, dt);
 		Players[i].Update(game, dt);
 	}
 	for (size_t i = 0; i < Creatures.size(); ++i)
@@ -69,7 +83,7 @@ void EntityMgr::Update(::Game* game, float dt)
 	ProcessRemoveEntities(this);
 }
 
-SPlayer* EntityMgr::GetPlayer(uint32_t id)
+Player* EntityMgr::GetPlayer(uint32_t id)
 {
 	for (size_t i = 0; i < Players.size(); ++i)
 	{
@@ -87,10 +101,12 @@ SCreature* EntityMgr::GetCreature(uint32_t id)
 	return nullptr;
 }
 
-SPlayer& EntityMgr::CreatePlayer()
+Player& EntityMgr::CreatePlayer(::World* world)
 {
-	SPlayer p = {};
+	Player p = {};
 	p.Id = NextEntityId++;
+	p.Initialize(world);
+	p.InitializePlayer(world);
 	Players.push_back(p);
 
 	size_t index = Players.size() - 1;
@@ -103,11 +119,11 @@ SPlayer& EntityMgr::CreatePlayer()
 	return Players.back();
 }
 
-SCreature& EntityMgr::CreatureCreature()
+SCreature& EntityMgr::CreatureCreature(::World* world)
 {
 	SCreature creature = {};
-	creature.Initialize();
 	creature.Id = NextEntityId++;
+	creature.Initialize(world);
 	Creatures.push_back(creature);
 
 	CreatureCache creatureCache;
@@ -174,13 +190,57 @@ ComponentMgr::ComponentMgr()
 
 void SCreature::Update(::Game* game, float dt)
 {
+	Rectangle rect = TextureInfo.Rect;
+
+	if (LookDirection == TileDirection::West ||
+		LookDirection == TileDirection::South)
+		rect.width = -rect.width;
+
+	const auto sheet = GetGameApp()->Resources->EntitySpriteSheet;
+	DrawTextureRec(sheet, rect, Transform.Pos, WHITE);
+}
+
+void Move(Vector2 newPos)
+{
 
 }
 
-void SCreature::Initialize()
+void SCreature::Initialize(struct ::World* world)
 {
+	WorldRef = world;
 	constexpr size_t size = sizeof(uint32_t) * CREATURE_MAX_COMPONENTS;
 	Scal::MemSet(&ComponentIndex, CREATURE_EMPTY_COMPONENT, size);
+	//Pos = { 16.0f / 2.0f, 16.0f / 2.0f };
+}
+
+void TestCreature(::Game* game)
+{
+	EntityMgr em = EntityMgr();
+
+	em.ComponentManager.RegisterComponent<SHealth>(SHealth::ID);
+
+	SCreature& creature = em.CreatureCreature(&game->World);
+	creature.Transform.Pos.x = 5;
+	creature.Transform.Pos.y = 25;
+
+	SCreature* cPtr = em.GetCreature(creature.Id);
+
+	SHealth h;
+	h.MaxHealth = 10;
+	h.Health = 10;
+	em.ComponentManager.AddComponent<SHealth>(cPtr, &h);
+
+	SHealth* getH = em.ComponentManager.GetComponent<SHealth>(cPtr, SHealth::ID);
+
+	em.ComponentManager.RemoveComponent<SHealth>(cPtr, SHealth::ID);
+
+	em.RemoveEntity(creature.Id);
+
+	em.Update(game, 1.0f);
+
+	SCreature* cPtr2 = em.GetCreature(creature.Id);
+
+	S_LOG_INFO("Test Hash: %d", PlayerIdle);
 }
 
 }

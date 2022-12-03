@@ -568,120 +568,120 @@ int DistanceInTiles(int x0, int y0, int x1, int y1)
 
 internal bool LOSRayHit(World* world, int tileX, int tileY)
 {
-	if (IsInBounds(tileX, tileY,
-		world->MainTileMap.MapWidth,
-		world->MainTileMap.MapHeight))
-	{
-		Vector2i coord = { tileX, tileY };
+	//if (IsInBounds(tileX, tileY,
+	//	world->MainTileMap.MapWidth,
+	//	world->MainTileMap.MapHeight))
+	//{
+	//	Vector2i coord = { tileX, tileY };
 
-		world->TileCoordsInLOS->insert(coord);
+	//	world->TileCoordsInLOS.insert(coord);
 
-		auto tile = GetTile(&world->MainTileMap, tileX, tileY);
-		tile->Fow = FOWLevel::FullVision;
-		auto tileData = GetTileData(&world->MainTileMap, tile->TileId);
-		if (tileData->TileType == TileType::Solid)
-			return true;
-	}
+	//	//auto tile = GetTile(&world->MainTileMap, tileX, tileY);
+	//	//tile->Fow = FOWLevel::FullVision;
+	//	//auto tileData = GetTileData(&world->MainTileMap, tile->TileId);
+	//	//if (tileData->TileType == TileType::Solid)
+	//	//	return true;
+	//}
 	return false;
 }
 
-internal void LOSUpdate(World* world, Player* player)
-{
-	world->TileCoordsInLOS->clear();
-
-	auto position = player->TilePosition;
-	float playerAngleRadians = AngleFromDirection(player->LookDirection);
-	float coneFov = (160.0f * DEG2RAD) / 2.0f;
-	float x = (float)position.x + 0.5f;
-	float y = (float)position.y + 0.5f;
-	float startAngle = 0.0f;
-	float endAngle = coneFov;
-	float distance = 24.0f;
-
-	int rayResolution = 32;
-	for (int i = 0; i < rayResolution; ++i)
-	{
-		float t = Lerp(startAngle, endAngle, (float)i / (float)rayResolution);
-		float x0 = cosf(playerAngleRadians + t);
-		float y0 = sinf(playerAngleRadians + t);
-		float x1 = cosf(playerAngleRadians - t);
-		float y1 = sinf(playerAngleRadians - t);
-
-		float xPos0 = x + x0 * distance;
-		float yPos0 = y + y0 * distance;
-		float xPos1 = x + x1 * distance;
-		float yPos1 = y + y1 * distance;
-
-		Raytrace2DIntWorld(world, x, y, xPos0, yPos0, LOSRayHit);
-		Raytrace2DIntWorld(world, x, y, xPos1, yPos1, LOSRayHit);
-	}
-	
-	float sphereDistance = 3.0f;
-	float sphereStartAngle = 0.0f * TAO;
-	float sphereEndAngle = 1.0f * TAO;
-	int raySphereResolution = 16;
-	for (int i = 0; i < raySphereResolution; ++i)
-	{
-		float t = Lerp(sphereStartAngle, sphereEndAngle,
-			(float)i / (float)raySphereResolution - 1.0f);
-		float angleX = cosf(t);
-		float angleY = sinf(t);
-		float vX = x + angleX * sphereDistance;
-		float vY = y + angleY * sphereDistance;
-		Raytrace2DIntWorld(world, (int)x, (int)y, (int)vX, (int)vY, LOSRayHit);
-	}
-}
-
-// TODO should be moved
-global_var bool DisableFow = false;
-
-void RenderTileMap(Game* game, TileMap* tileMap)
-{
-	const float fowValues[5] = { 0.0f, 0.25f, 0.5f, 0.75f, 1.0f };
-	const float fowAlphas[5] = { 1.0f, 1.0f, 1.0f, 1.0f, 1.0f };
-	const Vector4 colorFullVision = ColorNormalize(WHITE);
-	const Vector4 colorNoVision = ColorNormalize(BLACK);
-
-	LOSUpdate(&game->World, &game->Player);
-
-	// TODO debug
-	if (IsKeyPressed(KEY_F1))
-		DisableFow = !DisableFow;
-
-	for (uint32_t y = 0; y < tileMap->MapHeight; ++y)
-	{
-		for (uint32_t x = 0; x < tileMap->MapWidth; ++x)
-		{
-			uint32_t index = x + y * tileMap->MapWidth;
-			float xPos = (float)x * (float)tileMap->MapTileSize;
-			float yPos = (float)y * (float)tileMap->MapTileSize;
-			Tile tile = tileMap->MapTiles[index];
-
-			float fowValue = fowValues[(uint8_t)tile.Fow];
-			Vector4 finalColor;
-			finalColor.x = Lerp(colorNoVision.x, colorFullVision.x, fowValue);
-			finalColor.y = Lerp(colorNoVision.y, colorFullVision.y, fowValue);
-			finalColor.z = Lerp(colorNoVision.z, colorFullVision.z, fowValue);
-			finalColor.w = fowAlphas[(uint8_t)tile.Fow];
-
-			Color color = ColorFromNormalized(finalColor);
-			#if SCAL_DEBUG
-			if (DisableFow) color = WHITE;
-			#endif
-
-			Rectangle textureRect = {
-				tile.TexturePosition.x,
-				tile.TexturePosition.y,
-				(float)tileMap->TileSet->TextureTileWidth,
-				(float)tileMap->TileSet->TextureTileHeight
-			};
-			DrawTextureRec(
-				tileMap->TileSet->TileTexture,
-				textureRect,
-				{ xPos, yPos },
-				color);
-
-			tileMap->MapTiles[index].Fow = FOWLevel::NoVision;
-		}
-	}
-}
+//internal void LOSUpdate(World* world, Player* player)
+//{
+//	world->TileCoordsInLOS.clear();
+//
+//	auto position = player->TilePosition;
+//	float playerAngleRadians = AngleFromDirection(player->LookDirection);
+//	float coneFov = (160.0f * DEG2RAD) / 2.0f;
+//	float x = (float)position.x + 0.5f;
+//	float y = (float)position.y + 0.5f;
+//	float startAngle = 0.0f;
+//	float endAngle = coneFov;
+//	float distance = 24.0f;
+//
+//	int rayResolution = 32;
+//	for (int i = 0; i < rayResolution; ++i)
+//	{
+//		float t = Lerp(startAngle, endAngle, (float)i / (float)rayResolution);
+//		float x0 = cosf(playerAngleRadians + t);
+//		float y0 = sinf(playerAngleRadians + t);
+//		float x1 = cosf(playerAngleRadians - t);
+//		float y1 = sinf(playerAngleRadians - t);
+//
+//		float xPos0 = x + x0 * distance;
+//		float yPos0 = y + y0 * distance;
+//		float xPos1 = x + x1 * distance;
+//		float yPos1 = y + y1 * distance;
+//
+//		Raytrace2DIntWorld(world, x, y, xPos0, yPos0, LOSRayHit);
+//		Raytrace2DIntWorld(world, x, y, xPos1, yPos1, LOSRayHit);
+//	}
+//	
+//	float sphereDistance = 3.0f;
+//	float sphereStartAngle = 0.0f * TAO;
+//	float sphereEndAngle = 1.0f * TAO;
+//	int raySphereResolution = 16;
+//	for (int i = 0; i < raySphereResolution; ++i)
+//	{
+//		float t = Lerp(sphereStartAngle, sphereEndAngle,
+//			(float)i / (float)raySphereResolution - 1.0f);
+//		float angleX = cosf(t);
+//		float angleY = sinf(t);
+//		float vX = x + angleX * sphereDistance;
+//		float vY = y + angleY * sphereDistance;
+//		Raytrace2DIntWorld(world, (int)x, (int)y, (int)vX, (int)vY, LOSRayHit);
+//	}
+//}
+//
+//// TODO should be moved
+//global_var bool DisableFow = false;
+//
+//void RenderTileMap(Game* game, TileMap* tileMap)
+//{
+//	const float fowValues[5] = { 0.0f, 0.25f, 0.5f, 0.75f, 1.0f };
+//	const float fowAlphas[5] = { 1.0f, 1.0f, 1.0f, 1.0f, 1.0f };
+//	const Vector4 colorFullVision = ColorNormalize(WHITE);
+//	const Vector4 colorNoVision = ColorNormalize(BLACK);
+//
+//	LOSUpdate(&game->World, &game->Player);
+//
+//	// TODO debug
+//	if (IsKeyPressed(KEY_F1))
+//		DisableFow = !DisableFow;
+//
+//	for (uint32_t y = 0; y < tileMap->MapHeight; ++y)
+//	{
+//		for (uint32_t x = 0; x < tileMap->MapWidth; ++x)
+//		{
+//			uint32_t index = x + y * tileMap->MapWidth;
+//			float xPos = (float)x * (float)tileMap->MapTileSize;
+//			float yPos = (float)y * (float)tileMap->MapTileSize;
+//			Tile tile = tileMap->MapTiles[index];
+//
+//			float fowValue = fowValues[(uint8_t)tile.Fow];
+//			Vector4 finalColor;
+//			finalColor.x = Lerp(colorNoVision.x, colorFullVision.x, fowValue);
+//			finalColor.y = Lerp(colorNoVision.y, colorFullVision.y, fowValue);
+//			finalColor.z = Lerp(colorNoVision.z, colorFullVision.z, fowValue);
+//			finalColor.w = fowAlphas[(uint8_t)tile.Fow];
+//
+//			Color color = ColorFromNormalized(finalColor);
+//			#if SCAL_DEBUG
+//			if (DisableFow) color = WHITE;
+//			#endif
+//
+//			Rectangle textureRect = {
+//				tile.TexturePosition.x,
+//				tile.TexturePosition.y,
+//				(float)tileMap->TileSet->TextureTileWidth,
+//				(float)tileMap->TileSet->TextureTileHeight
+//			};
+//			DrawTextureRec(
+//				tileMap->TileSet->TileTexture,
+//				textureRect,
+//				{ xPos, yPos },
+//				color);
+//
+//			tileMap->MapTiles[index].Fow = FOWLevel::NoVision;
+//		}
+//	}
+//}

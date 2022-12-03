@@ -10,6 +10,8 @@
 #define local_persist static
 #define global_var static
 
+typedef int bool32;
+
 #define TAO ((float)PI * 2.0f)
 
 #ifdef SCAL_PLATFORM_WINDOWS
@@ -41,9 +43,10 @@
 #define S_LOG_WARN(msg, ...) TraceLog(LOG_WARNING, msg, __VA_ARGS__)
 #define S_LOG_ERR(msg, ...) TraceLog(LOG_ERROR, msg, __VA_ARGS__)
 
-internal void SCrash(const char* file, int line);
-#define S_CRASH(msg, ...)	TraceLog(LOG_FATAL, msg, __VA_ARGS__); \
-							SCrash(__FILE__, __LINE__) \
+void SCrash(const char* file, int line);
+#define S_CRASH(msg, ...) \
+TraceLog(LOG_FATAL, msg, __VA_ARGS__); \
+SCrash(__FILE__, __LINE__) \
 
 #define CALL_CONSTRUCTOR(object) new (object)
 

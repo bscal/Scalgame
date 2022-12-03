@@ -2,31 +2,25 @@
 
 #include "Game.h"
 #include "ResourceManager.h"
+#include "Creature.h"
 
 #include <assert.h>
 
-bool WorldInitialize(World* world, TileSet* tileSet)
+bool WorldInitialize(World* world, TileSet* tileset)
 {
 	assert(world);
+	assert(tileset);
 
-	// TODO call unordered_set constructor without allocating memory
-	//auto c = CALL_CONSTRUCTOR(&world->TileCoordsInLOS)
-	//	std::unordered_set<Vector2i, Hash, Equals>();
-
-	world->TileCoordsInLOS = new std::unordered_set<Vector2i, Hash, Equals>();
+	world->TileCoordsInLOS.max_load_factor(0.75f);
+	world->TileCoordsInLOS.reserve(256);
 	world->EntityActionsList.Initialize();
-
-	ChunkedTileMap::Initialize(&world->TTileMap, tileSet,
+	ChunkedTileMap::Initialize(&world->ChunkedTileMap, tileset,
 		{ 0, 0 }, { 16, 16 }, { 64, 64 });
-	ChunkedTileMap::Create(&world->TTileMap, 2, 2);
+	world->TileScale = { 16, 16 };
 
-	InitializeEntitiesManager(&world->EntitiesManager);
+	world->EntityMgr.CreatePlayer(world);
 
-	TestEntities(&world->EntitiesManager);
-
-	// TODO
 	world->IsLoaded = true;
-	assert(&world->TileCoordsInLOS);
 	return true;
 }
 
@@ -37,47 +31,44 @@ void WorldFree(World* world)
 		S_LOG_ERR("Trying to unload a null world");
 		return;
 	}
-
-	if (world->IsLoaded)
-	{
-
-	}
 	world->IsLoaded = false;
-
-	delete world->TileCoordsInLOS;
-	ChunkedTileMap::Free(&world->TTileMap);
+	ChunkedTileMap::Free(&world->ChunkedTileMap);
 	world->EntityActionsList.Free();
 }
 
 void WorldUpdate(World* world, GameApplication* gameApp)
 {
-	RenderTileMap(gameApp->Game, &world->MainTileMap);
-
-	ChunkedTileMap::Update(&world->TTileMap, gameApp);
-
-	UpdateSystems(&world->EntitiesManager, gameApp);
-
-	//for (int i = 0; i < world->WorldCreatures.Length; ++i)
-	//{
-	//	Creature creature = world->WorldCreatures.Memory[i];
-	//	CreatureUpdate(&creature, gameApp->Game);
-
-	//	auto find = world->TileCoordsInLOS->find(creature.TilePosition);
-	//	if (find != world->TileCoordsInLOS->end())
-	//	{
-	//		CreatureRender(gameApp->Resources, &creature);
-	//	}
-	//}
+	ChunkedTileMap::Update(&world->ChunkedTileMap, gameApp);
+	world->EntityMgr.Update(gameApp->Game, gameApp->DeltaTime);
 }
 
-void MoveActor(World* world, Vector2 position)
+bool IsInBounds(Vector2i startPos, Vector2i endPos,
+	Vector2i current)
 {
-
+	return (current.x >= startPos.x &&
+		current.y >= startPos.y &&
+		current.x <= endPos.x &&
+		current.y <= endPos.y);
 }
 
-void MoveActorTile(World* world, Vector2i position)
+bool CanMoveToTile(World* world, Vector2i position)
 {
+	if (!IsInBounds(world->ChunkedTileMap.BoundsStart,
+		world->ChunkedTileMap.BoundsEnd, position))
+	{
+		return false;
+	}
+	const auto tile = ChunkedTileMap::GetTile(&world->ChunkedTileMap,
+		position.x, position.y);
+	return true;
+}
 
+Vector2 WorldPosToTilePos(World* world, Vector2 pos)
+{
+	Vector2 v;
+	v.x = floorf(pos.x / world->TileScale.x);
+	v.y = floorf(pos.y / world->TileScale.y);
+	return v;
 }
 
 void TurnEnd(World* world, Game* game, int timeChange)

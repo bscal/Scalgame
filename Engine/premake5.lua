@@ -11,6 +11,7 @@ project "Engine"
     {
         "src/**.cpp",
         "src/**.h",
+        "src/**.hpp",
         "vendor/Nuklear/nuklear.h"
     }
 

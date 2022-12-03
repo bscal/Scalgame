@@ -65,7 +65,7 @@ constexpr static FORCE_INLINE uint64_t fmix64(uint64_t k)
 };
 
 constexpr uint128 MurmurHash3_x64_128(
-    uint64_t seed, const unsigned char* const key, uint64_t len)
+    uint64_t seed, const char* const key, uint64_t len)
 {
     const uint8_t* data = (const uint8_t*)key;
     const uint64_t nblocks = len / 16;

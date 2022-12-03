@@ -49,9 +49,9 @@ Vector2i Vec2fToVec2i(Vector2 v)
     return { (int)v.x, (int)v.y };
 }
 
-Vector2 Vec2iToVec2f(Vector2i v)
+Vector2 Vector2i::AsVec2() const
 {
-    return { (float)v.x, (float)v.y };
+    return { (float)x, (float)y };
 }
 
 Vector2i Vector2i::Add(Vector2i o) const
@@ -162,5 +162,5 @@ bool Vector2i::Equals(Vector2i other) const
 
 bool Vector2i::IsInBounds(Vector2i srcStart, Vector2i srcEnd) const
 {
-    return srcStart.x >= x && srcStart.y >= y && srcEnd.x <= x && srcEnd.y <= y;
+    return (x >= srcStart.x && y >= srcStart.y && x <= srcEnd.x && y <= srcEnd.y);
 }

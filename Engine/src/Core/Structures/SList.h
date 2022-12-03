@@ -371,7 +371,7 @@ inline size_t SList<T>::MemSize() const
 template<typename T>
 inline bool SList<T>::IsInitialized() const
 {
-	return (Memory);
+	return (Memory != nullptr);
 }
 
 

@@ -28,6 +28,7 @@ struct Vector2i
     Vector2i Max(Vector2i max) const;
 	bool Equals(Vector2i other) const;
     bool IsInBounds(Vector2i srcStart, Vector2i srcEnd) const;
+    Vector2 AsVec2() const;
 };
 
 int64_t  Vec2iPackInt64(Vector2i v);
@@ -39,7 +40,6 @@ Vector2i Vec2iDown();
 Vector2i Vec2iLeft();
 Vector2i Vec2iRight();
 Vector2i Vec2fToVec2i(Vector2 v);
-Vector2  Vec2iToVec2f(Vector2i v);
 
 template<>
 struct std::hash<Vector2i>

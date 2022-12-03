@@ -11,7 +11,6 @@ struct UIState;
 struct Game
 {
     Camera2D Camera;
-    Player Player;
     World World;
     uint32_t Time;
 };
@@ -33,6 +32,8 @@ struct GameApplication
 };
 
 GameApplication* const GetGameApp();
+inline float GetDeltaTime();
 
 void UpdateTime(GameApplication* gameApp, int timeChange);
 
+internal bool InitializeGame(GameApplication* gameApp);
