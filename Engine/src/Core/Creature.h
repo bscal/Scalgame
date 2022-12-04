@@ -33,6 +33,14 @@ namespace Scal
 namespace Creature
 {
 
+struct EntityTransform
+{
+	Vector3 Pos;
+	Vector3 Scale;
+	Vector2i TilePos;
+	float Rotation;
+};
+
 struct Transform2D
 {
 	Vector2 Pos;

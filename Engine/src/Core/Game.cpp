@@ -9,6 +9,7 @@
 #include "Structures/STable.h"
 #include "SUtil.h"
 #include "Creature.h"
+#include "SpriteAtlas.h"
 
 global_var GameApplication* GameAppPtr;
 
@@ -40,6 +41,8 @@ SAPI bool GameApplication::Start()
         return false;
     }
 
+    
+    Game->Atlas.Load("assets/textures/atlas/tiles.atlas");
 
     GameAppPtr = this;
 
@@ -77,10 +80,18 @@ SAPI void GameApplication::Run()
 
         if (!UIState->IsMouseHoveringUI)
         {   
-            if (IsKeyDown(KEY_L)) Game->Camera.target.x += 512.0f * DeltaTime;
-            else if (IsKeyDown(KEY_J)) Game->Camera.target.x -= 512.0f * DeltaTime;
-            if (IsKeyDown(KEY_K)) Game->Camera.target.y += 512.0f * DeltaTime;
-            else if (IsKeyDown(KEY_I)) Game->Camera.target.y -= 512.0f * DeltaTime;
+            if (IsKeyDown(KEY_L))
+                SetCameraPosition(&Game->Camera3D,
+                    { 512.0f * DeltaTime, 0, 0 });
+            else if (IsKeyDown(KEY_J))
+                SetCameraPosition(&Game->Camera3D,
+                    { -512.0f * DeltaTime, 0, 0 });
+            if (IsKeyDown(KEY_K))
+                SetCameraPosition(&Game->Camera3D,
+                    { 0, -512.0f * DeltaTime, 0 });
+            else if (IsKeyDown(KEY_I))
+                SetCameraPosition(&Game->Camera3D,
+                    { 0, 512.0f * DeltaTime, 0 });
 
             // Camera rotation controls
             if (IsKeyDown(KEY_Q)) Game->Camera.rotation--;
@@ -98,10 +109,11 @@ SAPI void GameApplication::Run()
             }
 
             // Camera zoom controls
-            Game->Camera.zoom += ((float)GetMouseWheelMove() * 0.2f);
-
-            if (Game->Camera.zoom > 3.0f) Game->Camera.zoom = 3.0f;
-            else if (Game->Camera.zoom < 0.2f) Game->Camera.zoom = 0.2f;
+            float mouseWheel = GetMouseWheelMove();
+            if (mouseWheel != 0)
+            {
+                SetCameraDistance(&Game->Camera3D, mouseWheel);
+            }
 
             // Debug place tiles
             if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
@@ -139,11 +151,15 @@ SAPI void GameApplication::Run()
         BeginDrawing();
         ClearBackground(BLACK);
 
-        BeginMode2D(Game->Camera);
+        //BeginMode2D(Game->Camera);
+
+        BeginMode3D(Game->Camera3D);
 
         WorldUpdate(&Game->World, this);
 
-        EndMode2D();
+        EndMode3D();
+
+        //EndMode2D();
 
         // ***************
         // UI
@@ -177,6 +193,30 @@ GameApplication* const GetGameApp()
     return GameAppPtr;
 }
 
+void SetCameraPosition(Camera3D* camera, Vector3 pos)
+{
+    camera->target.x = floorf(camera->target.x + pos.x);
+    camera->target.y = floorf(camera->target.y + pos.y);
+    camera->target.z = floorf(camera->target.z + pos.z);
+    camera->position.x = floorf(camera->position.x + pos.x);
+    camera->position.y = floorf(camera->position.y + pos.y);
+}
+
+void SetCameraDistance(Camera3D* camera, float zoom)
+{
+    zoom = camera->position.z + zoom * 15.0f;
+    if (zoom > 256.0f) zoom = 250.0f;
+    if (zoom < 16.0f) zoom = 15.0f;
+
+    camera->position.z = floorf(zoom);
+
+    //Game->Camera.zoom += ((float)GetMouseWheelMove() * 0.2f);
+    //if (Game->Camera.zoom > 3.0f) Game->Camera.zoom = 3.0f;
+    //else if (Game->Camera.zoom < 0.2f) Game->Camera.zoom = 0.2f;
+}
+
+internal void HandleInput(GameApplication* gameApp) {}
+
 inline float GetDeltaTime()
 {
     return GetFrameTime();
@@ -196,6 +236,16 @@ internal bool InitializeGame(GameApplication* gameApp)
     CALL_CONSTRUCTOR(gameApp->Game) Game();
 
     WorldInitialize(&gameApp->Game->World, &gameApp->Resources->MainTileSet);
+
+    Camera3D camera = {};
+    camera.position = { 0.0f, 0.0f, 100.0f };   // Camera position
+    camera.target = { 0.0f, 0.0f, 0.0f };        // Camera looking at point
+    camera.up = { 0.0f, 1.0f, 0.0f };            // Camera up vector (rotation towards target)
+    camera.fovy = 90.0f;                         // Camera field-of-view Y
+    camera.projection = CAMERA_PERSPECTIVE;      // Camera mode type
+    gameApp->Game->Camera3D = camera;
+    SetCameraMode(gameApp->Game->Camera3D,
+        gameApp->Game->Camera3D.projection);
 
     gameApp->Game->Camera.zoom = 2.0f;
 

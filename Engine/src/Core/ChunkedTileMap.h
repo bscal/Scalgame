@@ -32,7 +32,7 @@ struct TextureCoord
 
 struct TileMapTile
 {
-	TextureCoord TextureCoord;
+	Rectangle TextureCoord;
 	uint32_t TileId;
 	uint8_t FowLevel;
 };
@@ -40,6 +40,7 @@ struct TileMapTile
 struct TileMapChunk
 {
 	SList<TileMapTile> Tiles;
+	Rectangle Bounds;
 	ChunkCoord ChunkCoord;
 	bool IsChunkGenerated;
 };

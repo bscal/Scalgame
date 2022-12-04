@@ -198,6 +198,18 @@ void SCreature::Update(::Game* game, float dt)
 
 	const auto sheet = GetGameApp()->Resources->EntitySpriteSheet;
 	DrawTextureRec(sheet, rect, Transform.Pos, WHITE);
+
+	DrawBillboardPro(
+		game->Camera3D,
+		sheet,
+		rect,
+		{ Transform.Pos.x, Transform.Pos.y, 0.1f },
+		{ 0.0f, 1.0f, 0.0f },
+		{ 16.0f, 16.0f },
+		{ 0.0f, 0.0f },
+		0.0f,
+		WHITE
+	);
 }
 
 void Move(Vector2 newPos)

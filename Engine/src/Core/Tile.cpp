@@ -1,4 +1,4 @@
-#include "TileData.h"
+#include "Tile.h"
 
 #include "assert.h"
 
@@ -18,7 +18,7 @@ bool TileMgrRegisterTile(TileMgr* tileMgr, TileData* tileData)
 	return true;
 }
 
-Tile CreateTile(TileMgr* tileMgr, uint32_t tileId)
+Tile CreateTile(TileMgr* tileMgr, TileId tileId)
 {
 	assert(tileMgr);
 	assert(tileId < MAX_TILES);
@@ -29,10 +29,28 @@ Tile CreateTile(TileMgr* tileMgr, uint32_t tileId)
 		return {};
 	}
 	
-	TileData tileData = tileMgr->Tiles[tileId];
+	const auto& tileData = GetTileData(tileMgr, tileId);
 
 	Tile tile = {};
 	tile.TileDataId = tileId;
 	tile.TextureRect = tileData.TextureRect;
 	return tile;
+}
+
+void SetTile(TileMgr* tileMgr, Tile* tile, TileId newTileId)
+{
+	assert(tileMgr);
+	assert(newTileId < MAX_TILES);
+
+	if (newTileId == tile->TileDataId) return;
+
+	const auto& tileData = GetTileData(tileMgr, newTileId);
+
+	tile->TileDataId = newTileId;
+	tile->TextureRect = tileData.TextureRect;
+}
+
+const TileData& GetTileData(TileMgr* tileMgr, TileId tileId)
+{
+	return tileMgr->Tiles[tileId];
 }

@@ -30,6 +30,7 @@ struct Tile
 	Rectangle TextureRect;
 	Color TileColor;
 	uint32_t TileDataId;
+	uint8_t LightLevel;
 	TileLOS LOS;
 	bool IsUndiscovered;
 	bool IsOccupied;
@@ -37,15 +38,20 @@ struct Tile
 
 #define MAX_TILES 255
 
+typedef uint32_t TileId;
+
 struct TileMgr
 {
 	TileData Tiles[MAX_TILES];
-	uint32_t NextTileId;
+	TileId NextTileId;
 };
 
 bool TileMgrInitialize(TileMgr* tileMgr);
 bool TileMgrRegisterTile(TileMgr* tileMgr, TileData* data);
 
-Tile CreateTile(TileMgr* tileMgr, uint32_t tileId);
+Tile CreateTile(TileMgr* tileMgr, TileId tileId);
+
+void SetTile(TileMgr* tileMgr, Tile* tile, TileId newTileId);
+const TileData& GetTileData(TileMgr* tileMgr, TileId tileId);
 
 

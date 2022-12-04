@@ -144,16 +144,27 @@ void FindChunksInView(ChunkedTileMap* tilemap, Game* game)
 void Update(ChunkedTileMap* tilemap, GameApplication* gameApp)
 {
 	assert(tilemap);
+	Camera2D camera = gameApp->Game->Camera;
+	Rectangle rect = 
+	{
+		camera.target.x, camera.target.y,
+		(float)GetScreenWidth() / camera.zoom,
+		(float)GetScreenHeight() / camera.zoom
+	};
 	for (uint64_t i = 0; i < tilemap->ChunksList.Length; ++i)
 	{
-		UpdateChunk(tilemap, tilemap->ChunksList.PeekAtPtr(i), gameApp);
+		auto chunk = tilemap->ChunksList.PeekAtPtr(i);
+		if (CheckCollisionRecs(rect, chunk->Bounds))
+			UpdateChunk(tilemap, chunk, gameApp);
 	}
 	FindChunksInView(tilemap, gameApp->Game);
+	DrawRectangleLinesEx(rect, 2, ORANGE);
 }
 
 void UpdateChunk(ChunkedTileMap* tilemap,
 	TileMapChunk* chunk, GameApplication* gameApp)
 {
+	//DrawRectangleLinesEx(chunk->Bounds, 2, GREEN);
 	assert(chunk);
 	assert(chunk->IsChunkGenerated);
 	for (uint32_t y = 0; y < tilemap->ChunkDimensions.y; ++y)
@@ -163,25 +174,38 @@ void UpdateChunk(ChunkedTileMap* tilemap,
 			size_t index = x + y * tilemap->ChunkDimensions.x;
 			TileMapTile tile = chunk->Tiles[index];
 
-			Rectangle textureRect;
-			textureRect.x = (float)tile.TextureCoord.x;
-			textureRect.y = (float)tile.TextureCoord.y;
-			textureRect.width = (float)tile.TextureCoord.w;
-			textureRect.height = (float)tile.TextureCoord.h;
+			//Rectangle textureRect;
+			//textureRect.x = (float)tile.TextureCoord.x;
+			//textureRect.y = (float)tile.TextureCoord.y;
+			//textureRect.width = (float)tile.TextureCoord.w;
+			//textureRect.height = (float)tile.TextureCoord.h;
 
 			float worldX = (float)chunk->ChunkCoord.x *
 				((float)tilemap->ChunkDimensions.x * 16.0f);
 			float worldY = (float)chunk->ChunkCoord.y *
 				((float)tilemap->ChunkDimensions.y * 16.0f);
-			Vector2 worldPosition;
+			Vector3 worldPosition;
 			worldPosition.x = worldX + (float)x * 16.0f;
 			worldPosition.y = worldY + (float)y * 16.0f;
+			worldPosition.z = 0;
 
-			DrawTextureRec(
-				tilemap->TileSet->TileTexture,
-				textureRect,
+			DrawBillboardPro(
+				gameApp->Game->Camera3D,
+				gameApp->Game->Atlas.Texture,
+				tile.TextureCoord,
 				worldPosition,
-				WHITE);
+				{ 0.0f, 1.0f, 0.0f },
+				{ 16.0f, 16.0f },
+				{ 0.0f, 0.0f },
+				0.0f,
+				WHITE
+			);
+
+			//DrawTextureRec(
+			//	tilemap->TileSet->TileTexture,
+			//	textureRect,
+			//	worldPosition,
+			//	WHITE);
 		}
 	}
 }
@@ -191,6 +215,10 @@ TileMapChunk* LoadChunk(ChunkedTileMap* tilemap, ChunkCoord coord)
 	TileMapChunk chunk = {};
 	chunk.Tiles.InitializeCap(tilemap->ChunkTileSize);
 	chunk.ChunkCoord = coord;
+	chunk.Bounds.x = (float)coord.x * 64.0f * 16.0f;
+	chunk.Bounds.y = (float)coord.y * 64.0f * 16.0f;
+	chunk.Bounds.width = (float)tilemap->ChunkDimensions.x * 16.0f;
+	chunk.Bounds.height = (float)tilemap->ChunkDimensions.y * 16.0f;
 
 	tilemap->ChunksList.Push(&chunk);
 	TileMapChunk* chunkPtrInChunksList = tilemap->ChunksList.Last();
@@ -231,15 +259,18 @@ void GenerateChunk(ChunkedTileMap* tilemap, TileMapChunk* chunk)
 	{
 		for (uint32_t x = 0; x < tilemap->ChunkDimensions.x; ++x)
 		{
-			uint32_t tileId = (uint32_t)SRandNextRange(&Random, 3, 6);
+			uint32_t tileId = (uint32_t)SRandNextRange(&Random, 0, 6);
 			TileMapTile tile = {};
 			tile.TileId = tileId;
-			uint16_t texX = (tileId % 16) * 16;
-			uint16_t texY = (tileId / 16) * 16;
-			tile.TextureCoord.x = texX;
-			tile.TextureCoord.y = texY;
-			tile.TextureCoord.w = 16;
-			tile.TextureCoord.h = 16;
+
+			auto rect = GetGameApp()->Game->Atlas.SpritesByIndex[tileId];
+			tile.TextureCoord = rect;
+			//uint16_t texX = (tileId % 16) * 16;
+			//uint16_t texY = (tileId / 16) * 16;
+			//tile.TextureCoord.x = texX;
+			//tile.TextureCoord.y = texY;
+			//tile.TextureCoord.w = 16;
+			//tile.TextureCoord.h = 16;
 			tile.FowLevel = 0;
 			chunk->Tiles[index++] = tile;
 		}
