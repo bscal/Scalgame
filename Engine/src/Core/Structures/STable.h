@@ -34,10 +34,12 @@ struct STable
 	void Free();
 	void Rehash(size_t newCapacity);
 	bool Put(const K* key, V* value);
-	V* Get(const K* key);
+	V* Get(const K* key) const;
+	const V& GetRef(const K* key) const;
 	bool Remove(const K* key);
 	bool Contains(const K* key) const;
-	bool IsInitialized() const;
+
+	inline bool IsInitialized() const;
 };
 
 template<typename K, typename V>
@@ -65,11 +67,11 @@ internal uint64_t HashKey(const STable<K, V>* sTable, const K* key)
 }
 
 template<typename K, typename V>
-void STable<typename K, typename V>::Rehash(size_t newCapacity)
+void STable<K, V>::Rehash(size_t newCapacity)
 {
 	TraceLog(LOG_INFO, "Resizing!");
 
-	STable<K, V> sTable2;
+	STable<K, V> sTable2 = {};
 	sTable2.InitializeEx(newCapacity,
 		KeyHashFunction, KeyEqualsFunction);
 
@@ -109,7 +111,7 @@ internal bool DefaultEquals(const K* k0, const K* k1)
 }
 
 template<typename K, typename V>
-void STable<typename K, typename V>::Initialize(uint64_t capacity)
+void STable<K, V>::Initialize(uint64_t capacity)
 {
 	if (capacity < 1) capacity = S_TABLE_DEFAULT_CAPACITY;
 
@@ -129,7 +131,7 @@ void STable<typename K, typename V>::Initialize(uint64_t capacity)
 }
 
 template<typename K, typename V>
-void STable<typename K, typename V>::InitializeEx(uint64_t capacity,
+void STable<K, V>::InitializeEx(uint64_t capacity,
 	uint64_t(*keyHashFunction)(const K* key),
 	bool (*keyEqualsFunction)(const K* v0, const K* v1))
 {
@@ -149,7 +151,7 @@ void STable<typename K, typename V>::InitializeEx(uint64_t capacity,
 
 
 template<typename K, typename V>
-void STable<typename K, typename V>::Free()
+void STable<K, V>::Free()
 {
 	// TODO look at this
 	for (uint64_t i = 0; i < Capacity; ++i)
@@ -172,7 +174,7 @@ void STable<typename K, typename V>::Free()
 }
 
 template<typename K, typename V>
-bool STable<typename K, typename V>::Put(const K* key, V* value)
+bool STable<K, V>::Put(const K* key, V* value)
 {
 	if (!key)
 	{
@@ -217,7 +219,7 @@ bool STable<typename K, typename V>::Put(const K* key, V* value)
 }
 
 template<typename K, typename V>
-V* STable<typename K, typename V>::Get(const K* key)
+V* STable<K, V>::Get(const K* key) const
 {
 	if (!key)
 	{
@@ -239,7 +241,24 @@ V* STable<typename K, typename V>::Get(const K* key)
 }
 
 template<typename K, typename V>
-bool STable<typename K, typename V>::Contains(const K* key) const
+const V& STable<K, V>::GetRef(const K* key) const
+{
+	assert(key);
+	uint64_t hash = HashKey(this, key);
+	STableEntry<K, V>* entry = Entries[hash];
+	while (entry)
+	{
+		if (KeyEqualsFunction(key, &entry->Key))
+		{
+			return entry->Value;
+		}
+		entry = entry->Next;
+	}
+	return {};
+}
+
+template<typename K, typename V>
+bool STable<K, V>::Contains(const K* key) const
 {
 	if (!key)
 	{
@@ -259,7 +278,7 @@ bool STable<typename K, typename V>::Contains(const K* key) const
 }
 
 template<typename K, typename V>
-bool STable<typename K, typename V>::Remove(const K* key)
+bool STable<K, V>::Remove(const K* key)
 {
 	if (!key)
 	{
@@ -306,12 +325,11 @@ bool STable<typename K, typename V>::Remove(const K* key)
 }
 
 template<typename K, typename V>
-bool STable<typename K, typename V>::IsInitialized() const
+inline bool STable<K, V>::IsInitialized() const
 {
 	return (Entries != nullptr);
 }
 
-#include "SUtil.h"
 inline void TestSTable()
 {
 	//STable<Vector3, char> table;

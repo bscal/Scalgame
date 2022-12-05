@@ -102,7 +102,7 @@ Entity* GetEntity(EntitiesManager* entityManager, EntityHandle entityHandle)
 {
 	assert(entityManager);
 	assert(entityHandle != EMPTY_ENTITY);
-	return &entityManager->EntityArray[entityHandle.EntityIndex];
+	return entityManager->EntityArray.PeekAtPtr(entityHandle.EntityIndex);
 }
 
 template<typename T>

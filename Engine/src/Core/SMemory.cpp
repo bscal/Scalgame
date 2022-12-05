@@ -1,7 +1,11 @@
 #include "SMemory.h"
 
-#include <memory>
+#include "Core.h"
 #include "SUI.h"
+
+#include <stdlib.h>
+#include <memory>
+
 
 namespace Scal
 {

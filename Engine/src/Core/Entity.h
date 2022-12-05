@@ -18,12 +18,12 @@ struct EntityHandle
 	uint32_t EntityId;
 	uint32_t EntityIndex;
 
-	inline bool EntityHandle::operator == (EntityHandle rhs) const
+	inline bool operator==(EntityHandle rhs) const
 	{
 		return EntityId == rhs.EntityId && EntityIndex == rhs.EntityIndex;
 	}
 
-	inline bool EntityHandle::operator != (EntityHandle rhs) const
+	inline bool operator!=(EntityHandle rhs) const
 	{
 		return !(*this == rhs);
 	}

@@ -203,8 +203,10 @@ void UpdateChunk(ChunkedTileMap* tilemap,
 
 			//DrawTextureRec(
 			//	tilemap->TileSet->TileTexture,
-			//	textureRect,
-			//	worldPosition,
+			//	tile.TextureCoord,
+			//	{
+			//					worldPosition.x, worldPosition.y
+			//	},
 			//	WHITE);
 		}
 	}
@@ -254,25 +256,29 @@ void GenerateChunk(ChunkedTileMap* tilemap, TileMapChunk* chunk)
 	}
 	chunk->IsChunkGenerated = true;
 
-	uint32_t index = 0;
 	for (uint32_t y = 0; y < tilemap->ChunkDimensions.y; ++y)
 	{
 		for (uint32_t x = 0; x < tilemap->ChunkDimensions.x; ++x)
 		{
-			uint32_t tileId = (uint32_t)SRandNextRange(&Random, 0, 6);
+			uint32_t tileId = (uint32_t)SRandNextRange(&Random, 3, 4);
 			TileMapTile tile = {};
 			tile.TileId = tileId;
 
-			auto rect = GetGameApp()->Game->Atlas.SpritesByIndex[tileId];
-			tile.TextureCoord = rect;
+			uint32_t rect;
+			if (tileId == 4)
+				rect = GetGameApp()->Game->Atlas.SpritesByName["Tile2"];
+			else
+				rect = GetGameApp()->Game->Atlas.SpritesByName["Tile3"];
+			//auto rect = GetGameApp()->Game->Atlas.SpritesArray[tileId];
+			tile.TextureCoord = GetGameApp()->Game->Atlas.SpritesArray[rect];
 			//uint16_t texX = (tileId % 16) * 16;
 			//uint16_t texY = (tileId / 16) * 16;
 			//tile.TextureCoord.x = texX;
 			//tile.TextureCoord.y = texY;
-			//tile.TextureCoord.w = 16;
-			//tile.TextureCoord.h = 16;
+			//tile.TextureCoord.width = 16;
+			//tile.TextureCoord.height = 16;
 			tile.FowLevel = 0;
-			chunk->Tiles[index++] = tile;
+			chunk->Tiles.Push(&tile);
 		}
 	}
 }
@@ -318,7 +324,7 @@ void SetTile(ChunkedTileMap* tilemap, TileMapTile* tile,
 		return;
 	}
 	assert(((*chunk)->Tiles.IsInitialized()));
-	(*chunk)->Tiles[tileChunkCoord] = *tile;
+	(*chunk)->Tiles.Set(tileChunkCoord, tile);
 }
 
 TileMapTile* GetTile(ChunkedTileMap* tilemap,

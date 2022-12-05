@@ -4,7 +4,6 @@
 #include "TileMap.h"
 #include "Player.h"
 #include "World.h"
-#include "Renderer.h"
 #include "SpriteAtlas.h"
 
 struct Resources;

@@ -251,8 +251,6 @@ void TestCreature(::Game* game)
 	em.Update(game, 1.0f);
 
 	SCreature* cPtr2 = em.GetCreature(creature.Id);
-
-	S_LOG_INFO("Test Hash: %d", PlayerIdle);
 }
 
 }

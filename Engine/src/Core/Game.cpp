@@ -42,7 +42,7 @@ SAPI bool GameApplication::Start()
     }
 
     
-    Game->Atlas.Load("assets/textures/atlas/tiles.atlas");
+    Game->Atlas.Load("assets/textures/atlas/tiles.atlas", 32);
 
     GameAppPtr = this;
 
@@ -200,6 +200,11 @@ void SetCameraPosition(Camera3D* camera, Vector3 pos)
     camera->target.z = floorf(camera->target.z + pos.z);
     camera->position.x = floorf(camera->position.x + pos.x);
     camera->position.y = floorf(camera->position.y + pos.y);
+
+    // 2D
+    //GetGameApp()->Game->Camera.target = 
+    //{ GetGameApp()->Game->Camera.target.x + pos.x,
+    //    GetGameApp()->Game->Camera.target.y + pos.y };
 }
 
 void SetCameraDistance(Camera3D* camera, float zoom)
@@ -207,12 +212,14 @@ void SetCameraDistance(Camera3D* camera, float zoom)
     zoom = camera->position.z + zoom * 15.0f;
     if (zoom > 256.0f) zoom = 250.0f;
     if (zoom < 16.0f) zoom = 15.0f;
-
     camera->position.z = floorf(zoom);
 
-    //Game->Camera.zoom += ((float)GetMouseWheelMove() * 0.2f);
-    //if (Game->Camera.zoom > 3.0f) Game->Camera.zoom = 3.0f;
-    //else if (Game->Camera.zoom < 0.2f) Game->Camera.zoom = 0.2f;
+    // 2D
+    //GetGameApp()->Game->Camera.zoom += ((float)GetMouseWheelMove() * 0.2f);
+    //if (GetGameApp()->Game->Camera.zoom > 3.0f)
+    //    GetGameApp()->Game->Camera.zoom = 3.0f;
+    //else if (GetGameApp()->Game->Camera.zoom < 0.2f)
+    //    GetGameApp()->Game->Camera.zoom = 0.2f;
 }
 
 internal void HandleInput(GameApplication* gameApp) {}

@@ -17,7 +17,7 @@ bool InitializeTileMap(TileSet* tileSet,
 	uint16_t tileSize, TileMap* outTileMap)
 {
 	outTileMap->TileSet = tileSet;
-	outTileMap->MapSize = width * height;
+	outTileMap->MapSize = static_cast<uint64_t>(width * height);
 	outTileMap->MapWidth = width;
 	outTileMap->MapHeight = height;
 	outTileMap->MapTileSize = tileSize;

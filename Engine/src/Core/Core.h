@@ -6,6 +6,9 @@
 #include <raylib/src/raylib.h>
 #include <stdint.h>
 
+static_assert(sizeof(size_t) == sizeof(uint64_t), 
+	"ScalEngine does not support 32bit");
+
 #define internal static
 #define local_persist static
 #define global_var static
