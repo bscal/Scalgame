@@ -17,6 +17,7 @@ bool InitializeResources(Resources* resources)
 
 	resources->MainFontM = LoadFont(FONT_PATH);
     resources->MainFontS = LoadFontEx(FONT_PATH, 16, 0, 0);
+    resources->FontSilver = LoadFont(SDF_FONT_PATH);
 
 	LoadTileSet(&resources->TileSheet, 16, 16,
 		&resources->MainTileSet);

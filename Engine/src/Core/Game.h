@@ -11,8 +11,11 @@ struct UIState;
 
 struct Game
 {
-    Camera Camera3D;
+    #if Mode3D
+    Camera3D Camera;
+    #endif
     Camera2D Camera;
+    bool IsFreeCam;
     World World;
     SpriteAtlas Atlas;
     uint32_t Time;
@@ -24,6 +27,8 @@ struct GameApplication
     Resources* Resources;
     UIState* UIState;
 
+    
+    double RenderTime;
     float DeltaTime;
     bool IsInitialized;
     bool IsRunning;
@@ -35,13 +40,14 @@ struct GameApplication
 };
 
 GameApplication* const GetGameApp();
-void SetCameraPosition(Camera3D* camera, Vector3 pos);
-void SetCameraDistance(Camera3D* camera, float zoom);
+void SetCameraPosition(Game* game, Vector3 pos);
+void SetCameraDistance(Game* game, float zoom);
+Scal::Creature::Player* GetClientPlayer();
+inline float GetDeltaTime();
 
 internal void HandleInput(GameApplication* gameApp);
+internal bool InitializeGame(Game* game, GameApplication* gameApp);
 
-inline float GetDeltaTime();
 
 void UpdateTime(GameApplication* gameApp, int timeChange);
 
-internal bool InitializeGame(GameApplication* gameApp);

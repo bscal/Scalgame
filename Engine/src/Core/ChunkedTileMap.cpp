@@ -155,10 +155,32 @@ void Update(ChunkedTileMap* tilemap, GameApplication* gameApp)
 	{
 		auto chunk = tilemap->ChunksList.PeekAtPtr(i);
 		if (CheckCollisionRecs(rect, chunk->Bounds))
+		{
 			UpdateChunk(tilemap, chunk, gameApp);
+		}
 	}
 	FindChunksInView(tilemap, gameApp->Game);
-	DrawRectangleLinesEx(rect, 2, ORANGE);
+	//DrawRectangleLinesEx(rect, 4, ORANGE);
+}
+
+void LateUpdateChunk(ChunkedTileMap* tilemap,GameApplication* gameApp)
+{
+	Camera2D camera = gameApp->Game->Camera;
+	Rectangle rect =
+	{
+		camera.target.x, camera.target.y,
+		(float)GetScreenWidth() / camera.zoom,
+		(float)GetScreenHeight() / camera.zoom
+	};
+	for (uint64_t i = 0; i < tilemap->ChunksList.Length; ++i)
+	{
+		auto chunk = tilemap->ChunksList.PeekAtPtr(i);
+		if (CheckCollisionRecs(rect, chunk->Bounds))
+		{
+			DrawRectangleLinesEx(chunk->Bounds, 4, GREEN);
+		}
+	}
+
 }
 
 void UpdateChunk(ChunkedTileMap* tilemap,
@@ -189,25 +211,25 @@ void UpdateChunk(ChunkedTileMap* tilemap,
 			worldPosition.y = worldY + (float)y * 16.0f;
 			worldPosition.z = 0;
 
-			DrawBillboardPro(
-				gameApp->Game->Camera3D,
+			//DrawBillboardPro(
+			//	gameApp->Game->Camera3D,
+			//	gameApp->Game->Atlas.Texture,
+			//	tile.TextureCoord,
+			//	worldPosition,
+			//	{ 0.0f, 1.0f, 0.0f },
+			//	{ 16.0f, 16.0f },
+			//	{ 0.0f, 0.0f },
+			//	0.0f,
+			//	WHITE
+			//);
+
+			DrawTextureRec(
 				gameApp->Game->Atlas.Texture,
 				tile.TextureCoord,
-				worldPosition,
-				{ 0.0f, 1.0f, 0.0f },
-				{ 16.0f, 16.0f },
-				{ 0.0f, 0.0f },
-				0.0f,
-				WHITE
-			);
-
-			//DrawTextureRec(
-			//	tilemap->TileSet->TileTexture,
-			//	tile.TextureCoord,
-			//	{
-			//					worldPosition.x, worldPosition.y
-			//	},
-			//	WHITE);
+				{
+								worldPosition.x, worldPosition.y
+				},
+				WHITE);
 		}
 	}
 }

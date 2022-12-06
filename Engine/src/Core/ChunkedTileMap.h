@@ -72,6 +72,7 @@ void FindChunksInView(ChunkedTileMap* tilemap, GameApplication* gameApp);
 void Update(ChunkedTileMap* tilemap, GameApplication* gameApp);
 void UpdateChunk(ChunkedTileMap* tilmap,
 	TileMapChunk* chunk, GameApplication* gameApp);
+void LateUpdateChunk(ChunkedTileMap* tilemap, GameApplication* gameApp);
 
 TileMapChunk* LoadChunk(ChunkedTileMap* tilemap, ChunkCoord coord);
 void UnloadChunk(ChunkedTileMap* tilemap, ChunkCoord coord);

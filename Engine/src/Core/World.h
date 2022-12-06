@@ -8,6 +8,7 @@
 #include "Structures/SList.h"
 
 #include <unordered_set>
+#include <vector>
 
 struct GameApplication;
 struct Game;
@@ -38,6 +39,18 @@ struct Equals
 	}
 };
 
+struct LightMap
+{
+	std::vector<uint8_t> LightLevels;
+	Vector2i StartPos;
+	Vector2i EndPos;
+	uint16_t Width;
+	uint16_t Height;
+
+	void Initialize(uint16_t width, uint16_t height);
+
+};
+
 struct World
 {
 	ChunkedTileMap::ChunkedTileMap ChunkedTileMap;
@@ -45,6 +58,7 @@ struct World
 	SList<Action> EntityActionsList;
 	std::unordered_set<Vector2i,
 		Hash, Equals, SAllocator<Vector2i>> TileCoordsInLOS;
+	std::vector<uint8_t> LightMap;
 	Vector2i TileScale;
 	bool IsLoaded;
 };

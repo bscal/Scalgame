@@ -59,7 +59,9 @@ void Player::HandleInput(::Game* game, float dt)
 		if (CanMoveToTile(WorldRef, moved))
 		{
 			Transform.TilePos = moved;
-			Transform.Pos = Vector2Multiply(moved.AsVec2(), { 16, 16 });
+			Vector2 movedWorld = Vector2Multiply(moved.AsVec2(), { 16, 16 });
+			Transform.Pos.x = movedWorld.x;
+			Transform.Pos.y = movedWorld.y;
 			HasMoved = true;
 		}
 		LookDirection = inputMoveDir;

@@ -39,14 +39,8 @@ struct EntityTransform
 	Vector3 Scale;
 	Vector2i TilePos;
 	float Rotation;
-};
 
-struct Transform2D
-{
-	Vector2 Pos;
-	int Z;
-	float Rotation;
-	Vector2i TilePos;
+	inline Vector2 PosAsVec2() const { return { Pos.x, Pos.y }; }
 };
 
 struct TextureInfo
@@ -63,7 +57,7 @@ struct SCreature
 	uint32_t TypeId;
 	uint32_t ComponentIndex[CREATURE_MAX_COMPONENTS];
 	TextureInfo TextureInfo;
-	Transform2D Transform;
+	EntityTransform Transform;
 	TileDirection LookDirection;
 	bool ShouldRemove;
 	bool IsPlayer;

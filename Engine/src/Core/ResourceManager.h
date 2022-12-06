@@ -19,6 +19,7 @@ struct Resources
 	TileSet MainTileSet;
 	Font MainFontM;
 	Font MainFontS;
+	Font FontSilver;
 	bool IsInitialized;
 };
 

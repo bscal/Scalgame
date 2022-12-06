@@ -40,6 +40,16 @@ void WorldUpdate(World* world, GameApplication* gameApp)
 {
 	ChunkedTileMap::Update(&world->ChunkedTileMap, gameApp);
 	world->EntityMgr.Update(gameApp->Game, gameApp->DeltaTime);
+
+	ChunkedTileMap::LateUpdateChunk(&world->ChunkedTileMap, gameApp);
+
+}
+
+void LightMap::Initialize(uint16_t width, uint16_t height)
+{
+	Width = width;
+	Height = height;
+	LightLevels.reserve((size_t)width * (size_t)height);
 }
 
 bool IsInBounds(Vector2i startPos, Vector2i endPos,

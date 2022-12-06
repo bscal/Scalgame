@@ -33,30 +33,30 @@ void InitiailizeDebugWindow(Font* font, float x, float y, Color color)
 
 void UpdateDebugWindow()
 {
-    WindowState.CurrentDrawPos = WindowState.StartPos;
+    //WindowState.CurrentDrawPos = WindowState.StartPos;
 
-    if (IsKeyPressed(KEY_COMMA))
-        WindowState.ShouldShow = !WindowState.ShouldShow;
+    //if (IsKeyPressed(KEY_COMMA))
+    //    WindowState.ShouldShow = !WindowState.ShouldShow;
 
-    if (WindowState.ShouldShow)
-        DrawFPS(10, 10);
+    //if (WindowState.ShouldShow)
+    //    DrawFPS(10, 10);
 }
 
 void DisplayDebugText(const char* text, ...)
 {
-    assert(WindowState.IsInitialized);
+    //assert(WindowState.IsInitialized);
 
-    if (!WindowState.ShouldShow)
-        return;
+    //if (!WindowState.ShouldShow)
+    //    return;
 
-    char buffer[64] = { 0 };
+    //char buffer[64] = { 0 };
 
-    va_list argPtr;
-    va_start(argPtr, text);
-    vsnprintf(buffer, sizeof(buffer), text, argPtr);
-    va_end(argPtr);
+    //va_list argPtr;
+    //va_start(argPtr, text);
+    //vsnprintf(buffer, sizeof(buffer), text, argPtr);
+    //va_end(argPtr);
 
-    //float fontSize = WindowState.Font->baseSize * 4.0f;
-    DrawTextEx(*WindowState.Font, buffer, WindowState.CurrentDrawPos, 16.0f, 0.0f, WindowState.Color);
-    WindowState.CurrentDrawPos.y += WindowState.YStep;
+    ////float fontSize = WindowState.Font->baseSize * 4.0f;
+    //DrawTextEx(*WindowState.Font, buffer, WindowState.CurrentDrawPos, 16.0f, 0.0f, WindowState.Color);
+    //WindowState.CurrentDrawPos.y += WindowState.YStep;
 }

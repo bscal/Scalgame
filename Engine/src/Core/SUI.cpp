@@ -1,7 +1,7 @@
 /*
-* 
+*
 * This is a modified source from https://github.com/RobLoach/raylib-nuklear
-* 
+*
 Copyright (c) 2020 Rob Loach (@RobLoach)
 
 This software is provided "as-is", without any express or implied warranty. In no event
@@ -24,8 +24,11 @@ applications, and to alter it and redistribute it freely, subject to the followi
 #include "SUI.h"
 
 #include "Core.h"
+#include "Game.h"
 #include "SMemory.h"
+#include <string>
 #include <stdio.h>
+#include <rlgl.h>
 
 #define RAYLIB_NUKLEAR_DEFAULT_ARC_SEGMENTS 20
 
@@ -100,7 +103,6 @@ internal nk_colorf ColorToNuklearF(Color color)
 void UpdateUI(UIState* state)
 {
 	nk_input_begin(&state->Ctx);
-
 	nk_input_motion(&state->Ctx, GetMouseX(), GetMouseY());
 	nk_input_button(&state->Ctx, NK_BUTTON_LEFT, GetMouseX(), GetMouseY(),
 		IsMouseButtonDown(MOUSE_LEFT_BUTTON));
@@ -111,62 +113,80 @@ void UpdateUI(UIState* state)
 
 	// Mouse Wheel
 	float mouseWheel = GetMouseWheelMove();
-	if (mouseWheel != 0.0f) {
+	if (mouseWheel != 0.0f)
+	{
 		struct nk_vec2 mouseWheelMove;
 		mouseWheelMove.x = 0.0f;
 		mouseWheelMove.y = mouseWheel;
 		nk_input_scroll(&state->Ctx, mouseWheelMove);
 	}
-
 	nk_input_end(&state->Ctx);
 
 	state->IsMouseHoveringUI = IsMouseHoveringUI(state);
 
-	nk_colorf bg = ColorToNuklearF(SKYBLUE);
-
-	if (nk_begin(&state->Ctx, "Demo", { 50, 50, 230, 250 },
-		NK_WINDOW_BORDER | NK_WINDOW_MOVABLE | NK_WINDOW_SCALABLE |
-		NK_WINDOW_MINIMIZABLE | NK_WINDOW_TITLE))
+	if (nk_begin(&state->Ctx, "Debug", { 5, 5, 250, 150 }, 0))
 	{
-		enum { EASY, HARD };
-		static int op = EASY;
-		static int property = 20;
-		nk_layout_row_static(&state->Ctx, 30, 80, 1);
-		if (nk_button_label(&state->Ctx, "button"))
-			TraceLog(LOG_INFO, "button pressed");
+		nk_layout_row_dynamic(&state->Ctx, 16, 2);
+		nk_label(&state->Ctx, "Fps: ", NK_TEXT_LEFT);
+		nk_label(&state->Ctx, std::to_string(GetFPS()).c_str(), NK_TEXT_LEFT);
 
-		nk_layout_row_dynamic(&state->Ctx, 30, 2);
-		if (nk_option_label(&state->Ctx, "easy", op == EASY)) op = EASY;
-		if (nk_option_label(&state->Ctx, "hard", op == HARD)) op = HARD;
+		nk_layout_row_dynamic(&state->Ctx, 16, 2);
+		nk_label(&state->Ctx, "FrameTime: ", NK_TEXT_LEFT);
+		nk_label(&state->Ctx, std::to_string(GetGameApp()->DeltaTime).c_str(), NK_TEXT_LEFT);
 
-		nk_layout_row_dynamic(&state->Ctx, 25, 1);
-		nk_property_int(&state->Ctx, "Compression:", 0, &property, 100, 10, 1);
-
-		nk_layout_row_dynamic(&state->Ctx, 20, 1);
-		nk_label(&state->Ctx, "background:", NK_TEXT_LEFT);
-		nk_layout_row_dynamic(&state->Ctx, 25, 1);
-		if (nk_combo_begin_color(&state->Ctx, nk_rgb_cf(bg), nk_vec2(nk_widget_width(&state->Ctx), 400)))
-		{
-			nk_layout_row_dynamic(&state->Ctx, 120, 1);
-			bg = nk_color_picker(&state->Ctx, bg, NK_RGBA);
-			nk_layout_row_dynamic(&state->Ctx, 25, 1);
-			bg.r = nk_propertyf(&state->Ctx, "#R:", 0, bg.r, 1.0f, 0.01f, 0.005f);
-			bg.g = nk_propertyf(&state->Ctx, "#G:", 0, bg.g, 1.0f, 0.01f, 0.005f);
-			bg.b = nk_propertyf(&state->Ctx, "#B:", 0, bg.b, 1.0f, 0.01f, 0.005f);
-			bg.a = nk_propertyf(&state->Ctx, "#A:", 0, bg.a, 1.0f, 0.01f, 0.005f);
-			nk_combo_end(&state->Ctx);
-		}
+		nk_layout_row_dynamic(&state->Ctx, 16, 2);
+		nk_label(&state->Ctx, "RenderTime: ", NK_TEXT_LEFT);
+		nk_label(&state->Ctx, std::to_string(GetGameApp()->RenderTime).c_str(), NK_TEXT_LEFT);
 	}
-
 	nk_end(&state->Ctx);
+
+	//nk_colorf bg = ColorToNuklearF(SKYBLUE);
+
+	//if (nk_begin(&state->Ctx, "Demo", { 50, 50, 230, 250 },
+	//	NK_WINDOW_BORDER | NK_WINDOW_MOVABLE | NK_WINDOW_SCALABLE |
+	//	NK_WINDOW_MINIMIZABLE | NK_WINDOW_TITLE))
+	//{
+	//	enum { EASY, HARD };
+	//	static int op = EASY;
+	//	static int property = 20;
+	//	nk_layout_row_static(&state->Ctx, 30, 80, 1);
+	//	if (nk_button_label(&state->Ctx, "button"))
+	//		TraceLog(LOG_INFO, "button pressed");
+
+	//	nk_layout_row_dynamic(&state->Ctx, 30, 2);
+	//	if (nk_option_label(&state->Ctx, "easy", op == EASY)) op = EASY;
+	//	if (nk_option_label(&state->Ctx, "hard", op == HARD)) op = HARD;
+
+	//	nk_layout_row_dynamic(&state->Ctx, 25, 1);
+	//	nk_property_int(&state->Ctx, "Compression:", 0, &property, 100, 10, 1);
+
+	//	nk_layout_row_dynamic(&state->Ctx, 20, 1);
+	//	nk_label(&state->Ctx, "background:", NK_TEXT_LEFT);
+	//	nk_layout_row_dynamic(&state->Ctx, 25, 1);
+	//	if (nk_combo_begin_color(&state->Ctx, nk_rgb_cf(bg), nk_vec2(nk_widget_width(&state->Ctx), 400)))
+	//	{
+	//		nk_layout_row_dynamic(&state->Ctx, 120, 1);
+	//		bg = nk_color_picker(&state->Ctx, bg, NK_RGBA);
+	//		nk_layout_row_dynamic(&state->Ctx, 25, 1);
+	//		bg.r = nk_propertyf(&state->Ctx, "#R:", 0, bg.r, 1.0f, 0.01f, 0.005f);
+	//		bg.g = nk_propertyf(&state->Ctx, "#G:", 0, bg.g, 1.0f, 0.01f, 0.005f);
+	//		bg.b = nk_propertyf(&state->Ctx, "#B:", 0, bg.b, 1.0f, 0.01f, 0.005f);
+	//		bg.a = nk_propertyf(&state->Ctx, "#A:", 0, bg.a, 1.0f, 0.01f, 0.005f);
+	//		nk_combo_end(&state->Ctx);
+	//	}
+	//}
+
+	//nk_end(&state->Ctx);
 }
 
 void RenderUI(UIState* state)
 {
 	const struct nk_command* cmd;
 
-	nk_foreach(cmd, &state->Ctx) {
-		switch (cmd->type) {
+	nk_foreach(cmd, &state->Ctx)
+	{
+		switch (cmd->type)
+		{
 			case NK_COMMAND_NOP: {
 				break;
 			}
@@ -203,10 +223,13 @@ void RenderUI(UIState* state)
 				const struct nk_command_rect* r = (const struct nk_command_rect*)cmd;
 				Color color = ColorFromNuklear(r->color);
 				Rectangle rect = { (float)r->x, (float)r->y, (float)r->w, (float)r->h };
-				if (r->rounding > 0) {
+				if (r->rounding > 0)
+				{
 					float roundness = (float)r->rounding * 4.0f / (rect.width + rect.height);
 					DrawRectangleRoundedLines(rect, roundness, 1, r->line_thickness, color);
-				} else {
+				}
+				else
+				{
 					DrawRectangleLinesEx(rect, r->line_thickness, color);
 				}
 			} break;
@@ -215,10 +238,13 @@ void RenderUI(UIState* state)
 				const struct nk_command_rect_filled* r = (const struct nk_command_rect_filled*)cmd;
 				Color color = ColorFromNuklear(r->color);
 				Rectangle rect = { (float)r->x, (float)r->y, (float)r->w, (float)r->h };
-				if (r->rounding > 0) {
+				if (r->rounding > 0)
+				{
 					float roundness = (float)r->rounding * 4.0f / (rect.width + rect.height);
 					DrawRectangleRounded(rect, roundness, 1, color);
-				} else {
+				}
+				else
+				{
 					DrawRectangleRec(rect, color);
 				}
 			} break;
@@ -283,7 +309,8 @@ void RenderUI(UIState* state)
 				Color color = ColorFromNuklear(p->color);
 				Vector2* points = (Vector2*)(p->point_count * (unsigned short)sizeof(Vector2));
 				unsigned short i;
-				for (i = 0; i < p->point_count; i++) {
+				for (i = 0; i < p->point_count; i++)
+				{
 					points[i].x = p->points[i].x;
 					points[i].y = p->points[i].y;
 				}
@@ -297,7 +324,8 @@ void RenderUI(UIState* state)
 				Color color = ColorFromNuklear(p->color);
 				Vector2* points = (Vector2*)(p->point_count * (unsigned short)sizeof(Vector2));
 				unsigned short i;
-				for (i = 0; i < p->point_count; i++) {
+				for (i = 0; i < p->point_count; i++)
+				{
 					points[i].x = p->points[i].x;
 					points[i].y = p->points[i].y;
 				}
@@ -311,7 +339,8 @@ void RenderUI(UIState* state)
 				Color color = ColorFromNuklear(p->color);
 				Vector2* points = (Vector2*)MemAlloc(p->point_count * (unsigned short)sizeof(Vector2));
 				unsigned short i;
-				for (i = 0; i < p->point_count; i++) {
+				for (i = 0; i < p->point_count; i++)
+				{
 					points[i].x = p->points[i].x;
 					points[i].y = p->points[i].y;
 				}
@@ -326,10 +355,13 @@ void RenderUI(UIState* state)
 				float fontSize = text->font->height;
 				Font* font = (Font*)text->font->userdata.ptr;
 				DrawRectangle(text->x, text->y, text->w, text->h, background);
-				if (font != NULL) {
+				if (font != NULL)
+				{
 					Vector2 position = { (float)text->x, (float)text->y };
 					DrawTextEx(*font, (const char*)text->string, position, fontSize, fontSize / 10.0f, color);
-				} else {
+				}
+				else
+				{
 					DrawText((const char*)text->string, text->x, text->y, (int)fontSize, color);
 				}
 			} break;
@@ -364,7 +396,7 @@ bool IsMouseHoveringUI(UIState* state)
 	return nk_window_is_any_hovered(&state->Ctx) != 0;
 }
 
-void RenderMemoryUsage(UIState* state, uint64_t length, 
+void RenderMemoryUsage(UIState* state, uint64_t length,
 	const uint32_t* usage, const char* const* usageName)
 {
 	if (nk_begin(&state->Ctx, "Memory Usage", { 10, 10, 240, 240 },
