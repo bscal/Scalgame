@@ -33,22 +33,10 @@ struct Hash
 
 struct Equals
 {
-	[[nodiscard]] constexpr bool operator()(const Vector2i& l, const Vector2i& r) const
+	[[nodiscard]] bool operator()(const Vector2i& l, const Vector2i& r) const
 	{
 		return l.Equals(r);
 	}
-};
-
-struct LightMap
-{
-	std::vector<uint8_t> LightLevels;
-	Vector2i StartPos;
-	Vector2i EndPos;
-	uint16_t Width;
-	uint16_t Height;
-
-	void Initialize(uint16_t width, uint16_t height);
-
 };
 
 struct World
@@ -58,7 +46,7 @@ struct World
 	SList<Action> EntityActionsList;
 	std::unordered_set<Vector2i,
 		Hash, Equals, SAllocator<Vector2i>> TileCoordsInLOS;
-	std::vector<uint8_t> LightMap;
+	LightMap LightMap;
 	Vector2i TileScale;
 	bool IsLoaded;
 };
@@ -75,6 +63,7 @@ struct Action
 bool WorldInitialize(World* world, TileSet* tileset);
 void WorldFree(World* world);
 void WorldUpdate(World* world, GameApplication* game);
+void LateWorldUpdate(World* world, GameApplication* game);
 
 bool IsInBounds(Vector2i startPos, Vector2i endPos,
 	Vector2i current);

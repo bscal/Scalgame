@@ -9,6 +9,7 @@
 static_assert(sizeof(size_t) == sizeof(uint64_t), 
 	"ScalEngine does not support 32bit");
 
+#define Mode3D false
 #define internal static
 #define local_persist static
 #define global_var static

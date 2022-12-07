@@ -113,7 +113,7 @@ Player& EntityMgr::CreatePlayer(::World* world)
 	size_t index = Players.size() - 1;
 
 	CreatureCache creatureCache = {};
-	creatureCache.Index = index;
+	creatureCache.Index = (uint32_t)index;
 	creatureCache.IsPlayer = true;
 	EntityMap.insert({ p.Id, creatureCache });
 
@@ -128,7 +128,7 @@ SCreature& EntityMgr::CreatureCreature(::World* world)
 	Creatures.push_back(creature);
 
 	CreatureCache creatureCache;
-	creatureCache.Index = Creatures.size() - 1;
+	creatureCache.Index = (uint32_t)Creatures.size() - 1;
 	creatureCache.IsPlayer = false;
 	EntityMap.insert({ creature.Id, creatureCache });
 

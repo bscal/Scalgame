@@ -115,7 +115,7 @@ bool AddComponent(EntitiesManager* entityManager,
 
 	SArray* components = entityManager->ComponentMap.Get(&component->ID);
 	ArrayPush(components, component);
-	uint32_t insertedAt = components->Length - 1;
+	uint32_t insertedAt = (uint32_t)components->Length - 1;
 
 	Entity* entity = entityManager->EntityArray.PeekAtPtr(entityHandle.EntityIndex);
 	entity->Components[component->ID] = insertedAt;
@@ -142,7 +142,7 @@ void AddComponentId(EntitiesManager* entityManager,
 	componentData->CreateComponent(newComponent);
 
 	ArrayPush(components, newComponent);
-	uint32_t insertedAt = components->Length - 1;
+	uint32_t insertedAt = (uint32_t)components->Length - 1;
 
 	Entity* entity = entityManager->EntityArray.PeekAtPtr(entityHandle.EntityIndex);
 	entity->Components[componentId] = insertedAt;

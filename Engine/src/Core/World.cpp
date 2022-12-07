@@ -11,13 +11,13 @@ bool WorldInitialize(World* world, TileSet* tileset)
 	assert(world);
 	assert(tileset);
 
+	world->LightMap.Initialize(48, 32);
 	world->TileCoordsInLOS.max_load_factor(0.75f);
 	world->TileCoordsInLOS.reserve(256);
 	world->EntityActionsList.Initialize();
 	ChunkedTileMap::Initialize(&world->ChunkedTileMap, tileset,
 		{ 0, 0 }, { 16, 16 }, { 64, 64 });
 	world->TileScale = { 16, 16 };
-
 	world->EntityMgr.CreatePlayer(world);
 
 	world->IsLoaded = true;
@@ -38,18 +38,23 @@ void WorldFree(World* world)
 
 void WorldUpdate(World* world, GameApplication* gameApp)
 {
+	const auto& playerTilePos = GetClientPlayer()->Transform.TilePos;
+	world->LightMap.UpdatePositions(playerTilePos);
+
 	ChunkedTileMap::Update(&world->ChunkedTileMap, gameApp);
 	world->EntityMgr.Update(gameApp->Game, gameApp->DeltaTime);
 
 	ChunkedTileMap::LateUpdateChunk(&world->ChunkedTileMap, gameApp);
-
 }
 
-void LightMap::Initialize(uint16_t width, uint16_t height)
+void LateWorldUpdate(World* world, GameApplication* game)
 {
-	Width = width;
-	Height = height;
-	LightLevels.reserve((size_t)width * (size_t)height);
+	Rectangle rect;
+	rect.x = world->LightMap.StartPos.x * 16.0f;
+	rect.y = world->LightMap.StartPos.y * 16.0f;
+	rect.width = world->LightMap.Width * 16.0f;
+	rect.height = world->LightMap.Height * 16.0f;
+	DrawRectangleLinesEx(rect, 4, PURPLE);
 }
 
 bool IsInBounds(Vector2i startPos, Vector2i endPos,

@@ -114,8 +114,8 @@ SAPI void GameApplication::Run()
 				Vector3 transform = Vector3Transform(
 					{ (float)GetMouseX(), (float)GetMouseY(), 0.0f }, invMatCamera);
 
-				int x = transform.x / 16;
-				int y = transform.y / 16;
+				int x = (int)transform.x / 16;
+				int y = (int)transform.y / 16;
 				if (IsInBounds(x, y, 64, 64))
 				{
 					//Tile tile = CreateTile(&Game->World.MainTileMap, 4);
@@ -142,13 +142,15 @@ SAPI void GameApplication::Run()
 		ClearBackground(BLACK);
 
 		BeginMode2D(Game->Camera);
+		BeginShaderMode(Resources->TileShader);
 
 		//BeginMode3D(Game->Camera3D);
 
 		WorldUpdate(&Game->World, this);
+		LateWorldUpdate(&Game->World, this);
 
 		//EndMode3D();
-
+		EndShaderMode();
 		EndMode2D();
 
 		// ***************

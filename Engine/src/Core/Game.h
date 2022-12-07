@@ -13,8 +13,9 @@ struct Game
 {
     #if Mode3D
     Camera3D Camera;
-    #endif
+    #else
     Camera2D Camera;
+    #endif
     bool IsFreeCam;
     World World;
     SpriteAtlas Atlas;

@@ -2,38 +2,46 @@
 
 #include "Core/Core.h"
 
-template<size_t SizeInInt64>
+template<uint64_t Size>
 struct BitArray
 {
-	uint64_t Data[SizeInInt64];
+	uint64_t Memory[Size];
 
-	bool GetBit(uint32_t index) const;
-	void SetBit(uint32_t index, bool value);
-	void ClearBit(uint32_t index);
+	bool GetBit(uint64_t bit) const;
+	void SetBit(uint64_t bit, bool value);
+	void ClearBit(uint64_t bit);
+	void Clear();
 };
 
-template<size_t SizeInInt64>
-bool BitArray<SizeInInt64>::GetBit(uint32_t index) const
+template<uint64_t Size>
+bool BitArray<Size>::GetBit(uint64_t bit) const
 {
-	size_t index = (size_t)index / SizeInInt64;
-	size_t bit = (size_t)index % SizeInInt64;
-	uint64_t value = Data[index];
-	return BitGet(value, bit);
+	uint64_t index = bit / sizeof(uint64_t);
+	uint64_t indexBit = bit % sizeof(uint64_t);
+	return BitGet(Memory[index], indexBit);
 }
 
-template<size_t SizeInInt64>
-void BitArray<SizeInInt64>::SetBit(uint32_t index, bool value)
+template<uint64_t Size>
+void BitArray<Size>::SetBit(uint64_t bit, bool value)
 {
-	size_t index = (size_t)index / SizeInInt64;
-	size_t bit = (size_t)index % SizeInInt64;
-	Data[index] = BitSet(Data[index], bit);
+	uint64_t index = bit / sizeof(uint64_t);
+	uint64_t indexBit = bit % sizeof(uint64_t);
+	BitSet(Memory[index], indexBit);
 }
 
-template<size_t SizeInInt64>
-void BitArray<SizeInInt64>::ClearBit(uint32_t index)
+template<uint64_t Size>
+void BitArray<Size>::ClearBit(uint64_t bit)
 {
-	for (int i = 0; i < sizeof(Data); ++i)
+	uint64_t index = bit / sizeof(uint64_t);
+	uint64_t indexBit = bit % sizeof(uint64_t);
+	BitClear(Memory[index], indexBit);
+}
+
+template<uint64_t Size>
+void BitArray<Size>::Clear()
+{
+	for (uint64_t i = 0; i < Size; ++i)
 	{
-		Data[i] = 0x00;
+		Memory[index] = 0;
 	}
 }

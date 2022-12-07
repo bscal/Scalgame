@@ -119,7 +119,7 @@ struct ComponentMgr
 		assert(component->ID < CREATURE_MAX_COMPONENTS);
 		SArray componentArray = Components[T::ID];
 		ArrayPush(&componentArray, component);
-		creature->ComponentIndex[T::ID] = componentArray.Length - 1;
+		creature->ComponentIndex[T::ID] = (uint32_t)componentArray.Length - 1;
 	}
 
 	template<typename T>

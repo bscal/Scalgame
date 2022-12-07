@@ -20,6 +20,7 @@ struct Resources
 	Font MainFontM;
 	Font MainFontS;
 	Font FontSilver;
+	Shader TileShader;
 	bool IsInitialized;
 };
 

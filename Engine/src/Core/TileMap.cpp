@@ -89,7 +89,7 @@ void LoadTileMap(TileMap* tileMap)
 		for (uint32_t x = 0; x < tileMap->MapWidth; ++x)
 		{
 			uint32_t index = x + y * tileMap->MapWidth;
-			uint32_t tileId = SRandNextRange(&Random, 1, 2);
+			uint32_t tileId = (uint32_t)SRandNextRange(&Random, 1, 2);
 			tileMap->MapTiles[index] = CreateTile(tileMap, tileId);
 		}
 	}

@@ -85,7 +85,7 @@ TileMapChunk* GetChunk(ChunkedTileMap* tilemap, ChunkCoord coord);
 ChunkCoord GetWorldTileToChunkCoord(ChunkedTileMap* tilemap,
 	int tileX, int tileY);
 
-size_t GetWorldTileToChunkIndex(ChunkedTileMap* tilemap,
+uint64_t GetWorldTileToChunkIndex(ChunkedTileMap* tilemap,
 	int tileX, int tileY);
 
 void SetTile(ChunkedTileMap* tilemap, TileMapTile* tile,
