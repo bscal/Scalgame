@@ -11,14 +11,14 @@ bool WorldInitialize(World* world, TileSet* tileset)
 	assert(world);
 	assert(tileset);
 
-	world->LightMap.Initialize(48, 32);
 	world->TileCoordsInLOS.max_load_factor(0.75f);
 	world->TileCoordsInLOS.reserve(256);
 	world->EntityActionsList.Initialize();
 	ChunkedTileMap::Initialize(&world->ChunkedTileMap, tileset,
-		{ 0, 0 }, { 16, 16 }, { 64, 64 });
-	world->TileScale = { 16, 16 };
+		{ 16, 16 }, { 0, 0 }, { 8, 8 }, { 32, 32 });
 	world->EntityMgr.CreatePlayer(world);
+	world->LightMap.Initialize(112, 80);
+	world->SightMap.Initialize(112, 80);
 
 	world->IsLoaded = true;
 	return true;
@@ -36,18 +36,26 @@ void WorldFree(World* world)
 	world->EntityActionsList.Free();
 }
 
-void WorldUpdate(World* world, GameApplication* gameApp)
+void WorldUpdate(World* world, Game* game)
 {
 	const auto& playerTilePos = GetClientPlayer()->Transform.TilePos;
 	world->LightMap.UpdatePositions(playerTilePos);
 
-	ChunkedTileMap::Update(&world->ChunkedTileMap, gameApp);
-	world->EntityMgr.Update(gameApp->Game, gameApp->DeltaTime);
+	GetGameApp()->NumOfChunksUpdated = 0;
+	ChunkedTileMap::Update(&world->ChunkedTileMap, game);
 
-	ChunkedTileMap::LateUpdateChunk(&world->ChunkedTileMap, gameApp);
+	const double drawStart = GetTime();
+	world->SightMap.Update(world, playerTilePos);
+	GetGameApp()->LOSTime = GetTime() - drawStart;
+	GetGameApp()->NumOfLoadedChunks = 
+		world->ChunkedTileMap.ChunksList.Length;
+
+	world->EntityMgr.Update(game, GetDeltaTime());
+
+	ChunkedTileMap::LateUpdateChunk(&world->ChunkedTileMap, game);
 }
 
-void LateWorldUpdate(World* world, GameApplication* game)
+void LateWorldUpdate(World* world, Game* game)
 {
 	Rectangle rect;
 	rect.x = world->LightMap.StartPos.x * 16.0f;
@@ -55,15 +63,6 @@ void LateWorldUpdate(World* world, GameApplication* game)
 	rect.width = world->LightMap.Width * 16.0f;
 	rect.height = world->LightMap.Height * 16.0f;
 	DrawRectangleLinesEx(rect, 4, PURPLE);
-}
-
-bool IsInBounds(Vector2i startPos, Vector2i endPos,
-	Vector2i current)
-{
-	return (current.x >= startPos.x &&
-		current.y >= startPos.y &&
-		current.x <= endPos.x &&
-		current.y <= endPos.y);
 }
 
 bool CanMoveToTile(World* world, Vector2i position)
@@ -78,11 +77,17 @@ bool CanMoveToTile(World* world, Vector2i position)
 	return true;
 }
 
+bool IsInWorldBounds(World* world, Vector2i pos)
+{
+	return IsInBounds(world->ChunkedTileMap.BoundsStart,
+		world->ChunkedTileMap.BoundsEnd, pos);
+}
+
 Vector2 WorldPosToTilePos(World* world, Vector2 pos)
 {
 	Vector2 v;
-	v.x = floorf(pos.x / world->TileScale.x);
-	v.y = floorf(pos.y / world->TileScale.y);
+	v.x = floorf(pos.x / world->ChunkedTileMap.TileScale.x);
+	v.y = floorf(pos.y / world->ChunkedTileMap.TileScale.y);
 	return v;
 }
 

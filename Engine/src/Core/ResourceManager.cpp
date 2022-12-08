@@ -19,11 +19,12 @@ bool InitializeResources(Resources* resources)
     resources->MainFontS = LoadFontEx(FONT_PATH, 16, 0, 0);
     resources->FontSilver = LoadFont(SDF_FONT_PATH);
 
-    resources->TileShader = LoadShader("assets/shaders/tile_shader.vert",
+    resources->TileShader = LoadShader(
+        "assets/shaders/tile_shader.vert",
         "assets/shaders/tile_shader.frag");
 
-	LoadTileSet(&resources->TileSheet, 16, 16,
-		&resources->MainTileSet);
+	//LoadTileSet(&resources->TileSheet, 16, 16,
+	//	&resources->MainTileSet);
 
 	TraceLog(LOG_INFO, "Initialized Resources");
 	return resources->IsInitialized = true;

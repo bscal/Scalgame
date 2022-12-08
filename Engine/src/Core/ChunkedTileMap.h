@@ -8,7 +8,7 @@
 #include "Structures/STable.h"
 
 struct TileSet;
-struct GameApplication;
+struct Game;
 
 typedef Vector2i ChunkCoord;
 typedef Vector2i TileWorldCoord;
@@ -35,6 +35,7 @@ struct TileMapTile
 	Rectangle TextureCoord;
 	uint32_t TileId;
 	uint8_t FowLevel;
+	bool IsSolid;
 };
 
 struct TileMapChunk
@@ -56,41 +57,33 @@ struct ChunkedTileMap
 	Vector2i StartChunkCoords;
 	Vector2i EndChunkCoords;
 	Vector2i ChunkDimensions;
+	Vector2i TileScale;
 	Vector2 ViewDistance;
 	size_t ChunkTileSize;
 };
 
-void Initialize(ChunkedTileMap* tilemap, TileSet* tileSet, Vector2i mapStartPos,
-	Vector2i mapEndPos, Vector2i chunkDimensions);
+void Initialize(ChunkedTileMap* tilemap, TileSet* tileSet,
+				Vector2i tileScale, Vector2i mapStartPos,
+				Vector2i mapEndPos, Vector2i chunkDimensions);
 void Free(ChunkedTileMap* tilemap);
-
-void Create(ChunkedTileMap* tilemap, int loadWidth,
-	int loadHeight);
-
-void FindChunksInView(ChunkedTileMap* tilemap, GameApplication* gameApp);
-
-void Update(ChunkedTileMap* tilemap, GameApplication* gameApp);
-void UpdateChunk(ChunkedTileMap* tilmap,
-	TileMapChunk* chunk, GameApplication* gameApp);
-void LateUpdateChunk(ChunkedTileMap* tilemap, GameApplication* gameApp);
-
+void FindChunksInView(ChunkedTileMap* tilemap, Game* game);
+void Update(ChunkedTileMap* tilemap, Game* game);
 TileMapChunk* LoadChunk(ChunkedTileMap* tilemap, ChunkCoord coord);
-void UnloadChunk(ChunkedTileMap* tilemap, ChunkCoord coord);
-bool IsChunkLoaded(ChunkedTileMap* tilemap, ChunkCoord coord);
-
+internal void CreateChunk(ChunkedTileMap* tilemap, int loadWidth,
+			int loadHeight);
 void GenerateChunk(ChunkedTileMap* tilemap, TileMapChunk* chunk);
-
+void UnloadChunk(ChunkedTileMap* tilemap, ChunkCoord coord);
+void UpdateChunk(ChunkedTileMap* tilmap,
+				 TileMapChunk* chunk, Game* game);
+void LateUpdateChunk(ChunkedTileMap* tilemap, Game* game);
+bool IsChunkLoaded(ChunkedTileMap* tilemap, ChunkCoord coord);
 TileMapChunk* GetChunk(ChunkedTileMap* tilemap, ChunkCoord coord);
-
 ChunkCoord GetWorldTileToChunkCoord(ChunkedTileMap* tilemap,
 	int tileX, int tileY);
-
 uint64_t GetWorldTileToChunkIndex(ChunkedTileMap* tilemap,
 	int tileX, int tileY);
-
-void SetTile(ChunkedTileMap* tilemap, TileMapTile* tile,
+void SetTile(ChunkedTileMap* tilemap, const TileMapTile* tile,
 	int tileX, int tileY);
-
 TileMapTile* GetTile(ChunkedTileMap* tilemap,
 	int tileX, int tileY);
 

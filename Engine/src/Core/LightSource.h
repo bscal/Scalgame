@@ -5,6 +5,7 @@
 #include <vector>
 
 struct GameApplication;
+struct World;
 
 struct LightSource
 {
@@ -15,7 +16,7 @@ struct LightSource
 
 struct LightMap
 {
-	std::vector<uint8_t> LightLevels;
+	std::vector<Vector3> LightLevels;
 	Vector2i StartPos;
 	Vector2i EndPos;
 	uint16_t Width;
@@ -24,7 +25,22 @@ struct LightMap
 	void Initialize(uint16_t width, uint16_t height);
 	bool IsInBounds(Vector2i pos) const;
 	void UpdatePositions(Vector2i pos);
-	void UpdateLevel(Vector2i pos, uint8_t newLevel);
+	void AddLight(Vector2i pos, Vector3 color, float strength);
+};
+
+struct SightMap
+{
+	std::vector<float> Sights;
+	Vector2i StartPos;
+	Vector2i EndPos;
+	uint16_t Width;
+	uint16_t Height;
+
+	void Initialize(uint16_t width, uint16_t height);
+	bool IsInBounds(Vector2i pos) const;
+	void Update(World* world, Vector2i pos);
+	void AddSight(Vector2i pos, float distance);
+	bool HasSight(Vector2i pos) const;
 };
 
 struct Lighting

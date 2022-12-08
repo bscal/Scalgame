@@ -28,6 +28,18 @@ enum TileDirection
 	MaxDirs
 };
 
+constexpr float Radian = 6.283185;
+
+constexpr global_var float
+TileDirectionToTurns[TileDirection::MaxDirs] =
+{ Radian * 0.75f, 0.0f, Radian * 0.25f, Radian * 0.5f };
+
+constexpr float GetRadiansFromDirection(TileDirection dir)
+{
+	assert(dir < TileDirection::MaxDirs);
+	return TileDirectionToTurns[dir];
+}
+
 namespace Scal
 {
 namespace Creature
@@ -181,8 +193,6 @@ struct EntityMgr
 	size_t TotalEntities() const;
 	bool IsEmpty(const SCreature& entity) const;
 };
-
-void TestCreature(::Game* game);
 
 }
 }

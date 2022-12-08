@@ -28,8 +28,11 @@ struct GameApplication
     Resources* Resources;
     UIState* UIState;
 
-    
     double RenderTime;
+    double LOSTime;
+    int NumOfLoadedChunks;
+    int NumOfChunksUpdated;
+
     float DeltaTime;
     bool IsInitialized;
     bool IsRunning;
@@ -44,7 +47,7 @@ GameApplication* const GetGameApp();
 void SetCameraPosition(Game* game, Vector3 pos);
 void SetCameraDistance(Game* game, float zoom);
 Scal::Creature::Player* GetClientPlayer();
-inline float GetDeltaTime();
+float GetDeltaTime();
 
 internal void HandleInput(GameApplication* gameApp);
 internal bool InitializeGame(Game* game, GameApplication* gameApp);

@@ -25,6 +25,7 @@ applications, and to alter it and redistribute it freely, subject to the followi
 
 #include "Core.h"
 #include "Game.h"
+#include "ResourceManager.h"
 #include "SMemory.h"
 #include <string>
 #include <stdio.h>
@@ -42,32 +43,26 @@ internal void MemFree(nk_handle handle, void* old)
 	Scal::MemFree(old);
 }
 
-internal float CalculateTextWidth(nk_handle handle, float height, const char* text, int len)
+internal float CalculateTextWidth(nk_handle handle,
+	float height, const char* text, int len)
 {
-	auto vec = MeasureTextEx(*(Font*)handle.ptr, text, 16.0, 0.0f);
+	auto vec = MeasureTextEx(*(Font*)handle.ptr, text, height, 0.0f);
 	return vec.x;
 }
 
-bool InitializeUI(Font* font, float fontSize, UIState* outState)
+bool InitializeUI(UIState* state, GameApplication* gameApp)
 {
-	assert(font);
-	if (!outState)
-	{
-		TraceLog(LOG_ERROR, "outState cannot be null.");
-		return false;
-	}
-
-	outState->FontSize = fontSize;
-	outState->Font.userdata.ptr = font;
-	outState->Font.height = outState->FontSize;
-	outState->Font.width = CalculateTextWidth;
-	outState->Allocator.alloc = MemAlloc;
-	outState->Allocator.free = MemFree;
+	state->App = gameApp;
+	state->Font.userdata.ptr = (void*)&gameApp->Resources->FontSilver;
+	state->Font.height = 16.0f;
+	state->Font.width = CalculateTextWidth;
+	state->Allocator.alloc = MemAlloc;
+	state->Allocator.free = MemFree;
 
 	//&outState->Allocator
-	size_t size = Megabytes(8);
+	size_t size = Megabytes(1);
 	void* memory = Scal::MemAlloc(size);
-	nk_bool res = nk_init_fixed(&outState->Ctx, memory, size, &outState->Font);
+	nk_bool res = nk_init_fixed(&state->Ctx, memory, size, &state->Font);
 	if (!res)
 		TraceLog(LOG_ERROR, "Nuklear could not initialize");
 	else
@@ -124,19 +119,39 @@ void UpdateUI(UIState* state)
 
 	state->IsMouseHoveringUI = IsMouseHoveringUI(state);
 
-	if (nk_begin(&state->Ctx, "Debug", { 5, 5, 250, 150 }, 0))
+	if (nk_begin(&state->Ctx, "Debug", { 5, 5, 300, 150 }, 0))
 	{
 		nk_layout_row_dynamic(&state->Ctx, 16, 2);
 		nk_label(&state->Ctx, "Fps: ", NK_TEXT_LEFT);
-		nk_label(&state->Ctx, std::to_string(GetFPS()).c_str(), NK_TEXT_LEFT);
+		nk_label(&state->Ctx, 
+			std::to_string(GetFPS()).c_str(), NK_TEXT_LEFT);
 
 		nk_layout_row_dynamic(&state->Ctx, 16, 2);
 		nk_label(&state->Ctx, "FrameTime: ", NK_TEXT_LEFT);
-		nk_label(&state->Ctx, std::to_string(GetGameApp()->DeltaTime).c_str(), NK_TEXT_LEFT);
+		nk_label(&state->Ctx, 
+			std::to_string(GetGameApp()->DeltaTime * 1000).c_str(), NK_TEXT_LEFT);
 
 		nk_layout_row_dynamic(&state->Ctx, 16, 2);
 		nk_label(&state->Ctx, "RenderTime: ", NK_TEXT_LEFT);
-		nk_label(&state->Ctx, std::to_string(GetGameApp()->RenderTime).c_str(), NK_TEXT_LEFT);
+		nk_label(&state->Ctx, 
+			std::to_string(GetGameApp()->RenderTime * 1000).c_str(), NK_TEXT_LEFT);
+
+		nk_layout_row_dynamic(&state->Ctx, 16, 2);
+		nk_label(&state->Ctx, "LOSTime: ", NK_TEXT_LEFT);
+		nk_label(&state->Ctx, 
+			std::to_string(GetGameApp()->LOSTime * 1000).c_str(), NK_TEXT_LEFT);
+	
+		nk_layout_row_dynamic(&state->Ctx, 16, 2);
+		nk_label(&state->Ctx, "#LoadedChunks: ", NK_TEXT_LEFT);
+		nk_label(&state->Ctx,
+			std::to_string(GetGameApp()->NumOfLoadedChunks).c_str(), NK_TEXT_LEFT);
+	
+		nk_layout_row_dynamic(&state->Ctx, 16, 2);
+		nk_label(&state->Ctx, "#UpdatedChunks: ", NK_TEXT_LEFT);
+		nk_label(&state->Ctx,
+			std::to_string(GetGameApp()->NumOfChunksUpdated).c_str(), NK_TEXT_LEFT);
+
+
 	}
 	nk_end(&state->Ctx);
 

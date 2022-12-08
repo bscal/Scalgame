@@ -26,13 +26,14 @@ SAPI bool GameApplication::Start()
 	InitWindow(screenWidth, screenHeight, "Some roguelike game");
 	SetTargetFPS(60);
 	SetTraceLogLevel(LOG_ALL);
+
 	GameAppPtr = this;
 
 	Resources = (struct Resources*)Scal::MemAllocZero(sizeof(struct Resources));
 	InitializeResources(Resources);
 
 	UIState = (struct UIState*)Scal::MemAllocZero(sizeof(struct UIState));
-	InitializeUI(&Resources->FontSilver, 16.0f, UIState);
+	InitializeUI(UIState, this);
 	InitiailizeDebugWindow(&Resources->MainFontM, 10, 30, DARKGREEN);
 
 	Game = (struct Game*)Scal::MemAllocZero(sizeof(struct Game));
@@ -43,11 +44,11 @@ SAPI bool GameApplication::Start()
 	}
 	Game->Atlas.Load("assets/textures/atlas/tiles.atlas", 32);
 
-	Scal::Creature::TestCreature(Game);
 	Test();
 	TestSTable();
-	TestHashes();
-	return IsInitialized = true;
+
+	IsInitialized = true;
+	return IsInitialized;
 }
 
 SAPI void GameApplication::Shutdown()
@@ -114,13 +115,13 @@ SAPI void GameApplication::Run()
 				Vector3 transform = Vector3Transform(
 					{ (float)GetMouseX(), (float)GetMouseY(), 0.0f }, invMatCamera);
 
-				int x = (int)transform.x / 16;
-				int y = (int)transform.y / 16;
-				if (IsInBounds(x, y, 64, 64))
-				{
-					//Tile tile = CreateTile(&Game->World.MainTileMap, 4);
-					//SetTile(&Game->World.MainTileMap, x, y, &tile);
-				}
+				//int x = (int)transform.x / 16;
+				//int y = (int)transform.y / 16;
+				//if (IsInBounds(x, y, 64, 64))
+				//{
+				//	//Tile tile = CreateTile(&Game->World.MainTileMap, 4);
+				//	//SetTile(&Game->World.MainTileMap, x, y, &tile);
+				//}
 			}
 
 			if (IsKeyPressed(KEY_ONE))
@@ -133,7 +134,6 @@ SAPI void GameApplication::Run()
 		}
 
 		UpdateUI(UIState);
-		//Scal::ShowMemoryUsage(UIState);
 
 		// ***************
 		// Render
@@ -146,8 +146,8 @@ SAPI void GameApplication::Run()
 
 		//BeginMode3D(Game->Camera3D);
 
-		WorldUpdate(&Game->World, this);
-		LateWorldUpdate(&Game->World, this);
+		WorldUpdate(&Game->World, Game);
+		LateWorldUpdate(&Game->World, Game);
 
 		//EndMode3D();
 		EndShaderMode();
@@ -158,16 +158,6 @@ SAPI void GameApplication::Run()
 		// ***************
 		UpdateDebugWindow();
 		//BeginShaderMode(Resources.SDFFont.Shader);
-
-		//DisplayDebugText("Zoom = %.2f", Game->Camera.zoom);
-		//DisplayDebugText("cX = %.1f, cY = %.1f",
-		//    Game->Camera.target.x, Game->Camera.target.y);
-		//const Scal::Creature::Player* p = Game->World.EntityMgr.GetPlayer(0);
-		//DisplayDebugText("pX = %d, pY = %d",
-		//    p->Transform.TilePos.x, p->Transform.TilePos.y);
-		//DisplayDebugText("Time = %d", Game->Time);
-		//DisplayDebugText("Energy = %d/%d", Game->Player.Energy, Game->Player.MaxEnergy);
-		//EndShaderMode();
 
 		RenderUI(UIState);
 
@@ -198,13 +188,13 @@ SAPI void GameApplication::Run()
 GameApplication* const GetGameApp()
 {
 	assert(GameAppPtr);
+	assert(GameAppPtr->IsInitialized);
 	return GameAppPtr;
 }
 
 Scal::Creature::Player* GetClientPlayer()
 {
-	assert(GameAppPtr);
-	return &GameAppPtr->Game->World.EntityMgr.Players[0];
+	return &GetGameApp()->Game->World.EntityMgr.Players[0];
 }
 
 void SetCameraPosition(Game* game, Vector3 pos)
@@ -243,7 +233,7 @@ void SetCameraDistance(Game* game, float zoom)
 
 internal void HandleInput(GameApplication* gameApp) {}
 
-inline float GetDeltaTime()
+float GetDeltaTime()
 {
 	return GetFrameTime();
 }

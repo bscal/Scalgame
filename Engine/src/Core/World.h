@@ -3,8 +3,10 @@
 #include "Core.h"
 #include "TileMap.h"
 #include "ChunkedTileMap.h"
+#include "TileMapUtils.h"
 #include "Entity.h"
 #include "Creature.h"
+#include "LightSource.h"
 #include "Structures/SList.h"
 
 #include <unordered_set>
@@ -47,7 +49,7 @@ struct World
 	std::unordered_set<Vector2i,
 		Hash, Equals, SAllocator<Vector2i>> TileCoordsInLOS;
 	LightMap LightMap;
-	Vector2i TileScale;
+	SightMap SightMap;
 	bool IsLoaded;
 };
 
@@ -62,14 +64,11 @@ struct Action
 
 bool WorldInitialize(World* world, TileSet* tileset);
 void WorldFree(World* world);
-void WorldUpdate(World* world, GameApplication* game);
-void LateWorldUpdate(World* world, GameApplication* game);
-
-bool IsInBounds(Vector2i startPos, Vector2i endPos,
-	Vector2i current);
+void WorldUpdate(World* world, Game* game);
+void LateWorldUpdate(World* world, Game* game);
 bool CanMoveToTile(World* world, Vector2i position);
+bool IsInWorldBounds(World* world, Vector2i pos);
 Vector2 WorldPosToTilePos(World* world, Vector2 pos);
-
 void TurnEnd(World* world, Game* game, int timeChange);
 void AddAction(World* world, Action* action);
 void ProcessActions(World* world);

@@ -3,20 +3,22 @@
 #include "Core.h"
 #include "Nuklear/nuklear.h"
 
+struct GameApplication;
 struct Font;
 
 struct UIState
 {
+	GameApplication* App;
 	nk_context Ctx;
 	nk_user_font Font;
 	nk_allocator Allocator;
-	float FontSize;
 	bool IsMouseHoveringUI;
 };
 
-bool InitializeUI(Font* font, float fontSize, UIState* outState);
+bool InitializeUI(UIState* state, GameApplication* gameApp);
 void UpdateUI(UIState* state);
 void RenderUI(UIState* state);
+void RenderDebugInfo(UIState* state);
 
 bool IsMouseHoveringUI(UIState* state);
 

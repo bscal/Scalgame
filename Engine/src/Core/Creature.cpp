@@ -12,7 +12,8 @@ namespace Scal
 namespace Creature
 {
 
-constexpr global_var Vector2 PlayerFowardVectors[TileDirection::MaxDirs] =
+constexpr global_var Vector2 
+PlayerFowardVectors[TileDirection::MaxDirs] =
 { { 0.0f, -1.0f }, { 1.0f, 0.0f }, { 0.0f, 1.0f }, { -1.0f, 0.0f } };
 
 Vector2 TileDirToVec2(TileDirection dir)
@@ -21,6 +22,7 @@ Vector2 TileDirToVec2(TileDirection dir)
 	assert(dir < TileDirection::MaxDirs);
 	return PlayerFowardVectors[dir];
 }
+
 
 internal void InternalRemoveEntity(EntityMgr* mgr, uint32_t entityId)
 {
@@ -278,34 +280,6 @@ void SCreature::Initialize(struct ::World* world)
 	//SetModelMeshMaterial(&Model, 0, 0);
 
 	//Pos = { 16.0f / 2.0f, 16.0f / 2.0f };
-}
-
-void TestCreature(::Game* game)
-{
-	EntityMgr em = EntityMgr();
-
-	em.ComponentManager.RegisterComponent<SHealth>(SHealth::ID);
-
-	SCreature& creature = em.CreatureCreature(&game->World);
-	creature.Transform.Pos.x = 5;
-	creature.Transform.Pos.y = 25;
-
-	SCreature* cPtr = em.GetCreature(creature.Id);
-
-	SHealth h;
-	h.MaxHealth = 10;
-	h.Health = 10;
-	em.ComponentManager.AddComponent<SHealth>(cPtr, &h);
-
-	SHealth* getH = em.ComponentManager.GetComponent<SHealth>(cPtr, SHealth::ID);
-
-	em.ComponentManager.RemoveComponent<SHealth>(cPtr, SHealth::ID);
-
-	em.RemoveEntity(creature.Id);
-
-	em.Update(game, 1.0f);
-
-	SCreature* cPtr2 = em.GetCreature(creature.Id);
 }
 
 }

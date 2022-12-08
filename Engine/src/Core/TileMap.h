@@ -69,69 +69,46 @@ struct TileMap
 	uint16_t MapHalfTileSize;
 };
 
-//struct ChunkManager
-//{
-//	SList<MapChunk> Chunks;
+//bool LoadTileSet(Texture2D* tileTexture,
+//	uint16_t tileSizeWidth, uint16_t tileSizeHeight,
+//	TileSet* outTileSet);
 //
-//	void TryLoadUnloadChunks(World* world);
-//	void UpdateChunks(World* world);
+//bool InitializeTileMap(TileSet* tileSet, 
+//	uint32_t width, uint32_t height,
+//	uint16_t tileSize, TileMap* outTileMap);
 //
-//	MapChunk* GetChunk(int chunkX, int chunkY) const;
-//	bool LoadChunk(int chunkX, int chunkY);
-//	bool UnloadChunk(int chunkX, int chunkY);
-//	bool IsChunkLoaded(int chunkX, int chunkY);
-//};
+//void LoadTileMap(TileMap* tileMap);
 //
-//struct MapChunk
-//{
-//	Tile* TileMemory;
-//	uint32_t Size;
-//	uint16_t Width;
-//	uint16_t Height;
-//	int16_t Layer;
-//	bool IsLoaded;
-//};
-
-bool LoadTileSet(Texture2D* tileTexture,
-	uint16_t tileSizeWidth, uint16_t tileSizeHeight,
-	TileSet* outTileSet);
-
-bool InitializeTileMap(TileSet* tileSet, 
-	uint32_t width, uint32_t height,
-	uint16_t tileSize, TileMap* outTileMap);
-
-void LoadTileMap(TileMap* tileMap);
-
-void UnloadTileMap(TileMap* tileMap);
-void RenderTileMap(Game* game, TileMap* tileMap);
-
-bool IsInBounds(int tileX, int tileY, int width, int height);
-
-Tile CreateTile(TileMap* tileMap, uint32_t tileId);
-Tile* GetTile(TileMap* tileMap, int tileX, int tileY);
-void SetTile(TileMap* tileMap, int tileX, int tileY, Tile* srcTile);
-TileData* GetTileData(TileMap* tileMap, uint32_t tileId);
-
-void GetSurroundingTilesBox(TileMap* tileMap,
-	int tileX, int tileY, int boxWidth, int boxHeight,
-	SArray* outTileCoordsVector2i);
-
-void GetSurroundingTilesRadius(TileMap* tileMap,
-	int tileX, int tileY, float radius,
-	SArray* outTileCoordsVector2i);
-
-void GetSurroundingTilesRadiusCallback(TileMap* tileMap,
-	float x, float y, float radius,
-	void (OnVisit)(TileMap* tileMap, int tileX, int tileY));
-
-void ProcessFOVSurroundingPos(TileMap* tileMap,
-	float x, float y, int rayResolution, float distance);
-
-void GetTilesInCone(TileMap* tileMap,
-	float playerAngleRadians, float coneFovRadians, int rayResolution,
-	float x, float y, float distance);
-
-float DegreesToRadians(float degrees);
-float TurnsToRadians(float turn);
-float Distance(float x0, float y0, float x1, float y1);
-int DistanceInTiles(int x0, int y0, int x1, int y1);
+//void UnloadTileMap(TileMap* tileMap);
+//void RenderTileMap(Game* game, TileMap* tileMap);
+//
+//bool IsInBounds(int tileX, int tileY, int width, int height);
+//
+//Tile CreateTile(TileMap* tileMap, uint32_t tileId);
+//Tile* GetTile(TileMap* tileMap, int tileX, int tileY);
+//void SetTile(TileMap* tileMap, int tileX, int tileY, Tile* srcTile);
+//TileData* GetTileData(TileMap* tileMap, uint32_t tileId);
+//
+//void GetSurroundingTilesBox(TileMap* tileMap,
+//	int tileX, int tileY, int boxWidth, int boxHeight,
+//	SArray* outTileCoordsVector2i);
+//
+//void GetSurroundingTilesRadius(TileMap* tileMap,
+//	int tileX, int tileY, float radius,
+//	SArray* outTileCoordsVector2i);
+//
+//void GetSurroundingTilesRadiusCallback(TileMap* tileMap,
+//	float x, float y, float radius,
+//	void (OnVisit)(TileMap* tileMap, int tileX, int tileY));
+//
+//void ProcessFOVSurroundingPos(TileMap* tileMap,
+//	float x, float y, int rayResolution, float distance);
+//
+//void GetTilesInCone(TileMap* tileMap,
+//	float playerAngleRadians, float coneFovRadians, int rayResolution,
+//	float x, float y, float distance);
+//
+//float DegreesToRadians(float degrees);
+//float TurnsToRadians(float turn);
+//float Distance(float x0, float y0, float x1, float y1);
+//int DistanceInTiles(int x0, int y0, int x1, int y1);
