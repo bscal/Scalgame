@@ -2,45 +2,23 @@
 
 #include "Core.h"
 #include "Vector2i.h"
+#include "Tile.h"
 #include "Structures/SArray.h"
 #include "Structures/SList.h"
 #include "Structures/SLinkedList.h"
 #include "Structures/STable.h"
 
-struct TileSet;
 struct Game;
 
 typedef Vector2i ChunkCoord;
-typedef Vector2i TileWorldCoord;
+typedef Vector2i TileCoord;
 
-namespace ChunkedTileMap
+namespace CTileMap
 {
-
-struct TileTextureCoord
-{
-	uint16_t x;
-	uint16_t y;
-};
-
-struct TextureCoord
-{
-	uint16_t x;
-	uint16_t y;
-	uint16_t w;
-	uint16_t h;
-};
-
-struct TileMapTile
-{
-	Rectangle TextureCoord;
-	uint32_t TileId;
-	uint8_t FowLevel;
-	bool IsSolid;
-};
 
 struct TileMapChunk
 {
-	SList<TileMapTile> Tiles;
+	SList<Tile> Tiles;
 	Rectangle Bounds;
 	ChunkCoord ChunkCoord;
 	bool IsChunkGenerated;
@@ -48,43 +26,72 @@ struct TileMapChunk
 
 struct ChunkedTileMap
 {
+	// TODO temp removed map part, lookup speed
+	// in not that important yet
 	SList<TileMapChunk> ChunksList;
-	STable<ChunkCoord, TileMapChunk*> ChunksMap;
 	SLinkedList<ChunkCoord> ChunksToUnload;
-	TileSet* TileSet;
-	Vector2i BoundsStart;
-	Vector2i BoundsEnd;
-	Vector2i StartChunkCoords;
-	Vector2i EndChunkCoords;
-	Vector2i ChunkDimensions;
-	Vector2i TileScale;
-	Vector2 ViewDistance;
-	size_t ChunkTileSize;
+
+	Rectangle WorldBounds;
+	Rectangle ChunkBounds;
+
+	Vector2i TileSize;
+	Vector2i Origin;
+	Vector2i OriginTiles;
+	Vector2i WorldDimChunks;
+	Vector2i ChunkSize;
+
+	Vector2i WorldDimTiles;
+	Vector2i ViewDistance;
+	size_t ChunkTileCount;
 };
 
-void Initialize(ChunkedTileMap* tilemap, TileSet* tileSet,
-				Vector2i tileScale, Vector2i mapStartPos,
-				Vector2i mapEndPos, Vector2i chunkDimensions);
+void Initialize(ChunkedTileMap* tilemap,
+	Vector2i tileSize, Vector2i origin,
+	Vector2i worldDimChunks, Vector2i chunkSize);
 void Free(ChunkedTileMap* tilemap);
+
 void FindChunksInView(ChunkedTileMap* tilemap, Game* game);
 void Update(ChunkedTileMap* tilemap, Game* game);
-TileMapChunk* LoadChunk(ChunkedTileMap* tilemap, ChunkCoord coord);
-internal void CreateChunk(ChunkedTileMap* tilemap, int loadWidth,
-			int loadHeight);
-void GenerateChunk(ChunkedTileMap* tilemap, TileMapChunk* chunk);
-void UnloadChunk(ChunkedTileMap* tilemap, ChunkCoord coord);
+
+TileMapChunk* LoadChunk(ChunkedTileMap* tilemap,
+	ChunkCoord coord);
+internal void CreateChunk(ChunkedTileMap* tilemap,
+	int loadWidth, int loadHeight);
+void GenerateChunk(ChunkedTileMap* tilemap,
+	TileMapChunk* chunk);
+
+void UnloadChunk(ChunkedTileMap* tilemap,
+	ChunkCoord coord);
 void UpdateChunk(ChunkedTileMap* tilmap,
-				 TileMapChunk* chunk, Game* game);
-void LateUpdateChunk(ChunkedTileMap* tilemap, Game* game);
+	TileMapChunk* chunk, Game* game);
+void LateUpdateChunk(ChunkedTileMap* tilemap,
+	Game* game);
+
 bool IsChunkLoaded(ChunkedTileMap* tilemap, ChunkCoord coord);
-TileMapChunk* GetChunk(ChunkedTileMap* tilemap, ChunkCoord coord);
-ChunkCoord GetWorldTileToChunkCoord(ChunkedTileMap* tilemap,
-	int tileX, int tileY);
-uint64_t GetWorldTileToChunkIndex(ChunkedTileMap* tilemap,
-	int tileX, int tileY);
-void SetTile(ChunkedTileMap* tilemap, const TileMapTile* tile,
-	int tileX, int tileY);
-TileMapTile* GetTile(ChunkedTileMap* tilemap,
-	int tileX, int tileY);
+bool IsTileInBounds(ChunkedTileMap* tilemap,
+	TileCoord tilePos);
+bool IsChunkInBounds(ChunkedTileMap* tilemap,
+	ChunkCoord chunkPos);
+
+TileMapChunk* GetChunk(ChunkedTileMap* tilemap,
+	ChunkCoord coord);
+void SetTile(ChunkedTileMap* tilemap, const Tile* tile,
+	TileCoord tilePos);
+Tile* GetTile(ChunkedTileMap* tilemap,
+	TileCoord tilePos);
+Tile* GetTileChunk(TileMapChunk* chunk,
+	TileCoord tilePos);
+
+ChunkCoord TileToChunkCoord(ChunkedTileMap* tilemap,
+	TileCoord tilePos);
+uint64_t TileToIndex(ChunkedTileMap* tilemap,
+	TileCoord tilePos);
+uint64_t TileToIndexLocal(ChunkedTileMap* tilemap,
+	Vector2i origin, TileCoord tilePos);
+
+TileCoord IndexToTile(ChunkedTileMap* tilemap,
+	uint64_t index);
+
+TileCoord WorldToTile(ChunkedTileMap* tilemap, Vector2 pos);
 
 }

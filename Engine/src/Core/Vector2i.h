@@ -27,7 +27,6 @@ struct Vector2i
     Vector2i Min(Vector2i min) const;
     Vector2i Max(Vector2i max) const;
 	bool Equals(Vector2i other) const;
-    bool IsInBounds(Vector2i srcStart, Vector2i srcEnd) const;
     Vector2 AsVec2() const;
 };
 

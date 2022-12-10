@@ -16,11 +16,11 @@ struct Resources
 {
 	Texture2D EntitySpriteSheet;
 	Texture2D TileSheet;
-	TileSet MainTileSet;
 	Font MainFontM;
 	Font MainFontS;
 	Font FontSilver;
 	Shader TileShader;
+	Shader LightRayShader;
 	bool IsInitialized;
 };
 

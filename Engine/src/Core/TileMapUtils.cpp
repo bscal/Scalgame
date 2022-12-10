@@ -5,19 +5,10 @@
 
 #include "raymath.h"
 
-bool IsInBounds(Vector2i startPos, Vector2i endPos,
-	Vector2i current)
-{
-	return (current.x >= startPos.x &&
-		current.y >= startPos.y &&
-		current.x <= endPos.x &&
-		current.y <= endPos.y);
-}
-
 internal bool OnVisitTile(World* world, int x, int y)
 {
 	Vector2i pos = { x, y };
-	if (IsInWorldBounds(world, pos) &&
+	if (WorldIsInBounds(world, pos) &&
 		world->SightMap.IsInBounds(pos))
 	{
 		//world->SightMap.AddSight(pos, 1.0f);
@@ -86,6 +77,36 @@ void Raytrace2DInt(World* world, int x0, int y0, int x1, int y1,
 		{
 			y += yInc;
 			error += dx;
+		}
+	}
+}
+
+internal float Distance(float x0, float y0, float x1, float y1)
+{
+	float xL = x1 - x0;
+	float yL = y1 - y0;
+	return sqrtf(xL * xL + yL * yL);
+}
+
+void GetSurroundingTilesRadius(World* world,
+	const LightSource& light,
+	void (OnVisit)(World* world, int x, int y,
+		const LightSource& light))
+{
+	int startX = (int)(light.Position.x - light.Intensity);
+	int startY = (int)(light.Position.y - light.Intensity);
+	int endX = (int)(light.Position.x + light.Intensity);
+	int endY = (int)(light.Position.y + light.Intensity);
+	for (int yi = startY; yi <= endY; ++yi)
+	{
+		for (int xi = startX; xi <= endX; ++xi)
+		{
+			if (WorldIsInBounds(world, { xi, yi }) &&
+				Distance(light.Position.x, light.Position.y,
+					(float)xi, (float)yi) < light.Intensity)
+			{
+				OnVisit(world, xi, yi, light);
+			}
 		}
 	}
 }

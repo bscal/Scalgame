@@ -25,7 +25,8 @@ void* MemAllocZero(size_t size)
 
 void* MemRealloc(void* block, size_t size)
 {
-	return realloc(block, size);
+	block = realloc(block, size);
+	return block;
 }
 
 void MemFree(void* block)

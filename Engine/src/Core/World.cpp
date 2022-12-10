@@ -6,19 +6,23 @@
 
 #include <assert.h>
 
-bool WorldInitialize(World* world, TileSet* tileset)
+bool WorldInitialize(World* world, GameApplication* gameApp)
 {
 	assert(world);
-	assert(tileset);
 
 	world->TileCoordsInLOS.max_load_factor(0.75f);
 	world->TileCoordsInLOS.reserve(256);
 	world->EntityActionsList.Initialize();
-	ChunkedTileMap::Initialize(&world->ChunkedTileMap, tileset,
-		{ 16, 16 }, { 0, 0 }, { 8, 8 }, { 32, 32 });
+	CTileMap::Initialize(&world->ChunkedTileMap,
+		{ 16, 16 }, { 0, 0 }, { 2, 2 }, { 32, 32 });
+
 	world->EntityMgr.CreatePlayer(world);
+
 	world->LightMap.Initialize(112, 80);
 	world->SightMap.Initialize(112, 80);
+
+	TileMgrInitialize(&world->TileMgr,
+		&gameApp->Game->Atlas);
 
 	world->IsLoaded = true;
 	return true;
@@ -32,17 +36,18 @@ void WorldFree(World* world)
 		return;
 	}
 	world->IsLoaded = false;
-	ChunkedTileMap::Free(&world->ChunkedTileMap);
+	CTileMap::Free(&world->ChunkedTileMap);
 	world->EntityActionsList.Free();
 }
 
 void WorldUpdate(World* world, Game* game)
 {
 	const auto& playerTilePos = GetClientPlayer()->Transform.TilePos;
-	world->LightMap.UpdatePositions(playerTilePos);
+	//world->LightMap.UpdatePositions(playerTilePos);
+	//world->LightMap.Update(world);
 
 	GetGameApp()->NumOfChunksUpdated = 0;
-	ChunkedTileMap::Update(&world->ChunkedTileMap, game);
+	CTileMap::Update(&world->ChunkedTileMap, game);
 
 	const double drawStart = GetTime();
 	world->SightMap.Update(world, playerTilePos);
@@ -52,7 +57,8 @@ void WorldUpdate(World* world, Game* game)
 
 	world->EntityMgr.Update(game, GetDeltaTime());
 
-	ChunkedTileMap::LateUpdateChunk(&world->ChunkedTileMap, game);
+	CTileMap::LateUpdateChunk(&world->ChunkedTileMap, game);
+	//world->LightMap.LateUpdate(world);
 }
 
 void LateWorldUpdate(World* world, Game* game)
@@ -62,33 +68,23 @@ void LateWorldUpdate(World* world, Game* game)
 	rect.y = world->LightMap.StartPos.y * 16.0f;
 	rect.width = world->LightMap.Width * 16.0f;
 	rect.height = world->LightMap.Height * 16.0f;
-	DrawRectangleLinesEx(rect, 4, PURPLE);
+	DrawRectangleLinesEx(rect, 4, ORANGE);
 }
 
 bool CanMoveToTile(World* world, Vector2i position)
 {
-	if (!IsInBounds(world->ChunkedTileMap.BoundsStart,
-		world->ChunkedTileMap.BoundsEnd, position))
+	if (!WorldIsInBounds(world, position))
 	{
 		return false;
 	}
-	const auto tile = ChunkedTileMap::GetTile(&world->ChunkedTileMap,
-		position.x, position.y);
+	const auto tile = CTileMap::GetTile(&world->ChunkedTileMap,
+		position);
 	return true;
 }
 
-bool IsInWorldBounds(World* world, Vector2i pos)
+bool WorldIsInBounds(World* world, Vector2i pos)
 {
-	return IsInBounds(world->ChunkedTileMap.BoundsStart,
-		world->ChunkedTileMap.BoundsEnd, pos);
-}
-
-Vector2 WorldPosToTilePos(World* world, Vector2 pos)
-{
-	Vector2 v;
-	v.x = floorf(pos.x / world->ChunkedTileMap.TileScale.x);
-	v.y = floorf(pos.y / world->ChunkedTileMap.TileScale.y);
-	return v;
+	return CTileMap::IsTileInBounds(&world->ChunkedTileMap, pos);
 }
 
 void TurnEnd(World* world, Game* game, int timeChange)

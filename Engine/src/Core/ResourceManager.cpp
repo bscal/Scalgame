@@ -23,6 +23,10 @@ bool InitializeResources(Resources* resources)
         "assets/shaders/tile_shader.vert",
         "assets/shaders/tile_shader.frag");
 
+    resources->LightRayShader = LoadShader(
+        "assets/shaders/tile_lighting_ray.vert",
+        "assets/shaders/tile_lighting_ray.frag");
+
 	//LoadTileSet(&resources->TileSheet, 16, 16,
 	//	&resources->MainTileSet);
 

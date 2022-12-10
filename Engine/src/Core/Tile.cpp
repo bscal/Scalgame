@@ -2,55 +2,72 @@
 
 #include "assert.h"
 
-bool TileMgrRegisterTile(TileMgr* tileMgr, TileData* tileData)
+void TileMgrInitialize(TileMgr* tileMgr, SpriteAtlas* spriteAtlas)
 {
 	assert(tileMgr);
-	assert(tileData);
+	assert(spriteAtlas);
+	tileMgr->SpriteAtlas = spriteAtlas;
 
-	if (tileMgr->NextTileId == MAX_TILES)
-	{
-		S_LOG_ERR("Registering tileData but max tiles already reached!");
-		return false;
-	}
+	RegisterTile(tileMgr, "Tile1", TileType::Floor);
+	RegisterTile(tileMgr, "Tile2", TileType::Floor);
+	RegisterTile(tileMgr, "Tile3", TileType::Solid);
 
-	tileData->TileId = tileMgr->NextTileId++;
-	tileMgr->Tiles[tileData->TileId] = *tileData;
-	return true;
+	S_LOG_INFO("TileManager Initialized! %d tiles registered.",
+		tileMgr->NextTileId);
 }
 
-Tile CreateTile(TileMgr* tileMgr, TileId tileId)
+TileData& RegisterTile(TileMgr* tileMgr,
+	std::string_view spriteName,
+	TileType type)
 {
 	assert(tileMgr);
-	assert(tileId < MAX_TILES);
+	assert(tileMgr->NextTileId < MAX_TILES);
+	assert(spriteName.length() > 0);
 
-	if (tileId >= tileMgr->NextTileId)
+	uint32_t id = tileMgr->NextTileId++;
+
+	tileMgr->Tiles[id].TileId = id;
+	tileMgr->Tiles[id].SpriteName = spriteName;
+	tileMgr->Tiles[id].Type = type;
+	return tileMgr->Tiles[id];
+}
+
+
+[[nodiscard]] Tile CreateTile(TileMgr* tileMgr, const TileData& tileData)
+{
+	assert(tileMgr);
+
+	auto find = tileMgr->SpriteAtlas->SpritesByName.find(tileData.SpriteName);
+	if (find == tileMgr->SpriteAtlas->SpritesByName.end())
 	{
-		S_LOG_ERR("Attempting to create tile with unknown id: %d", tileId);
+		S_LOG_ERR("Could not find tile by name!");
 		return {};
 	}
-	
-	const auto& tileData = GetTileData(tileMgr, tileId);
 
 	Tile tile = {};
-	tile.TileDataId = tileId;
-	tile.TextureRect = tileData.TextureRect;
+	tile.TextureRect = tileMgr->SpriteAtlas->
+		SpritesArray.PeekAt(find->second);
+	tile.TileDataId = tileData.TileId;
 	return tile;
 }
 
-void SetTile(TileMgr* tileMgr, Tile* tile, TileId newTileId)
+[[nodiscard]] Tile CreateTileId(TileMgr* tileMgr, uint32_t tileDataId)
 {
 	assert(tileMgr);
-	assert(newTileId < MAX_TILES);
+	assert(tileDataId < tileMgr->NextTileId);
 
-	if (newTileId == tile->TileDataId) return;
+	const std::string& name = tileMgr->Tiles[tileDataId].SpriteName;
+	auto find = tileMgr->SpriteAtlas->SpritesByName.find(name);
+	if (find == tileMgr->SpriteAtlas->SpritesByName.end())
+	{
+		S_LOG_ERR("Could not find tile by name!");
+		return {};
+	}
 
-	const auto& tileData = GetTileData(tileMgr, newTileId);
-
-	tile->TileDataId = newTileId;
-	tile->TextureRect = tileData.TextureRect;
+	Tile tile = {};
+	tile.TextureRect = tileMgr->SpriteAtlas->
+		SpritesArray.PeekAt(find->second);
+	tile.TileDataId = tileDataId;
+	return tile;
 }
 
-const TileData& GetTileData(TileMgr* tileMgr, TileId tileId)
-{
-	return tileMgr->Tiles[tileId];
-}

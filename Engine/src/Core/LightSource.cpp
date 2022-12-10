@@ -4,6 +4,8 @@
 #include "World.h"
 #include "Player.h"
 #include "ResourceManager.h"
+#include "TileMapUtils.h"
+#include "raymath.h"
 
 #define LIGHT_MAP_UNIFORM_COUNT "LightMapCount"
 #define LIGHT_MAP_UNIFORM "LightMap"
@@ -41,13 +43,96 @@ void LightMap::Initialize(uint16_t width, uint16_t height)
 {
 	Width = width;
 	Height = height;
-	LightLevels.reserve((size_t)width * (size_t)height);
+	LightLevels = std::vector<Vector3>((size_t)width * (size_t)height,
+		{ 1.0f, 1.0f, 1.0f });
+
+	LightSource light = {};
+	light.Position = { 32, 32 };
+	light.Color = RED;
+	light.Intensity = 16.0f;
+	AddLight(light);
+}
+
+internal void Fill(World* world, int x, int y,
+	const LightSource& light)
+{
+	auto tile = CTileMap::GetTile(&world->ChunkedTileMap,
+		{ x, y });
+	if (!tile) return;
+	tile->TileColor = light.Color;
+};
+
+void LightMap::Update(World* world)
+{
+	for (int i = 0; i < LightSources.size(); ++i)
+	{
+		const auto& light = LightSources[i];
+		if (CheckCollisionPointRec(light.Position, LightMapBounds))
+		{
+			GetSurroundingTilesRadius(world,
+				light,
+				Fill);
+
+			CastRays(world, light, 12);
+		}
+	}
+}
+
+void LightMap::LateUpdate(World* world)
+{
+	for (int i = 0; i < LightSources.size(); ++i)
+	{
+		const auto& light = LightSources[i];
+		if (CheckCollisionPointRec(light.Position, LightMapBounds))
+		{
+			CastRays(world, light, 48);
+		}
+	}
+}
+
+internal bool LightVisit(World* world, int x, int y)
+{
+	return true;
+}
+
+void LightMap::CastRays(World* world, 
+	const LightSource& light, int rayResolution)
+{
+	float x = light.Position.x * 16.0f;
+	float y = light.Position.y * 16.0f;
+	float angle = 0.0f;
+	float distance = light.Intensity * 16.0f;
+
+	float startAngle = 0.0f;
+	float endAngle = Radian;
+	for (int i = 0; i < rayResolution; ++i)
+	{
+		float t = Lerp(startAngle, endAngle,
+			(float)i / (float)rayResolution - 1);
+		float x0 = cosf(angle + t);
+		float y0 = sinf(angle + t);
+		//float x1 = cosf(playerAngleRadians - t);
+		//float y1 = sinf(playerAngleRadians - t);
+
+		float xPos0 = x + x0 * distance;
+		float yPos0 = y + y0 * distance;
+		//float xPos1 = x + x1 * distance;
+		//float yPos1 = y + y1 * distance;
+
+		//Raytrace2DInt(world, (int)x, (int)y,
+		//	(int)xPos0, (int)yPos0, LightVisit);
+		//Raytrace2DInt(world, (int)x, (int)y,
+		//	(int)xPos1, (int)yPos1, OnVisitTile);
+
+		DrawLineEx({ x, y }, { xPos0, yPos0 }, 2.0f, PINK);
+		//DrawLineEx({ x, y }, { xPos1, yPos1 }, 2.0f, PINK);
+	}
 }
 
 bool LightMap::IsInBounds(Vector2i pos) const
 {
-	return (pos.x >= StartPos.x && pos.y >= StartPos.y &&
-		pos.x <= EndPos.x && pos.y <= EndPos.y);
+	return (pos.x > StartPos.x && pos.y > StartPos.y &&
+		pos.x < EndPos.x && pos.y < EndPos.y);
 }
 
 void LightMap::UpdatePositions(Vector2i pos)
@@ -58,19 +143,44 @@ void LightMap::UpdatePositions(Vector2i pos)
 	StartPos.y = pos.y - halfHeight;
 	EndPos.x = pos.x + halfWidth;
 	EndPos.y = pos.y + halfHeight;
+	LightMapBounds.x = (float)StartPos.x;
+	LightMapBounds.y = (float)StartPos.y;
+	LightMapBounds.width = (float)EndPos.x - (float)StartPos.x;
+	LightMapBounds.height = (float)EndPos.y - (float)StartPos.x;
 }
 
-void LightMap::AddLight(Vector2i pos, Vector3 color, float strength)
+void LightMap::AddLight(const LightSource& light)
 {
-	Vector2i offset = pos.Subtract(StartPos);
-	size_t index = offset.x + offset.y * Width;
-	// TODO strength
-	LightLevels[index].x = 
-		ClampF(0.0f, 1.0f, LightLevels[index].x + color.x);
-	LightLevels[index].y =
-		ClampF(0.0f, 1.0f, LightLevels[index].y + color.y);
-	LightLevels[index].z =
-		ClampF(0.0f, 1.0f, LightLevels[index].z + color.z);
+	LightSources.push_back(light);
+	//Vector2i tilePos = Vec2fToVec2i(light.Position);
+	//Vector2i offset = tilePos;
+	//size_t index = offset.x + offset.y * GetGameApp()->Game->World.ChunkedTileMap.BoundsEnd.x;
+	//// TODO strength
+	//auto t = ChunkedTileMap::GetTile(&GetGameApp()->Game->World.ChunkedTileMap,
+	//	tilePos.x, tilePos.y);
+	//if (!t) return;
+	//t->TileColor = light.Color;
+	/*LightLevels[index].x = light.Color.r;
+	LightLevels[index].y = light.Color.g;
+	LightLevels[index].z = light.Color.b;*/
+}
+
+Color LightMap::GetLight(Vector2i pos) const
+{
+	const auto t = CTileMap::GetTile(
+		&GetGameApp()->Game->World.ChunkedTileMap, pos);
+	if (!t) return WHITE;
+	return t->TileColor;
+
+	//Vector2i offset = pos;
+	//size_t index = offset.x + offset.y * GetGameApp()->Game->World.ChunkedTileMap.BoundsEnd.x;
+	//const auto& vec3 = LightLevels[index];
+	//Color c;
+	//c.r = vec3.x;
+	//c.g = vec3.y;
+	//c.b = vec3.z;
+	//c.a = 1.0f;
+	//return c;
 }
 
 void SightMap::Initialize(uint16_t width, uint16_t height)

@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Core.h"
-#include "TileMap.h"
 #include "ChunkedTileMap.h"
 #include "TileMapUtils.h"
 #include "Entity.h"
@@ -43,13 +42,14 @@ struct Equals
 
 struct World
 {
-	ChunkedTileMap::ChunkedTileMap ChunkedTileMap;
+	CTileMap::ChunkedTileMap ChunkedTileMap;
 	Scal::Creature::EntityMgr EntityMgr;
 	SList<Action> EntityActionsList;
 	std::unordered_set<Vector2i,
 		Hash, Equals, SAllocator<Vector2i>> TileCoordsInLOS;
 	LightMap LightMap;
 	SightMap SightMap;
+	TileMgr TileMgr;
 	bool IsLoaded;
 };
 
@@ -62,13 +62,12 @@ struct Action
 	int16_t Cost;
 };
 
-bool WorldInitialize(World* world, TileSet* tileset);
+bool WorldInitialize(World* world, GameApplication* gameApp);
 void WorldFree(World* world);
 void WorldUpdate(World* world, Game* game);
 void LateWorldUpdate(World* world, Game* game);
 bool CanMoveToTile(World* world, Vector2i position);
-bool IsInWorldBounds(World* world, Vector2i pos);
-Vector2 WorldPosToTilePos(World* world, Vector2 pos);
+bool WorldIsInBounds(World* world, Vector2i pos);
 void TurnEnd(World* world, Game* game, int timeChange);
 void AddAction(World* world, Action* action);
 void ProcessActions(World* world);

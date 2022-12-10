@@ -10,6 +10,7 @@
 #include "SUtil.h"
 #include "Creature.h"
 #include "SpriteAtlas.h"
+#include "rlgl.h"
 
 global_var GameApplication* GameAppPtr;
 
@@ -151,6 +152,20 @@ SAPI void GameApplication::Run()
 
 		//EndMode3D();
 		EndShaderMode();
+
+		BeginShaderMode(Resources->LightRayShader);
+		
+		//auto id = rlGetLocationUniform(Resources->LightRayShader.id,
+			//"Light");
+		auto v = GetScreenToWorld2D(GetMousePosition(), Game->Camera);
+		Vector3 light = { v.x, v.y, 5.0f };
+		SetShaderValue(Resources->LightRayShader,
+			0, &light, SHADER_UNIFORM_VEC3);
+
+		DrawRectangle(0, 0, 500, 500, WHITE);
+		
+		EndShaderMode();
+
 		EndMode2D();
 
 		// ***************
@@ -251,7 +266,7 @@ internal bool InitializeGame(Game* game, GameApplication* gameApp)
 {
 	CALL_CONSTRUCTOR(game) Game();
 
-	WorldInitialize(&game->World, &gameApp->Resources->MainTileSet);
+	WorldInitialize(&game->World, gameApp);
 
 	#if Mode3D
 	Camera3D camera = {};

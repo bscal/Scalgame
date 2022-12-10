@@ -7,7 +7,7 @@
 
 #include <assert.h>
 
-namespace ChunkedTileMap
+namespace CTileMap
 {
 
 // TODO
@@ -23,31 +23,26 @@ internal bool ChunkMapEquals(const ChunkCoord* lhs, const ChunkCoord* rhs)
 	return lhs->Equals(*rhs);
 }
 
-void Initialize(ChunkedTileMap* tilemap, TileSet* tileSet,
-	Vector2i tileScale, Vector2i mapStartPos,
-	Vector2i mapEndPos, Vector2i chunkDimensions)
+void Initialize(ChunkedTileMap* tilemap,
+	Vector2i tileSize, Vector2i origin,
+	Vector2i worldDimChunks, Vector2i chunkSize)
 {
 	if (!tilemap)
 	{
 		S_LOG_ERR("ChunkedTileMap: tilemap cannot be nullptr");
 		return;
 	}
-	if (!tileSet)
-	{
-		S_LOG_ERR("ChunkedTileMap: tileSet cannot be nullptr");
-		return;
-	}
-	if (mapStartPos.x > mapEndPos.x)
+	if (origin.x > worldDimChunks.x)
 	{
 		S_LOG_ERR("ChunkedTileMap: mapStartPos.x cannot be > mapEndPos.x");
 		return;
 	}
-	if (mapStartPos.y > mapEndPos.y)
+	if (origin.y > worldDimChunks.y)
 	{
 		S_LOG_ERR("ChunkedTileMap: mapStartPos.y cannot be > mapEndPos.y");
 		return;
 	}
-	if (chunkDimensions.x <= 0 || chunkDimensions.y <= 0)
+	if (chunkSize.x <= 0 || chunkSize.y <= 0)
 	{
 		S_LOG_ERR("ChunkedTileMap: chunkDimensions must be > than 0");
 		return;
@@ -55,23 +50,46 @@ void Initialize(ChunkedTileMap* tilemap, TileSet* tileSet,
 
 	SRandomInitialize(&Random, 0);
 
-	tilemap->TileSet = tileSet;
-	tilemap->StartChunkCoords = mapStartPos;
-	tilemap->EndChunkCoords = mapEndPos;
-	tilemap->ChunkDimensions = chunkDimensions;
-	tilemap->ChunkTileSize = (size_t)chunkDimensions.x
-		* (size_t)chunkDimensions.y;
-	tilemap->TileScale = tileScale;
-	tilemap->BoundsStart.x = mapStartPos.x * tilemap->TileScale.x;
-	tilemap->BoundsStart.y = mapStartPos.y * tilemap->TileScale.y;
-	tilemap->BoundsEnd.x = mapEndPos.x * tilemap->TileScale.x;
-	tilemap->BoundsEnd.y = mapEndPos.y * tilemap->TileScale.y;
+	tilemap->TileSize = tileSize;
+	tilemap->Origin = origin;
+	tilemap->OriginTiles.x =
+		(float)(tilemap->Origin.x * tilemap->ChunkSize.x);
+	tilemap->OriginTiles.y =
+		(float)(tilemap->Origin.y * tilemap->ChunkSize.y);
+	tilemap->WorldDimChunks = worldDimChunks;
+	tilemap->ChunkSize = chunkSize;
+
+	tilemap->WorldDimTiles.x = tilemap->WorldDimChunks.x 
+		* tilemap->ChunkSize.x;
+	tilemap->WorldDimTiles.y = tilemap->WorldDimChunks.y
+		* tilemap->ChunkSize.y;
+
 	tilemap->ViewDistance.x = 3.0f;
 	tilemap->ViewDistance.y = 2.0f;
+
+	tilemap->ChunkTileCount = tilemap->ChunkSize.x *
+		tilemap->ChunkSize.y;
+
+	tilemap->WorldBounds.x = tilemap->OriginTiles.x * tilemap->TileSize.x;
+	tilemap->WorldBounds.y = tilemap->OriginTiles.x * tilemap->TileSize.y;
+	tilemap->WorldBounds.width =
+		tilemap->WorldDimChunks.x
+		* tilemap->ChunkSize.x
+		* tilemap->TileSize.x;
+	tilemap->WorldBounds.height =
+		tilemap->WorldDimChunks.y
+		* tilemap->ChunkSize.y
+		* tilemap->TileSize.y;
+
+	tilemap->ChunkBounds.x = 0.0f;
+	tilemap->ChunkBounds.y = 0.0f;
+	tilemap->ChunkBounds.width = tilemap->ChunkSize.x
+		* tilemap->TileSize.x;
+	tilemap->ChunkBounds.height = tilemap->ChunkSize.y
+		* tilemap->TileSize.y;
+
 	size_t capacity = (size_t)(tilemap->ViewDistance.x * tilemap->ViewDistance.y);
 	tilemap->ChunksList.InitializeCap(capacity);
-	size_t mapCapacity = (size_t)((float)capacity + (float)capacity * .5f);
-	tilemap->ChunksMap.InitializeEx(mapCapacity, &ChunkMapHash, &ChunkMapEquals);
 }
 
 void Free(ChunkedTileMap* tilemap)
@@ -82,9 +100,7 @@ void Free(ChunkedTileMap* tilemap)
 		return;
 	}
 	assert(tilemap->ChunksList.IsInitialized());
-	assert(tilemap->ChunksMap.IsInitialized());
 	tilemap->ChunksList.Free();
-	tilemap->ChunksMap.Free();
 	SLinkedFree(&tilemap->ChunksToUnload);
 }
 
@@ -112,12 +128,13 @@ internal bool Distance(ChunkCoord coord, int w, int h)
 	return (dist > 3);
 }
 
-void FindChunksInView(ChunkedTileMap* tilemap, Game* game)
+void FindChunksInView(ChunkedTileMap* tilemap,
+	Game* game)
 {
 	auto& player = game->World.EntityMgr.Players[0];
 
-	ChunkCoord chunkCoord = GetWorldTileToChunkCoord(tilemap,
-		player.Transform.TilePos.x, (int)player.Transform.TilePos.y);
+	ChunkCoord chunkCoord = TileToChunkCoord(tilemap,
+		player.Transform.TilePos);
 
 	int startX = chunkCoord.x - (int)tilemap->ViewDistance.x;
 	int endX = chunkCoord.x + (int)tilemap->ViewDistance.x;
@@ -128,8 +145,7 @@ void FindChunksInView(ChunkedTileMap* tilemap, Game* game)
 		for (int chunkX = startX; chunkX < endX; ++chunkX)
 		{
 			ChunkCoord nextChunkCoord = { chunkX, chunkY };
-			if (!nextChunkCoord.IsInBounds(
-				tilemap->StartChunkCoords, tilemap->EndChunkCoords)) continue;
+			if (!IsChunkInBounds(tilemap, nextChunkCoord)) continue;
 			if (IsChunkLoaded(tilemap, nextChunkCoord)) continue;
 			// TODO think its safe to do this
 			const auto chunk = LoadChunk(tilemap, nextChunkCoord);
@@ -164,7 +180,6 @@ void Update(ChunkedTileMap* tilemap, Game* game)
 		}
 	}
 	FindChunksInView(tilemap, game);
-	//DrawRectangleLinesEx(rect, 4, ORANGE);
 }
 
 void LateUpdateChunk(ChunkedTileMap* tilemap, Game* game)
@@ -197,58 +212,49 @@ void UpdateChunk(ChunkedTileMap* tilemap,
 
 	const auto& texture = game->Atlas.Texture;
 
-	float chunkWidth = (float)tilemap->ChunkDimensions.x * 16.0f;
-	float chunkHeight = (float)tilemap->ChunkDimensions.y * 16.0f;
-	float chunkX = (float)chunk->ChunkCoord.x * chunkWidth;
-	float chunkY = (float)chunk->ChunkCoord.y * chunkHeight;
-
+	float incrementX = tilemap->TileSize.x;
+	float incrementY = tilemap->TileSize.y;
+	float chunkX = chunk->Bounds.x;
+	float chunkY = chunk->Bounds.y;
 	int i = 0;
-	for (float y = 0; y < chunkHeight; y += 16.0f)
+	for (float y = 0; y < chunk->Bounds.height; y += incrementX)
 	{
-		for (float x = 0; x < chunkWidth; x += 16.0f)
+		for (float x = 0; x < chunk->Bounds.width; x += incrementY)
 		{
-			const Rectangle& texCoord =
-				chunk->Tiles[i++].TextureCoord;
-
+			const auto& tile = chunk->Tiles[i++];
+			Vector2 pos = { chunkX + x, chunkY + y };
 			DrawTextureRec(
 				texture,
-				texCoord,
-				{ chunkX + x, chunkY + y },
-				WHITE);
+				tile.TextureRect,
+				pos,
+				tile.TileColor);
 		}
 	}
 }
 
-TileMapChunk* LoadChunk(ChunkedTileMap* tilemap, ChunkCoord coord)
+TileMapChunk* LoadChunk(ChunkedTileMap* tilemap,
+	ChunkCoord coord)
 {
 	TileMapChunk chunk = {};
-	chunk.Tiles.InitializeCap(tilemap->ChunkTileSize);
+	chunk.Tiles.InitializeCap(tilemap->ChunkTileCount);
 	chunk.ChunkCoord = coord;
 
-	chunk.Bounds.x = (float)coord.x
-		* tilemap->ChunkDimensions.x * tilemap->TileScale.x;
-	chunk.Bounds.y = (float)coord.y
-		* tilemap->ChunkDimensions.y * tilemap->TileScale.y;
-	chunk.Bounds.width = (float)tilemap->ChunkDimensions.x
-		* tilemap->TileScale.y;
-	chunk.Bounds.height = (float)tilemap->ChunkDimensions.y
-		* tilemap->TileScale.y;
+	float chunkOffSetX = (float)coord.x * (float)tilemap->TileSize.x
+		* (float)tilemap->ChunkSize.x;
+	float chunkOffSetY = (float)coord.y * (float)tilemap->TileSize.y
+		* (float)tilemap->ChunkSize.y;
+
+	chunk.Bounds = tilemap->ChunkBounds;
+	chunk.Bounds.x += chunkOffSetX;
+	chunk.Bounds.y += chunkOffSetY;
 
 	tilemap->ChunksList.Push(&chunk);
-	TileMapChunk* chunkPtrInChunksList = tilemap->ChunksList.Last();
-	tilemap->ChunksMap.Put(&coord, &chunkPtrInChunksList);
-	return chunkPtrInChunksList;
+	return tilemap->ChunksList.Last();
 }
 
-void UnloadChunk(ChunkedTileMap* tilemap, ChunkCoord coord)
+void UnloadChunk(ChunkedTileMap* tilemap,
+	ChunkCoord coord)
 {
-	TileMapChunk** chunk = tilemap->ChunksMap.Get(&coord);
-	if (!chunk) return;
-
-	tilemap->ChunksMap.Remove(&coord);
-
-	// TODO maybe look into storing index in Chunk, and swapping
-	// with last chunk here?
 	for (size_t i = 0; i < tilemap->ChunksList.Length; ++i)
 	{
 		if (tilemap->ChunksList[i].ChunkCoord.Equals(coord))
@@ -258,7 +264,8 @@ void UnloadChunk(ChunkedTileMap* tilemap, ChunkCoord coord)
 	}
 }
 
-void GenerateChunk(ChunkedTileMap* tilemap, TileMapChunk* chunk)
+void GenerateChunk(ChunkedTileMap* tilemap,
+	TileMapChunk* chunk)
 {
 	assert(chunk);
 	if (chunk->IsChunkGenerated)
@@ -268,90 +275,129 @@ void GenerateChunk(ChunkedTileMap* tilemap, TileMapChunk* chunk)
 	}
 	chunk->IsChunkGenerated = true;
 
-	for (int y = 0; y < tilemap->ChunkDimensions.y; ++y)
+	for (int y = 0; y < tilemap->ChunkSize.y; ++y)
 	{
-		for (int x = 0; x < tilemap->ChunkDimensions.x; ++x)
+		for (int x = 0; x < tilemap->ChunkSize.x; ++x)
 		{
-			uint32_t tileId = (uint32_t)SRandNextRange(&Random, 3, 4);
-			TileMapTile tile = {};
-			tile.TileId = tileId;
+			uint32_t tileId = (uint32_t)SRandNextRange(&Random, 0, 3);
+			CreateTile(tileId);
+
+			Tile tile = {};
+			tile.TileDataId = tileId;
 
 			uint32_t rect;
 			if (tileId == 4)
 				rect = GetGameApp()->Game->Atlas.SpritesByName["Tile2"];
 			else
 				rect = GetGameApp()->Game->Atlas.SpritesByName["Tile3"];
-			tile.TextureCoord = GetGameApp()->Game->
+			tile.TextureRect = GetGameApp()->Game->
 				Atlas.SpritesArray[rect];
 
-			if (tileId == 5)
-				tile.IsSolid = true;
-
-			tile.FowLevel = 0;
+			tile.TileColor = WHITE;
+			tile.LOS = TileLOS::NoVision;
 			chunk->Tiles.Push(&tile);
 		}
 	}
 }
 
-bool IsChunkLoaded(ChunkedTileMap* tilemap, ChunkCoord coord)
+bool IsChunkLoaded(ChunkedTileMap* tilemap,
+	ChunkCoord coord)
 {
-	return tilemap->ChunksMap.Contains(&coord);
+	// TODO
+	return (GetChunk(tilemap, coord) != nullptr);
 }
 
-TileMapChunk* GetChunk(ChunkedTileMap* tilemap, ChunkCoord coord)
+bool IsTileInBounds(ChunkedTileMap* tilemap,
+	TileCoord tilePos)
 {
-	return *tilemap->ChunksMap.Get(&coord);
+	return (tilePos.x >= tilemap->OriginTiles.x &&
+		tilePos.y >= tilemap->OriginTiles.y &&
+		tilePos.x < tilemap->WorldDimTiles.x &&
+		tilePos.y < tilemap->WorldDimTiles.y);
 }
 
-ChunkCoord GetWorldTileToChunkCoord(ChunkedTileMap* tilemap,
-	int tileX, int tileY)
+bool IsChunkInBounds(ChunkedTileMap* tilemap,
+	ChunkCoord chunkPos)
+{
+	return (chunkPos.x >= tilemap->Origin.x &&
+		chunkPos.y >= tilemap->Origin.y &&
+		chunkPos.x < tilemap->WorldDimChunks.x &&
+		chunkPos.y < tilemap->WorldDimChunks.y);
+}
+
+TileMapChunk* GetChunk(
+	ChunkedTileMap* tilemap, ChunkCoord coord)
+{
+	for (size_t i = 0; i < tilemap->ChunksList.Length; ++i)
+	{
+		const auto chunkPtr = tilemap->ChunksList.PeekAtPtr(i);
+		if (chunkPtr->ChunkCoord.Equals(coord))
+			return chunkPtr;
+	}
+	return nullptr;
+}
+
+ChunkCoord TileToChunkCoord(ChunkedTileMap* tilemap,
+	TileCoord tilePos)
 {
 	ChunkCoord result;
-	result.x = tileX / tilemap->ChunkDimensions.x;
-	result.y = tileY / tilemap->ChunkDimensions.y;
+	result.x = tilePos.x / tilemap->ChunkSize.x;
+	result.y = tilePos.y / tilemap->ChunkSize.y;
 	return result;
 }
 
-uint64_t GetWorldTileToChunkIndex(ChunkedTileMap* tilemap,
-	int tileX, int tileY)
+uint64_t TileToIndex(ChunkedTileMap* tilemap,
+	TileCoord tilePos)
 {
-	int tileChunkX = tileX % tilemap->ChunkDimensions.x;
-	int tileChunkY = tileY % tilemap->ChunkDimensions.y;
-	return static_cast<uint64_t>(tileChunkX + tileChunkY * tilemap->ChunkDimensions.x);
+	int x = tilePos.x - tilemap->Origin.x;
+	int y = tilePos.y - tilemap->Origin.y;
+	assert(x >= 0);
+	assert(y >= 0);
+	int tileChunkX = x % tilemap->ChunkSize.x;
+	int tileChunkY = y % tilemap->ChunkSize.y;
+	return static_cast<uint64_t>(
+		tileChunkX + tileChunkY * tilemap->ChunkSize.x);
 }
 
-void SetTile(ChunkedTileMap* tilemap, const TileMapTile* tile,
-	int tileX, int tileY)
+void SetTile(ChunkedTileMap* tilemap,
+	const Tile* tile, TileCoord tilePos)
 {
-	ChunkCoord chunkCoord = GetWorldTileToChunkCoord(tilemap, tileX, tileY);
-	uint32_t tileChunkCoord = (uint32_t)GetWorldTileToChunkIndex(tilemap, tileX, tileY);
-	TileMapChunk** chunk = tilemap->ChunksMap.Get(&chunkCoord);
+	ChunkCoord chunkCoord = TileToChunkCoord(tilemap, tilePos);
+	TileMapChunk* chunk = GetChunk(tilemap, chunkCoord);
 	if (!chunk)
 	{
-		#if SCAL_DEBUG
-		assert(false);
-		#endif
+		S_LOG_WARN("SETTING tile[%d, %d] to "
+			"unloaded or nonexistent chunk[%d, %d]",
+			tilePos.x, tilePos.y, chunkCoord.x, chunkCoord.y);
 		return;
 	}
-	assert(((*chunk)->Tiles.IsInitialized()));
-	(*chunk)->Tiles.Set(tileChunkCoord, tile);
+	uint64_t index = TileToIndex(tilemap, tilePos);
+	chunk->Tiles.Set(index, tile);
 }
 
-TileMapTile* GetTile(ChunkedTileMap* tilemap,
-	int tileX, int tileY)
+Tile* GetTile(ChunkedTileMap* tilemap,
+	TileCoord tilePos)
 {
-	ChunkCoord chunkCoord = GetWorldTileToChunkCoord(tilemap, tileX, tileY);
-	uint32_t tileChunkCoord = (uint32_t)GetWorldTileToChunkIndex(tilemap, tileX, tileY);
-	TileMapChunk** chunk = tilemap->ChunksMap.Get(&chunkCoord);
+	ChunkCoord chunkCoord = TileToChunkCoord(tilemap, tilePos);
+	TileMapChunk* chunk = GetChunk(tilemap, chunkCoord);
 	if (!chunk)
 	{
-		#if SCAL_DEBUG
-		assert(false);
-		#endif
+		S_LOG_WARN("GETTING tile[%d, %d] to "
+			"unloaded or nonexistent chunk[%d, %d]",
+			tilePos.x, tilePos.y, chunkCoord.x, chunkCoord.y);
 		return nullptr;
 	}
-	assert(((*chunk)->Tiles.IsInitialized()));
-	return (*chunk)->Tiles.PeekAtPtr(tileChunkCoord);
+
+	uint64_t index = TileToIndex(tilemap, tilePos);
+	return chunk->Tiles.PeekAtPtr(index);
+}
+
+TileCoord WorldToTile(ChunkedTileMap* tilemap, Vector2 pos)
+{
+	Vector2i v;
+	v.x = (int)pos.x / tilemap->TileSize.x;
+	v.y = (int)pos.y / tilemap->TileSize.y;
+	return v;
 }
 
 }

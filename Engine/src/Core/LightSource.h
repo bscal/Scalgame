@@ -16,16 +16,28 @@ struct LightSource
 
 struct LightMap
 {
+	Rectangle LightMapBounds;
+	std::vector<LightSource> LightSources;
 	std::vector<Vector3> LightLevels;
+	std::vector<Vector2i> QueryTiles;
+	std::vector<float> Solids;
 	Vector2i StartPos;
 	Vector2i EndPos;
 	uint16_t Width;
 	uint16_t Height;
 
+	void Update(World* world);
+	void LateUpdate(World* world);
+private:
+	void CastRays(World* world,
+		const LightSource& light, int rayResolution);
+public:
+
 	void Initialize(uint16_t width, uint16_t height);
 	bool IsInBounds(Vector2i pos) const;
 	void UpdatePositions(Vector2i pos);
-	void AddLight(Vector2i pos, Vector3 color, float strength);
+	void AddLight(const LightSource& light);
+	Color GetLight(Vector2i pos) const;
 };
 
 struct SightMap

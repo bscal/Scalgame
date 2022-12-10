@@ -1,6 +1,10 @@
 #pragma once
 
 #include "Core.h"
+#include "SpriteAtlas.h"
+
+#include <string.h>
+#include <string_view>
 
 enum class TileType : uint8_t
 {
@@ -18,7 +22,7 @@ enum class TileLOS : uint8_t
 
 struct TileData
 {
-	Rectangle TextureRect;
+	std::string SpriteName;
 	uint32_t TileId;
 	int MovementCost;
 	short Cover;
@@ -36,22 +40,30 @@ struct Tile
 	bool IsOccupied;
 };
 
-#define MAX_TILES 255
-
-typedef uint32_t TileId;
+#define MAX_TILES 32
 
 struct TileMgr
 {
+	SpriteAtlas* SpriteAtlas;
 	TileData Tiles[MAX_TILES];
-	TileId NextTileId;
+	uint32_t NextTileId;
 };
 
-bool TileMgrInitialize(TileMgr* tileMgr);
-bool TileMgrRegisterTile(TileMgr* tileMgr, TileData* data);
+void TileMgrInitialize(TileMgr* tileMgr, SpriteAtlas* spriteAtlas);
 
-Tile CreateTile(TileMgr* tileMgr, TileId tileId);
+TileData& RegisterTile(TileMgr* tileMgr,
+	std::string_view spriteName,
+	TileType type);
 
-void SetTile(TileMgr* tileMgr, Tile* tile, TileId newTileId);
-const TileData& GetTileData(TileMgr* tileMgr, TileId tileId);
+[[nodiscard]] Tile CreateTile(TileMgr* tileMgr, const TileData& tileData);
+[[nodiscard]] Tile CreateTileId(TileMgr* tileMgr, uint32_t tileDataId);
+
+//bool TileMgrInitialize(TileMgr* tileMgr);
+//bool TileMgrRegisterTile(TileMgr* tileMgr, TileData* data);
+//
+//Tile CreateTile(TileMgr* tileMgr, TileId tileId);
+//
+//void SetTile(TileMgr* tileMgr, Tile* tile, TileId newTileId);
+//const TileData& GetTileData(TileMgr* tileMgr, TileId tileId);
 
 

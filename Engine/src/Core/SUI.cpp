@@ -119,7 +119,7 @@ void UpdateUI(UIState* state)
 
 	state->IsMouseHoveringUI = IsMouseHoveringUI(state);
 
-	if (nk_begin(&state->Ctx, "Debug", { 5, 5, 300, 150 }, 0))
+	if (nk_begin(&state->Ctx, "Debug", { 5, 5, 230, 200 }, NK_WINDOW_NO_SCROLLBAR))
 	{
 		nk_layout_row_dynamic(&state->Ctx, 16, 2);
 		nk_label(&state->Ctx, "Fps: ", NK_TEXT_LEFT);
@@ -150,6 +150,17 @@ void UpdateUI(UIState* state)
 		nk_label(&state->Ctx, "#UpdatedChunks: ", NK_TEXT_LEFT);
 		nk_label(&state->Ctx,
 			std::to_string(GetGameApp()->NumOfChunksUpdated).c_str(), NK_TEXT_LEFT);
+
+		nk_layout_row_dynamic(&state->Ctx, 16, 2);
+		nk_label(&state->Ctx, "X, Y: ", NK_TEXT_LEFT);
+
+		auto p = GetClientPlayer();
+		std::string xy;
+		xy.reserve(10);
+		xy += std::to_string(p->Transform.TilePos.x);
+		xy += ", ";
+		xy += std::to_string(p->Transform.TilePos.y);
+		nk_label(&state->Ctx, xy.c_str(), NK_TEXT_LEFT);
 
 
 	}

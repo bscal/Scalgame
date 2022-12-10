@@ -1,73 +1,73 @@
-#pragma once
-
-#include "Engine.h"
-
-struct Game;
-struct SArray;
-
-// TODO Think about moving TileType into Tile structure
-
-#define NORTH { 0, -1 }
-#define EAST  { 1,  0 }
-#define SOUTH { 0,  1 }
-#define WEST  {-1,  0 }
-
-enum class TileVisibilty : uint8_t
-{
-	Empty = 0,
-	Solid
-};
-
-enum class TileType : uint8_t
-{
-	Empty = 0,
-	Solid,
-	Floor,
-	Liquid
-};
-
-struct TileData
-{
-	Vector2 TextureCoord;
-	short MovementCost;
-	TileVisibilty TileVisibilty;
-	TileType TileType;
-};
-
-struct TileSet
-{
-	Texture2D TileTexture;
-	TileData* TileDataArray;
-	uint32_t TextureTileWidth;
-	uint32_t TextureTileHeight;
-};
-
-enum class FOWLevel : uint8_t
-{
-	NoVision = 0,
-	PastVision,
-	PeripheralVision,
-	SemiVision,
-	FullVision
-};
-
-struct Tile
-{
-	Vector2 TexturePosition;
-	uint32_t TileId;
-	FOWLevel Fow;
-};
-
-struct TileMap
-{
-	TileSet* TileSet;
-	Tile* MapTiles;
-	uint64_t MapSize;
-	uint32_t MapWidth;
-	uint32_t MapHeight;
-	uint16_t MapTileSize;
-	uint16_t MapHalfTileSize;
-};
+//#pragma once
+//
+//#include "Engine.h"
+//
+//struct Game;
+//struct SArray;
+//
+//// TODO Think about moving TileType into Tile structure
+//
+//#define NORTH { 0, -1 }
+//#define EAST  { 1,  0 }
+//#define SOUTH { 0,  1 }
+//#define WEST  {-1,  0 }
+//
+//enum class TileVisibilty : uint8_t
+//{
+//	Empty = 0,
+//	Solid
+//};
+//
+//enum class TileType : uint8_t
+//{
+//	Empty = 0,
+//	Solid,
+//	Floor,
+//	Liquid
+//};
+//
+//struct TileData
+//{
+//	Vector2 TextureCoord;
+//	short MovementCost;
+//	TileVisibilty TileVisibilty;
+//	TileType TileType;
+//};
+//
+//struct TileSet
+//{
+//	Texture2D TileTexture;
+//	TileData* TileDataArray;
+//	uint32_t TextureTileWidth;
+//	uint32_t TextureTileHeight;
+//};
+//
+//enum class FOWLevel : uint8_t
+//{
+//	NoVision = 0,
+//	PastVision,
+//	PeripheralVision,
+//	SemiVision,
+//	FullVision
+//};
+//
+//struct Tile
+//{
+//	Vector2 TexturePosition;
+//	uint32_t TileId;
+//	FOWLevel Fow;
+//};
+//
+//struct TileMap
+//{
+//	TileSet* TileSet;
+//	Tile* MapTiles;
+//	uint64_t MapSize;
+//	uint32_t MapWidth;
+//	uint32_t MapHeight;
+//	uint16_t MapTileSize;
+//	uint16_t MapHalfTileSize;
+//};
 
 //bool LoadTileSet(Texture2D* tileTexture,
 //	uint16_t tileSizeWidth, uint16_t tileSizeHeight,
