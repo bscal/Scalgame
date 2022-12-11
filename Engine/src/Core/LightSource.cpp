@@ -4,8 +4,10 @@
 #include "World.h"
 #include "Player.h"
 #include "ResourceManager.h"
+#include "ChunkedTileMap.h"
 #include "TileMapUtils.h"
 #include "raymath.h"
+#include "Tile.h"
 
 #define LIGHT_MAP_UNIFORM_COUNT "LightMapCount"
 #define LIGHT_MAP_UNIFORM "LightMap"
@@ -43,8 +45,11 @@ void LightMap::Initialize(uint16_t width, uint16_t height)
 {
 	Width = width;
 	Height = height;
-	LightLevels = std::vector<Vector3>((size_t)width * (size_t)height,
+	size_t Count = (size_t)width * (size_t)height;
+	LightLevels = std::vector<Vector3>(Count,
 		{ 1.0f, 1.0f, 1.0f });
+	Solids = std::vector<float>(Count,
+		0.f);
 
 	LightSource light = {};
 	light.Position = { 32, 32 };
@@ -135,14 +140,31 @@ bool LightMap::IsInBounds(Vector2i pos) const
 		pos.x < EndPos.x && pos.y < EndPos.y);
 }
 
+void LightMap::UpdateTile(World* world, Vector2i pos, const Tile* tile)
+{
+	if (IsInBounds(pos))
+	{
+		uint64_t index = CTileMap::TileToIndexLocal(StartPos,
+			(uint64_t)Width, pos);
+		const auto& tileData = tile->GetTileData(&world->TileMgr);
+		Solids[index] = (tileData.TileId > 1) ? 1.0f : 0.f;
+	}
+}
+
 void LightMap::UpdatePositions(Vector2i pos)
 {
+	Scal::MemSet(Solids.data(), 0, sizeof(float) * Solids.size());
+
 	int halfWidth = (int)(Width / 2);
 	int halfHeight = (int)(Height / 2);
-	StartPos.x = pos.x - halfWidth;
-	StartPos.y = pos.y - halfHeight;
-	EndPos.x = pos.x + halfWidth;
-	EndPos.y = pos.y + halfHeight;
+	//StartPos.x = pos.x - halfWidth;
+	//StartPos.y = pos.y - halfHeight;
+	//EndPos.x = pos.x + halfWidth;
+	//EndPos.y = pos.y + halfHeight;
+	StartPos.x = (int)roundf(GetGameApp()->Game->CurScreenRect.x / 16.);
+	StartPos.y = (int)roundf(GetGameApp()->Game->CurScreenRect.y / 16.);
+	EndPos.x = StartPos.x + (int)(Width);
+	EndPos.y = StartPos.y + (int)(Height);
 	LightMapBounds.x = (float)StartPos.x;
 	LightMapBounds.y = (float)StartPos.y;
 	LightMapBounds.width = (float)EndPos.x - (float)StartPos.x;

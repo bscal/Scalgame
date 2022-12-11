@@ -37,17 +37,19 @@ TileData& RegisterTile(TileMgr* tileMgr,
 {
 	assert(tileMgr);
 
-	auto find = tileMgr->SpriteAtlas->SpritesByName.find(tileData.SpriteName);
+	auto find = tileMgr->SpriteAtlas->SpritesByName.find(
+		tileData.SpriteName);
 	if (find == tileMgr->SpriteAtlas->SpritesByName.end())
 	{
 		S_LOG_ERR("Could not find tile by name!");
 		return {};
 	}
+	const auto& textCoord = tileMgr->SpriteAtlas->GetRect(find->second);
 
 	Tile tile = {};
-	tile.TextureRect = tileMgr->SpriteAtlas->
-		SpritesArray.PeekAt(find->second);
+	tile.TextureRect = textCoord;
 	tile.TileDataId = tileData.TileId;
+	tile.TileColor = WHITE;
 	return tile;
 }
 
@@ -57,17 +59,26 @@ TileData& RegisterTile(TileMgr* tileMgr,
 	assert(tileDataId < tileMgr->NextTileId);
 
 	const std::string& name = tileMgr->Tiles[tileDataId].SpriteName;
-	auto find = tileMgr->SpriteAtlas->SpritesByName.find(name);
+	
+	assert(!name.empty());
+
+	auto find = tileMgr->SpriteAtlas->SpritesByName.find(
+		name);
 	if (find == tileMgr->SpriteAtlas->SpritesByName.end())
 	{
 		S_LOG_ERR("Could not find tile by name!");
 		return {};
 	}
+	const auto& textCoord = tileMgr->SpriteAtlas->GetRect(find->second);
 
 	Tile tile = {};
-	tile.TextureRect = tileMgr->SpriteAtlas->
-		SpritesArray.PeekAt(find->second);
+	tile.TextureRect = textCoord;
 	tile.TileDataId = tileDataId;
+	tile.TileColor = WHITE;
 	return tile;
 }
 
+const TileData& Tile::GetTileData(TileMgr* tileMgr) const
+{
+	return tileMgr->Tiles[TileDataId];
+}

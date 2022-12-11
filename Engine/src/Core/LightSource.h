@@ -6,6 +6,7 @@
 
 struct GameApplication;
 struct World;
+struct Tile;
 
 struct LightSource
 {
@@ -35,6 +36,7 @@ public:
 
 	void Initialize(uint16_t width, uint16_t height);
 	bool IsInBounds(Vector2i pos) const;
+	void UpdateTile(World* world, Vector2i pos, const Tile* tile);
 	void UpdatePositions(Vector2i pos);
 	void AddLight(const LightSource& light);
 	Color GetLight(Vector2i pos) const;

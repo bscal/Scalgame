@@ -163,18 +163,11 @@ void FindChunksInView(ChunkedTileMap* tilemap,
 void Update(ChunkedTileMap* tilemap, Game* game)
 {
 	assert(tilemap);
-	Camera2D camera = game->Camera;
-	Rectangle rect =
-	{
-		camera.target.x - camera.offset.x / camera.zoom,
-		camera.target.y - camera.offset.y / camera.zoom,
-		(float)GetScreenWidth() / camera.zoom,
-		(float)GetScreenHeight() / camera.zoom
-	};
+	assert(game);
 	for (uint64_t i = 0; i < tilemap->ChunksList.Length; ++i)
 	{
 		auto chunk = tilemap->ChunksList.PeekAtPtr(i);
-		if (CheckCollisionRecs(rect, chunk->Bounds))
+		if (CheckCollisionRecs(game->CurScreenRect, chunk->Bounds))
 		{
 			UpdateChunk(tilemap, chunk, game);
 		}
@@ -184,23 +177,15 @@ void Update(ChunkedTileMap* tilemap, Game* game)
 
 void LateUpdateChunk(ChunkedTileMap* tilemap, Game* game)
 {
-	Camera2D camera = game->Camera;
-	Rectangle rect =
-	{
-		camera.target.x - camera.offset.x / camera.zoom,
-		camera.target.y - camera.offset.y / camera.zoom,
-		(float)GetScreenWidth() / camera.zoom,
-		(float)GetScreenHeight() / camera.zoom
-	};
 	for (uint64_t i = 0; i < tilemap->ChunksList.Length; ++i)
 	{
 		auto chunk = tilemap->ChunksList.PeekAtPtr(i);
-		if (CheckCollisionRecs(rect, chunk->Bounds))
+		if (CheckCollisionRecs(game->CurScreenRect, chunk->Bounds))
 		{
 			DrawRectangleLinesEx(chunk->Bounds, 4, GREEN);
 		}
 	}
-	DrawRectangleLinesEx(rect, 4, SKYBLUE);
+	DrawRectangleLinesEx(game->CurScreenRect, 4, SKYBLUE);
 }
 
 void UpdateChunk(ChunkedTileMap* tilemap,
@@ -212,21 +197,26 @@ void UpdateChunk(ChunkedTileMap* tilemap,
 
 	const auto& texture = game->Atlas.Texture;
 
-	float incrementX = tilemap->TileSize.x;
-	float incrementY = tilemap->TileSize.y;
+	float incrementX = (float)tilemap->TileSize.x;
+	float incrementY = (float)tilemap->TileSize.y;
 	float chunkX = chunk->Bounds.x;
 	float chunkY = chunk->Bounds.y;
 	int i = 0;
-	for (float y = 0; y < chunk->Bounds.height; y += incrementX)
+	for (float y = 0.f; y < chunk->Bounds.height; y += incrementX)
 	{
-		for (float x = 0; x < chunk->Bounds.width; x += incrementY)
+		for (float x = 0.f; x < chunk->Bounds.width; x += incrementY)
 		{
 			const auto& tile = chunk->Tiles[i++];
-			Vector2 pos = { chunkX + x, chunkY + y };
+
+			game->World.LightMap.UpdateTile(&game->World,
+				{ (int)(chunkX + x) / 16, (int)(chunkY + y) / 16 },
+				&tile);
+
+			Vector2 worldPos = { chunkX + x, chunkY + y };
 			DrawTextureRec(
 				texture,
 				tile.TextureRect,
-				pos,
+				worldPos,
 				tile.TileColor);
 		}
 	}
@@ -279,22 +269,10 @@ void GenerateChunk(ChunkedTileMap* tilemap,
 	{
 		for (int x = 0; x < tilemap->ChunkSize.x; ++x)
 		{
-			uint32_t tileId = (uint32_t)SRandNextRange(&Random, 0, 3);
-			CreateTile(tileId);
-
-			Tile tile = {};
-			tile.TileDataId = tileId;
-
-			uint32_t rect;
-			if (tileId == 4)
-				rect = GetGameApp()->Game->Atlas.SpritesByName["Tile2"];
-			else
-				rect = GetGameApp()->Game->Atlas.SpritesByName["Tile3"];
-			tile.TextureRect = GetGameApp()->Game->
-				Atlas.SpritesArray[rect];
-
-			tile.TileColor = WHITE;
-			tile.LOS = TileLOS::NoVision;
+			uint32_t tileId = (uint32_t)SRandNextRange(&Random, 0, 2);
+			const auto& tile = CreateTileId(
+				&GetGameApp()->Game->World.TileMgr,
+				tileId);
 			chunk->Tiles.Push(&tile);
 		}
 	}
@@ -357,6 +335,13 @@ uint64_t TileToIndex(ChunkedTileMap* tilemap,
 	int tileChunkY = y % tilemap->ChunkSize.y;
 	return static_cast<uint64_t>(
 		tileChunkX + tileChunkY * tilemap->ChunkSize.x);
+}
+
+uint64_t TileToIndexLocal(Vector2i origin, uint64_t width,
+	TileCoord tilePos)
+{
+	Vector2i localPos = tilePos.Subtract(origin);
+	return (uint64_t)localPos.x + (uint64_t)localPos.y * width;
 }
 
 void SetTile(ChunkedTileMap* tilemap,

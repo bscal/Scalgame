@@ -103,7 +103,7 @@ void GetSurroundingTilesRadius(World* world,
 		{
 			if (WorldIsInBounds(world, { xi, yi }) &&
 				Distance(light.Position.x, light.Position.y,
-					(float)xi, (float)yi) < light.Intensity)
+					(float)xi + 0.5f, (float)yi + 0.5f) < light.Intensity)
 			{
 				OnVisit(world, xi, yi, light);
 			}

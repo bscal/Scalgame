@@ -18,14 +18,21 @@ bool WorldInitialize(World* world, GameApplication* gameApp)
 
 	world->EntityMgr.CreatePlayer(world);
 
-	world->LightMap.Initialize(112, 80);
+	world->LightMap.Initialize(1600 / 16, 900 / 16);
 	world->SightMap.Initialize(112, 80);
 
 	TileMgrInitialize(&world->TileMgr,
 		&gameApp->Game->Atlas);
 
-	world->IsLoaded = true;
+	world->IsInitialized = true;
 	return true;
+}
+
+void WorldLoad(World* world, Game* game)
+{
+	CTileMap::Update(&world->ChunkedTileMap, game);
+
+	world->IsLoaded = true;
 }
 
 void WorldFree(World* world)
@@ -36,6 +43,7 @@ void WorldFree(World* world)
 		return;
 	}
 	world->IsLoaded = false;
+	world->IsInitialized = false;
 	CTileMap::Free(&world->ChunkedTileMap);
 	world->EntityActionsList.Free();
 }
@@ -43,8 +51,8 @@ void WorldFree(World* world)
 void WorldUpdate(World* world, Game* game)
 {
 	const auto& playerTilePos = GetClientPlayer()->Transform.TilePos;
-	//world->LightMap.UpdatePositions(playerTilePos);
-	//world->LightMap.Update(world);
+	world->LightMap.UpdatePositions(playerTilePos);
+	world->LightMap.Update(world);
 
 	GetGameApp()->NumOfChunksUpdated = 0;
 	CTileMap::Update(&world->ChunkedTileMap, game);
@@ -58,7 +66,7 @@ void WorldUpdate(World* world, Game* game)
 	world->EntityMgr.Update(game, GetDeltaTime());
 
 	CTileMap::LateUpdateChunk(&world->ChunkedTileMap, game);
-	//world->LightMap.LateUpdate(world);
+	world->LightMap.LateUpdate(world);
 }
 
 void LateWorldUpdate(World* world, Game* game)

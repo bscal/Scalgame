@@ -19,6 +19,8 @@ struct Game
     bool IsFreeCam;
     World World;
     SpriteAtlas Atlas;
+    Rectangle CurScreenRect;
+    Rectangle EndScreenRect;
     uint32_t Time;
 };
 
@@ -49,7 +51,7 @@ void SetCameraDistance(Game* game, float zoom);
 Scal::Creature::Player* GetClientPlayer();
 float GetDeltaTime();
 
-internal void HandleInput(GameApplication* gameApp);
+internal void UpdateGame(Game* game, GameApplication* gameApp);
 internal bool InitializeGame(Game* game, GameApplication* gameApp);
 
 

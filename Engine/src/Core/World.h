@@ -50,6 +50,7 @@ struct World
 	LightMap LightMap;
 	SightMap SightMap;
 	TileMgr TileMgr;
+	bool IsInitialized;
 	bool IsLoaded;
 };
 
@@ -63,6 +64,7 @@ struct Action
 };
 
 bool WorldInitialize(World* world, GameApplication* gameApp);
+void WorldLoad(World* world, Game* game);
 void WorldFree(World* world);
 void WorldUpdate(World* world, Game* game);
 void LateWorldUpdate(World* world, Game* game);

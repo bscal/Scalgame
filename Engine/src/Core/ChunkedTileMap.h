@@ -86,8 +86,8 @@ ChunkCoord TileToChunkCoord(ChunkedTileMap* tilemap,
 	TileCoord tilePos);
 uint64_t TileToIndex(ChunkedTileMap* tilemap,
 	TileCoord tilePos);
-uint64_t TileToIndexLocal(ChunkedTileMap* tilemap,
-	Vector2i origin, TileCoord tilePos);
+uint64_t TileToIndexLocal(Vector2i origin, uint64_t width,
+	TileCoord tilePos);
 
 TileCoord IndexToTile(ChunkedTileMap* tilemap,
 	uint64_t index);

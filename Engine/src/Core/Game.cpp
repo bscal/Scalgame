@@ -65,6 +65,9 @@ internal void TestActionFunc(World* world, Action* action)
 
 SAPI void GameApplication::Run()
 {
+	// TODO remove
+	WorldLoad(&Game->World, Game);
+	
 	TraceLog(LOG_INFO, "Game Running...");
 	IsRunning = true;
 
@@ -94,10 +97,10 @@ SAPI void GameApplication::Run()
 						{ -512.0f * DeltaTime, 0, 0 });
 				if (IsKeyDown(KEY_K))
 					SetCameraPosition(Game,
-						{ 0, -512.0f * DeltaTime, 0 });
+						{ 0, 512.0f * DeltaTime, 0 });
 				else if (IsKeyDown(KEY_I))
 					SetCameraPosition(Game,
-						{ 0, 512.0f * DeltaTime, 0 });
+						{ 0, -512.0f * DeltaTime, 0 });
 			}
 
 			// Camera zoom controls
@@ -147,26 +150,62 @@ SAPI void GameApplication::Run()
 
 		//BeginMode3D(Game->Camera3D);
 
+		UpdateGame(Game, this);
 		WorldUpdate(&Game->World, Game);
 		LateWorldUpdate(&Game->World, Game);
 
 		//EndMode3D();
 		EndShaderMode();
+		EndMode2D();
+		const auto& lm = Game->World.LightMap;
+		auto text = LoadRenderTexture(lm.Width * 16, lm.Height * 16);
+		BeginTextureMode(text);
+		for (int y = 0; y < lm.Height; ++y)
+		{
+			for (int x = 0; x < lm.Width; ++x)
+			{
+				float f = Game->World.LightMap.Solids[x + y * lm.Width];
+				Color c;
+				if (f == 1.f)
+					c = RED;
+				else
+				 c = { 0, 155, 0, 0 };
 
-		BeginShaderMode(Resources->LightRayShader);
-		
-		//auto id = rlGetLocationUniform(Resources->LightRayShader.id,
-			//"Light");
+				DrawRectangleV({(float)x * 16.0f, (float)y * 16.0f},
+					{16.0f, 16.0f,}, c);
+			}
+		}
+		EndTextureMode();
+
+		BeginMode2D(Game->Camera);
+
+		auto shader = Resources->LightShader;
+		BeginShaderMode(shader);
+		int Light = GetShaderLocation(shader, "Light");
+		int Offset = GetShaderLocation(shader, "Offset");
+		int TileCount = GetShaderLocation(shader, "TileCount");
+		int TilesWidth = GetShaderLocation(shader, "TilesWidth");
+		int Tiles = GetShaderLocation(shader, "Tiles");
 		auto v = GetScreenToWorld2D(GetMousePosition(), Game->Camera);
 		Vector3 light = { v.x, v.y, 5.0f };
 		SetShaderValue(Resources->LightRayShader,
-			0, &light, SHADER_UNIFORM_VEC3);
-
-		DrawRectangle(0, 0, 500, 500, WHITE);
+			Light, &light, SHADER_UNIFORM_VEC3);
+		
+		SetShaderValue(shader, Offset, &lm.StartPos.Multiply({ 16, 16 }), SHADER_UNIFORM_VEC2);
+		int size = lm.Solids.size();
+		SetShaderValue(shader, TileCount, &size, SHADER_UNIFORM_INT);
+		int width = lm.EndPos.x;
+		SetShaderValue(shader, TilesWidth, &width, SHADER_UNIFORM_INT);
+		//GenTextureMipmaps(&text.texture);
+		SetShaderValueTexture(shader, Tiles, text.texture);
+		//DrawTexture(text.texture, lm.StartPos.x * 16, lm.StartPos.y * 16, WHITE);
+		
+		Rectangle r = Game->CurScreenRect;
+		DrawRectangleRec(r, WHITE);
 		
 		EndShaderMode();
-
 		EndMode2D();
+
 
 		// ***************
 		// UI
@@ -179,22 +218,9 @@ SAPI void GameApplication::Run()
 		const double drawStart = GetTime();
 		EndDrawing();
 		RenderTime = GetTime() - drawStart;
+		UnloadRenderTexture(text);
 
-		// Handle Camera Move
-		if (!Game->IsFreeCam)
-		{
-			Vector2 from = Game->Camera.target;
-			Vector2 to = GetClientPlayer()->Transform.PosAsVec2();
-			float t;
-			if (Vector2Distance(from, to) < 2.5f)
-				t = 10.0f * GetDeltaTime();
-			else
-				t = 4.0f * GetDeltaTime();
-			Vector2 cameraPos = Vector2Lerp(from, to, t);
-			Game->Camera.target = cameraPos;
-			Game->Camera.offset = { GetScreenWidth() / 2.0f,
-				GetScreenHeight() / 2.0f };
-		}
+		
 	}
 	IsRunning = false;
 }
@@ -246,8 +272,6 @@ void SetCameraDistance(Game* game, float zoom)
 	#endif
 }
 
-internal void HandleInput(GameApplication* gameApp) {}
-
 float GetDeltaTime()
 {
 	return GetFrameTime();
@@ -261,6 +285,33 @@ float GetDeltaTime()
 //    ProcessActions(&gameApp->Game->World);
 //    gameApp->Game->World.EntityActionsList.Clear();
 //}
+
+internal void UpdateGame(Game* game, GameApplication* gameApp)
+{
+	Camera2D& camera = game->Camera;
+
+	// Handle Camera Move
+	if (!game->IsFreeCam)
+	{
+		Vector2 from = camera.target;
+		Vector2 to = GetClientPlayer()->Transform.PosAsVec2();
+		float t;
+		if (Vector2Distance(from, to) < 2.5f)
+			t = 10.0f * GetDeltaTime();
+		else
+			t = 4.0f * GetDeltaTime();
+		Vector2 cameraPos = Vector2Lerp(from, to, t);
+		camera.target = cameraPos;
+		camera.offset = { (float)GetScreenWidth() / 2.0f,
+			(float)GetScreenHeight() / 2.0f };
+	}
+	
+	Vector2 to = GetClientPlayer()->Transform.PosAsVec2();
+	game->CurScreenRect.x = roundf(to.x - camera.offset.x / camera.zoom);
+	game->CurScreenRect.y = roundf(to.y - camera.offset.y / camera.zoom);
+	game->CurScreenRect.width = (float)GetScreenWidth() / camera.zoom;
+	game->CurScreenRect.height = (float)GetScreenHeight() / camera.zoom;
+}
 
 internal bool InitializeGame(Game* game, GameApplication* gameApp)
 {
@@ -279,7 +330,7 @@ internal bool InitializeGame(Game* game, GameApplication* gameApp)
 	SetCameraMode(game->Camera3D,
 		game->Camera3D.projection);
 	#else
-	game->Camera.zoom = 2.0f;
+	game->Camera.zoom = 1.0f;
 	#endif
 	S_LOG_INFO("Game Initialized!");
 	return true;

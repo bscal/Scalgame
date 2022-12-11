@@ -29,6 +29,14 @@ struct TileData
 	TileType Type;
 };
 
+#define MAX_TILES 32
+struct TileMgr
+{
+	SpriteAtlas* SpriteAtlas;
+	TileData Tiles[MAX_TILES];
+	uint32_t NextTileId;
+};
+
 struct Tile
 {
 	Rectangle TextureRect;
@@ -38,15 +46,8 @@ struct Tile
 	TileLOS LOS;
 	bool IsUndiscovered;
 	bool IsOccupied;
-};
 
-#define MAX_TILES 32
-
-struct TileMgr
-{
-	SpriteAtlas* SpriteAtlas;
-	TileData Tiles[MAX_TILES];
-	uint32_t NextTileId;
+	const TileData& GetTileData(TileMgr* tileMgr) const;
 };
 
 void TileMgrInitialize(TileMgr* tileMgr, SpriteAtlas* spriteAtlas);

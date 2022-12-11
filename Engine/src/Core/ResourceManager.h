@@ -21,6 +21,7 @@ struct Resources
 	Font FontSilver;
 	Shader TileShader;
 	Shader LightRayShader;
+	Shader LightShader;
 	bool IsInitialized;
 };
 
