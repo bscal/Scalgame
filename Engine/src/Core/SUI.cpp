@@ -119,7 +119,7 @@ void UpdateUI(UIState* state)
 
 	state->IsMouseHoveringUI = IsMouseHoveringUI(state);
 
-	if (nk_begin(&state->Ctx, "Debug", { 5, 5, 230, 200 }, NK_WINDOW_NO_SCROLLBAR))
+	if (nk_begin(&state->Ctx, "Debug", { 5, 5, 400, 250 }, NK_WINDOW_NO_SCROLLBAR))
 	{
 		nk_layout_row_dynamic(&state->Ctx, 16, 2);
 		nk_label(&state->Ctx, "Fps: ", NK_TEXT_LEFT);
@@ -162,7 +162,28 @@ void UpdateUI(UIState* state)
 		xy += std::to_string(p->Transform.TilePos.y);
 		nk_label(&state->Ctx, xy.c_str(), NK_TEXT_LEFT);
 
+		nk_layout_row_dynamic(&state->Ctx, 16, 2);
+		nk_label(&state->Ctx, "Zoom: ", NK_TEXT_LEFT);
+		nk_label(&state->Ctx,
+			std::to_string(GetGameApp()->Game->Camera.zoom).c_str(), NK_TEXT_LEFT);
 
+		nk_layout_row_dynamic(&state->Ctx, 16, 2);
+		nk_label(&state->Ctx, "WH: ", NK_TEXT_LEFT);
+		std::string wh;
+		wh.reserve(16);
+		wh += std::to_string(GetScreenWidth());
+		wh += ", ";
+		wh += std::to_string(GetScreenHeight());
+		nk_label(&state->Ctx, wh.c_str(), NK_TEXT_LEFT);
+
+		nk_layout_row_dynamic(&state->Ctx, 16, 2);
+		nk_label(&state->Ctx, "SWH: ", NK_TEXT_LEFT);
+		std::string swh;
+		swh.reserve(32);
+		swh += std::to_string(GetGameApp()->Game->CurScreenRect.width);
+		swh += ", ";
+		swh += std::to_string(GetGameApp()->Game->CurScreenRect.height);
+		nk_label(&state->Ctx, swh.c_str(), NK_TEXT_LEFT);
 	}
 	nk_end(&state->Ctx);
 

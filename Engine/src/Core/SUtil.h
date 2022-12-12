@@ -12,6 +12,16 @@ inline float ClampF(float min, float max, float value)
     return fmaxf(min, fminf(max, value));
 }
 
+inline Rectangle RectangleExpand(const Rectangle& rect, float width, float height)
+{
+    Rectangle r;
+    r.x = rect.x - width / 2.0f;
+    r.y = rect.y - height / 2.0f;
+    r.width = rect.width + width / 2.0f;
+    r.height = rect.height + height / 2.0f;
+    return r;
+}
+
 template<class T>
 struct SAllocator
 {

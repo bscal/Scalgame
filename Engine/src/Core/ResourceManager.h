@@ -17,7 +17,7 @@ struct Resources
 	Texture2D EntitySpriteSheet;
 	Texture2D TileSheet;
 	Font MainFontM;
-	Font MainFontS;
+	//Font MainFontS;
 	Font FontSilver;
 	Shader TileShader;
 	Shader LightRayShader;

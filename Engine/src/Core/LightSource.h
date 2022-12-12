@@ -24,17 +24,16 @@ struct LightMap
 	std::vector<float> Solids;
 	Vector2i StartPos;
 	Vector2i EndPos;
-	uint16_t Width;
-	uint16_t Height;
+	uint32_t Width;
+	uint32_t Height;
+	RenderTexture2D Texture;
 
 	void Update(World* world);
 	void LateUpdate(World* world);
-private:
 	void CastRays(World* world,
 		const LightSource& light, int rayResolution);
-public:
-
-	void Initialize(uint16_t width, uint16_t height);
+	void BuildLightMap();
+	void Initialize(uint32_t width, uint32_t height);
 	bool IsInBounds(Vector2i pos) const;
 	void UpdateTile(World* world, Vector2i pos, const Tile* tile);
 	void UpdatePositions(Vector2i pos);

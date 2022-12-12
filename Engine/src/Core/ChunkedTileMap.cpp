@@ -185,7 +185,6 @@ void LateUpdateChunk(ChunkedTileMap* tilemap, Game* game)
 			DrawRectangleLinesEx(chunk->Bounds, 4, GREEN);
 		}
 	}
-	DrawRectangleLinesEx(game->CurScreenRect, 4, SKYBLUE);
 }
 
 void UpdateChunk(ChunkedTileMap* tilemap,

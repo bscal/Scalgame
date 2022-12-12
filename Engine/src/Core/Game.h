@@ -19,8 +19,8 @@ struct Game
     bool IsFreeCam;
     World World;
     SpriteAtlas Atlas;
+    RenderTexture2D DrawTexture;
     Rectangle CurScreenRect;
-    Rectangle EndScreenRect;
     uint32_t Time;
 };
 

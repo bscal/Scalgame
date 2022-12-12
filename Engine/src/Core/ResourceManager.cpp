@@ -13,10 +13,10 @@ internal SDFFont LoadSDFFont();
 bool InitializeResources(Resources* resources)
 {
     resources->EntitySpriteSheet = LoadTexture(ENTITY_SHEET_PATH);
-	resources->TileSheet = LoadTexture(TILE_MAP_TEXTURE_PATH);
+	//resources->TileSheet = LoadTexture(TILE_MAP_TEXTURE_PATH);
 
 	resources->MainFontM = LoadFont(FONT_PATH);
-    resources->MainFontS = LoadFontEx(FONT_PATH, 16, 0, 0);
+    //resources->MainFontS = LoadFontEx(FONT_PATH, 16, 0, 0);
     resources->FontSilver = LoadFont(SDF_FONT_PATH);
 
     resources->TileShader = LoadShader(

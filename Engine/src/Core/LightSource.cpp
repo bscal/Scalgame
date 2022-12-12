@@ -41,7 +41,7 @@ void UpdateLightMap(Shader* shader, LightMap* lightMap)
 	//	size);
 }
 
-void LightMap::Initialize(uint16_t width, uint16_t height)
+void LightMap::Initialize(uint32_t width, uint32_t height)
 {
 	Width = width;
 	Height = height;
@@ -50,6 +50,8 @@ void LightMap::Initialize(uint16_t width, uint16_t height)
 		{ 1.0f, 1.0f, 1.0f });
 	Solids = std::vector<float>(Count,
 		0.f);
+
+	Texture = LoadRenderTexture((int)Width, (int)Height);
 
 	LightSource light = {};
 	light.Position = { 32, 32 };
@@ -93,6 +95,34 @@ void LightMap::LateUpdate(World* world)
 			CastRays(world, light, 48);
 		}
 	}
+	DrawRectangleLinesEx(LightMapBounds, 4.0f, MAGENTA);
+}
+
+void LightMap::BuildLightMap()
+{
+	BeginTextureMode(Texture);
+	SetTextureFilter(Texture.texture, TEXTURE_FILTER_POINT);
+	ClearBackground({0,0,0,0});
+	for (int y = 0; y < Height; ++y)
+	{
+		for (int x = 0; x < Width; ++x)
+		{
+			float f = Solids[x + y * Width];
+			Color c;
+			if (f == 1.f)
+				c = RED;
+			else
+				c = { 0, 0, 0, 0 };
+
+			Rectangle r;
+			r.x = floorf((float)x);
+			r.y = floorf((float)y);
+			r.width = 1.0f;
+			r.height = 1.0f;
+			DrawRectangleRec(r, c);
+		}
+	}
+	EndTextureMode();
 }
 
 internal bool LightVisit(World* world, int x, int y)
@@ -153,38 +183,43 @@ void LightMap::UpdateTile(World* world, Vector2i pos, const Tile* tile)
 
 void LightMap::UpdatePositions(Vector2i pos)
 {
+	const Rectangle& screenRect = GetGameApp()->Game->CurScreenRect;
+
+	int screenWidthTiles = (int)roundf(screenRect.width / 16.0f);
+	int screenHeightTiles = (int)roundf(screenRect.height / 16.0f);
+	
+	if (Width != screenWidthTiles ||
+		Height != screenHeightTiles)
+	{
+		Width = screenWidthTiles;
+		Height = screenHeightTiles;
+		Solids.resize(Width * Height);
+
+		UnloadRenderTexture(Texture);
+		WaitTime(.1);
+		Texture = LoadRenderTexture(Width, Height);
+	}
 	Scal::MemSet(Solids.data(), 0, sizeof(float) * Solids.size());
 
-	int halfWidth = (int)(Width / 2);
-	int halfHeight = (int)(Height / 2);
-	//StartPos.x = pos.x - halfWidth;
-	//StartPos.y = pos.y - halfHeight;
-	//EndPos.x = pos.x + halfWidth;
-	//EndPos.y = pos.y + halfHeight;
-	StartPos.x = (int)roundf(GetGameApp()->Game->CurScreenRect.x / 16.);
-	StartPos.y = (int)roundf(GetGameApp()->Game->CurScreenRect.y / 16.);
-	EndPos.x = StartPos.x + (int)(Width);
-	EndPos.y = StartPos.y + (int)(Height);
-	LightMapBounds.x = (float)StartPos.x;
-	LightMapBounds.y = (float)StartPos.y;
-	LightMapBounds.width = (float)EndPos.x - (float)StartPos.x;
-	LightMapBounds.height = (float)EndPos.y - (float)StartPos.x;
+	int screenXTiles = (int)roundf(screenRect.x / 16.0f);
+	int screenYTiles = (int)roundf(screenRect.y / 16.0f);
+	StartPos.x = screenXTiles;
+	StartPos.y = screenYTiles;
+	EndPos.x = screenXTiles + screenWidthTiles;
+	EndPos.y = screenYTiles + screenHeightTiles;
+
+	constexpr float ratio = 0.2f;
+	float expandWidth = Width * ratio;
+	float expandHeight = Height * ratio;
+	LightMapBounds.x = screenRect.x - expandWidth;
+	LightMapBounds.y = screenRect.y - expandHeight;
+	LightMapBounds.width = screenRect.width + expandWidth;
+	LightMapBounds.height = screenRect.height + expandHeight;
 }
 
 void LightMap::AddLight(const LightSource& light)
 {
 	LightSources.push_back(light);
-	//Vector2i tilePos = Vec2fToVec2i(light.Position);
-	//Vector2i offset = tilePos;
-	//size_t index = offset.x + offset.y * GetGameApp()->Game->World.ChunkedTileMap.BoundsEnd.x;
-	//// TODO strength
-	//auto t = ChunkedTileMap::GetTile(&GetGameApp()->Game->World.ChunkedTileMap,
-	//	tilePos.x, tilePos.y);
-	//if (!t) return;
-	//t->TileColor = light.Color;
-	/*LightLevels[index].x = light.Color.r;
-	LightLevels[index].y = light.Color.g;
-	LightLevels[index].z = light.Color.b;*/
 }
 
 Color LightMap::GetLight(Vector2i pos) const
@@ -193,16 +228,6 @@ Color LightMap::GetLight(Vector2i pos) const
 		&GetGameApp()->Game->World.ChunkedTileMap, pos);
 	if (!t) return WHITE;
 	return t->TileColor;
-
-	//Vector2i offset = pos;
-	//size_t index = offset.x + offset.y * GetGameApp()->Game->World.ChunkedTileMap.BoundsEnd.x;
-	//const auto& vec3 = LightLevels[index];
-	//Color c;
-	//c.r = vec3.x;
-	//c.g = vec3.y;
-	//c.b = vec3.z;
-	//c.a = 1.0f;
-	//return c;
 }
 
 void SightMap::Initialize(uint16_t width, uint16_t height)
@@ -214,8 +239,8 @@ void SightMap::Initialize(uint16_t width, uint16_t height)
 
 bool SightMap::IsInBounds(Vector2i pos) const
 {
-	return (pos.x >= StartPos.x && pos.y >= StartPos.y &&
-		pos.x <= EndPos.x && pos.y <= EndPos.y);
+	return (pos.x > StartPos.x && pos.y > StartPos.y &&
+		pos.x < EndPos.x && pos.y < EndPos.y);
 }
 
 void SightMap::Update(World* world, Vector2i pos)

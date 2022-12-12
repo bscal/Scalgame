@@ -17,8 +17,6 @@ bool WorldInitialize(World* world, GameApplication* gameApp)
 		{ 16, 16 }, { 0, 0 }, { 2, 2 }, { 32, 32 });
 
 	world->EntityMgr.CreatePlayer(world);
-
-	world->LightMap.Initialize(1600 / 16, 900 / 16);
 	world->SightMap.Initialize(112, 80);
 
 	TileMgrInitialize(&world->TileMgr,
@@ -30,6 +28,9 @@ bool WorldInitialize(World* world, GameApplication* gameApp)
 
 void WorldLoad(World* world, Game* game)
 {
+	int screenWidthTiles = (int)floorf(game->CurScreenRect.width / 16.0f);
+	int screenHeightTiles = (int)floorf(game->CurScreenRect.height / 16.0f);
+	world->LightMap.Initialize(screenWidthTiles, screenHeightTiles);
 	CTileMap::Update(&world->ChunkedTileMap, game);
 
 	world->IsLoaded = true;
@@ -51,7 +52,7 @@ void WorldFree(World* world)
 void WorldUpdate(World* world, Game* game)
 {
 	const auto& playerTilePos = GetClientPlayer()->Transform.TilePos;
-	world->LightMap.UpdatePositions(playerTilePos);
+	//world->LightMap.UpdatePositions(playerTilePos);
 	world->LightMap.Update(world);
 
 	GetGameApp()->NumOfChunksUpdated = 0;
@@ -72,11 +73,11 @@ void WorldUpdate(World* world, Game* game)
 void LateWorldUpdate(World* world, Game* game)
 {
 	Rectangle rect;
-	rect.x = world->LightMap.StartPos.x * 16.0f;
-	rect.y = world->LightMap.StartPos.y * 16.0f;
-	rect.width = world->LightMap.Width * 16.0f;
-	rect.height = world->LightMap.Height * 16.0f;
-	DrawRectangleLinesEx(rect, 4, ORANGE);
+	rect.x = roundf((float)world->LightMap.StartPos.x * 16.0f);
+	rect.y = roundf((float)world->LightMap.StartPos.y * 16.0f);
+	rect.width = roundf((float)world->LightMap.Width * 16.0f);
+	rect.height = roundf((float)world->LightMap.Height * 16.0f);
+	DrawRectangleLinesEx(game->CurScreenRect, 4, ORANGE);
 }
 
 bool CanMoveToTile(World* world, Vector2i position)
