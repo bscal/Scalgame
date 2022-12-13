@@ -101,8 +101,7 @@ void LightMap::LateUpdate(World* world)
 void LightMap::BuildLightMap()
 {
 	BeginTextureMode(Texture);
-	SetTextureFilter(Texture.texture, TEXTURE_FILTER_POINT);
-	ClearBackground({0,0,0,0});
+	ClearBackground({});
 	for (int y = 0; y < Height; ++y)
 	{
 		for (int x = 0; x < Width; ++x)
@@ -112,14 +111,8 @@ void LightMap::BuildLightMap()
 			if (f == 1.f)
 				c = RED;
 			else
-				c = { 0, 0, 0, 0 };
-
-			Rectangle r;
-			r.x = floorf((float)x);
-			r.y = floorf((float)y);
-			r.width = 1.0f;
-			r.height = 1.0f;
-			DrawRectangleRec(r, c);
+				c = {};
+			DrawRectangle(x, y, 1, 1, c);
 		}
 	}
 	EndTextureMode();
@@ -166,7 +159,7 @@ void LightMap::CastRays(World* world,
 
 bool LightMap::IsInBounds(Vector2i pos) const
 {
-	return (pos.x > StartPos.x && pos.y > StartPos.y &&
+	return (pos.x >= StartPos.x && pos.y >= StartPos.y &&
 		pos.x < EndPos.x && pos.y < EndPos.y);
 }
 
@@ -185,8 +178,8 @@ void LightMap::UpdatePositions(Vector2i pos)
 {
 	const Rectangle& screenRect = GetGameApp()->Game->CurScreenRect;
 
-	int screenWidthTiles = (int)roundf(screenRect.width / 16.0f);
-	int screenHeightTiles = (int)roundf(screenRect.height / 16.0f);
+	int screenWidthTiles = (int)(screenRect.width / 16.0f);
+	int screenHeightTiles = (int)(screenRect.height / 16.0f);
 	
 	if (Width != screenWidthTiles ||
 		Height != screenHeightTiles)
@@ -201,8 +194,8 @@ void LightMap::UpdatePositions(Vector2i pos)
 	}
 	Scal::MemSet(Solids.data(), 0, sizeof(float) * Solids.size());
 
-	int screenXTiles = (int)roundf(screenRect.x / 16.0f);
-	int screenYTiles = (int)roundf(screenRect.y / 16.0f);
+	int screenXTiles = (int)(screenRect.x / 16.0f);
+	int screenYTiles = (int)(screenRect.y / 16.0f);
 	StartPos.x = screenXTiles;
 	StartPos.y = screenYTiles;
 	EndPos.x = screenXTiles + screenWidthTiles;

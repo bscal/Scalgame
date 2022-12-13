@@ -19,8 +19,11 @@ struct Game
     bool IsFreeCam;
     World World;
     SpriteAtlas Atlas;
-    RenderTexture2D DrawTexture;
+    RenderTexture2D ScreenTexture;
+    RenderTexture2D ScreenLightMapTexture;
+    Rectangle CurWorldScreenRect;
     Rectangle CurScreenRect;
+    float CameraT;
     uint32_t Time;
 };
 
@@ -50,6 +53,7 @@ void SetCameraPosition(Game* game, Vector3 pos);
 void SetCameraDistance(Game* game, float zoom);
 Scal::Creature::Player* GetClientPlayer();
 float GetDeltaTime();
+float GetScale();
 
 internal void UpdateGame(Game* game, GameApplication* gameApp);
 internal bool InitializeGame(Game* game, GameApplication* gameApp);

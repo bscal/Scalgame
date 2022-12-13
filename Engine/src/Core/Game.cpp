@@ -16,7 +16,6 @@
 global_var GameApplication* GameAppPtr;
 
 // TODO
-global_var int Scale = -1;
 global_var int Size = -1;
 global_var int Tiles = -1;
 
@@ -31,14 +30,13 @@ SAPI bool GameApplication::Start()
 	const int screenWidth = 1600;
 	const int screenHeight = 900;
 	InitWindow(screenWidth, screenHeight, "Some roguelike game");
-	SetTargetFPS(60);
+	//SetTargetFPS(60);
 	SetTraceLogLevel(LOG_ALL);
 
 	GameAppPtr = this;
 
 	Resources = (struct Resources*)Scal::MemAllocZero(sizeof(struct Resources));
 	InitializeResources(Resources);
-	Scale = GetShaderLocation(Resources->LightShader, "Scale");
 	Size = GetShaderLocation(Resources->LightShader, "Size");
 	Tiles = GetShaderLocation(Resources->LightShader, "Tiles");
 
@@ -71,6 +69,7 @@ SAPI void GameApplication::Shutdown()
 	UnloadTexture(Resources->EntitySpriteSheet);
 	UnloadRenderTexture(Game->World.LightMap.Texture);
 	UnloadRenderTexture(Game->ScreenTexture);
+	UnloadRenderTexture(Game->ScreenLightMapTexture);
 	UnloadShader(Resources->LightShader);
 	UnloadShader(Resources->TileShader);
 	UnloadShader(Resources->LightRayShader);
@@ -127,7 +126,7 @@ SAPI void GameApplication::Run()
 			float mouseWheel = GetMouseWheelMove();
 			if (mouseWheel != 0)
 			{
-				SetCameraDistance(Game, mouseWheel);
+				//SetCameraDistance(Game, mouseWheel);
 			}
 
 			// Debug place tiles
@@ -162,81 +161,81 @@ SAPI void GameApplication::Run()
 		// ***************
 		// Render
 		// ***************
-		BeginDrawing();
-		ClearBackground(BLACK);
-
-		BeginMode2D(Game->Camera);
-		BeginShaderMode(Resources->TileShader);
-
-		//BeginMode3D(Game->Camera3D);
-		UpdateGame(Game, this);
-		WorldUpdate(&Game->World, Game);
-		LateWorldUpdate(&Game->World, Game);
-		
-		//EndMode3D();
-		EndShaderMode();
-		EndMode2D();
+		BeginTextureMode(Game->ScreenTexture);
+			ClearBackground(BLACK);
+			BeginShaderMode(Resources->TileShader);
+				UpdateGame(Game, this);
+				WorldUpdate(&Game->World, Game);
+				LateWorldUpdate(&Game->World, Game);
+			EndShaderMode();
+		EndTextureMode();
 
 		Game->World.LightMap.BuildLightMap();
 		Game->World.LightMap.UpdatePositions({});
 
+		const auto& shader = Resources->LightShader;
+		BeginTextureMode(Game->ScreenLightMapTexture);
+			BeginShaderMode(shader);
+				Vector2 size =
+				{
+					(float)GetScreenWidth(),
+					(float)GetScreenHeight()
+				};
+				SetShaderValue(shader, Size, &size, SHADER_UNIFORM_VEC2);
+				SetShaderValueTexture(shader, Tiles,
+					Game->World.LightMap.Texture.texture);
+
+				Rectangle rectSize
+				{
+					0.0f,
+					0.0f,
+					(float)GetScreenWidth(),
+					(float)GetScreenHeight()
+				};
+				DrawRectanglePro(rectSize, {}, 0.0f, WHITE);
+			EndShaderMode();
+		EndTextureMode();
+
+		BeginDrawing();
+
 		BeginMode2D(Game->Camera);
-		auto shader = Resources->LightShader;
-		BeginShaderMode(shader);
-		
-		//int Light = GetShaderLocation(shader, "Light");
-		//int TileCount = GetShaderLocation(shader, "TileCount");
-		//int TilesWidth = GetShaderLocation(shader, "TilesWidth");
-		//auto v = GetScreenToWorld2D(GetMousePosition(), Game->Camera);
-		//Vector3 light = { v.x, v.y, 5.0f };
-		//SetShaderValue(Resources->LightRayShader,
-			//Light, &light, SHADER_UNIFORM_VEC3);
-		Vector2 scale =
-		{
-			 Game->Camera.zoom,
-			 Game->Camera.zoom
-		};
-		SetShaderValue(shader, Scale, &scale, SHADER_UNIFORM_VEC2);
-		Vector2 size =
-		{
-			 (float)GetScreenWidth(),
-			 (float)GetScreenHeight()
-		};
-		SetShaderValue(shader, Size, &size, SHADER_UNIFORM_VEC2);
-		//int size = lm.Solids.size();
-		//SetShaderValue(shader, TileCount, &size, SHADER_UNIFORM_INT);
-		//int width = lm.EndPos.x;
-		//SetShaderValue(shader, TilesWidth, &width, SHADER_UNIFORM_INT);
-		//GenTextureMipmaps(&text.texture
-		SetShaderValueTexture(shader, Tiles, Game->World.LightMap.Texture.texture);
-		//DrawTexture(text.texture, lm.StartPos.x * 16, lm.StartPos.y * 16, WHITE);
+		ClearBackground(BLACK);
 
+		rlPushMatrix();
+		rlScalef(GetScale(), GetScale(), 1.0f);
+
+		Rectangle screenRect
+		{
+			0.0f,
+			0.0f,
+			(float)Game->ScreenTexture.texture.width,
+			-(float)Game->ScreenTexture.texture.height
+		};
 		Rectangle r = Game->CurScreenRect;
-		r.x = 0.0f;
-		r.y = 0.0f;
-		r.width = Game->World.LightMap.Width * 16.0f;
-		r.height = Game->World.LightMap.Height * 16.0f;
-		auto v = GetClientPlayer()->Transform.PosAsVec2();
+		r.height = -r.height;
+		DrawTextureRec(Game->ScreenTexture.texture, screenRect, {}, WHITE);
 
-		DrawRectanglePro(r, {}, 0.0f, {});
-		EndShaderMode();
-		DrawRectangleLinesEx(r, 4, PINK);
+		Rectangle lightmapRect
+		{
+			0.0f,
+			0.0f,
+			(float)GetScreenWidth(),
+			-(float)GetScreenHeight()
+		};
+		DrawTextureRec(Game->ScreenLightMapTexture.texture, lightmapRect, {}, WHITE);
+
+		rlPopMatrix();
 		EndMode2D();
 
 		// ***************
 		// UI
 		// ***************
-		//UpdateDebugWindow();
 		//BeginShaderMode(Resources.SDFFont.Shader);
-
 		RenderUI(UIState);
 
 		const double drawStart = GetTime();
 		EndDrawing();
 		RenderTime = GetTime() - drawStart;
-		//UnloadRenderTexture(text);
-
-		
 	}
 	IsRunning = false;
 }
@@ -251,6 +250,7 @@ GameApplication* const GetGameApp()
 
 Scal::Creature::Player* GetClientPlayer()
 {
+	assert(GetGameApp()->Game->World.EntityMgr.Players.size() > 0);
 	return &GetGameApp()->Game->World.EntityMgr.Players[0];
 }
 
@@ -293,6 +293,12 @@ float GetDeltaTime()
 	return GetFrameTime();
 }
 
+global_var float WorldScale = 2.0f;
+float GetScale()
+{
+	return WorldScale;
+}
+
 //void UpdateTime(GameApplication* gameApp, int timeChange)
 //{
 //    gameApp->Game->Time += timeChange;
@@ -311,40 +317,41 @@ internal void UpdateGame(Game* game, GameApplication* gameApp)
 	{
 		Vector2 from = camera.target;
 		Vector2 to = GetClientPlayer()->Transform.PosAsVec2();
-		float t;
-		if (Vector2Distance(from, to) < 2.5f)
-			t = 10.0f * GetDeltaTime();
-		else
-			t = 4.0f * GetDeltaTime();
-		Vector2 cameraPos = Vector2Lerp(from, to, t);
-		camera.target.x = floorf(cameraPos.x);
-		camera.target.y = floorf(cameraPos.y);
-		camera.offset.x = floorf((float)GetScreenWidth() / 2.0f);
-		camera.offset.y = floorf((float)GetScreenHeight() / 2.0f);
+		to = Vector2Multiply(to, { GetScale(), GetScale() });
+		game->CameraT += GetDeltaTime();
+		Vector2 cameraPos = Vector2Lerp(from, to, game->CameraT);
+		camera.target.x = cameraPos.x;
+		camera.target.y = cameraPos.y;
+		camera.offset.x = (float)GetScreenWidth() / 2.0f;
+		camera.offset.y = (float)GetScreenHeight() / 2.0f;
 	}
-	
-	/*game->CurScreenRect.x = floorf(
-		camera.target.x - camera.offset.x / camera.zoom);
-	game->CurScreenRect.y = floorf(
-		camera.target.y - camera.offset.y / camera.zoom);
-	game->CurScreenRect.width = roundf((float)GetScreenWidth() / camera.zoom);
-	game->CurScreenRect.height = roundf((float)GetScreenHeight() / camera.zoom);*/
-	auto v = GetScreenToWorld2D({ 0,0 }, game->Camera);
-	game->CurScreenRect.x = floorf(v.x);
-	game->CurScreenRect.y = floorf(v.y);
-	auto v2 = GetScreenToWorld2D(
-		{ (float)GetScreenWidth(),(float)GetScreenHeight() },
-		game->Camera);
-	game->CurScreenRect.width = floorf(v2.x - v.x);
-	game->CurScreenRect.height = floorf(v2.y - v.y);
+
+	Vector2 s0 = GetScreenToWorld2D(camera.target, camera);
+	Vector2 s1 = GetScreenToWorld2D({
+			16.0f * 32.0f * 4.0f,
+			16.0f * 32.0f * 3.0f
+		}, game->Camera);
+
+	game->CurScreenRect.x = 0;
+	game->CurScreenRect.y = 0;
+	game->CurScreenRect.width = (float)GetScreenWidth();
+	game->CurScreenRect.height = (float)GetScreenHeight();
+
+	game->CurWorldScreenRect.x = camera.target.x;
+	game->CurWorldScreenRect.y = camera.target.y;
+	game->CurWorldScreenRect.width = (float)GetScreenWidth();
+	game->CurWorldScreenRect.height = (float)GetScreenHeight();
 }
 
 internal bool InitializeGame(Game* game, GameApplication* gameApp)
 {
 	CALL_CONSTRUCTOR(game) Game();
 
-	game->ScreenTexture = LoadRenderTexture(GetScreenWidth(), GetScreenHeight());
 
+	int texW = 16 * 32 * 4;
+	int texH = 16 * 32 * 3;
+	game->ScreenTexture = LoadRenderTexture(texW, texH);
+	game->ScreenLightMapTexture = LoadRenderTexture(GetScreenWidth(), GetScreenHeight());
 	WorldInitialize(&game->World, gameApp);
 
 	#if Mode3D
@@ -358,7 +365,7 @@ internal bool InitializeGame(Game* game, GameApplication* gameApp)
 	SetCameraMode(game->Camera3D,
 		game->Camera3D.projection);
 	#else
-	game->Camera.zoom = 1.0;
+	game->Camera.zoom = 1.0f;
 	#endif
 	S_LOG_INFO("Game Initialized!");
 	return true;

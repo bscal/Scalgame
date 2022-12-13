@@ -14,7 +14,7 @@ bool WorldInitialize(World* world, GameApplication* gameApp)
 	world->TileCoordsInLOS.reserve(256);
 	world->EntityActionsList.Initialize();
 	CTileMap::Initialize(&world->ChunkedTileMap,
-		{ 16, 16 }, { 0, 0 }, { 2, 2 }, { 32, 32 });
+		{ 16, 16 }, { 0, 0 }, { 4, 4 }, { 32, 32 });
 
 	world->EntityMgr.CreatePlayer(world);
 	world->SightMap.Initialize(112, 80);
@@ -28,8 +28,8 @@ bool WorldInitialize(World* world, GameApplication* gameApp)
 
 void WorldLoad(World* world, Game* game)
 {
-	int screenWidthTiles = (int)floorf(game->CurScreenRect.width / 16.0f);
-	int screenHeightTiles = (int)floorf(game->CurScreenRect.height / 16.0f);
+	int screenWidthTiles = (int)GetScreenWidth() / 16;
+	int screenHeightTiles = (int)GetScreenHeight()  / 16;
 	world->LightMap.Initialize(screenWidthTiles, screenHeightTiles);
 	CTileMap::Update(&world->ChunkedTileMap, game);
 

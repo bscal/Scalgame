@@ -194,6 +194,8 @@ void UpdateChunk(ChunkedTileMap* tilemap,
 
 	GetGameApp()->NumOfChunksUpdated++;
 
+	Vector2 cS = GetWorldToScreen2D(game->Camera.target, game->Camera);
+
 	const auto& texture = game->Atlas.Texture;
 
 	float incrementX = (float)tilemap->TileSize.x;
@@ -211,7 +213,8 @@ void UpdateChunk(ChunkedTileMap* tilemap,
 				{ (int)(chunkX + x) / 16, (int)(chunkY + y) / 16 },
 				&tile);
 
-			Vector2 worldPos = { chunkX + x, chunkY + y };
+
+			Vector2 worldPos = { chunkX + x - cS.x, chunkY + y - cS.y };
 			DrawTextureRec(
 				texture,
 				tile.TextureRect,
