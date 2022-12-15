@@ -23,6 +23,9 @@ struct Game
     RenderTexture2D ScreenLightMapTexture;
     Rectangle CurWorldScreenRect;
     Rectangle CurScreenRect;
+    Vector2i ChunkOffset;
+    Vector2 ChunkOffsetStartPixel;
+    Vector2i ChunkViewDistance;
     float CameraT;
     uint32_t Time;
 };

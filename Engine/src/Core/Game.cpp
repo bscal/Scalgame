@@ -30,7 +30,7 @@ SAPI bool GameApplication::Start()
 	const int screenWidth = 1600;
 	const int screenHeight = 900;
 	InitWindow(screenWidth, screenHeight, "Some roguelike game");
-	//SetTargetFPS(60);
+	SetTargetFPS(60);
 	SetTraceLogLevel(LOG_ALL);
 
 	GameAppPtr = this;
@@ -164,9 +164,14 @@ SAPI void GameApplication::Run()
 		BeginTextureMode(Game->ScreenTexture);
 			ClearBackground(BLACK);
 			BeginShaderMode(Resources->TileShader);
+
+			BeginMode2D(Game->Camera);
+
 				UpdateGame(Game, this);
 				WorldUpdate(&Game->World, Game);
 				LateWorldUpdate(&Game->World, Game);
+
+			EndMode2D();
 			EndShaderMode();
 		EndTextureMode();
 
@@ -204,16 +209,28 @@ SAPI void GameApplication::Run()
 		rlPushMatrix();
 		rlScalef(GetScale(), GetScale(), 1.0f);
 
+		//Vector2 pos = Vector2Subtract(Game->Camera.target, Game->Camera.offset);
+		//pos = Vector2Divide(pos, { GetScale(), GetScale() });
+		Vector2 screenTopLeft = GetScreenToWorld2D({}, Game->Camera);
+
+		//Vector2 pos = Vector2Subtract(Game->Camera.target, Game->Camera.offset);
+		//pos = Vector2Divide(pos, {GetScale(), GetScale()});
 		Rectangle screenRect
 		{
 			0.0f,
 			0.0f,
-			(float)Game->ScreenTexture.texture.width,
-			-(float)Game->ScreenTexture.texture.height
+			(float)GetScreenWidth(),
+			(float)-GetScreenHeight()
 		};
-		Rectangle r = Game->CurScreenRect;
-		r.height = -r.height;
-		DrawTextureRec(Game->ScreenTexture.texture, screenRect, {}, WHITE);
+		Rectangle screenRect2
+		{
+			Game->Camera.target.x,
+			Game->Camera.target.y,
+			(float)GetScreenWidth(),
+			(float)GetScreenHeight()
+		};
+		DrawTexturePro(Game->ScreenTexture.texture, screenRect, screenRect2,
+			{ }, 0.0f, WHITE);
 
 		Rectangle lightmapRect
 		{
@@ -293,7 +310,7 @@ float GetDeltaTime()
 	return GetFrameTime();
 }
 
-global_var float WorldScale = 2.0f;
+global_var float WorldScale = 1.0f;
 float GetScale()
 {
 	return WorldScale;
@@ -317,7 +334,7 @@ internal void UpdateGame(Game* game, GameApplication* gameApp)
 	{
 		Vector2 from = camera.target;
 		Vector2 to = GetClientPlayer()->Transform.PosAsVec2();
-		to = Vector2Multiply(to, { GetScale(), GetScale() });
+		//to = Vector2Multiply(to, { GetScale(), GetScale() });
 		game->CameraT += GetDeltaTime();
 		Vector2 cameraPos = Vector2Lerp(from, to, game->CameraT);
 		camera.target.x = cameraPos.x;
@@ -326,7 +343,7 @@ internal void UpdateGame(Game* game, GameApplication* gameApp)
 		camera.offset.y = (float)GetScreenHeight() / 2.0f;
 	}
 
-	Vector2 s0 = GetScreenToWorld2D(camera.target, camera);
+	Vector2 s0 = GetScreenToWorld2D({}, camera);
 	Vector2 s1 = GetScreenToWorld2D({
 			16.0f * 32.0f * 4.0f,
 			16.0f * 32.0f * 3.0f
@@ -337,22 +354,32 @@ internal void UpdateGame(Game* game, GameApplication* gameApp)
 	game->CurScreenRect.width = (float)GetScreenWidth();
 	game->CurScreenRect.height = (float)GetScreenHeight();
 
-	game->CurWorldScreenRect.x = camera.target.x;
-	game->CurWorldScreenRect.y = camera.target.y;
+	game->CurWorldScreenRect.x = s0.x;
+	game->CurWorldScreenRect.y = s0.y;
 	game->CurWorldScreenRect.width = (float)GetScreenWidth();
 	game->CurWorldScreenRect.height = (float)GetScreenHeight();
+
+	float texW = game->ChunkViewDistance.x * game->World.ChunkedTileMap.ChunkSize.x
+		* game->World.ChunkedTileMap.TileSize.x;
+	float texH = game->ChunkViewDistance.y * game->World.ChunkedTileMap.ChunkSize.y
+		* game->World.ChunkedTileMap.TileSize.y;
+	float offsetX = camera.target.x / texW;
+	float offsetY = camera.target.y / texH;
+	game->ChunkOffset.x = (int)(game->CurWorldScreenRect.x / 16.0f);
+	game->ChunkOffset.y = (int)(game->CurWorldScreenRect.y / 16.0f);
+	game->ChunkOffsetStartPixel.x = offsetX;
+	game->ChunkOffsetStartPixel.y = offsetY;
 }
 
 internal bool InitializeGame(Game* game, GameApplication* gameApp)
 {
 	CALL_CONSTRUCTOR(game) Game();
 
-
-	int texW = 16 * 32 * 4;
-	int texH = 16 * 32 * 3;
-	game->ScreenTexture = LoadRenderTexture(texW, texH);
-	game->ScreenLightMapTexture = LoadRenderTexture(GetScreenWidth(), GetScreenHeight());
+	game->ChunkViewDistance = { 4, 3 };
 	WorldInitialize(&game->World, gameApp);
+
+	game->ScreenTexture = LoadRenderTexture(GetScreenWidth(), GetScreenHeight());
+	game->ScreenLightMapTexture = LoadRenderTexture(GetScreenWidth(), GetScreenHeight());
 
 	#if Mode3D
 	Camera3D camera = {};
@@ -366,6 +393,10 @@ internal bool InitializeGame(Game* game, GameApplication* gameApp)
 		game->Camera3D.projection);
 	#else
 	game->Camera.zoom = 1.0f;
+	//game->Camera.target.x = (float)GetScreenWidth() / 2.0f;
+	//game->Camera.target.y = (float)GetScreenHeight() / 2.0f;
+	game->Camera.offset.x = (float)GetScreenWidth() / 2.0f;
+	game->Camera.offset.y = (float)GetScreenHeight() / 2.0f;
 	#endif
 	S_LOG_INFO("Game Initialized!");
 	return true;

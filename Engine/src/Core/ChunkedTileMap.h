@@ -45,13 +45,14 @@ struct ChunkedTileMap
 	size_t ChunkTileCount;
 };
 
-void Initialize(ChunkedTileMap* tilemap,
+void Initialize(ChunkedTileMap* tilemap, Game* game,
 	Vector2i tileSize, Vector2i origin,
 	Vector2i worldDimChunks, Vector2i chunkSize);
 void Free(ChunkedTileMap* tilemap);
 
 void FindChunksInView(ChunkedTileMap* tilemap, Game* game);
 void Update(ChunkedTileMap* tilemap, Game* game);
+void Render(ChunkedTileMap* tilemap, Game* game);
 
 TileMapChunk* LoadChunk(ChunkedTileMap* tilemap,
 	ChunkCoord coord);

@@ -13,7 +13,7 @@ bool WorldInitialize(World* world, GameApplication* gameApp)
 	world->TileCoordsInLOS.max_load_factor(0.75f);
 	world->TileCoordsInLOS.reserve(256);
 	world->EntityActionsList.Initialize();
-	CTileMap::Initialize(&world->ChunkedTileMap,
+	CTileMap::Initialize(&world->ChunkedTileMap, gameApp->Game,
 		{ 16, 16 }, { 0, 0 }, { 4, 4 }, { 32, 32 });
 
 	world->EntityMgr.CreatePlayer(world);
@@ -68,16 +68,13 @@ void WorldUpdate(World* world, Game* game)
 
 	CTileMap::LateUpdateChunk(&world->ChunkedTileMap, game);
 	world->LightMap.LateUpdate(world);
+
 }
 
 void LateWorldUpdate(World* world, Game* game)
 {
-	Rectangle rect;
-	rect.x = roundf((float)world->LightMap.StartPos.x * 16.0f);
-	rect.y = roundf((float)world->LightMap.StartPos.y * 16.0f);
-	rect.width = roundf((float)world->LightMap.Width * 16.0f);
-	rect.height = roundf((float)world->LightMap.Height * 16.0f);
-	DrawRectangleLinesEx(game->CurScreenRect, 4, ORANGE);
+	DrawRectangleLinesEx(game->CurScreenRect, 8, ORANGE);
+	DrawRectangleLinesEx(game->CurWorldScreenRect, 4, PINK);
 }
 
 bool CanMoveToTile(World* world, Vector2i position)

@@ -19,7 +19,7 @@ typedef uint32_t ComponentId;
 struct Game;
 struct World;
 
-enum TileDirection
+enum TileDirection : uint8_t
 {
 	North,
 	East,

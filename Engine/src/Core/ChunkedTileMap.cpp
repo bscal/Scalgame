@@ -23,7 +23,7 @@ internal bool ChunkMapEquals(const ChunkCoord* lhs, const ChunkCoord* rhs)
 	return lhs->Equals(*rhs);
 }
 
-void Initialize(ChunkedTileMap* tilemap,
+void Initialize(ChunkedTileMap* tilemap, Game* game,
 	Vector2i tileSize, Vector2i origin,
 	Vector2i worldDimChunks, Vector2i chunkSize)
 {
@@ -64,8 +64,8 @@ void Initialize(ChunkedTileMap* tilemap,
 	tilemap->WorldDimTiles.y = tilemap->WorldDimChunks.y
 		* tilemap->ChunkSize.y;
 
-	tilemap->ViewDistance.x = 3.0f;
-	tilemap->ViewDistance.y = 2.0f;
+	tilemap->ViewDistance.x = game->ChunkViewDistance.x;
+	tilemap->ViewDistance.y = game->ChunkViewDistance.y;
 
 	tilemap->ChunkTileCount = tilemap->ChunkSize.x *
 		tilemap->ChunkSize.y;
@@ -140,7 +140,7 @@ void FindChunksInView(ChunkedTileMap* tilemap,
 	int endX = chunkCoord.x + (int)tilemap->ViewDistance.x;
 	int startY = chunkCoord.y - (int)tilemap->ViewDistance.y;
 	int endY = chunkCoord.y + (int)tilemap->ViewDistance.y;
-	for (int chunkY = startY; chunkY < endY; ++chunkY)
+ 	for (int chunkY = startY; chunkY < endY; ++chunkY)
 	{
 		for (int chunkX = startX; chunkX < endX; ++chunkX)
 		{
@@ -164,6 +164,7 @@ void Update(ChunkedTileMap* tilemap, Game* game)
 {
 	assert(tilemap);
 	assert(game);
+
 	for (uint64_t i = 0; i < tilemap->ChunksList.Length; ++i)
 	{
 		auto chunk = tilemap->ChunksList.PeekAtPtr(i);
@@ -173,6 +174,45 @@ void Update(ChunkedTileMap* tilemap, Game* game)
 		}
 	}
 	FindChunksInView(tilemap, game);
+	Render(tilemap, game);
+}
+
+#include "raymath.h"
+
+void Render(ChunkedTileMap* tilemap, Game* game)
+{
+	const auto& texture = game->Atlas.Texture;
+	const auto& screenCoord = GetClientPlayer()->Transform.TilePos;
+	Vector2i screenDims;
+	screenDims.x = (float)GetScreenWidth() / 16.0f;
+	screenDims.y = (float)GetScreenHeight() / 16.0f;
+	float offsetX = game->Camera.target.x - game->Camera.offset.x;
+	float offsetY = game->Camera.target.y - game->Camera.offset.y;
+	for (int y = 0; y < screenDims.y; ++y)
+	{
+		for (int x = 0; x < screenDims.x; ++x)
+		{
+			TileCoord coord = {
+				x + int(offsetX / 16.0f),
+				y + int(offsetY / 16.0f)
+			};
+			if (!IsTileInBounds(tilemap, coord)) continue;
+
+			const Tile* tile = GetTile(tilemap, coord);
+			assert(tile);
+
+			Vector2 position
+			{
+				(float)(x * tilemap->TileSize.x),
+				(float)(y * tilemap->TileSize.y)
+			};
+			DrawTextureRec(
+				texture,
+				tile->TextureRect,
+				position,
+				tile->TileColor);
+		}
+	}
 }
 
 void LateUpdateChunk(ChunkedTileMap* tilemap, Game* game)
@@ -187,14 +227,13 @@ void LateUpdateChunk(ChunkedTileMap* tilemap, Game* game)
 	}
 }
 
+#include "raymath.h"
 void UpdateChunk(ChunkedTileMap* tilemap,
 	TileMapChunk* chunk, Game* game)
 {
 	assert(chunk->IsChunkGenerated);
 
 	GetGameApp()->NumOfChunksUpdated++;
-
-	Vector2 cS = GetWorldToScreen2D(game->Camera.target, game->Camera);
 
 	const auto& texture = game->Atlas.Texture;
 
@@ -213,13 +252,12 @@ void UpdateChunk(ChunkedTileMap* tilemap,
 				{ (int)(chunkX + x) / 16, (int)(chunkY + y) / 16 },
 				&tile);
 
-
-			Vector2 worldPos = { chunkX + x - cS.x, chunkY + y - cS.y };
-			DrawTextureRec(
-				texture,
-				tile.TextureRect,
-				worldPos,
-				tile.TileColor);
+			//Vector2 worldPos = { chunkX + x, chunkY + y };
+			//DrawTextureRec(
+			//	texture,
+			//	tile.TextureRect,
+			//	worldPos,
+			//	tile.TileColor);
 		}
 	}
 }
@@ -310,9 +348,9 @@ TileMapChunk* GetChunk(
 {
 	for (size_t i = 0; i < tilemap->ChunksList.Length; ++i)
 	{
-		const auto chunkPtr = tilemap->ChunksList.PeekAtPtr(i);
-		if (chunkPtr->ChunkCoord.Equals(coord))
-			return chunkPtr;
+		const auto& chunk = tilemap->ChunksList[i];
+		if (chunk.ChunkCoord.Equals(coord))
+			return &tilemap->ChunksList.Memory[i];
 	}
 	return nullptr;
 }
@@ -362,8 +400,7 @@ void SetTile(ChunkedTileMap* tilemap,
 	chunk->Tiles.Set(index, tile);
 }
 
-Tile* GetTile(ChunkedTileMap* tilemap,
-	TileCoord tilePos)
+Tile* GetTile(ChunkedTileMap* tilemap, TileCoord tilePos)
 {
 	ChunkCoord chunkCoord = TileToChunkCoord(tilemap, tilePos);
 	TileMapChunk* chunk = GetChunk(tilemap, chunkCoord);
