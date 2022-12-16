@@ -210,8 +210,10 @@ void SCreature::Update(::Game* game, float dt)
 	{
 		rect.width = -rect.width;
 	}
+	float offsetX = (game->Camera.offset.x);
+	float offsetY = (game->Camera.offset.y);
 	const auto sheet = GetGameApp()->Resources->EntitySpriteSheet;
-	DrawTextureRec(sheet, rect, { Transform.Pos.x, Transform.Pos.y }, WHITE);
+	DrawTextureRec(sheet, rect, { Transform.Pos.x, Transform.Pos.y}, WHITE);
 
 	// 
 	//texcoords[0] = { 0.0f, 1.0f }; // x, h

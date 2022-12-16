@@ -165,10 +165,18 @@ void Update(ChunkedTileMap* tilemap, Game* game)
 	assert(tilemap);
 	assert(game);
 
+	Rectangle screenRect
+	{
+		0.0f,
+		0.0f,
+		(float)GetScreenWidth(),
+		(float)GetScreenHeight()
+	};
+
 	for (uint64_t i = 0; i < tilemap->ChunksList.Length; ++i)
 	{
 		auto chunk = tilemap->ChunksList.PeekAtPtr(i);
-		if (CheckCollisionRecs(game->CurScreenRect, chunk->Bounds))
+		if (CheckCollisionRecs(screenRect, chunk->Bounds))
 		{
 			UpdateChunk(tilemap, chunk, game);
 		}
@@ -186,15 +194,15 @@ void Render(ChunkedTileMap* tilemap, Game* game)
 	Vector2i screenDims;
 	screenDims.x = (float)GetScreenWidth() / 16.0f;
 	screenDims.y = (float)GetScreenHeight() / 16.0f;
-	float offsetX = game->Camera.target.x - game->Camera.offset.x;
-	float offsetY = game->Camera.target.y - game->Camera.offset.y;
+	float offsetX = (game->Camera.offset.x) / 16.0f;
+	float offsetY = (game->Camera.offset.y) / 16.0f;
 	for (int y = 0; y < screenDims.y; ++y)
 	{
 		for (int x = 0; x < screenDims.x; ++x)
 		{
 			TileCoord coord = {
-				x + int(offsetX / 16.0f),
-				y + int(offsetY / 16.0f)
+				x + (screenCoord.x - offsetX),
+				y + (screenCoord.y - offsetY)
 			};
 			if (!IsTileInBounds(tilemap, coord)) continue;
 
@@ -203,8 +211,8 @@ void Render(ChunkedTileMap* tilemap, Game* game)
 
 			Vector2 position
 			{
-				(float)(x * tilemap->TileSize.x),
-				(float)(y * tilemap->TileSize.y)
+				(float)(coord.x * tilemap->TileSize.x),
+				(float)(coord.y * tilemap->TileSize.y)
 			};
 			DrawTextureRec(
 				texture,
@@ -247,17 +255,9 @@ void UpdateChunk(ChunkedTileMap* tilemap,
 		for (float x = 0.f; x < chunk->Bounds.width; x += incrementY)
 		{
 			const auto& tile = chunk->Tiles[i++];
-
 			game->World.LightMap.UpdateTile(&game->World,
 				{ (int)(chunkX + x) / 16, (int)(chunkY + y) / 16 },
 				&tile);
-
-			//Vector2 worldPos = { chunkX + x, chunkY + y };
-			//DrawTextureRec(
-			//	texture,
-			//	tile.TextureRect,
-			//	worldPos,
-			//	tile.TileColor);
 		}
 	}
 }

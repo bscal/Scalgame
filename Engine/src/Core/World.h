@@ -67,7 +67,7 @@ bool WorldInitialize(World* world, GameApplication* gameApp);
 void WorldLoad(World* world, Game* game);
 void WorldFree(World* world);
 void WorldUpdate(World* world, Game* game);
-void LateWorldUpdate(World* world, Game* game);
+void WorldLateUpdate(World* world, Game* game);
 bool CanMoveToTile(World* world, Vector2i position);
 bool WorldIsInBounds(World* world, Vector2i pos);
 void TurnEnd(World* world, Game* game, int timeChange);

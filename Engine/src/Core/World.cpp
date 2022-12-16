@@ -8,37 +8,42 @@
 
 bool WorldInitialize(World* world, GameApplication* gameApp)
 {
-	assert(world);
+	// TODO move
+	TileMgrInitialize(&world->TileMgr,
+		&gameApp->Game->Atlas);
 
 	world->TileCoordsInLOS.max_load_factor(0.75f);
 	world->TileCoordsInLOS.reserve(256);
 	world->EntityActionsList.Initialize();
-	CTileMap::Initialize(&world->ChunkedTileMap, gameApp->Game,
-		{ 16, 16 }, { 0, 0 }, { 4, 4 }, { 32, 32 });
-
 	world->EntityMgr.CreatePlayer(world);
 	world->SightMap.Initialize(112, 80);
 
-	TileMgrInitialize(&world->TileMgr,
-		&gameApp->Game->Atlas);
+	CTileMap::Initialize(&world->ChunkedTileMap, gameApp->Game,
+		{ 16, 16 }, { 0, 0 }, { 4, 4 }, { 32, 32 });
 
+	S_LOG_INFO("[ WORLD ] Successfully initialized world!");
 	world->IsInitialized = true;
-	return true;
+	return world->IsInitialized;
 }
 
 void WorldLoad(World* world, Game* game)
 {
-	int screenWidthTiles = (int)GetScreenWidth() / 16;
-	int screenHeightTiles = (int)GetScreenHeight()  / 16;
+	// TODO hardcoded, would like to figure out nicer way
+	// to handle ChunkedTileMap and Game initalized values.
+	// TileMapParams struct? or store in Game?
+	int screenWidthTiles = game->CurScreenRect.width / 16;
+	int screenHeightTiles = game->CurScreenRect.height / 16;
 	world->LightMap.Initialize(screenWidthTiles, screenHeightTiles);
 	CTileMap::Update(&world->ChunkedTileMap, game);
 
 	world->IsLoaded = true;
+	S_LOG_INFO("[ WORLD ] World loaded!");
 }
 
 void WorldFree(World* world)
 {
-	if (!world)
+	assert(world);
+	if (!world->IsInitialized || !world->IsLoaded)
 	{
 		S_LOG_ERR("Trying to unload a null world");
 		return;
@@ -59,7 +64,7 @@ void WorldUpdate(World* world, Game* game)
 	CTileMap::Update(&world->ChunkedTileMap, game);
 
 	const double drawStart = GetTime();
-	world->SightMap.Update(world, playerTilePos);
+	//world->SightMap.Update(world, playerTilePos);
 	GetGameApp()->LOSTime = GetTime() - drawStart;
 	GetGameApp()->NumOfLoadedChunks = 
 		world->ChunkedTileMap.ChunksList.Length;
@@ -67,14 +72,13 @@ void WorldUpdate(World* world, Game* game)
 	world->EntityMgr.Update(game, GetDeltaTime());
 
 	CTileMap::LateUpdateChunk(&world->ChunkedTileMap, game);
-	world->LightMap.LateUpdate(world);
+	//world->LightMap.LateUpdate(world);
 
 }
 
-void LateWorldUpdate(World* world, Game* game)
+void WorldLateUpdate(World* world, Game* game)
 {
 	DrawRectangleLinesEx(game->CurScreenRect, 8, ORANGE);
-	DrawRectangleLinesEx(game->CurWorldScreenRect, 4, PINK);
 }
 
 bool CanMoveToTile(World* world, Vector2i position)

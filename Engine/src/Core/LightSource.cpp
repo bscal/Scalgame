@@ -76,11 +76,11 @@ void LightMap::Update(World* world)
 		const auto& light = LightSources[i];
 		if (CheckCollisionPointRec(light.Position, LightMapBounds))
 		{
-			GetSurroundingTilesRadius(world,
-				light,
-				Fill);
+			//GetSurroundingTilesRadius(world,
+				//light,
+				//Fill);
 
-			CastRays(world, light, 12);
+			//CastRays(world, light, 12);
 		}
 	}
 }

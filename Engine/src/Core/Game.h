@@ -16,18 +16,19 @@ struct Game
     #else
     Camera2D Camera;
     #endif
-    bool IsFreeCam;
-    World World;
+
     SpriteAtlas Atlas;
     RenderTexture2D ScreenTexture;
     RenderTexture2D ScreenLightMapTexture;
-    Rectangle CurWorldScreenRect;
+    
+    World World;
+    
     Rectangle CurScreenRect;
-    Vector2i ChunkOffset;
-    Vector2 ChunkOffsetStartPixel;
+    Vector2i HalfWidthHeight;
     Vector2i ChunkViewDistance;
     float CameraT;
     uint32_t Time;
+    bool IsFreeCam;
 };
 
 struct GameApplication
@@ -42,6 +43,7 @@ struct GameApplication
     int NumOfChunksUpdated;
 
     float DeltaTime;
+    float Scale;
     bool IsInitialized;
     bool IsRunning;
     bool IsSuspended;
@@ -58,9 +60,9 @@ Scal::Creature::Player* GetClientPlayer();
 float GetDeltaTime();
 float GetScale();
 
+internal void LoadScreen(GameApplication* gameApp, int width, int height);
 internal void UpdateGame(Game* game, GameApplication* gameApp);
 internal bool InitializeGame(Game* game, GameApplication* gameApp);
-
+internal void FreeGame(Game* game);
 
 void UpdateTime(GameApplication* gameApp, int timeChange);
-
