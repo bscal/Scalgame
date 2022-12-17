@@ -50,7 +50,7 @@ void MemClear(void* block, size_t size)
 }
 
 
-constexpr global_var const char* MemoryTagStrings[MaxTags] =
+constexpr static const char* MemoryTagStrings[MaxTags] =
 {
 	"Unknown",
 	"Array",
@@ -60,7 +60,7 @@ constexpr global_var const char* MemoryTagStrings[MaxTags] =
 	"Resources",
 };
 
-global_var uint32_t MemoryTagUsage[MaxTags] = {};
+static uint32_t MemoryTagUsage[MaxTags] = {};
 
 void* MemAllocTag(size_t size, MemoryTag tag)
 {

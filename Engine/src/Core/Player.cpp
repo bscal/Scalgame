@@ -63,7 +63,7 @@ void Player::HandleInput(::Game* game, float dt)
 			Transform.Pos.x = floorf((float)moved.x) * 16.0f;
 			Transform.Pos.y = floorf((float)moved.y) * 16.0f;
 			HasMoved = true;
-			game->CameraT = 0.0f;
+			game->CameraLerpTime = 0.0f;
 		}
 		LookDirection = inputMoveDir;
 	}

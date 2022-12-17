@@ -11,8 +11,7 @@ static_assert(sizeof(size_t) == sizeof(uint64_t),
 
 #define Mode3D false
 #define internal static
-#define local_persist static
-#define global_var static
+#define persistent static
 
 typedef int bool32;
 

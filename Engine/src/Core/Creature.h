@@ -30,7 +30,7 @@ enum TileDirection : uint8_t
 
 constexpr float Radian = 6.283185;
 
-constexpr global_var float
+constexpr static float
 TileDirectionToTurns[TileDirection::MaxDirs] =
 { Radian * 0.75f, 0.0f, Radian * 0.25f, Radian * 0.5f };
 
@@ -47,12 +47,9 @@ namespace Creature
 
 struct EntityTransform
 {
-	Vector3 Pos;
-	Vector3 Scale;
+	Vector2 Pos;
 	Vector2i TilePos;
 	float Rotation;
-
-	inline Vector2 PosAsVec2() const { return { Pos.x, Pos.y }; }
 };
 
 struct TextureInfo
@@ -86,7 +83,7 @@ Vector2 TileDirToVec2(TileDirection dir);
 
 struct Player;
 
-global_var uint32_t SNextComponentId;
+static uint32_t SNextComponentId;
 
 template<typename T>
 struct SComponent

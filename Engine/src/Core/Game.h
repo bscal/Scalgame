@@ -26,7 +26,7 @@ struct Game
     Rectangle CurScreenRect;
     Vector2i HalfWidthHeight;
     Vector2i ChunkViewDistance;
-    float CameraT;
+    float CameraLerpTime;
     uint32_t Time;
     bool IsFreeCam;
 };
@@ -55,14 +55,15 @@ struct GameApplication
 
 GameApplication* const GetGameApp();
 void SetCameraPosition(Game* game, Vector3 pos);
-void SetCameraDistance(Game* game, float zoom);
+void SetCameraDistance(GameApplication* gameApp, float zoom);
 Scal::Creature::Player* GetClientPlayer();
 float GetDeltaTime();
 float GetScale();
+
+Vector2 ScaleWorldVec2(Vector2 vec);
+Vector2i ScaleWorldVec2i(Vector2i vec);
 
 internal void LoadScreen(GameApplication* gameApp, int width, int height);
 internal void UpdateGame(Game* game, GameApplication* gameApp);
 internal bool InitializeGame(Game* game, GameApplication* gameApp);
 internal void FreeGame(Game* game);
-
-void UpdateTime(GameApplication* gameApp, int timeChange);

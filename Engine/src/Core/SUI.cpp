@@ -98,6 +98,7 @@ internal nk_colorf ColorToNuklearF(Color color)
 void UpdateUI(UIState* state)
 {
 	nk_input_begin(&state->Ctx);
+
 	nk_input_motion(&state->Ctx, GetMouseX(), GetMouseY());
 	nk_input_button(&state->Ctx, NK_BUTTON_LEFT, GetMouseX(), GetMouseY(),
 		IsMouseButtonDown(MOUSE_LEFT_BUTTON));
@@ -165,7 +166,7 @@ void UpdateUI(UIState* state)
 		nk_layout_row_dynamic(&state->Ctx, 16, 2);
 		nk_label(&state->Ctx, "Zoom: ", NK_TEXT_LEFT);
 		nk_label(&state->Ctx,
-			std::to_string(GetGameApp()->Game->Camera.zoom).c_str(), NK_TEXT_LEFT);
+			std::to_string(GetGameApp()->Scale).c_str(), NK_TEXT_LEFT);
 
 		nk_layout_row_dynamic(&state->Ctx, 16, 2);
 		nk_label(&state->Ctx, "WH: ", NK_TEXT_LEFT);

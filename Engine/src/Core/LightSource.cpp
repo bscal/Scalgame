@@ -12,8 +12,8 @@
 #define LIGHT_MAP_UNIFORM_COUNT "LightMapCount"
 #define LIGHT_MAP_UNIFORM "LightMap"
 
-global_var int LightMapUniformCountId = -1;
-global_var int LightMapUniformArrayId = -1;
+static int LightMapUniformCountId = -1;
+static int LightMapUniformArrayId = -1;
 
 void LightingInitialize(GameApplication* gameApp, LightMap* lightMap)
 {

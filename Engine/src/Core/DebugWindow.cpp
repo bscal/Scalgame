@@ -17,7 +17,7 @@ struct DebugWindowState
     bool IsInitialized;
 };
 
-global_var DebugWindowState WindowState;
+static DebugWindowState WindowState;
 
 void InitiailizeDebugWindow(Font* font, float x, float y, Color color)
 {

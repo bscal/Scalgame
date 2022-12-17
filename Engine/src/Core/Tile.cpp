@@ -11,6 +11,9 @@ void TileMgrInitialize(TileMgr* tileMgr, SpriteAtlas* spriteAtlas)
 	RegisterTile(tileMgr, "Tile1", TileType::Floor);
 	RegisterTile(tileMgr, "Tile2", TileType::Floor);
 	RegisterTile(tileMgr, "Tile3", TileType::Solid);
+	RegisterTile(tileMgr, "Tile4", TileType::Floor);
+	RegisterTile(tileMgr, "Tile5", TileType::Solid);
+	RegisterTile(tileMgr, "Tile6", TileType::Solid);
 
 	S_LOG_INFO("TileManager Initialized! %d tiles registered.",
 		tileMgr->NextTileId);

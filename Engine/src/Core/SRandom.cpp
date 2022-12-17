@@ -122,7 +122,7 @@ void SRandJump(SRandom* state)
 {
 	assert(state);
 
-	local_persist const uint64_t JUMP[] =
+	constexpr static uint64_t JUMP[] =
 	{
 		0x180ec6d33cfd0aba,
 		0xd5a61266f0c9392c,
@@ -158,7 +158,7 @@ void SRandLongJump(SRandom* state)
 {
 	assert(state);
 
-	local_persist const uint64_t LONG_JUMP[] =
+	constexpr static uint64_t LONG_JUMP[] =
 	{
 		0x76e15d3efefdcbbf,
 		0xc5004e441c522fb3,
@@ -242,7 +242,7 @@ void X128PlusJump(X128PlusRandom* state)
 {
 	assert(state);
 
-	local_persist const uint64_t JUMP[] =
+	constexpr static uint64_t JUMP[] =
 	{ 0xdf900294d8f554a5, 0x170865df4b3201fc };
 
 	uint64_t s0 = 0;
@@ -269,7 +269,7 @@ void X128PlusLongJump(X128PlusRandom* state)
 {
 	assert(state);
 
-	local_persist const uint64_t LONG_JUMP[] =
+	constexpr static uint64_t LONG_JUMP[] =
 	{ 0xd2a98b26625eee7b, 0xdddf9b1090aa7ac1 };
 
 	uint64_t s0 = 0;

@@ -12,7 +12,7 @@ namespace Scal
 namespace Creature
 {
 
-constexpr global_var Vector2 
+constexpr static Vector2
 PlayerFowardVectors[TileDirection::MaxDirs] =
 { { 0.0f, -1.0f }, { 1.0f, 0.0f }, { 0.0f, 1.0f }, { -1.0f, 0.0f } };
 

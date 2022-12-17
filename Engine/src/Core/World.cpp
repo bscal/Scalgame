@@ -67,7 +67,7 @@ void WorldUpdate(World* world, Game* game)
 	//world->SightMap.Update(world, playerTilePos);
 	GetGameApp()->LOSTime = GetTime() - drawStart;
 	GetGameApp()->NumOfLoadedChunks = 
-		world->ChunkedTileMap.ChunksList.Length;
+		(int)world->ChunkedTileMap.ChunksList.Length;
 
 	world->EntityMgr.Update(game, GetDeltaTime());
 

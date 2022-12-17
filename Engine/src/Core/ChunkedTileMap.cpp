@@ -11,7 +11,7 @@ namespace CTileMap
 {
 
 // TODO
-global_var SRandom Random;
+static SRandom Random;
 
 internal uint64_t ChunkMapHash(const ChunkCoord* key)
 {
@@ -52,10 +52,8 @@ void Initialize(ChunkedTileMap* tilemap, Game* game,
 
 	tilemap->TileSize = tileSize;
 	tilemap->Origin = origin;
-	tilemap->OriginTiles.x =
-		(float)(tilemap->Origin.x * tilemap->ChunkSize.x);
-	tilemap->OriginTiles.y =
-		(float)(tilemap->Origin.y * tilemap->ChunkSize.y);
+	tilemap->OriginTiles.x = tilemap->Origin.x * tilemap->ChunkSize.x;
+	tilemap->OriginTiles.y = tilemap->Origin.y * tilemap->ChunkSize.y;
 	tilemap->WorldDimChunks = worldDimChunks;
 	tilemap->ChunkSize = chunkSize;
 
@@ -72,14 +70,10 @@ void Initialize(ChunkedTileMap* tilemap, Game* game,
 
 	tilemap->WorldBounds.x = tilemap->OriginTiles.x * tilemap->TileSize.x;
 	tilemap->WorldBounds.y = tilemap->OriginTiles.x * tilemap->TileSize.y;
-	tilemap->WorldBounds.width =
-		tilemap->WorldDimChunks.x
-		* tilemap->ChunkSize.x
-		* tilemap->TileSize.x;
-	tilemap->WorldBounds.height =
-		tilemap->WorldDimChunks.y
-		* tilemap->ChunkSize.y
-		* tilemap->TileSize.y;
+	tilemap->WorldBounds.width = (float)(tilemap->WorldDimChunks.x
+		* tilemap->ChunkSize.x * tilemap->TileSize.x);
+	tilemap->WorldBounds.height = (float)(tilemap->WorldDimChunks.y
+		* tilemap->ChunkSize.y * tilemap->TileSize.y);
 
 	tilemap->ChunkBounds.x = 0.0f;
 	tilemap->ChunkBounds.y = 0.0f;
@@ -184,16 +178,15 @@ void Update(ChunkedTileMap* tilemap, Game* game)
 	FindChunksInView(tilemap, game);
 	Render(tilemap, game);
 }
-
 #include "raymath.h"
-
 void Render(ChunkedTileMap* tilemap, Game* game)
 {
 	const auto& texture = game->Atlas.Texture;
-	const auto& screenCoord = GetClientPlayer()->Transform.TilePos;
+	auto& screenCoord = GetClientPlayer()->Transform.TilePos;
 	Vector2i screenDims;
 	screenDims.x = (float)GetScreenWidth() / 16.0f;
 	screenDims.y = (float)GetScreenHeight() / 16.0f;
+	auto screenTopLeft = GetScreenToWorld2D({}, game->Camera);
 	float offsetX = (game->Camera.offset.x) / 16.0f;
 	float offsetY = (game->Camera.offset.y) / 16.0f;
 	for (int y = 0; y < screenDims.y; ++y)
@@ -201,8 +194,8 @@ void Render(ChunkedTileMap* tilemap, Game* game)
 		for (int x = 0; x < screenDims.x; ++x)
 		{
 			TileCoord coord = {
-				x + (screenCoord.x - offsetX),
-				y + (screenCoord.y - offsetY)
+				((x + screenCoord.x) - (int)offsetX) / GetScale(),
+				((y + screenCoord.y) - (int)offsetY) / GetScale()
 			};
 			if (!IsTileInBounds(tilemap, coord)) continue;
 

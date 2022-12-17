@@ -11,7 +11,7 @@
 
 struct GameApplication;
 
-global_var uint32_t NextComponentId;
+static uint32_t NextComponentId;
 
 struct EntityHandle
 {
