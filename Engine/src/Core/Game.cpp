@@ -169,11 +169,11 @@ SAPI void GameApplication::Run()
 			ClearBackground(BLACK);
 			BeginShaderMode(Resources->TileShader);
 
-			BeginMode2D(Game->Camera);
+			//BeginMode2D(Game->Camera);
 				UpdateGame(Game, this);
 				WorldUpdate(&Game->World, Game);
 				WorldLateUpdate(&Game->World, Game);
-			EndMode2D();
+			//EndMode2D();
 
 			EndShaderMode();
 		EndTextureMode();
@@ -216,17 +216,24 @@ SAPI void GameApplication::Run()
 				(float)GetScreenWidth(), (float)-GetScreenHeight()
 			};
 			auto screenTopLeft = GetScreenToWorld2D({}, Game->Camera);
-			auto v = Vector2Divide(Vector2Subtract(Game->Camera.target, Game->Camera.offset), { GetScale(), GetScale() });
+			
+			auto& screenCoord = GetClientPlayer()->Transform.Pos;
+			auto v = GetWorldToScreen2D(screenCoord, Game->Camera);
+			float offsetX = (Game->Camera.target.x - Game->Camera.offset.x) ;
+			float offsetY = (Game->Camera.target.y - Game->Camera.offset.x);
+			Vector2i screenTopLeft2 = { screenCoord.x , screenCoord.y };
 			Rectangle screenRect
 			{
-				(v.x),
-				(v.y),
+				(offsetX),
+				(offsetY),
 				(float)GetScreenWidth(),
 				(float)GetScreenHeight()
 			};
 			DrawTexturePro(Game->ScreenTexture.texture,
 				drawRect, screenRect,
 				{}, 0.0f, WHITE);
+
+			DrawCircle(0, 0, 5.0f, RED);
 
 			//DrawRectangleRec(screenRect, { 155, 0, 0, 155 });
 
@@ -353,10 +360,11 @@ internal void UpdateGame(Game* game, GameApplication* gameApp)
 		else game->CameraLerpTime += GetDeltaTime();
 
 		const auto& playerPos = GetClientPlayer()->Transform.Pos;
+		//auto v = GetScreenToWorld2D(playerPos, camera);
 		const auto& from = camera.target;
 		auto to = Vector2Multiply(playerPos, { GetScale(), GetScale() });
 		auto cameraPos = Vector2Lerp(from, to, game->CameraLerpTime);
-		camera.target = cameraPos;
+		camera.target = {};
 	}
 
 	auto v = Vector2Divide(Vector2Subtract(camera.target, camera.offset), {GetScale(), GetScale()});
@@ -393,7 +401,7 @@ internal bool InitializeGame(Game* game, GameApplication* gameApp)
 	SetCameraMode(game->Camera3D, game->Camera3D.projection);
 	#else
 	game->Camera.zoom = 1.0f;
-	gameApp->Scale = 2.0f;
+	gameApp->Scale = 1.0f;
 	#endif
 
 	assert(game->Camera.zoom > 0.0f);
