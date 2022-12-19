@@ -16,6 +16,7 @@
 #include "rlgl.h"
 
 static GameApplication* GameAppPtr;
+static bool IsShowingDebugUi = true;
 
 // TODO
 static int Size = -1;
@@ -161,22 +162,46 @@ SAPI void GameApplication::Run()
 				testAction.ActionFunction = TestActionFunc;
 				AddAction(&Game->World, &testAction);
 			}
+
+			if (IsKeyPressed(KEY_GRAVE))
+			{
+				IsShowingDebugUi = !IsShowingDebugUi;
+			}
 		}
 
-		UpdateUI(UIState);
+		if (IsShowingDebugUi)
+		{
+			UpdateUI(UIState);
+		}
+
+		BeginShaderMode(Resources->TileShader);
 
 		BeginTextureMode(Game->ScreenTexture);
-			ClearBackground(BLACK);
-			BeginShaderMode(Resources->TileShader);
-
-			//BeginMode2D(Game->Camera);
-				UpdateGame(Game, this);
-				WorldUpdate(&Game->World, Game);
-				WorldLateUpdate(&Game->World, Game);
-			//EndMode2D();
-
-			EndShaderMode();
+			ClearBackground({});
+			UpdateGame(Game, this);
+			WorldUpdate(&Game->World, Game);
+			WorldLateUpdate(&Game->World, Game);
 		EndTextureMode();
+
+		BeginTextureMode(Game->ScreenMapTexture);
+			ClearBackground(BLACK);
+			WorldMapDraw(&Game->World, Game);
+		EndTextureMode();
+		
+		EndShaderMode();
+
+		//BeginTextureMode(Game->ScreenTexture);
+		//	ClearBackground(BLACK);
+		//	BeginShaderMode(Resources->TileShader);
+
+		//	//BeginMode2D(Game->Camera);
+		//		UpdateGame(Game, this);
+		//		WorldUpdate(&Game->World, Game);
+		//		WorldLateUpdate(&Game->World, Game);
+		//	//EndMode2D();
+
+		//	EndShaderMode();
+		//EndTextureMode();
 
 		Game->World.LightMap.BuildLightMap();
 		Game->World.LightMap.UpdatePositions({});
@@ -217,21 +242,23 @@ SAPI void GameApplication::Run()
 			};
 			auto screenTopLeft = GetScreenToWorld2D({}, Game->Camera);
 			
+			DrawTextureRec(Game->ScreenMapTexture.texture,
+				drawRect, screenTopLeft, WHITE);
+
 			auto& screenCoord = GetClientPlayer()->Transform.Pos;
 			auto v = GetWorldToScreen2D(screenCoord, Game->Camera);
-			float offsetX = (Game->Camera.target.x - Game->Camera.offset.x) ;
-			float offsetY = (Game->Camera.target.y - Game->Camera.offset.x);
-			Vector2i screenTopLeft2 = { screenCoord.x , screenCoord.y };
+			float offsetX = (Game->Camera.offset.x);
+			float offsetY = (Game->Camera.offset.y);
+			Vector2i screenTopLeft2 = { v.x , v.y };
 			Rectangle screenRect
 			{
-				(offsetX),
-				(offsetY),
+				screenTopLeft.x,
+				screenTopLeft.y,
 				(float)GetScreenWidth(),
 				(float)GetScreenHeight()
 			};
 			DrawTexturePro(Game->ScreenTexture.texture,
-				drawRect, screenRect,
-				{}, 0.0f, WHITE);
+				drawRect, screenRect, {}, 0.0f, WHITE);
 
 			DrawCircle(0, 0, 5.0f, RED);
 
@@ -337,12 +364,12 @@ internal void LoadScreen(GameApplication* gameApp, int width, int height)
 	game->CurScreenRect.height = (float)height;
 
 	UnloadRenderTexture(game->ScreenTexture);
+	UnloadRenderTexture(game->ScreenMapTexture);
 	UnloadRenderTexture(game->ScreenLightMapTexture);
 
-	game->ScreenTexture =
-		LoadRenderTexture(width, height);
-	game->ScreenLightMapTexture =
-		LoadRenderTexture(width, height);
+	game->ScreenTexture = LoadRenderTexture(width, height);
+	game->ScreenMapTexture = LoadRenderTexture(width, height);
+	game->ScreenLightMapTexture = LoadRenderTexture(width, height);
 
 	Vector2 size = { (float)width, (float)height };
 	SetShaderValue(gameApp->Resources->LightShader,
@@ -360,11 +387,11 @@ internal void UpdateGame(Game* game, GameApplication* gameApp)
 		else game->CameraLerpTime += GetDeltaTime();
 
 		const auto& playerPos = GetClientPlayer()->Transform.Pos;
-		//auto v = GetScreenToWorld2D(playerPos, camera);
+		auto v = GetWorldToScreen2D(playerPos, camera);
 		const auto& from = camera.target;
 		auto to = Vector2Multiply(playerPos, { GetScale(), GetScale() });
 		auto cameraPos = Vector2Lerp(from, to, game->CameraLerpTime);
-		camera.target = {};
+		camera.target = cameraPos;
 	}
 
 	auto v = Vector2Divide(Vector2Subtract(camera.target, camera.offset), {GetScale(), GetScale()});
@@ -414,6 +441,7 @@ internal bool InitializeGame(Game* game, GameApplication* gameApp)
 internal void FreeGame(Game* game)
 {
 	UnloadRenderTexture(game->ScreenTexture);
+	UnloadRenderTexture(game->ScreenMapTexture);
 	UnloadRenderTexture(game->ScreenLightMapTexture);
 	game->Atlas.Unload();
 	WorldFree(&game->World);

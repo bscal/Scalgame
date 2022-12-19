@@ -6,7 +6,7 @@
 
 #include <assert.h>
 
-bool WorldInitialize(World* world, GameApplication* gameApp)
+void WorldInitialize(World* world, GameApplication* gameApp)
 {
 	// TODO move
 	TileMgrInitialize(&world->TileMgr,
@@ -23,7 +23,6 @@ bool WorldInitialize(World* world, GameApplication* gameApp)
 
 	S_LOG_INFO("[ WORLD ] Successfully initialized world!");
 	world->IsInitialized = true;
-	return world->IsInitialized;
 }
 
 void WorldLoad(World* world, Game* game)
@@ -54,6 +53,11 @@ void WorldFree(World* world)
 	world->EntityActionsList.Free();
 }
 
+void WorldMapDraw(World* world, Game* game)
+{
+	CTileMap::Update(&world->ChunkedTileMap, game);
+}
+
 void WorldUpdate(World* world, Game* game)
 {
 	const auto& playerTilePos = GetClientPlayer()->Transform.TilePos;
@@ -61,7 +65,7 @@ void WorldUpdate(World* world, Game* game)
 	world->LightMap.Update(world);
 
 	GetGameApp()->NumOfChunksUpdated = 0;
-	CTileMap::Update(&world->ChunkedTileMap, game);
+	//CTileMap::Update(&world->ChunkedTileMap, game);
 
 	const double drawStart = GetTime();
 	//world->SightMap.Update(world, playerTilePos);

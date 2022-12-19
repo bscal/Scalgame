@@ -204,16 +204,14 @@ internal Rectangle RectToTextCoords(const Texture2D& texture,
 
 void SCreature::Update(::Game* game, float dt)
 {
+	const auto& sheet = GetGameApp()->Resources->EntitySpriteSheet;
 	Rectangle rect = TextureInfo.Rect;
 	if (LookDirection == TileDirection::West ||
 		LookDirection == TileDirection::South)
 	{
 		rect.width = -rect.width;
 	}
-	float offsetX = (game->Camera.offset.x);
-	float offsetY = (game->Camera.offset.y);
-	Vector2 ws = GetWorldToScreen2D(Transform.Pos, game->Camera);
-	const auto sheet = GetGameApp()->Resources->EntitySpriteSheet;
+	Vector2 drawPosSS = GetWorldToScreen2D(Transform.Pos, game->Camera);
 	DrawTextureRec(sheet, rect, Transform.Pos, WHITE);
 
 	// 

@@ -63,9 +63,10 @@ struct Action
 	int16_t Cost;
 };
 
-bool WorldInitialize(World* world, GameApplication* gameApp);
+void WorldInitialize(World* world, GameApplication* gameApp);
 void WorldLoad(World* world, Game* game);
 void WorldFree(World* world);
+void WorldMapDraw(World* world, Game* game);
 void WorldUpdate(World* world, Game* game);
 void WorldLateUpdate(World* world, Game* game);
 bool CanMoveToTile(World* world, Vector2i position);

@@ -178,26 +178,26 @@ void Update(ChunkedTileMap* tilemap, Game* game)
 	FindChunksInView(tilemap, game);
 	Render(tilemap, game);
 }
-#include "raymath.h"
+
 void Render(ChunkedTileMap* tilemap, Game* game)
 {
 	const auto& texture = game->Atlas.Texture;
 	auto& screenCoord = GetClientPlayer()->Transform.Pos;
-	auto v = GetWorldToScreen2D(screenCoord, game->Camera);
+	//auto v = GetWorldToScreen2D(screenCoord, game->Camera);
 	Vector2i screenDims;
 	screenDims.x = (float)GetScreenWidth() / 16.0f ;
 	screenDims.y = (float)GetScreenHeight() / 16.0f;
 	auto screenTopLeft = GetScreenToWorld2D({}, game->Camera);
-	float offsetX = (game->Camera.target.x) / 16.0f;
-	float offsetY = (game->Camera.target.y) / 16.0f;
+	float offsetX = (game->Camera.offset.x) / 16.0f;
+	float offsetY = (game->Camera.offset.y) / 16.0f;
 	Vector2i screenTopLeft2 = { screenCoord.x / 16.0f, screenCoord.y / 16.0f};
 	for (int y = 0; y < screenDims.y; ++y)
 	{
 		for (int x = 0; x < screenDims.x; ++x)
 		{
 			TileCoord coord = {
-				x + (int)(screenTopLeft2.x),
-				y + (int)(screenTopLeft2.y)
+				x + (int)(screenTopLeft2.x - offsetX),
+				y + (int)(screenTopLeft2.y - offsetY)
 			};
 			if (!IsTileInBounds(tilemap, coord)) continue;
 

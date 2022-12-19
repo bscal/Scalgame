@@ -185,6 +185,16 @@ void UpdateUI(UIState* state)
 		swh += ", ";
 		swh += std::to_string(GetGameApp()->Game->CurScreenRect.height);
 		nk_label(&state->Ctx, swh.c_str(), NK_TEXT_LEFT);
+
+		nk_layout_row_dynamic(&state->Ctx, 16, 2);
+		nk_label(&state->Ctx, "Pos: ", NK_TEXT_LEFT);
+		Vector2 pos = GetGameApp()->Game->Camera.target;
+		std::string str;
+		str.reserve(16);
+		str += std::to_string(pos.x);
+		str += ", ";
+		str += std::to_string(pos.y);
+		nk_label(&state->Ctx, str.c_str(), NK_TEXT_LEFT);
 	}
 	nk_end(&state->Ctx);
 
