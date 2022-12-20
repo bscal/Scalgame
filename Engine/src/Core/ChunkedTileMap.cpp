@@ -185,8 +185,8 @@ void Render(ChunkedTileMap* tilemap, Game* game)
 	auto& screenCoord = GetClientPlayer()->Transform.Pos;
 	//auto v = GetWorldToScreen2D(screenCoord, game->Camera);
 	Vector2i screenDims;
-	screenDims.x = (float)GetScreenWidth() / 16.0f ;
-	screenDims.y = (float)GetScreenHeight() / 16.0f;
+	screenDims.x = (float)GetRenderWidth() / 16.0f ;
+	screenDims.y = (float)GetRenderHeight() / 16.0f;
 	auto screenTopLeft = GetScreenToWorld2D({}, game->Camera);
 	float offsetX = (game->Camera.offset.x) / 16.0f;
 	float offsetY = (game->Camera.offset.y) / 16.0f;
@@ -196,8 +196,8 @@ void Render(ChunkedTileMap* tilemap, Game* game)
 		for (int x = 0; x < screenDims.x; ++x)
 		{
 			TileCoord coord = {
-				x + (int)(screenTopLeft2.x - offsetX),
-				y + (int)(screenTopLeft2.y - offsetY)
+				x + (int)((screenCoord.x / 16.0f - offsetX)),
+				y + (int)((screenCoord.y / 16.0f - offsetY))
 			};
 			if (!IsTileInBounds(tilemap, coord)) continue;
 
@@ -206,8 +206,8 @@ void Render(ChunkedTileMap* tilemap, Game* game)
 
 			Vector2 position
 			{
-				(float)(x * tilemap->TileSize.x),
-				(float)(y * tilemap->TileSize.y)
+				(float)(coord.x * tilemap->TileSize.x),
+				(float)(coord.y * tilemap->TileSize.y)
 			};
 			DrawTextureRec(
 				texture,

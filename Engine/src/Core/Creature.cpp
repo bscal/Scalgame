@@ -211,8 +211,9 @@ void SCreature::Update(::Game* game, float dt)
 	{
 		rect.width = -rect.width;
 	}
-	Vector2 drawPosSS = GetWorldToScreen2D(Transform.Pos, game->Camera);
-	DrawTextureRec(sheet, rect, Transform.Pos, WHITE);
+	Vector2 pos = Transform.Pos;
+	//Vector2 drawPosSS = GetWorldToScreen2D(Transform.Pos, game->Camera);
+	DrawTextureRec(sheet, rect, pos, WHITE);
 
 	// 
 	//texcoords[0] = { 0.0f, 1.0f }; // x, h

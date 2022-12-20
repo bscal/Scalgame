@@ -15,6 +15,7 @@ struct Game
     Camera3D Camera;
     #else
     Camera2D Camera;
+    Camera2D ViewCamera;
     #endif
 
     SpriteAtlas Atlas;
@@ -25,7 +26,7 @@ struct Game
     World World;
     
     Rectangle CurScreenRect;
-    Vector2i HalfWidthHeight;
+    Vector2 HalfWidthHeight;
     Vector2i ChunkViewDistance;
     float CameraLerpTime;
     uint32_t Time;
