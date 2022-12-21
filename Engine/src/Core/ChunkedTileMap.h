@@ -52,7 +52,8 @@ void Free(ChunkedTileMap* tilemap);
 
 void FindChunksInView(ChunkedTileMap* tilemap, Game* game);
 void Update(ChunkedTileMap* tilemap, Game* game);
-void Render(ChunkedTileMap* tilemap, Game* game);
+
+internal void Draw(ChunkedTileMap* tilemap, Game* game);
 
 TileMapChunk* LoadChunk(ChunkedTileMap* tilemap,
 	ChunkCoord coord);

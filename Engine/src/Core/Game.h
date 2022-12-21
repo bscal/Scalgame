@@ -14,13 +14,12 @@ struct Game
     #if Mode3D
     Camera3D Camera;
     #else
-    Camera2D Camera;
-    Camera2D ViewCamera;
+    Camera2D WorldCamera; // Camera world to rendered at
+    Camera2D ViewCamera;  // Camera for viewport and scaled
     #endif
 
     SpriteAtlas Atlas;
     RenderTexture2D ScreenTexture;
-    RenderTexture2D ScreenMapTexture;
     RenderTexture2D ScreenLightMapTexture;
     
     World World;
@@ -40,7 +39,6 @@ struct GameApplication
     UIState* UIState;
 
     double RenderTime;
-    double LOSTime;
     int NumOfLoadedChunks;
     int NumOfChunksUpdated;
 

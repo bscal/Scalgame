@@ -138,11 +138,6 @@ void UpdateUI(UIState* state)
 			std::to_string(GetGameApp()->RenderTime * 1000).c_str(), NK_TEXT_LEFT);
 
 		nk_layout_row_dynamic(&state->Ctx, 16, 2);
-		nk_label(&state->Ctx, "LOSTime: ", NK_TEXT_LEFT);
-		nk_label(&state->Ctx, 
-			std::to_string(GetGameApp()->LOSTime * 1000).c_str(), NK_TEXT_LEFT);
-	
-		nk_layout_row_dynamic(&state->Ctx, 16, 2);
 		nk_label(&state->Ctx, "#LoadedChunks: ", NK_TEXT_LEFT);
 		nk_label(&state->Ctx,
 			std::to_string(GetGameApp()->NumOfLoadedChunks).c_str(), NK_TEXT_LEFT);
@@ -167,34 +162,6 @@ void UpdateUI(UIState* state)
 		nk_label(&state->Ctx, "Zoom: ", NK_TEXT_LEFT);
 		nk_label(&state->Ctx,
 			std::to_string(GetGameApp()->Scale).c_str(), NK_TEXT_LEFT);
-
-		nk_layout_row_dynamic(&state->Ctx, 16, 2);
-		nk_label(&state->Ctx, "WH: ", NK_TEXT_LEFT);
-		std::string wh;
-		wh.reserve(16);
-		wh += std::to_string(GetScreenWidth());
-		wh += ", ";
-		wh += std::to_string(GetScreenHeight());
-		nk_label(&state->Ctx, wh.c_str(), NK_TEXT_LEFT);
-
-		nk_layout_row_dynamic(&state->Ctx, 16, 2);
-		nk_label(&state->Ctx, "SWH: ", NK_TEXT_LEFT);
-		std::string swh;
-		swh.reserve(32);
-		swh += std::to_string(GetGameApp()->Game->CurScreenRect.width);
-		swh += ", ";
-		swh += std::to_string(GetGameApp()->Game->CurScreenRect.height);
-		nk_label(&state->Ctx, swh.c_str(), NK_TEXT_LEFT);
-
-		nk_layout_row_dynamic(&state->Ctx, 16, 2);
-		nk_label(&state->Ctx, "Pos: ", NK_TEXT_LEFT);
-		Vector2 pos = GetGameApp()->Game->Camera.target;
-		std::string str;
-		str.reserve(16);
-		str += std::to_string(pos.x);
-		str += ", ";
-		str += std::to_string(pos.y);
-		nk_label(&state->Ctx, str.c_str(), NK_TEXT_LEFT);
 	}
 	nk_end(&state->Ctx);
 

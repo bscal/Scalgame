@@ -53,36 +53,20 @@ void WorldFree(World* world)
 	world->EntityActionsList.Free();
 }
 
-void WorldMapDraw(World* world, Game* game)
-{
-	CTileMap::Update(&world->ChunkedTileMap, game);
-}
-
 void WorldUpdate(World* world, Game* game)
 {
-	const auto& playerTilePos = GetClientPlayer()->Transform.TilePos;
-	//world->LightMap.UpdatePositions(playerTilePos);
-	world->LightMap.Update(world);
-
 	GetGameApp()->NumOfChunksUpdated = 0;
-	//CTileMap::Update(&world->ChunkedTileMap, game);
 
-	const double drawStart = GetTime();
-	//world->SightMap.Update(world, playerTilePos);
-	GetGameApp()->LOSTime = GetTime() - drawStart;
-	GetGameApp()->NumOfLoadedChunks = 
-		(int)world->ChunkedTileMap.ChunksList.Length;
-
+	CTileMap::Update(&world->ChunkedTileMap, game);
+	world->LightMap.Update(world);
 	world->EntityMgr.Update(game, GetDeltaTime());
 
 	CTileMap::LateUpdateChunk(&world->ChunkedTileMap, game);
-	//world->LightMap.LateUpdate(world);
+	
+	//DrawRectangleLinesEx(game->CurScreenRect, 8, ORANGE);
 
-}
-
-void WorldLateUpdate(World* world, Game* game)
-{
-	DrawRectangleLinesEx(game->CurScreenRect, 8, ORANGE);
+	GetGameApp()->NumOfLoadedChunks = 
+		(int)world->ChunkedTileMap.ChunksList.Length;
 }
 
 bool CanMoveToTile(World* world, Vector2i position)

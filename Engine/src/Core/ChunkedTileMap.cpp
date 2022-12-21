@@ -3,7 +3,10 @@
 #include "Game.h"
 #include "SRandom.h"
 #include "SUtil.h"
+
 #include "Structures/SLinkedList.h"
+
+#include "raymath.h"
 
 #include <assert.h>
 
@@ -159,12 +162,11 @@ void Update(ChunkedTileMap* tilemap, Game* game)
 	assert(tilemap);
 	assert(game);
 
+	Vector2 offset = Vector2Subtract(game->WorldCamera.target, game->WorldCamera.offset);
 	Rectangle screenRect
 	{
-		0.0f,
-		0.0f,
-		(float)GetScreenWidth(),
-		(float)GetScreenHeight()
+		offset.x, offset.y,
+		(float)GetScreenWidth(), (float)GetScreenHeight()
 	};
 
 	for (uint64_t i = 0; i < tilemap->ChunksList.Length; ++i)
@@ -176,28 +178,28 @@ void Update(ChunkedTileMap* tilemap, Game* game)
 		}
 	}
 	FindChunksInView(tilemap, game);
-	Render(tilemap, game);
+	Draw(tilemap, game);
 }
 
-void Render(ChunkedTileMap* tilemap, Game* game)
+internal void Draw(ChunkedTileMap* tilemap, Game* game)
 {
 	const auto& texture = game->Atlas.Texture;
-	auto& screenCoord = GetClientPlayer()->Transform.Pos;
-	//auto v = GetWorldToScreen2D(screenCoord, game->Camera);
-	Vector2i screenDims;
-	screenDims.x = (float)GetRenderWidth() / 16.0f ;
-	screenDims.y = (float)GetRenderHeight() / 16.0f;
-	auto screenTopLeft = GetScreenToWorld2D({}, game->Camera);
-	float offsetX = (game->Camera.offset.x) / 16.0f;
-	float offsetY = (game->Camera.offset.y) / 16.0f;
-	Vector2i screenTopLeft2 = { screenCoord.x / 16.0f, screenCoord.y / 16.0f};
+	Vector2i tileSize = tilemap->TileSize;
+	Vector2i screenCoord = GetClientPlayer()->Transform.TilePos;
+	Vector2i screenDims
+	{
+		GetRenderWidth() / tileSize.x,
+		GetRenderHeight() / tileSize.y
+	};
+	float offsetX = (game->WorldCamera.offset.x) / (float)tileSize.x;
+	float offsetY = (game->WorldCamera.offset.y) / (float)tileSize.y;
 	for (int y = 0; y < screenDims.y; ++y)
 	{
 		for (int x = 0; x < screenDims.x; ++x)
 		{
 			TileCoord coord = {
-				x + (int)((screenCoord.x / 16.0f - offsetX)),
-				y + (int)((screenCoord.y / 16.0f - offsetY))
+				x + (int)((float)screenCoord.x - offsetX),
+				y + (int)((float)screenCoord.y - offsetY)
 			};
 			if (!IsTileInBounds(tilemap, coord)) continue;
 
@@ -206,8 +208,8 @@ void Render(ChunkedTileMap* tilemap, Game* game)
 
 			Vector2 position
 			{
-				(float)(coord.x * tilemap->TileSize.x),
-				(float)(coord.y * tilemap->TileSize.y)
+				(float)(coord.x * tileSize.x),
+				(float)(coord.y * tileSize.y)
 			};
 			DrawTextureRec(
 				texture,
@@ -230,7 +232,6 @@ void LateUpdateChunk(ChunkedTileMap* tilemap, Game* game)
 	}
 }
 
-#include "raymath.h"
 void UpdateChunk(ChunkedTileMap* tilemap,
 	TileMapChunk* chunk, Game* game)
 {
