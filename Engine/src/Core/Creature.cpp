@@ -7,11 +7,6 @@
 #include "SMemory.h"
 #include <raymath.h>
 
-namespace Scal
-{
-namespace Creature
-{
-
 constexpr static Vector2
 PlayerFowardVectors[TileDirection::MaxDirs] =
 { { 0.0f, -1.0f }, { 1.0f, 0.0f }, { 0.0f, 1.0f }, { -1.0f, 0.0f } };
@@ -22,7 +17,6 @@ Vector2 TileDirToVec2(TileDirection dir)
 	assert(dir < TileDirection::MaxDirs);
 	return PlayerFowardVectors[dir];
 }
-
 
 internal void InternalRemoveEntity(EntityMgr* mgr, uint32_t entityId)
 {
@@ -56,31 +50,25 @@ internal void ProcessRemoveEntities(EntityMgr* mgr)
 	mgr->EntitiesToRemove.clear();
 }
 
-#define ESTIMATED_ENTITIES 32
-EntityMgr::EntityMgr()
-	: EntityMap(),
-	Players(),
-	Creatures(),
-	EntitiesToRemove(),
-	NextEntityId(0)
+void EntityMgr::Initialize(Game* game)
 {
 	EntityMap.reserve(ESTIMATED_ENTITIES);
 	Players.reserve(1);
 	Creatures.reserve(ESTIMATED_ENTITIES);
 	EntitiesToRemove.reserve(8);
-	S_LOG_INFO("Entity Manager Initialized!");
+	S_LOG_INFO("[ Entity Manager ] Initialized!");
 }
 
-void EntityMgr::Update(::Game* game, float dt)
+void EntityMgr::Update(Game* game)
 {
 	for (size_t i = 0; i < Players.size(); ++i)
 	{
-		Players[i].UpdatePlayer(game, dt);
-		Players[i].Update(game, dt);
+		Players[i].UpdatePlayer(game);
+		Players[i].Update(game);
 	}
 	for (size_t i = 0; i < Creatures.size(); ++i)
 	{
-		Creatures[i].Update(game, dt);
+		Creatures[i].Update(game);
 	}
 
 	ProcessRemoveEntities(this);
@@ -139,6 +127,7 @@ SCreature& EntityMgr::CreatureCreature(::World* world)
 
 void EntityMgr::RemoveEntity(uint32_t entityId)
 {
+	assert(entityId != CREATURE_EMPTY_ENTITY_ID);
 	if (entityId == CREATURE_EMPTY_ENTITY_ID)
 	{
 		S_LOG_ERR("Cannot remove empty entity!");
@@ -163,13 +152,13 @@ SCreature* EntityMgr::FindEntity(uint32_t id)
 	if (findResult == EntityMap.end())
 		return nullptr;
 
-	const auto creatureCache = findResult->second;
+	const CreatureCache creatureCache = findResult->second;
 	if (creatureCache.IsPlayer)
 	{
 		return &(Players[creatureCache.Index]);
-	} else
+	}
+	else
 	{
-
 		return &(Creatures[creatureCache.Index]);
 	}
 }
@@ -189,6 +178,8 @@ ComponentMgr::ComponentMgr()
 {
 	Components.max_load_factor(COMPONENT_LOAD_FACTOR);
 	Components.reserve(CREATURE_MAX_COMPONENTS);
+
+	RegisterComponent<Human>(Human::ID);
 }
 
 internal Rectangle RectToTextCoords(const Texture2D& texture, 
@@ -202,7 +193,7 @@ internal Rectangle RectToTextCoords(const Texture2D& texture,
 	return result;
 }
 
-void SCreature::Update(::Game* game, float dt)
+void SCreature::Update(Game* game)
 {
 	const auto& sheet = GetGameApp()->Resources->EntitySpriteSheet;
 	Rectangle rect = TextureInfo.Rect;
@@ -211,60 +202,7 @@ void SCreature::Update(::Game* game, float dt)
 	{
 		rect.width = -rect.width;
 	}
-	Vector2 pos = Transform.Pos;
-	//Vector2 drawPosSS = GetWorldToScreen2D(Transform.Pos, game->Camera);
-	DrawTextureRec(sheet, rect, pos, WHITE);
-
-	// 
-	//texcoords[0] = { 0.0f, 1.0f }; // x, h
-	//texcoords[1] = { 0.0f, 0.0f }; // x, w
-	//texcoords[2] = { 1.0f, 0.0f }; // y, w
-	//texcoords[3] = { 1.0f, 1.0f }; // y, h
-	//Rectangle texCoords = RectToTextCoords(sheet, rect);
-	//Model.meshes[0].texcoords[0] = 0.0f;
-	//Model.meshes[0].texcoords[1] = texCoords.width;
-	//Model.meshes[0].texcoords[2] = 0.0f;
-	//Model.meshes[0].texcoords[3] = 0.0f;
-	//Model.meshes[0].texcoords[4] = texCoords.width;
-	//Model.meshes[0].texcoords[5] = 0.0f;
-	//Model.meshes[0].texcoords[6] = texCoords.width;
-	//Model.meshes[0].texcoords[7] = texCoords.width;
-	//int uvSize = sizeof(float) * 8;
-	//UpdateMeshBuffer(Model.meshes[0], 1, Model.meshes[0].texcoords, uvSize, 0);
-	////Matrix matrix = MatrixIdentity();
-	////MatrixTranslate(Transform.Pos.x, Transform.Pos.y, 0.1f);
-	////DrawMesh(Mesh, Mat, matrix);
-	//rlPushMatrix();
-	//if (b)
-	//{
-	//	rlRotatef(180.0f, 1.0, 0.0, 0.0);
-	//}
-	//DrawModel(Model, { Transform.Pos.x, Transform.Pos.y, 0.1f }, 1.0f, WHITE);
-	//rlPopMatrix();
-
-	//DrawModelEx(Model,
-	//	{ Transform.Pos.x, Transform.Pos.y, 0.1f },
-	//	{ 0, 1, 0 },
-	//	90.0f,
-	//	Vector3Zero(),
-	//	WHITE
-	//);
-	//DrawBillboardPro(
-	//	game->Camera3D,
-	//	sheet,
-	//	rect,
-	//	{ Transform.Pos.x, Transform.Pos.y, 0.1f },
-	//	{ 0.0f, 1.0f, 0.0f },
-	//	{ 16.0f, 16.0f },
-	//	{ 0.0f, 0.0f },
-	//	Transform.Rotation,
-	//	WHITE
-	//);
-}
-
-void Move(Vector2 newPos)
-{
-
+	DrawTextureRec(sheet, rect, Transform.Pos, WHITE);
 }
 
 void SCreature::Initialize(struct ::World* world)
@@ -272,17 +210,4 @@ void SCreature::Initialize(struct ::World* world)
 	WorldRef = world;
 	constexpr size_t size = sizeof(uint32_t) * CREATURE_MAX_COMPONENTS;
 	Scal::MemSet(&ComponentIndex, CREATURE_EMPTY_COMPONENT, size);
-
-	//Mesh = GenMeshPlaneXY(16.0f, 16.0f, 2, 2);
-	//Model = LoadModelFromMesh(Mesh);
-	//Mat = LoadMaterialDefault();
-	//Texture2D sheet = GetGameApp()->Resources->EntitySpriteSheet;
-	//SetMaterialTexture(&Mat, MATERIAL_MAP_DIFFUSE, sheet);
-	//Model.materials[0] = Mat;
-	//SetModelMeshMaterial(&Model, 0, 0);
-
-	//Pos = { 16.0f / 2.0f, 16.0f / 2.0f };
-}
-
-}
 }

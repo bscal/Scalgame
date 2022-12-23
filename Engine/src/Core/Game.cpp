@@ -363,7 +363,7 @@ GameApplication* const GetGameApp()
     return GameAppPtr;
 }
 
-Scal::Creature::Player* GetClientPlayer()
+Player* GetClientPlayer()
 {
 	assert(GetGameApp()->Game->World.EntityMgr.Players.size() > 0);
 	return &GetGameApp()->Game->World.EntityMgr.Players[0];

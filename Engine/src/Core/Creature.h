@@ -11,13 +11,16 @@
 
 typedef uint32_t ComponentId;
 
-#define CREATURE_EMPTY_ENTITY_ID UINT32_MAX
+#define CREATURE_START_ID 1
+#define CREATURE_EMPTY_ENTITY_ID 0
 #define CREATURE_EMPTY_COMPONENT UINT32_MAX
 #define CREATURE_MAX_COMPONENTS 32
 #define COMPONENT_LOAD_FACTOR 0.5f
+#define ESTIMATED_ENTITIES 32
 
 struct Game;
 struct World;
+struct Player;
 
 enum TileDirection : uint8_t
 {
@@ -40,16 +43,11 @@ constexpr float GetRadiansFromDirection(TileDirection dir)
 	return TileDirectionToTurns[dir];
 }
 
-namespace Scal
-{
-namespace Creature
-{
-
 struct EntityTransform
 {
 	Vector2 Pos;
 	Vector2i TilePos;
-	float Rotation;
+	float Rotation; // Degrees
 };
 
 struct TextureInfo
@@ -62,8 +60,6 @@ struct SCreature
 {
 	World* WorldRef;
 	uint32_t Id = CREATURE_EMPTY_ENTITY_ID;
-	uint32_t NetId;
-	uint32_t TypeId;
 	uint32_t ComponentIndex[CREATURE_MAX_COMPONENTS];
 	TextureInfo TextureInfo;
 	EntityTransform Transform;
@@ -72,16 +68,11 @@ struct SCreature
 	bool IsPlayer;
 	bool HasMoved;
 
-	void Update(::Game* game, float dt);
-
-	void Move(Vector2 newPos);
-
 	void Initialize(World* world);
+	void Update(Game* game);
 };
 
 Vector2 TileDirToVec2(TileDirection dir);
-
-struct Player;
 
 static uint32_t SNextComponentId;
 
@@ -94,16 +85,17 @@ struct SComponent
 template<typename T>
 const uint32_t SComponent<T>::ID = SNextComponentId++;
 
-struct SHealth : SComponent<SHealth>
+struct Human : SComponent<Human>
 {
-	uint32_t MaxHealth;
-	uint32_t Health;
+	uint32_t Age;
 };
 
 struct ComponentMgr
 {
-	std::unordered_map<ComponentId, SArray,
-		std::hash<ComponentId>, std::equal_to<ComponentId>,
+	std::unordered_map
+		<ComponentId, SArray,
+		std::hash<ComponentId>,
+		std::equal_to<ComponentId>,
 		SAllocator<std::pair<const ComponentId, SArray>>> Components;
 
 	ComponentMgr();
@@ -174,14 +166,12 @@ struct EntityMgr
 	ComponentMgr ComponentManager;
 	uint32_t NextEntityId;
 
-	EntityMgr();
-
-	void Update(::Game* game, float dt);
-
+	void Initialize(Game* game);
+	void Update(Game* game);
 	void RemoveEntity(uint32_t id);
 
-	Player& CreatePlayer(::World* world);
-	SCreature& CreatureCreature(::World* world);
+	Player& CreatePlayer(World* world);
+	SCreature& CreatureCreature(World* world);
 
 	Player* GetPlayer(uint32_t id);
 	SCreature* GetCreature(uint32_t id);
@@ -190,6 +180,3 @@ struct EntityMgr
 	size_t TotalEntities() const;
 	bool IsEmpty(const SCreature& entity) const;
 };
-
-}
-}

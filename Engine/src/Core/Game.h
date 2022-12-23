@@ -56,7 +56,7 @@ struct GameApplication
 GameApplication* const GetGameApp();
 void SetCameraPosition(Game* game, Vector3 pos);
 void SetCameraDistance(GameApplication* gameApp, float zoom);
-Scal::Creature::Player* GetClientPlayer();
+Player* GetClientPlayer();
 float GetDeltaTime();
 float GetScale();
 

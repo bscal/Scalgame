@@ -15,11 +15,21 @@ void WorldInitialize(World* world, GameApplication* gameApp)
 	world->TileCoordsInLOS.max_load_factor(0.75f);
 	world->TileCoordsInLOS.reserve(256);
 	world->EntityActionsList.Initialize();
-	world->EntityMgr.CreatePlayer(world);
 	world->SightMap.Initialize(112, 80);
 
 	CTileMap::Initialize(&world->ChunkedTileMap, gameApp->Game,
 		{ 16, 16 }, { 0, 0 }, { 4, 4 }, { 32, 32 });
+
+	Player& player = world->EntityMgr.CreatePlayer(world);
+	Human human = {};
+	human.Age = 30;
+	world->EntityMgr.ComponentManager.AddComponent(&player, &human);
+
+	Human* playerHuman = world->EntityMgr.ComponentManager
+		.GetComponent<Human>(&player, Human::ID);
+
+	S_LOG_INFO("[ WORLD ] players age is %d from componentId: %d",
+		playerHuman->Age, playerHuman->ID);
 
 	S_LOG_INFO("[ WORLD ] Successfully initialized world!");
 	world->IsInitialized = true;
@@ -59,11 +69,9 @@ void WorldUpdate(World* world, Game* game)
 
 	CTileMap::Update(&world->ChunkedTileMap, game);
 	world->LightMap.Update(world);
-	world->EntityMgr.Update(game, GetDeltaTime());
+	world->EntityMgr.Update(game);
 
 	CTileMap::LateUpdateChunk(&world->ChunkedTileMap, game);
-	
-	//DrawRectangleLinesEx(game->CurScreenRect, 8, ORANGE);
 
 	GetGameApp()->NumOfLoadedChunks = 
 		(int)world->ChunkedTileMap.ChunksList.Length;

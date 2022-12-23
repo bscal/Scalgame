@@ -3,7 +3,6 @@
 #include "Core.h"
 #include "ChunkedTileMap.h"
 #include "TileMapUtils.h"
-#include "Entity.h"
 #include "Creature.h"
 #include "LightSource.h"
 #include "Structures/SList.h"
@@ -43,7 +42,7 @@ struct Equals
 struct World
 {
 	CTileMap::ChunkedTileMap ChunkedTileMap;
-	Scal::Creature::EntityMgr EntityMgr;
+	EntityMgr EntityMgr;
 	SList<Action> EntityActionsList;
 	std::unordered_set<Vector2i,
 		Hash, Equals, SAllocator<Vector2i>> TileCoordsInLOS;
