@@ -193,13 +193,15 @@ internal void Draw(ChunkedTileMap* tilemap, Game* game)
 	};
 	float offsetX = (game->WorldCamera.offset.x) / (float)tileSize.x;
 	float offsetY = (game->WorldCamera.offset.y) / (float)tileSize.y;
+	int tileOffsetX = (int)((float)screenCoord.x - offsetX);
+	int tileOffsetY = (int)((float)screenCoord.y - offsetY);
 	for (int y = 0; y < screenDims.y; ++y)
 	{
 		for (int x = 0; x < screenDims.x; ++x)
 		{
 			TileCoord coord = {
-				x + (int)((float)screenCoord.x - offsetX),
-				y + (int)((float)screenCoord.y - offsetY)
+				x + tileOffsetX,
+				y + tileOffsetY
 			};
 			if (!IsTileInBounds(tilemap, coord)) continue;
 
@@ -239,23 +241,23 @@ void UpdateChunk(ChunkedTileMap* tilemap,
 
 	GetGameApp()->NumOfChunksUpdated++;
 
-	const auto& texture = game->Atlas.Texture;
+	//const auto& texture = game->Atlas.Texture;
 
-	float incrementX = (float)tilemap->TileSize.x;
-	float incrementY = (float)tilemap->TileSize.y;
-	float chunkX = chunk->Bounds.x;
-	float chunkY = chunk->Bounds.y;
-	int i = 0;
-	for (float y = 0.f; y < chunk->Bounds.height; y += incrementX)
-	{
-		for (float x = 0.f; x < chunk->Bounds.width; x += incrementY)
-		{
-			const auto& tile = chunk->Tiles[i++];
-			game->World.LightMap.UpdateTile(&game->World,
-				{ (int)(chunkX + x) / 16, (int)(chunkY + y) / 16 },
-				&tile);
-		}
-	}
+	//float incrementX = (float)tilemap->TileSize.x;
+	//float incrementY = (float)tilemap->TileSize.y;
+	//float chunkX = chunk->Bounds.x;
+	//float chunkY = chunk->Bounds.y;
+	//int i = 0;
+	//for (float y = 0.f; y < chunk->Bounds.height; y += incrementX)
+	//{
+	//	for (float x = 0.f; x < chunk->Bounds.width; x += incrementY)
+	//	{
+	//		const auto& tile = chunk->Tiles[i++];
+	//		game->World.LightMap.UpdateTile(&game->World,
+	//			{ (int)(chunkX + x) / 16, (int)(chunkY + y) / 16 },
+	//			&tile);
+	//	}
+	//}
 }
 
 TileMapChunk* LoadChunk(ChunkedTileMap* tilemap,

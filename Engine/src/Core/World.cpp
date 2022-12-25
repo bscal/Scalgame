@@ -45,7 +45,7 @@ void WorldLoad(World* world, Game* game)
 	// TODO hardcoded, would like to figure out nicer way
 	// to handle ChunkedTileMap and Game initalized values.
 	// TileMapParams struct? or store in Game?
-	world->LightMap.Initialize(0, 0);
+	world->LightMap.Initialize(game, 0, 0);
 	CTileMap::Update(&world->ChunkedTileMap, game);
 
 	world->IsLoaded = true;
@@ -71,7 +71,7 @@ void WorldUpdate(World* world, Game* game)
 	GetGameApp()->NumOfChunksUpdated = 0;
 
 	CTileMap::Update(&world->ChunkedTileMap, game);
-	world->LightMap.Update(world);
+	world->LightMap.Update(game);
 	world->EntityMgr.Update(game);
 
 	CTileMap::LateUpdateChunk(&world->ChunkedTileMap, game);

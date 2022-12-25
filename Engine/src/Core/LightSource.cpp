@@ -27,7 +27,7 @@ void UpdateLightMap(Shader* shader, LightMap* lightMap)
 {
 	//if (LightMapUniformCountId == -1) return;
 
-	int size = static_cast<int>(lightMap->LightLevels.size());
+	//int size = static_cast<int>(lightMap->LightLevels.size());
 
 	//SetShaderValue(*shader,
 	//	LightMapUniformCountId,
@@ -41,33 +41,35 @@ void UpdateLightMap(Shader* shader, LightMap* lightMap)
 	//	size);
 }
 
-void LightMap::Initialize(int paddingWidth, int paddingHeight)
+void LightMap::Initialize(Game* game, int paddingWidth, int paddingHeight)
 {
+	assert(paddingWidth >= 0);
+	assert(paddingHeight >= 0);
+
 	Vector2i screenDims
 	{
-		GetRenderWidth() / 16,
-		GetRenderHeight() / 16
+		GetRenderWidth() / game->World.ChunkedTileMap.TileSize.x,
+		GetRenderHeight() / game->World.ChunkedTileMap.TileSize.y
 	};
 
 	PaddingWidth = paddingWidth;
 	PaddingHeight = paddingHeight;
 
-	Width = screenDims.x + PaddingWidth * 2;
-	Height = screenDims.y + PaddingHeight * 2;
+	Width = screenDims.x + (PaddingWidth * 2);
+	Height = screenDims.y + (PaddingHeight * 2);
 
 	size_t Count = (size_t)Width * (size_t)Height;
+	Solids.reserve(Count); // Light can show off screen
 
-	LightLevels = std::vector<Vector3>(Count,
-		{ 1.0f, 1.0f, 1.0f });
-	Solids = std::vector<float>(Count,
-		0.f);
+	// TODO it is working right now, but we need to send
+	// slightly off screen tiles for lighting purposes to
+	// shader
 
-	Texture = LoadRenderTexture(screenDims.x, screenDims.y);
-
+	// TODO test light
 	LightSource light = {};
-	light.Position = { 32, 32 };
+	light.Position = { 800, 450 };
 	light.Color = RED;
-	light.Intensity = 16.0f;
+	light.Intensity = 100.0f;
 	AddLight(light);
 }
 
@@ -80,7 +82,7 @@ internal void Fill(World* world, int x, int y,
 	tile->TileColor = light.Color;
 };
 
-void LightMap::Update(World* world)
+void LightMap::Update(Game* game)
 {
 	for (int i = 0; i < LightSources.size(); ++i)
 	{
@@ -132,13 +134,15 @@ void LightMap::BuildLightMap(Game* game)
 	};
 	float offsetX = (game->WorldCamera.offset.x) / (float)tileSize.x;
 	float offsetY = (game->WorldCamera.offset.y) / (float)tileSize.y;
-	for (int y = 0; y < screenDims.y; ++y)
+	int tileOffsetX = (int)((float)screenCoord.x - floorf(offsetX));
+	int tileOffsetY = (int)((float)screenCoord.y - floorf(offsetY));
+	for (int y = 0; y < Height; ++y)
 	{
-		for (int x = 0; x < screenDims.x; ++x)
+		for (int x = 0; x < Width; ++x)
 		{
 			TileCoord coord = {
-				x + (int)((float)screenCoord.x - offsetX),
-				y + (int)((float)screenCoord.y - offsetY)
+				x + tileOffsetX,
+				y + tileOffsetY
 			};
 			if (!IsTileInBounds(&game->World.ChunkedTileMap, coord)) continue;
 			const auto& tile = CTileMap::GetTileRef(&game->World.ChunkedTileMap, coord);
@@ -148,7 +152,8 @@ void LightMap::BuildLightMap(Game* game)
 				c = RED;
 			else
 				c = {};
-			DrawPixel(x, y, c);
+
+			DrawRectangle(x * 16, y * 16, 16, 16, c);
 		}
 	}
 }
@@ -192,57 +197,41 @@ void LightMap::CastRays(World* world,
 	}
 }
 
-bool LightMap::IsInBounds(Vector2i pos) const
-{
-	return (pos.x >= StartPos.x && pos.y >= StartPos.y &&
-		pos.x < EndPos.x && pos.y < EndPos.y);
-}
-
-void LightMap::UpdateTile(World* world, Vector2i pos, const Tile* tile)
-{
-	if (IsInBounds(pos))
-	{
-		uint64_t index = CTileMap::TileToIndexLocal(StartPos,
-			(uint64_t)Width, pos);
-		const auto& tileData = tile->GetTileData(&world->TileMgr);
-		Solids[index] = (tileData.TileId > 1) ? 1.0f : 0.f;
-	}
-}
 
 void LightMap::UpdatePositions(Vector2i pos)
 {
-	const Rectangle& screenRect = GetGameApp()->Game->CurScreenRect;
+	//const Rectangle& screenRect = GetGameApp()->Game->CurScreenRect;
 
-	int screenWidthTiles = (int)(screenRect.width / 16.0f);
-	int screenHeightTiles = (int)(screenRect.height / 16.0f);
-	
-	if (Width != screenWidthTiles ||
-		Height != screenHeightTiles)
-	{
-		Width = screenWidthTiles;
-		Height = screenHeightTiles;
-		Solids.resize(Width * Height);
+	//int screenWidthTiles = (int)(screenRect.width / 16.0f);
+	//int screenHeightTiles = (int)(screenRect.height / 16.0f);
+	//
+	//if (Width != screenWidthTiles ||
+	//	Height != screenHeightTiles)
+	//{
+	//	Width = screenWidthTiles;
+	//	Height = screenHeightTiles;
+	//	Solids.resize(Width * Height);
 
-		UnloadRenderTexture(Texture);
-		WaitTime(.1);
-		Texture = LoadRenderTexture(Width, Height);
-	}
-	Scal::MemSet(Solids.data(), 0, sizeof(float) * Solids.size());
+	//	UnloadRenderTexture(Texture);
+	//	WaitTime(.1);
+	//	Texture = LoadRenderTexture(Width, Height);
+	//}
+	//Scal::MemSet(Solids.data(), 0, sizeof(float) * Solids.size());
 
-	int screenXTiles = (int)(screenRect.x / 16.0f);
-	int screenYTiles = (int)(screenRect.y / 16.0f);
-	StartPos.x = screenXTiles;
-	StartPos.y = screenYTiles;
-	EndPos.x = screenXTiles + screenWidthTiles;
-	EndPos.y = screenYTiles + screenHeightTiles;
+	//int screenXTiles = (int)(screenRect.x / 16.0f);
+	//int screenYTiles = (int)(screenRect.y / 16.0f);
+	//StartPos.x = screenXTiles;
+	//StartPos.y = screenYTiles;
+	//EndPos.x = screenXTiles + screenWidthTiles;
+	//EndPos.y = screenYTiles + screenHeightTiles;
 
-	constexpr float ratio = 0.2f;
-	float expandWidth = Width * ratio;
-	float expandHeight = Height * ratio;
-	LightMapBounds.x = screenRect.x - expandWidth;
-	LightMapBounds.y = screenRect.y - expandHeight;
-	LightMapBounds.width = screenRect.width + expandWidth;
-	LightMapBounds.height = screenRect.height + expandHeight;
+	//constexpr float ratio = 0.2f;
+	//float expandWidth = Width * ratio;
+	//float expandHeight = Height * ratio;
+	//LightMapBounds.x = screenRect.x - expandWidth;
+	//LightMapBounds.y = screenRect.y - expandHeight;
+	//LightMapBounds.width = screenRect.width + expandWidth;
+	//LightMapBounds.height = screenRect.height + expandHeight;
 }
 
 void LightMap::AddLight(const LightSource& light)

@@ -21,6 +21,11 @@ global_var bool IsShowingDebugUi = true;
 // TODO
 global_var int UniformSizeId = -1;
 global_var int UniformTilesId = -1;
+global_var int UniformLightId = -1;
+
+global_var int UniformSamplerSizeId = -1;
+global_var int UniformSamplerTilesId = -1;
+global_var int UniformSamplerLightId = -1;
 
 SAPI bool GameApplication::Start()
 {
@@ -44,7 +49,12 @@ SAPI bool GameApplication::Start()
     
 	UniformSizeId = GetShaderLocation(Resources->LightShader, "Size");
 	UniformTilesId = GetShaderLocation(Resources->LightShader, "Tiles");
+	UniformLightId = GetShaderLocation(Resources->LightShader, "Light");
     
+	UniformSamplerSizeId = GetShaderLocation(Resources->LightRayShader, "Size");
+	UniformSamplerTilesId = GetShaderLocation(Resources->LightRayShader, "LightMap");
+	UniformSamplerLightId = GetShaderLocation(Resources->LightRayShader, "Light");
+
 	UIState = (struct UIState*)Scal::MemAllocZero(sizeof(struct UIState));
 	bool didUiInit = InitializeUI(UIState, this);
 	assert(didUiInit);
@@ -92,13 +102,18 @@ internal void GameLoadScreen(GameApplication* gameApp, int width, int height)
 
 	UnloadRenderTexture(game->ScreenTexture);
 	UnloadRenderTexture(game->ScreenLightMapTexture);
+	UnloadRenderTexture(game->LightTexture);
 
 	game->ScreenTexture = LoadRenderTexture(width, height);
 	game->ScreenLightMapTexture = LoadRenderTexture(width, height);
+	game->LightTexture = LoadRenderTexture(width, height);
 
 	Vector2 size = { (float)width, (float)height };
 	SetShaderValue(gameApp->Resources->LightShader,
 		UniformSizeId, &size, SHADER_UNIFORM_VEC2);
+
+	SetShaderValue(gameApp->Resources->LightRayShader,
+		UniformSamplerSizeId, &size, SHADER_UNIFORM_VEC2);
 }
 
 internal bool GameInitialize(Game* game, GameApplication* gameApp)
@@ -154,6 +169,7 @@ SAPI void GameApplication::Run()
 	// TODO remove
 	WorldLoad(&Game->World, Game);
     
+
 	
 	TraceLog(LOG_INFO, "Game Running...");
 	IsRunning = true;
@@ -258,7 +274,7 @@ SAPI void GameApplication::Run()
         EndTextureMode();
 
 		// LightMap
-		BeginTextureMode(Game->World.LightMap.Texture);
+		BeginTextureMode(Game->LightTexture);
 		ClearBackground({});
 		Game->World.LightMap.BuildLightMap(Game);
 		Game->World.LightMap.UpdatePositions({});
@@ -273,13 +289,24 @@ SAPI void GameApplication::Run()
 
         ClearBackground({});
         // TODO look into updating only if tiles to draw?
-        SetShaderValueTexture(shader, UniformTilesId, Game->World.LightMap.Texture.texture);
+        SetShaderValueTexture(shader, UniformTilesId, 
+			Game->LightTexture.texture);
+
+		auto m = GetMousePosition();
+		auto mWS = GetScreenToWorld2D(m, Game->ViewCamera);
+
+		Vector3 light;
+		light.x = m.x;//Game->World.LightMap.LightSources[0].Position.x;
+		light.y = m.y;//Game->World.LightMap.LightSources[0].Position.y;
+		light.z = Game->World.LightMap.LightSources[0].Intensity;
+		SetShaderValue(shader, UniformLightId, &light, SHADER_UNIFORM_VEC3);
 
 		Rectangle rect
         { 
-			0.0f, 0.0f, (float)GetScreenWidth(), (float)GetScreenHeight()
+			0.0f, 0.0f,
+			(float)GetScreenWidth(), (float)GetScreenHeight()
         };
-        DrawRectanglePro(rect, {}, 0.0f, WHITE);
+        DrawRectangleRec(rect, WHITE);
 
         EndTextureMode();
 		EndShaderMode();
@@ -292,11 +319,19 @@ SAPI void GameApplication::Run()
 		BeginMode2D(Game->ViewCamera);
         ClearBackground(BLACK);
         
+		BeginShaderMode(Resources->LightRayShader);
+
         Rectangle srcRect
         {
-            0.0f, 0.0f, (float)GetScreenWidth(), (float)-GetScreenHeight()
+            0.0f, 0.0f, (float)GetScreenWidth(), (float)GetScreenHeight()
         };
         
+		SetShaderValueTexture(Resources->LightRayShader, UniformSamplerTilesId,
+			Game->ScreenLightMapTexture.texture);
+
+		SetShaderValue(Resources->LightRayShader, UniformSamplerLightId,
+			&light, SHADER_UNIFORM_VEC3);
+
         Vector2 offset = Vector2Subtract(Game->WorldCamera.target,
 			Game->WorldCamera.offset);
         Rectangle destRect
@@ -312,12 +347,14 @@ SAPI void GameApplication::Run()
         
 		// TODO unhardcore value, half of tilesize
 		// Camera.target is centered on player's tile
-		destRect.x -= 8.0f;
-		destRect.y -= 8.0f;
-		DrawTexturePro(Game->ScreenLightMapTexture.texture,
-			srcRect, destRect, {}, 0.0f, WHITE);
+		//destRect.x -= 8.0f;
+		//destRect.y -= 8.0f;
+		//DrawTexturePro(Game->ScreenLightMapTexture.texture,
+		//	srcRect, destRect, {}, 0.0f, WHITE);
         
         rlPopMatrix();
+
+		EndShaderMode();
 
 		EndMode2D();
         
@@ -343,10 +380,12 @@ internal void GameUpdate(Game* game, GameApplication* gameApp)
 		Vector2 playerPos = GetClientPlayer()->Transform.Pos;
 		playerPos.x += 8.0f;
 		playerPos.y += 8.0f;
-		Vector2 cameraPos = Vector2Lerp(from, playerPos, game->CameraLerpTime);
+		Vector2 cameraPos = Vector2Lerp(from, playerPos,
+			game->CameraLerpTime);
 		game->WorldCamera.target = cameraPos;
 
-		Vector2 viewTarget = Vector2Multiply(cameraPos, { GetScale(), GetScale() });
+		Vector2 viewTarget = Vector2Multiply(cameraPos,
+			{ GetScale(), GetScale() });
 		game->ViewCamera.target = viewTarget;
 	}
 

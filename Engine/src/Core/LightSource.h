@@ -18,27 +18,25 @@ struct LightSource
 
 struct LightMap
 {
-	Rectangle LightMapBounds;
 	std::vector<LightSource> LightSources;
-	std::vector<Vector3> LightLevels;
-	std::vector<Vector2i> QueryTiles;
 	std::vector<float> Solids;
-	Vector2i StartPos;
-	Vector2i EndPos;
+	std::vector<Vector2i> QueryTiles;
 	int Width;
 	int Height;
 	int PaddingWidth;
 	int PaddingHeight;
+	Rectangle LightMapBounds;
 	RenderTexture2D Texture;
 
-	void Update(World* world);
+	void Initialize(Game* game, int paddingWidth, int paddingHeight);
+	
+	void Update(Game* game);
+	
+	void BuildLightMap(Game* game);
+
 	void LateUpdate(World* world);
 	void CastRays(World* world,
 		const LightSource& light, int rayResolution);
-	void BuildLightMap(Game* game);
-	void Initialize(int paddingWidth, int paddingHeight);
-	bool IsInBounds(Vector2i pos) const;
-	void UpdateTile(World* world, Vector2i pos, const Tile* tile);
 	void UpdatePositions(Vector2i pos);
 	void AddLight(const LightSource& light);
 	Color GetLight(Vector2i pos) const;

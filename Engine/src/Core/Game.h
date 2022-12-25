@@ -21,6 +21,7 @@ struct Game
     SpriteAtlas Atlas;
     RenderTexture2D ScreenTexture;
     RenderTexture2D ScreenLightMapTexture;
+    RenderTexture2D LightTexture;
     
     World World;
     
