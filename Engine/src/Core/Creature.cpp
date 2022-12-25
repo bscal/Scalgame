@@ -5,16 +5,15 @@
 #include "Player.h"
 #include "World.h"
 #include "SMemory.h"
+
 #include <raymath.h>
 
-constexpr static Vector2
+constexpr global_var Vector2
 PlayerFowardVectors[TileDirection::MaxDirs] =
 { { 0.0f, -1.0f }, { 1.0f, 0.0f }, { 0.0f, 1.0f }, { -1.0f, 0.0f } };
 
 Vector2 TileDirToVec2(TileDirection dir)
 {
-	assert(dir >= 0);
-	assert(dir < TileDirection::MaxDirs);
 	return PlayerFowardVectors[dir];
 }
 
@@ -205,9 +204,17 @@ void SCreature::Update(Game* game)
 	DrawTextureRec(sheet, rect, Transform.Pos, WHITE);
 }
 
-void SCreature::Initialize(struct ::World* world)
+void SCreature::Initialize(struct World* world)
 {
 	WorldRef = world;
 	constexpr size_t size = sizeof(uint32_t) * CREATURE_MAX_COMPONENTS;
 	Scal::MemSet(&ComponentIndex, CREATURE_EMPTY_COMPONENT, size);
+}
+
+
+void SCreature::SetTilePos(Vector2i tilePos)
+{
+	Transform.TilePos = tilePos;
+	Vector2i tileSize = WorldTileScale(WorldRef);
+	Transform.Pos = tilePos.Multiply(tileSize).AsVec2();
 }

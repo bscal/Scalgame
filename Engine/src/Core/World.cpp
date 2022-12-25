@@ -3,6 +3,7 @@
 #include "Game.h"
 #include "ResourceManager.h"
 #include "Creature.h"
+#include "Sprite.h"
 
 #include <assert.h>
 
@@ -31,6 +32,10 @@ void WorldInitialize(World* world, GameApplication* gameApp)
 	S_LOG_INFO("[ WORLD ] players age is %d from componentId: %d",
 		playerHuman->Age, playerHuman->ID);
 
+	SCreature& rat = world->EntityMgr.CreatureCreature(world);
+	rat.TextureInfo.Rect = RAT_SPRITE.TexCoord;
+	rat.SetTilePos({ 5, 5 });
+
 	S_LOG_INFO("[ WORLD ] Successfully initialized world!");
 	world->IsInitialized = true;
 }
@@ -40,9 +45,7 @@ void WorldLoad(World* world, Game* game)
 	// TODO hardcoded, would like to figure out nicer way
 	// to handle ChunkedTileMap and Game initalized values.
 	// TileMapParams struct? or store in Game?
-	int screenWidthTiles = game->CurScreenRect.width / 16;
-	int screenHeightTiles = game->CurScreenRect.height / 16;
-	world->LightMap.Initialize(screenWidthTiles, screenHeightTiles);
+	world->LightMap.Initialize(0, 0);
 	CTileMap::Update(&world->ChunkedTileMap, game);
 
 	world->IsLoaded = true;
@@ -132,4 +135,9 @@ void ProcessActions(World* world)
 		Action at = world->EntityActionsList.PeekAt(i);
 		at.ActionFunction(world, &at);
 	}
+}
+
+Vector2i WorldTileScale(World* world)
+{
+	return world->ChunkedTileMap.TileSize;
 }

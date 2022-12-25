@@ -9,9 +9,6 @@ struct SDFFont
 	Shader Shader;
 };
 
-// TODO better solution for this
-#define PLAYER_SPRITE { 0.0f, 0.0f, 16.0f, 16.0f }
-
 struct Resources
 {
 	Texture2D EntitySpriteSheet;

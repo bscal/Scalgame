@@ -1,9 +1,10 @@
 #pragma once
 
 #include "Core.h"
-#include "Structures/SArray.h"
+#include "Components.h"
 #include "SUtil.h"
 #include "Sprite.h"
+#include "Structures/SArray.h"
 
 #include <assert.h>
 #include <vector>
@@ -31,15 +32,12 @@ enum TileDirection : uint8_t
 	MaxDirs
 };
 
-constexpr float Radian = 6.283185;
-
-constexpr static float
+constexpr global_var float
 TileDirectionToTurns[TileDirection::MaxDirs] =
-{ Radian * 0.75f, 0.0f, Radian * 0.25f, Radian * 0.5f };
+{ TAO * 0.75f, 0.0f, TAO * 0.25f, TAO * 0.5f };
 
-constexpr float GetRadiansFromDirection(TileDirection dir)
+inline constexpr float GetRadiansFromDirection(TileDirection dir)
 {
-	assert(dir < TileDirection::MaxDirs);
 	return TileDirectionToTurns[dir];
 }
 
@@ -70,25 +68,11 @@ struct SCreature
 
 	void Initialize(World* world);
 	void Update(Game* game);
+
+	void SetTilePos(Vector2i tilePos);
 };
 
 Vector2 TileDirToVec2(TileDirection dir);
-
-static uint32_t SNextComponentId;
-
-template<typename T>
-struct SComponent
-{
-	static const uint32_t ID;
-};
-
-template<typename T>
-const uint32_t SComponent<T>::ID = SNextComponentId++;
-
-struct Human : SComponent<Human>
-{
-	uint32_t Age;
-};
 
 struct ComponentMgr
 {

@@ -9,7 +9,7 @@
 
 void Player::InitializePlayer(World* world)
 {
-	TextureInfo.Rect = PLAYER_SPRITE;
+	TextureInfo.Rect = PLAYER_SPRITE.TexCoord;
 	S_LOG_INFO("Player Initialized!");
 }
 

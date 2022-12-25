@@ -40,7 +40,7 @@ struct SList
 	T* PeekAtPtr(uint64_t index) const;
 	T* Last() const;
 
-	const T& operator[](size_t i) const
+	inline const T& operator[](size_t i) const
 	{
 		return Memory[i];
 	}

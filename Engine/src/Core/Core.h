@@ -11,11 +11,12 @@ static_assert(sizeof(size_t) == sizeof(uint64_t),
 
 #define Mode3D false
 #define internal static
-#define persistent static
+#define local_var static
+#define global_var static
 
 typedef int bool32;
 
-#define TAO ((float)PI * 2.0f)
+constexpr float TAO = (float)PI * 2.0f;
 
 #ifdef SCAL_PLATFORM_WINDOWS
 #ifdef SCAL_BUILD_DLL

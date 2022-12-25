@@ -15,12 +15,12 @@
 #include "raymath.h"
 #include "rlgl.h"
 
-static GameApplication* GameAppPtr;
-static bool IsShowingDebugUi = true;
+global_var GameApplication* GameAppPtr;
+global_var bool IsShowingDebugUi = true;
 
 // TODO
-static int UniformSizeId = -1;
-static int UniformTilesId = -1;
+global_var int UniformSizeId = -1;
+global_var int UniformTilesId = -1;
 
 SAPI bool GameApplication::Start()
 {
@@ -53,7 +53,7 @@ SAPI bool GameApplication::Start()
 	//InitiailizeDebugWindow(&Resources->MainFontM, 10, 30, DARKGREEN);
     
 	Game = (struct Game*)Scal::MemAllocZero(sizeof(struct Game));
-	bool didGameInit = InitializeGame(Game, this);
+	bool didGameInit = GameInitialize(Game, this);
 	assert(didGameInit);
     
 	Game->Atlas.Load("assets/textures/atlas/tiles.atlas", 32);
@@ -74,11 +74,11 @@ SAPI void GameApplication::Shutdown()
 	UnloadShader(Resources->LightShader);
 	UnloadShader(Resources->TileShader);
 	UnloadShader(Resources->LightRayShader);
-	FreeGame(Game);
+	GameFree(Game);
 	CloseWindow();
 }
 
-internal void LoadScreen(GameApplication* gameApp, int width, int height)
+internal void GameLoadScreen(GameApplication* gameApp, int width, int height)
 {
 	const auto& game = gameApp->Game;
 
@@ -101,14 +101,14 @@ internal void LoadScreen(GameApplication* gameApp, int width, int height)
 		UniformSizeId, &size, SHADER_UNIFORM_VEC2);
 }
 
-internal bool InitializeGame(Game* game, GameApplication* gameApp)
+internal bool GameInitialize(Game* game, GameApplication* gameApp)
 {
 	// NOTE: Used for now. I use stl structures and since Game is malloced
 	// constructors do not get called, messing up these. No ideal,
 	// but seems to work.
 	CALL_CONSTRUCTOR(game) Game();
 
-	LoadScreen(gameApp, GetScreenWidth(), GetScreenHeight());
+	GameLoadScreen(gameApp, GetScreenWidth(), GetScreenHeight());
 
 	game->ChunkViewDistance = { 4, 3 };
 	WorldInitialize(&game->World, gameApp);
@@ -135,7 +135,7 @@ internal bool InitializeGame(Game* game, GameApplication* gameApp)
 	return true;
 }
 
-internal void FreeGame(Game* game)
+internal void GameFree(Game* game)
 {
 	UnloadRenderTexture(game->ScreenTexture);
 	UnloadRenderTexture(game->ScreenLightMapTexture);
@@ -240,26 +240,33 @@ SAPI void GameApplication::Run()
 			UpdateUI(UIState);
 		}
         
-		// ***************
-		// Draw world to Texture
-		// ***************
+		// *****************
+		// Update/Draw World
+		// *****************
         
 		BeginShaderMode(Resources->TileShader);
-        BeginTextureMode(Game->ScreenTexture);
+        
+		BeginTextureMode(Game->ScreenTexture);
         ClearBackground({});
-
         BeginMode2D(Game->WorldCamera);
 
-        UpdateGame(Game, this);
-        WorldUpdate(&Game->World, Game);
+		// World
+        GameUpdate(Game, this);
+		WorldUpdate(&Game->World, Game);
 
-        EndMode2D();
+		EndMode2D();
         EndTextureMode();
-		EndShaderMode();
-        
-		Game->World.LightMap.BuildLightMap();
+
+		// LightMap
+		BeginTextureMode(Game->World.LightMap.Texture);
+		ClearBackground({});
+		Game->World.LightMap.BuildLightMap(Game);
 		Game->World.LightMap.UpdatePositions({});
-        
+		EndTextureMode();
+
+		EndShaderMode();
+
+		// Light Shader/Texture
 		const auto& shader = Resources->LightShader;
 		BeginShaderMode(shader);
         BeginTextureMode(Game->ScreenLightMapTexture);
@@ -267,47 +274,48 @@ SAPI void GameApplication::Run()
         ClearBackground({});
         // TODO look into updating only if tiles to draw?
         SetShaderValueTexture(shader, UniformTilesId, Game->World.LightMap.Texture.texture);
-        Rectangle rectSize
+
+		Rectangle rect
         { 
-            0.0f, 0.0f,
-            (float)GetScreenWidth(), (float)GetScreenHeight()
+			0.0f, 0.0f, (float)GetScreenWidth(), (float)GetScreenHeight()
         };
-        DrawRectanglePro(rectSize, {}, 0.0f, WHITE);
+        DrawRectanglePro(rect, {}, 0.0f, WHITE);
 
         EndTextureMode();
 		EndShaderMode();
 		
-        
-		// ***************
-		// Draw
-		// ***************
-        
+		// **************
+		// Draw to buffer
+		// **************
 		BeginDrawing();
         
 		BeginMode2D(Game->ViewCamera);
         ClearBackground(BLACK);
         
-        Rectangle drawRect
+        Rectangle srcRect
         {
-            0.0f, 0.0f,
-            (float)GetScreenWidth(), (float)-GetScreenHeight()
+            0.0f, 0.0f, (float)GetScreenWidth(), (float)-GetScreenHeight()
         };
         
-        Vector2 offset = Vector2Subtract(Game->WorldCamera.target, Game->WorldCamera.offset);
-        Rectangle screenRect
+        Vector2 offset = Vector2Subtract(Game->WorldCamera.target,
+			Game->WorldCamera.offset);
+        Rectangle destRect
         {
-            offset.x, offset.y,
-            (float)GetScreenWidth(), (float)GetScreenHeight()
+            offset.x, offset.y, (float)GetScreenWidth(), (float)GetScreenHeight()
         };
         
         rlPushMatrix();
         rlScalef(GetScale(), GetScale(), 1.0f);
         
         DrawTexturePro(Game->ScreenTexture.texture,
-                       drawRect, screenRect, {}, 0.0f, WHITE);
+			srcRect, destRect, {}, 0.0f, WHITE);
         
-        DrawTextureRec(Game->ScreenLightMapTexture.texture,
-                       drawRect, {}, WHITE);
+		// TODO unhardcore value, half of tilesize
+		// Camera.target is centered on player's tile
+		destRect.x -= 8.0f;
+		destRect.y -= 8.0f;
+		DrawTexturePro(Game->ScreenLightMapTexture.texture,
+			srcRect, destRect, {}, 0.0f, WHITE);
         
         rlPopMatrix();
 
@@ -315,6 +323,7 @@ SAPI void GameApplication::Run()
         
 		RenderUI(UIState);
         
+		// Swap buffers
 		double drawStart = GetTime();
 		EndDrawing();
 		RenderTime = GetTime() - drawStart;
@@ -322,22 +331,20 @@ SAPI void GameApplication::Run()
 	IsRunning = false;
 }
 
-internal void UpdateGame(Game* game, GameApplication* gameApp)
+internal void GameUpdate(Game* game, GameApplication* gameApp)
 {
-	Camera2D& camera = game->WorldCamera;
-
 	// Handle Camera Move
 	if (!game->IsFreeCam)
 	{
 		if (game->CameraLerpTime > 1.0f) game->CameraLerpTime = 1.0f;
 		else game->CameraLerpTime += GetDeltaTime();
 
-		Vector2 from = camera.target;
+		Vector2 from = game->WorldCamera.target;
 		Vector2 playerPos = GetClientPlayer()->Transform.Pos;
 		playerPos.x += 8.0f;
 		playerPos.y += 8.0f;
 		Vector2 cameraPos = Vector2Lerp(from, playerPos, game->CameraLerpTime);
-		camera.target = cameraPos;
+		game->WorldCamera.target = cameraPos;
 
 		Vector2 viewTarget = Vector2Multiply(cameraPos, { GetScale(), GetScale() });
 		game->ViewCamera.target = viewTarget;
@@ -351,14 +358,13 @@ internal void UpdateGame(Game* game, GameApplication* gameApp)
 
 	if (IsWindowResized())
 	{
-		LoadScreen(gameApp, GetScreenWidth(), GetScreenHeight());
+		GameLoadScreen(gameApp, GetScreenWidth(), GetScreenHeight());
 		S_LOG_INFO("[ GAME ] Window Resizing!");
 	}
 }
 
 GameApplication* const GetGameApp()
 {
-	assert(GameAppPtr);
 	assert(GameAppPtr->IsInitialized);
     return GameAppPtr;
 }

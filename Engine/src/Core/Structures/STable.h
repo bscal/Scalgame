@@ -24,7 +24,7 @@ struct STable
 	uint64_t Capacity;
 	STableEntry<K, V>** Entries;
 
-	uint64_t(*KeyHashFunction)(const K* key);
+	uint64_t (*KeyHashFunction)(const K* key);
 	bool (*KeyEqualsFunction)(const K* v0, const K* v1);
 
 	void Initialize(uint64_t capacity);

@@ -71,8 +71,8 @@ void Initialize(ChunkedTileMap* tilemap, Game* game,
 	tilemap->ChunkTileCount = tilemap->ChunkSize.x *
 		tilemap->ChunkSize.y;
 
-	tilemap->WorldBounds.x = tilemap->OriginTiles.x * tilemap->TileSize.x;
-	tilemap->WorldBounds.y = tilemap->OriginTiles.x * tilemap->TileSize.y;
+	tilemap->WorldBounds.x = (float)(tilemap->OriginTiles.x * tilemap->TileSize.x);
+	tilemap->WorldBounds.y = (float)(tilemap->OriginTiles.x * tilemap->TileSize.y);
 	tilemap->WorldBounds.width = (float)(tilemap->WorldDimChunks.x
 		* tilemap->ChunkSize.x * tilemap->TileSize.x);
 	tilemap->WorldBounds.height = (float)(tilemap->WorldDimChunks.y
@@ -80,10 +80,10 @@ void Initialize(ChunkedTileMap* tilemap, Game* game,
 
 	tilemap->ChunkBounds.x = 0.0f;
 	tilemap->ChunkBounds.y = 0.0f;
-	tilemap->ChunkBounds.width = tilemap->ChunkSize.x
-		* tilemap->TileSize.x;
-	tilemap->ChunkBounds.height = tilemap->ChunkSize.y
-		* tilemap->TileSize.y;
+	tilemap->ChunkBounds.width = (float)(tilemap->ChunkSize.x
+		* tilemap->TileSize.x);
+	tilemap->ChunkBounds.height = (float)(tilemap->ChunkSize.y
+		* tilemap->TileSize.y);
 
 	size_t capacity = (size_t)(tilemap->ViewDistance.x * tilemap->ViewDistance.y);
 	tilemap->ChunksList.InitializeCap(capacity);
@@ -407,9 +407,22 @@ Tile* GetTile(ChunkedTileMap* tilemap, TileCoord tilePos)
 			tilePos.x, tilePos.y, chunkCoord.x, chunkCoord.y);
 		return nullptr;
 	}
-
 	uint64_t index = TileToIndex(tilemap, tilePos);
 	return chunk->Tiles.PeekAtPtr(index);
+}
+
+const Tile& GetTileRef(ChunkedTileMap* tilemap,
+	TileCoord tilePos)
+{
+	ChunkCoord chunkCoord = TileToChunkCoord(tilemap, tilePos);
+	TileMapChunk* chunk = GetChunk(tilemap, chunkCoord);
+	assert(chunk);
+	assert(chunk->IsChunkGenerated);
+	// TODO should be always assert if chunk doesnt exist/not generated
+	uint64_t index = TileToIndex(tilemap, tilePos);
+	assert(index >= 0);
+	assert(index < tilemap->ChunkTileCount);
+	return chunk->Tiles[index];
 }
 
 TileCoord WorldToTile(ChunkedTileMap* tilemap, Vector2 pos)

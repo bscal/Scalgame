@@ -5,6 +5,7 @@
 #include <vector>
 
 struct GameApplication;
+struct Game;
 struct World;
 struct Tile;
 
@@ -24,16 +25,18 @@ struct LightMap
 	std::vector<float> Solids;
 	Vector2i StartPos;
 	Vector2i EndPos;
-	uint32_t Width;
-	uint32_t Height;
+	int Width;
+	int Height;
+	int PaddingWidth;
+	int PaddingHeight;
 	RenderTexture2D Texture;
 
 	void Update(World* world);
 	void LateUpdate(World* world);
 	void CastRays(World* world,
 		const LightSource& light, int rayResolution);
-	void BuildLightMap();
-	void Initialize(uint32_t width, uint32_t height);
+	void BuildLightMap(Game* game);
+	void Initialize(int paddingWidth, int paddingHeight);
 	bool IsInBounds(Vector2i pos) const;
 	void UpdateTile(World* world, Vector2i pos, const Tile* tile);
 	void UpdatePositions(Vector2i pos);

@@ -81,6 +81,8 @@ void SetTile(ChunkedTileMap* tilemap, const Tile* tile,
 	TileCoord tilePos);
 Tile* GetTile(ChunkedTileMap* tilemap,
 	TileCoord tilePos);
+const Tile& GetTileRef(ChunkedTileMap* tilemap,
+	TileCoord tilePos);
 Tile* GetTileChunk(TileMapChunk* chunk,
 	TileCoord tilePos);
 

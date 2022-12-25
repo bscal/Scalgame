@@ -63,7 +63,7 @@ float GetScale();
 Vector2 ScaleWorldVec2(Vector2 vec);
 Vector2i ScaleWorldVec2i(Vector2i vec);
 
-internal void LoadScreen(GameApplication* gameApp, int width, int height);
-internal void UpdateGame(Game* game, GameApplication* gameApp);
-internal bool InitializeGame(Game* game, GameApplication* gameApp);
-internal void FreeGame(Game* game);
+internal void GameLoadScreen(GameApplication* gameApp, int width, int height);
+internal bool GameInitialize(Game* game, GameApplication* gameApp);
+internal void GameFree(Game* game);
+internal void GameUpdate(Game* game, GameApplication* gameApp);

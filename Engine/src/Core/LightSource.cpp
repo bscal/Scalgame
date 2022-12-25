@@ -41,17 +41,28 @@ void UpdateLightMap(Shader* shader, LightMap* lightMap)
 	//	size);
 }
 
-void LightMap::Initialize(uint32_t width, uint32_t height)
+void LightMap::Initialize(int paddingWidth, int paddingHeight)
 {
-	Width = width;
-	Height = height;
-	size_t Count = (size_t)width * (size_t)height;
+	Vector2i screenDims
+	{
+		GetRenderWidth() / 16,
+		GetRenderHeight() / 16
+	};
+
+	PaddingWidth = paddingWidth;
+	PaddingHeight = paddingHeight;
+
+	Width = screenDims.x + PaddingWidth * 2;
+	Height = screenDims.y + PaddingHeight * 2;
+
+	size_t Count = (size_t)Width * (size_t)Height;
+
 	LightLevels = std::vector<Vector3>(Count,
 		{ 1.0f, 1.0f, 1.0f });
 	Solids = std::vector<float>(Count,
 		0.f);
 
-	Texture = LoadRenderTexture((int)Width, (int)Height);
+	Texture = LoadRenderTexture(screenDims.x, screenDims.y);
 
 	LightSource light = {};
 	light.Position = { 32, 32 };
@@ -98,24 +109,48 @@ void LightMap::LateUpdate(World* world)
 	DrawRectangleLinesEx(LightMapBounds, 4.0f, MAGENTA);
 }
 
-void LightMap::BuildLightMap()
-{
-	BeginTextureMode(Texture);
-	ClearBackground({});
-	for (int y = 0; y < Height; ++y)
+void LightMap::BuildLightMap(Game* game)
+{	
+	//Vector2i screenCoord = GetClientPlayer()->Transform.TilePos;
+	//Vector2i tileSize = game->World.ChunkedTileMap.TileSize;
+	//float offsetX = game->WorldCamera.offset.x / (float)tileSize.x;
+	//float offsetY = game->WorldCamera.offset.y / (float)tileSize.y;
+	//int screenX = screenCoord.x - (int)offsetX;
+	//int screenY = screenCoord.y - (int)offsetY;
+	//int screenW = screenX + Width - PaddingWidth * 2;
+	//int screenH = screenY + Height - PaddingHeight * 2;
+	//int startX = screenX - PaddingWidth;
+	//int startY = screenY - PaddingHeight;
+	//int endX = startX + Width;
+	//int endY = startY + Height;
+	Vector2i tileSize = game->World.ChunkedTileMap.TileSize;
+	Vector2i screenCoord = GetClientPlayer()->Transform.TilePos;
+	Vector2i screenDims
 	{
-		for (int x = 0; x < Width; ++x)
+		GetRenderWidth() / tileSize.x,
+		GetRenderHeight() / tileSize.y
+	};
+	float offsetX = (game->WorldCamera.offset.x) / (float)tileSize.x;
+	float offsetY = (game->WorldCamera.offset.y) / (float)tileSize.y;
+	for (int y = 0; y < screenDims.y; ++y)
+	{
+		for (int x = 0; x < screenDims.x; ++x)
 		{
-			float f = Solids[x + y * Width];
+			TileCoord coord = {
+				x + (int)((float)screenCoord.x - offsetX),
+				y + (int)((float)screenCoord.y - offsetY)
+			};
+			if (!IsTileInBounds(&game->World.ChunkedTileMap, coord)) continue;
+			const auto& tile = CTileMap::GetTileRef(&game->World.ChunkedTileMap, coord);
+			const auto& tileData = tile.GetTileData(&game->World.TileMgr);
 			Color c;
-			if (f == 1.f)
+			if (tileData.Type == TileType::Solid)
 				c = RED;
 			else
 				c = {};
-			DrawRectangle(x, y, 1, 1, c);
+			DrawPixel(x, y, c);
 		}
 	}
-	EndTextureMode();
 }
 
 internal bool LightVisit(World* world, int x, int y)
@@ -132,7 +167,7 @@ void LightMap::CastRays(World* world,
 	float distance = light.Intensity * 16.0f;
 
 	float startAngle = 0.0f;
-	float endAngle = Radian;
+	float endAngle = TAO;
 	for (int i = 0; i < rayResolution; ++i)
 	{
 		float t = Lerp(startAngle, endAngle,
