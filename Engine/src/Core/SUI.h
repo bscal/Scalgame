@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Core.h"
-#include "Nuklear/nuklear.h"
+#include "Nuklear/raylib-nuklear.h"
 
 struct GameApplication;
 struct Font;
@@ -15,12 +15,17 @@ struct UIState
 	bool IsMouseHoveringUI;
 };
 
+internal void* MemAlloc(nk_handle handle, void* old, nk_size size);
+internal void MemFree(nk_handle handle, void* old);
+internal float CalculateTextWidth(nk_handle handle, float height,
+	const char* text, int len);
+internal bool IsMouseHoveringUI(nk_context* ctx);
+internal void InitializeNuklear(nk_context* nkCtxToInit, UIState* state,
+	Font* font, float fontSize);
+
 bool InitializeUI(UIState* state, GameApplication* gameApp);
 void UpdateUI(UIState* state);
-void RenderUI(UIState* state);
-void RenderDebugInfo(UIState* state);
-
-bool IsMouseHoveringUI(UIState* state);
+void DrawUI(UIState* state);
 
 void RenderMemoryUsage(UIState* state, uint64_t length,
 	const uint32_t* usage, const char* const *usageName);

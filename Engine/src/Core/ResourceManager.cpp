@@ -19,15 +19,15 @@ bool InitializeResources(Resources* resources)
     //resources->MainFontS = LoadFontEx(FONT_PATH, 16, 0, 0);
     resources->FontSilver = LoadFont(SDF_FONT_PATH);
 
-    resources->TileShader = LoadShader(
+    resources->UnlitShader = LoadShader(
         "assets/shaders/tile_shader.vert",
         "assets/shaders/tile_shader.frag");
 
-    resources->LightRayShader = LoadShader(
+    resources->LightSamplerShader = LoadShader(
         "assets/shaders/tile_lighting_sampler.vert",
         "assets/shaders/tile_lighting_sampler.frag");
 
-    resources->LightShader = LoadShader(
+    resources->LightRayShader = LoadShader(
         "assets/shaders/tile_lighting_ray.vert",
         "assets/shaders/tile_lighting_ray.frag");
 

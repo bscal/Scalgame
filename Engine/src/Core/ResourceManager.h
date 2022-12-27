@@ -16,9 +16,9 @@ struct Resources
 	Font MainFontM;
 	//Font MainFontS;
 	Font FontSilver;
-	Shader TileShader;
+	Shader UnlitShader;
+	Shader LightSamplerShader;
 	Shader LightRayShader;
-	Shader LightShader;
 	bool IsInitialized;
 };
 

@@ -22,6 +22,7 @@ struct Game
     RenderTexture2D ScreenTexture;
     RenderTexture2D ScreenLightMapTexture;
     RenderTexture2D LightTexture;
+    RenderTexture2D ViewTexture;
     
     World World;
     

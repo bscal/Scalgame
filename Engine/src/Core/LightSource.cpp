@@ -149,11 +149,11 @@ void LightMap::BuildLightMap(Game* game)
 			const auto& tileData = tile.GetTileData(&game->World.TileMgr);
 			Color c;
 			if (tileData.Type == TileType::Solid)
-				c = RED;
+				c = { 255, 255, 255, 255 };
 			else
 				c = {};
 
-			DrawRectangle(x * 16, y * 16, 16, 16, c);
+			DrawRectangle(x, y, 1, 1, c);
 		}
 	}
 }
