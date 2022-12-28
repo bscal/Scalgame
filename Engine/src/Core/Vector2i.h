@@ -1,9 +1,9 @@
 #pragma once
 
+#include "Core.h"
+
 #include <stdint.h>
 #include <functional>
-
-struct Vector2;
 
 struct Vector2i
 {
@@ -26,8 +26,9 @@ struct Vector2i
     Vector2i Negate() const;
     Vector2i Min(Vector2i min) const;
     Vector2i Max(Vector2i max) const;
-	bool Equals(Vector2i other) const;
-    Vector2 AsVec2() const;
+
+    inline Vector2 AsVec2() const { return { (float)x, (float)y }; }
+    inline bool Equals(Vector2i other) const { return (x == other.x) && (y == other.y); }
 };
 
 int64_t  Vec2iPackInt64(Vector2i v);

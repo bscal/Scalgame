@@ -17,6 +17,7 @@ struct Resources
 	//Font MainFontS;
 	Font FontSilver;
 	Shader UnlitShader;
+	Shader LitShader;
 	Shader LightSamplerShader;
 	Shader LightRayShader;
 	bool IsInitialized;

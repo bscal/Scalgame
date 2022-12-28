@@ -19,6 +19,10 @@ global_var GameApplication* GameAppPtr;
 global_var bool IsShowingDebugUi = true;
 
 // TODO
+global_var int UniformLitTileMapId = -1;
+global_var int UniformLitLightId = -1;
+global_var int UniformLitSizeId = -1;
+
 global_var int UniformSizeId = -1;
 global_var int UniformTilesId = -1;
 global_var int UniformLightId = -1;
@@ -48,6 +52,10 @@ SAPI bool GameApplication::Start()
 	bool didResInit = InitializeResources(Resources);
 	assert(didResInit);
     
+	UniformLitSizeId = GetShaderLocation(Resources->LitShader, "Size");
+	UniformLitTileMapId = GetShaderLocation(Resources->LitShader, "TileMap");
+	UniformLitLightId = GetShaderLocation(Resources->LitShader, "Light");
+
 	UniformSizeId = GetShaderLocation(Resources->LightRayShader, "Size");
 	UniformTilesId = GetShaderLocation(Resources->LightRayShader, "Tiles");
 	UniformLightId = GetShaderLocation(Resources->LightRayShader, "Light");
@@ -109,7 +117,7 @@ internal void GameLoadScreen(GameApplication* gameApp, int width, int height)
 
 	game->ScreenTexture = LoadRenderTexture(width, height);
 	game->ScreenLightMapTexture = LoadRenderTexture(width, width);
-	game->LightTexture = LoadRenderTexture(width / 16, height / 16);
+	game->LightTexture = LoadRenderTexture(width / 16, width / 16);
 	game->ViewTexture = LoadRenderTexture(width, height);
 
 	Vector2 size = { (float)width, (float)height };
@@ -118,6 +126,9 @@ internal void GameLoadScreen(GameApplication* gameApp, int width, int height)
 
 	SetShaderValue(gameApp->Resources->LightSamplerShader,
 		UniformSamplerSizeId, &size, SHADER_UNIFORM_VEC2);
+
+	SetShaderValue(gameApp->Resources->LitShader,
+		UniformLitSizeId, &size, SHADER_UNIFORM_VEC2);
 }
 
 internal bool GameInitialize(Game* game, GameApplication* gameApp)
@@ -288,34 +299,30 @@ SAPI void GameApplication::Run()
 
 		EndShaderMode();
 
-		// Light Shader/Texture
-		const auto& shader = Resources->LightRayShader;
-		BeginShaderMode(shader);
-        BeginTextureMode(Game->ScreenLightMapTexture);
-
-		ClearBackground({ 0, 0, 0, 255 });
-        // TODO look into updating only if tiles to draw?
-        SetShaderValueTexture(shader, UniformTilesId, 
-			Game->LightTexture.texture);
-
 		auto m = GetMousePosition();
-		auto mWS = GetScreenToWorld2D(m, Game->ViewCamera);
-
 		Vector3 light;
 		light.x = m.x;//Game->World.LightMap.LightSources[0].Position.x;
-		light.y = GetScreenHeight() - m.y;//Game->World.LightMap.LightSources[0].Position.y;
+		light.y = m.y;//Game->World.LightMap.LightSources[0].Position.y;
 		light.z = 300.0f;//Game->World.LightMap.LightSources[0].Intensity;
-		SetShaderValue(shader, UniformLightId, &light, SHADER_UNIFORM_VEC3);
+
+		// Light Shader/Texture
+		//const auto& shader = Resources->LightRayShader;
+		//BeginShaderMode(shader);
+        //BeginTextureMode(Game->ScreenLightMapTexture);
+		//SetShaderValue(shader, UniformLightId, &light, SHADER_UNIFORM_VEC3);
+		//ClearBackground({ 0, 0, 0, 255 });
+        // TODO look into updating only if tiles to draw?
+        //SetShaderValueTexture(shader, UniformTilesId, 
+			//Game->LightTexture.texture);
 
 		Rectangle rect
         { 
 			0.0f, 0.0f,
 			(float)GetScreenWidth(), (float)GetScreenWidth()
         };
-        DrawRectangleRec(rect, WHITE);
-
-        EndTextureMode();
-		EndShaderMode();
+        //DrawRectangleRec(rect, WHITE);
+        //EndTextureMode();
+		//EndShaderMode();
 		
 		// **************
 		// Draw to buffer
@@ -325,21 +332,19 @@ SAPI void GameApplication::Run()
 		BeginMode2D(Game->ViewCamera);
         ClearBackground(BLACK);
         
-		BeginShaderMode(Resources->LightSamplerShader);
 
-        Rectangle srcRect
-        {
-            0.0f, 0.0f, (float)GetScreenWidth(), (float)-GetScreenHeight()
-        };
-        
-		SetShaderValueTexture(Resources->LightSamplerShader, UniformSamplerTilesId,
-			Game->ScreenLightMapTexture.texture);
+		//SetShaderValue(Resources->LitShader, UniformLitLightId,
+			//&light, SHADER_UNIFORM_VEC3);
 
-		//SetShaderValueTexture(Resources->LightSamplerShader, UniformSamplerWorldId,
-			//Game->ScreenTexture.texture);
+		//SetShaderValueTexture(Resources->LitShader, UniformLitTileMapId,
+			//Game->LightTexture.texture);
 
-		SetShaderValue(Resources->LightSamplerShader, UniformSamplerLightId,
-			&light, SHADER_UNIFORM_VEC3);
+		BeginShaderMode(Resources->UnlitShader);
+
+		Rectangle srcRect
+		{
+			0.0f, 0.0f, (float)GetScreenWidth(), (float)-GetScreenHeight()
+		};
 
         Vector2 offset = Vector2Subtract(Game->WorldCamera.target,
 			Game->WorldCamera.offset);

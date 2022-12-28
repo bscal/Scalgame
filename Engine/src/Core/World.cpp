@@ -18,8 +18,7 @@ void WorldInitialize(World* world, GameApplication* gameApp)
 	world->EntityActionsList.Initialize();
 	world->SightMap.Initialize(112, 80);
 
-	CTileMap::Initialize(&world->ChunkedTileMap, gameApp->Game,
-		{ 16, 16 }, { 0, 0 }, { 4, 4 }, { 32, 32 });
+	CTileMap::Initialize(&world->ChunkedTileMap, gameApp->Game);
 
 	Player& player = world->EntityMgr.CreatePlayer(world);
 	Human human = {};
@@ -46,7 +45,8 @@ void WorldLoad(World* world, Game* game)
 	// to handle ChunkedTileMap and Game initalized values.
 	// TileMapParams struct? or store in Game?
 	world->LightMap.Initialize(game, 0, 0);
-	CTileMap::Update(&world->ChunkedTileMap, game);
+
+	CTileMap::FindChunksInView(&world->ChunkedTileMap, game);
 
 	world->IsLoaded = true;
 	S_LOG_INFO("[ WORLD ] World loaded!");
@@ -66,11 +66,17 @@ void WorldFree(World* world)
 	world->EntityActionsList.Free();
 }
 
+#include "Lighting.h"
+
 void WorldUpdate(World* world, Game* game)
 {
 	GetGameApp()->NumOfChunksUpdated = 0;
 
+	LightingUpdate(game);
+
 	CTileMap::Update(&world->ChunkedTileMap, game);
+
+	//CTileMap::Update(&world->ChunkedTileMap, game);
 	world->LightMap.Update(game);
 	world->EntityMgr.Update(game);
 

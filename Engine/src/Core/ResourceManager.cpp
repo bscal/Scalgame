@@ -23,6 +23,10 @@ bool InitializeResources(Resources* resources)
         "assets/shaders/tile_shader.vert",
         "assets/shaders/tile_shader.frag");
 
+    resources->LitShader = LoadShader(
+        "assets/shaders/tile_lit.vert",
+        "assets/shaders/tile_lit.frag");
+
     resources->LightSamplerShader = LoadShader(
         "assets/shaders/tile_lighting_sampler.vert",
         "assets/shaders/tile_lighting_sampler.frag");

@@ -21,11 +21,11 @@ struct SLinkedList
 };
 
 template<typename T>
-internal SLinkedListEntry<T>* CreateEntry(T* value)
+internal SLinkedListEntry<T>* CreateEntry(T value)
 {
-	assert(value);
 	SLinkedListEntry<T>* entry = (SLinkedListEntry<T>*)
 		Scal::MemAllocZero(sizeof(T*));
+	assert(entry);
 	entry->Value = value;
 	return entry;
 }
@@ -33,40 +33,34 @@ internal SLinkedListEntry<T>* CreateEntry(T* value)
 template<typename T>
 internal SLinkedListEntry<T>* FreeEntry(SLinkedListEntry<T>* entry)
 {
-	if (entry)
-	{
-		auto next = entry->Next;
-		Scal::MemFree(entry);
-		return next;
-	}
-	return nullptr;
+	auto next = entry->Next;
+	Scal::MemFree(entry);
+	return next;
 }
 
 template<typename T>
 void SLinkedFree(SLinkedList<T>* list)
 {
-	assert(list);
-	SLinkedListEntry<T>* next = list->First;
-	while (next)
+	SLinkedListEntry<T>* first = list->First;
+	if (first != nullptr)
 	{
-		next = FreeEntry(next);
+		SLinkedListEntry<T>* next = first->Next;
+		while (next)
+		{
+			next = FreeEntry(next);
+		}
+		FreeEntry(first);
 	}
-	list->First = nullptr;
-	list->Last = nullptr;
+	list->First = NULL;
+	list->Last = NULL;
 	list->Size = 0;
 }
 
 template<typename T>
-void SLinkedListPush(SLinkedList<T>* list, T* value)
+void SLinkedListPush(SLinkedList<T>* list, T value)
 {
-	assert(list);
-	if (!value)
-	{
-		S_LOG_ERR("value cannot be nullptr");
-		return;
-	}
-
 	SLinkedListEntry<T>* newEntry = CreateEntry<T>(value);
+	assert(newEntry);
 
 	if (!list->First)
 		list->First = newEntry;

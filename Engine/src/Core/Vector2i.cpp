@@ -1,7 +1,5 @@
 #include "Vector2i.h"
 
-#include <raymath.h>
-
 int64_t Vec2iPackInt64(Vector2i v)
 {
     return (int64_t)v.x << 32 | v.y;
@@ -47,11 +45,6 @@ Vector2i Vec2iRight()
 Vector2i Vec2fToVec2i(Vector2 v)
 {
     return { (int)v.x, (int)v.y };
-}
-
-Vector2 Vector2i::AsVec2() const
-{
-    return { (float)x, (float)y };
 }
 
 Vector2i Vector2i::Add(Vector2i o) const
@@ -153,9 +146,4 @@ Vector2i Vector2i::Max(Vector2i max) const
 Vector2i Vector2i::Divide(Vector2i o) const
 {
     return { x / o.x, y / o.y };
-}
-
-bool Vector2i::Equals(Vector2i other) const
-{
-    return (x == other.x) && (y == other.y);
 }
