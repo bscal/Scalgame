@@ -16,19 +16,13 @@ template<typename T>
 struct SLinkedList
 {
 	SLinkedListEntry<T>* First;
-	SLinkedListEntry<T>* Last;
 	uint64_t Size;
-};
 
-template<typename T>
-internal SLinkedListEntry<T>* CreateEntry(T value)
-{
-	SLinkedListEntry<T>* entry = (SLinkedListEntry<T>*)
-		Scal::MemAllocZero(sizeof(T*));
-	assert(entry);
-	entry->Value = value;
-	return entry;
-}
+	void Free();
+	void Push(const T* value);
+	void Pop();
+	[[nodiscard]] T PopValue();
+};
 
 template<typename T>
 internal SLinkedListEntry<T>* FreeEntry(SLinkedListEntry<T>* entry)
@@ -39,10 +33,10 @@ internal SLinkedListEntry<T>* FreeEntry(SLinkedListEntry<T>* entry)
 }
 
 template<typename T>
-void SLinkedFree(SLinkedList<T>* list)
+void SLinkedList<T>::Free()
 {
-	SLinkedListEntry<T>* first = list->First;
-	if (first != nullptr)
+	SLinkedListEntry<T>* first = First;
+	if (first)
 	{
 		SLinkedListEntry<T>* next = first->Next;
 		while (next)
@@ -51,52 +45,38 @@ void SLinkedFree(SLinkedList<T>* list)
 		}
 		FreeEntry(first);
 	}
-	list->First = NULL;
-	list->Last = NULL;
-	list->Size = 0;
+	First = NULL;
+	Size = 0;
 }
 
 template<typename T>
-void SLinkedListPush(SLinkedList<T>* list, T value)
+void SLinkedList<T>::Push(const T* value)
 {
-	SLinkedListEntry<T>* newEntry = CreateEntry<T>(value);
-	assert(newEntry);
+	assert(value);
 
-	if (!list->First)
-		list->First = newEntry;
+	SLinkedListEntry<T>* entry = (SLinkedListEntry<T>*)Scal::MemAllocZero(sizeof(T));
+	assert(entry);
 
-	if (list->Last)
-	{
-		list->Last->Next = newEntry;
-	}
-	list->Last = newEntry;
-	++list->Size;
+	entry->Value = *value;
+	entry->Next = First;
+	First = entry;
+	++Size;
 }
 
 template<typename T>
-void SLinkedListPop(SLinkedList<T>* list)
+void SLinkedList<T>::Pop()
 {
-	assert(list);
-	if (!value)
-	{
-		S_LOG_ERR("value cannot be nullptr");
-		return;
-	}
+	if (Size == 0) return;
+	First = FreeEntry(First);
+	--Size;
+}
 
-	if (list->Size == 0)
-		return;
-
-	auto freedEntryNext = FreeEntry(list->First);
-
-	if (freedEntryNext)
-	{
-		list->First = freedEntryNext;
-	}
-	else
-	{
-		list->First = nullptr;
-		list->Last = nullptr;
-	}
-
-	--list->Size;
+template<typename T>
+[[nodiscard]] T SLinkedList<T>::PopValue()
+{
+	assert(Size > 0);
+	T val = First->Value;
+	First = FreeEntry(First);
+	--Size;
+	return val;
 }

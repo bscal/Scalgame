@@ -4,6 +4,7 @@
 #include "ResourceManager.h"
 #include "Creature.h"
 #include "Sprite.h"
+#include "Lighting.h"
 
 #include <assert.h>
 
@@ -48,6 +49,8 @@ void WorldLoad(World* world, Game* game)
 
 	CTileMap::FindChunksInView(&world->ChunkedTileMap, game);
 
+	InitLights();
+
 	world->IsLoaded = true;
 	S_LOG_INFO("[ WORLD ] World loaded!");
 }
@@ -65,8 +68,6 @@ void WorldFree(World* world)
 	CTileMap::Free(&world->ChunkedTileMap);
 	world->EntityActionsList.Free();
 }
-
-#include "Lighting.h"
 
 void WorldUpdate(World* world, Game* game)
 {

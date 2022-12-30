@@ -26,14 +26,6 @@ SAPI void ArrayClear(SArray* sArray);
 SAPI bool ArrayRemoveAt(SArray* sArray, uint64_t index);
 
 template<typename T>
-SArray ArrayCreate(uint64_t capacity)
-{
-	SArray arr = {};
-	ArrayCreate(capacity, sizeof(T), &arr);
-	return arr;
-}
-
-template<typename T>
 T* ArrayIndex(SArray* sArray, uint64_t index)
 {
 	T* castedArray = (T*)sArray->Memory;

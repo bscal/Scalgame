@@ -76,7 +76,7 @@ void Free(ChunkedTileMap* tilemap)
 {
 	assert(tilemap->ChunksList.IsInitialized(), "TileMap not initialized");
 	tilemap->ChunksList.Free();
-	SLinkedFree(&tilemap->ChunksToUnload);
+	tilemap->ChunksToUnload.Free();
 }
 
 internal void CreateChunk(ChunkedTileMap* tilemap, int loadWidth,
@@ -167,7 +167,7 @@ internal void UpdateChunks(ChunkedTileMap* tilemap, Game* game, ChunkCoord playe
 			float dist = chunk->ChunkCoord.Distance(playerChunkCoord);
 			if (dist > viewDistance)
 			{
-				SLinkedListPush(&tilemap->ChunksToUnload, chunk->ChunkCoord);
+				tilemap->ChunksToUnload.Push(&chunk->ChunkCoord);
 				S_LOG_INFO("[ Chunk ] Chunk marked for removal (x: %d, y: %d)",
 					chunk->ChunkCoord.x, chunk->ChunkCoord.y);
 			}

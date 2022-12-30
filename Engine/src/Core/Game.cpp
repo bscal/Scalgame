@@ -432,6 +432,12 @@ Player* GetClientPlayer()
 	return &GetGameApp()->Game->World.EntityMgr.Players[0];
 }
 
+const World& GetMainWorld()
+{
+	assert(GetGameApp()->Game->World.IsInitialized)
+	return GetGameApp()->Game->World;
+}
+
 float GetDeltaTime()
 {
 	return GetFrameTime();
