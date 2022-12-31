@@ -97,9 +97,10 @@ bool SRandNextBool(SRandom* state)
 
 uint64_t SRandNextRange(SRandom* state, uint64_t lower, uint64_t upper)
 {
-	if (lower >= upper)
+	if (lower > upper)
 	{
-		TraceLog(LOG_ERROR, "lower(%d) is >= upper(%d)!", lower, upper);
+		S_LOG_ERR("[ SRandom ] lower(%d) is > upper(%d)!", lower, upper);
+		assert(false);
 		return 0;
 	}
 	uint64_t randomValue = SRandNext(state);
@@ -109,9 +110,10 @@ uint64_t SRandNextRange(SRandom* state, uint64_t lower, uint64_t upper)
 int64_t SRandNextRangeSigned(SRandom* state, int64_t lower, int64_t upper)
 {
 	assert(state);
-	if (lower >= upper)
+	if (lower > upper)
 	{
-		TraceLog(LOG_ERROR, "lower(%d) is >= upper(%d)!", lower, upper);
+		S_LOG_ERR("[ SRandom ] lower(%d) is > upper(%d)!", lower, upper);
+		assert(false);
 		return 0;
 	}
 	int64_t randomValue = (int64_t)SRandNext(state);

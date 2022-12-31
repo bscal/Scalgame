@@ -16,6 +16,8 @@ static_assert(sizeof(size_t) == sizeof(uint64_t),
 #define global_var static
 
 typedef int bool32;
+typedef Vector2i ChunkCoord;
+typedef Vector2i TileCoord;
 
 constexpr float TAO = (float)PI * 2.0f;
 

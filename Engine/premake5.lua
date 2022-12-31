@@ -12,7 +12,6 @@ project "Engine"
         "src/**.cpp",
         "src/**.h",
         "src/**.hpp",
-        "vendor/Nuklear/nuklear.h"
     }
 
     defines
@@ -25,8 +24,6 @@ project "Engine"
         "src",
         "vendor",
         "vendor/raylib/src",
-        "vendor/raylib/src/external",
-        "vendor/raylib/src/external/glfw/include"
     }
 
     links

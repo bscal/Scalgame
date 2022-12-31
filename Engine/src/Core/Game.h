@@ -5,8 +5,8 @@
 #include "Player.h"
 #include "World.h"
 #include "SpriteAtlas.h"
+#include "ResourceManager.h"
 
-struct Resources;
 struct UIState;
 
 struct Game
@@ -18,6 +18,7 @@ struct Game
     Camera2D ViewCamera;  // Camera for viewport and scaled
     #endif
 
+    Resources Resources;
     SpriteAtlas Atlas;
     RenderTexture2D ScreenTexture;
     RenderTexture2D ScreenLightMapTexture;
@@ -26,8 +27,6 @@ struct Game
     
     World World;
     
-    Rectangle CurScreenRect;
-    Vector2 HalfWidthHeight;
     Vector2i ChunkViewDistance;
     float CameraLerpTime;
     uint32_t Time;
@@ -37,8 +36,10 @@ struct Game
 struct GameApplication
 {
     Game* Game;
-    Resources* Resources;
     UIState* UIState;
+
+    Rectangle CurScreenRect;
+    Vector2 HalfWidthHeight;
 
     double RenderTime;
     int NumOfLoadedChunks;
@@ -59,6 +60,7 @@ GameApplication* const GetGameApp();
 void SetCameraPosition(Game* game, Vector3 pos);
 void SetCameraDistance(GameApplication* gameApp, float zoom);
 Player* GetClientPlayer();
+World* GetMainWorld();
 float GetDeltaTime();
 float GetScale();
 
@@ -67,5 +69,6 @@ Vector2i ScaleWorldVec2i(Vector2i vec);
 
 internal void GameLoadScreen(GameApplication* gameApp, int width, int height);
 internal bool GameInitialize(Game* game, GameApplication* gameApp);
+internal void GameStart(Game* game, GameApplication* gameApp);
 internal void GameFree(Game* game);
 internal void GameUpdate(Game* game, GameApplication* gameApp);

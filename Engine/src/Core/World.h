@@ -15,6 +15,11 @@ struct Game;
 struct Resources;
 struct Action;
 
+struct WorldSettings
+{
+
+};
+
 struct WorldTime
 {
 	uint32_t TotalTurns;
@@ -46,8 +51,6 @@ struct World
 	SList<Action> EntityActionsList;
 	std::unordered_set<Vector2i,
 		Hash, Equals, SAllocator<Vector2i>> TileCoordsInLOS;
-	LightMap LightMap;
-	SightMap SightMap;
 	TileMgr TileMgr;
 	bool IsInitialized;
 	bool IsLoaded;

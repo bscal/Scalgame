@@ -17,10 +17,18 @@ void WorldInitialize(World* world, GameApplication* gameApp)
 	world->TileCoordsInLOS.max_load_factor(0.75f);
 	world->TileCoordsInLOS.reserve(256);
 	world->EntityActionsList.Initialize();
-	world->SightMap.Initialize(112, 80);
 
 	CTileMap::Initialize(&world->ChunkedTileMap, gameApp->Game);
 
+	world->IsInitialized = true;
+	S_LOG_INFO("[ WORLD ] Successfully initialized world!");
+}
+
+void WorldLoad(World* world, Game* game)
+{
+	LightsInitialized(GetGameApp());
+
+	// TODO 
 	Player& player = world->EntityMgr.CreatePlayer(world);
 	Human human = {};
 	human.Age = 30;
@@ -36,20 +44,8 @@ void WorldInitialize(World* world, GameApplication* gameApp)
 	rat.TextureInfo.Rect = RAT_SPRITE.TexCoord;
 	rat.SetTilePos({ 5, 5 });
 
-	S_LOG_INFO("[ WORLD ] Successfully initialized world!");
-	world->IsInitialized = true;
-}
-
-void WorldLoad(World* world, Game* game)
-{
-	// TODO hardcoded, would like to figure out nicer way
-	// to handle ChunkedTileMap and Game initalized values.
-	// TileMapParams struct? or store in Game?
-	world->LightMap.Initialize(game, 0, 0);
-
+	// Load chunks around players at start
 	CTileMap::FindChunksInView(&world->ChunkedTileMap, game);
-
-	InitLights();
 
 	world->IsLoaded = true;
 	S_LOG_INFO("[ WORLD ] World loaded!");
@@ -73,18 +69,15 @@ void WorldUpdate(World* world, Game* game)
 {
 	GetGameApp()->NumOfChunksUpdated = 0;
 
-	LightingUpdate(game);
+	LightsUpdate(game);
 
 	CTileMap::Update(&world->ChunkedTileMap, game);
 
-	//CTileMap::Update(&world->ChunkedTileMap, game);
-	world->LightMap.Update(game);
 	world->EntityMgr.Update(game);
 
 	CTileMap::LateUpdateChunk(&world->ChunkedTileMap, game);
 
-	GetGameApp()->NumOfLoadedChunks = 
-		(int)world->ChunkedTileMap.ChunksList.Length;
+	GetGameApp()->NumOfLoadedChunks = (int)world->ChunkedTileMap.ChunksList.Length;
 }
 
 bool CanMoveToTile(World* world, Vector2i position)

@@ -79,7 +79,7 @@ internal void Fill(World* world, int x, int y,
 	auto tile = CTileMap::GetTile(&world->ChunkedTileMap,
 		{ x, y });
 	if (!tile) return;
-	tile->TileColor = light.Color;
+	//tile->TileColor = light.Color;
 };
 
 void LightMap::Update(Game* game)
@@ -239,13 +239,13 @@ void LightMap::AddLight(const LightSource& light)
 	LightSources.push_back(light);
 }
 
-Color LightMap::GetLight(Vector2i pos) const
-{
-	const auto t = CTileMap::GetTile(
-		&GetGameApp()->Game->World.ChunkedTileMap, pos);
-	if (!t) return WHITE;
-	return t->TileColor;
-}
+//Color LightMap::GetLight(Vector2i pos) const
+//{
+//	const auto t = CTileMap::GetTile(
+//		&GetGameApp()->Game->World.ChunkedTileMap, pos);
+//	if (!t) return WHITE;
+//	return t->TileColor;
+//}
 
 void SightMap::Initialize(uint16_t width, uint16_t height)
 {

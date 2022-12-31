@@ -8,14 +8,6 @@
 internal bool OnVisitTile(World* world, int x, int y)
 {
 	Vector2i pos = { x, y };
-	if (WorldIsInBounds(world, pos) &&
-		world->SightMap.IsInBounds(pos))
-	{
-		//world->SightMap.AddSight(pos, 1.0f);
-		//const auto tile = ChunkedTileMap::GetTile(
-		//	&world->ChunkedTileMap, x, y);
-		//return tile->IsSolid;
-	}
 	return false;
 }
 

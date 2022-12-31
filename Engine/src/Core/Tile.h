@@ -20,6 +20,19 @@ enum class TileLOS : uint8_t
 	HalfVision
 };
 
+struct TileColor
+{
+	uint16_t r;
+	uint16_t g;
+	uint16_t b;
+	uint16_t a;
+	uint8_t Count;
+
+	void AddColor(Color c);
+	Vector4 FinalColor();
+
+};
+
 struct TileData
 {
 	std::string SpriteName;
@@ -40,7 +53,8 @@ struct TileMgr
 struct Tile
 {
 	Rectangle TextureRect;
-	Color TileColor;
+	Vector4 TileColor;
+	Vector2 LastLightPos;
 	uint32_t TileDataId;
 	uint8_t LightLevel;
 	TileLOS LOS;

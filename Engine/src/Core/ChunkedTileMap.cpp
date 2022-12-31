@@ -219,18 +219,24 @@ internal void Draw(ChunkedTileMap* tilemap, Game* game)
 
 			if (tile->LOS == TileLOS::NoVision) continue;
 
-			Vector2 position
+			Rectangle position
 			{
 				(float)(coord.x * tileSize.x),
-				(float)(coord.y * tileSize.y)
+				(float)(coord.y * tileSize.y),
+				(float)tileSize.x,
+				(float)tileSize.y
 			};
-			DrawTextureRec(
+			DrawTextureProF(
 				texture,
 				tile->TextureRect,
 				position,
+				{},
+				0.0f,
 				tile->TileColor);
 
 			tile->LOS = TileLOS::NoVision;
+			tile->TileColor = {};
+			tile->LastLightPos = {};
 		}
 	}
 }
@@ -240,7 +246,7 @@ void LateUpdateChunk(ChunkedTileMap* tilemap, Game* game)
 	for (uint64_t i = 0; i < tilemap->ChunksList.Length; ++i)
 	{
 		auto chunk = tilemap->ChunksList.PeekAtPtr(i);
-		if (CheckCollisionRecs(game->CurScreenRect, chunk->Bounds))
+		if (CheckCollisionRecs(GetGameApp()->CurScreenRect, chunk->Bounds))
 		{
 			DrawRectangleLinesEx(chunk->Bounds, 4, GREEN);
 		}
@@ -320,7 +326,7 @@ void GenerateChunk(ChunkedTileMap* tilemap,
 	{
 		for (int x = 0; x < tilemap->ChunkSize.x; ++x)
 		{
-			uint32_t tileId = (uint32_t)SRandNextRange(&Random, 0, 2);
+			uint32_t tileId = (uint32_t)SRandNextRange(&Random, 1, 1);
 			const auto& tile = CreateTileId(
 				&GetGameApp()->Game->World.TileMgr,
 				tileId);

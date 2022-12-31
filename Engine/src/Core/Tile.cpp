@@ -52,7 +52,7 @@ TileData& RegisterTile(TileMgr* tileMgr,
 	Tile tile = {};
 	tile.TextureRect = textCoord;
 	tile.TileDataId = tileData.TileId;
-	tile.TileColor = WHITE;
+	tile.TileColor = {};
 	return tile;
 }
 
@@ -77,11 +77,39 @@ TileData& RegisterTile(TileMgr* tileMgr,
 	Tile tile = {};
 	tile.TextureRect = textCoord;
 	tile.TileDataId = tileDataId;
-	tile.TileColor = WHITE;
+	tile.TileColor = {};
 	return tile;
 }
 
 const TileData& Tile::GetTileData(TileMgr* tileMgr) const
 {
 	return tileMgr->Tiles[TileDataId];
+}
+
+void TileColor::AddColor(Color c)
+{
+	r += (uint16_t)c.r;
+	b += (uint16_t)c.g;
+	b += (uint16_t)c.b;
+	a += (uint16_t)c.a;
+	++Count;
+}
+
+Vector4 TileColor::FinalColor()
+{
+	if (Count == 0)
+		return {};
+
+	uint16_t finalR = r / (uint16_t)Count;
+	uint16_t finalG = g / (uint16_t)Count;
+	uint16_t finalB = b / (uint16_t)Count;
+	uint16_t finalA = a / (uint16_t)Count;
+	
+	r = 0;
+	g = 0;
+	b = 0;
+	a = 0;
+	Count = 0;
+
+	return { (float)finalR / 255.0f, (float)finalG / 255.0f, (float)finalB / 255.0f, (float)finalA / 255.0f };
 }

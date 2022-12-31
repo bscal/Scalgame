@@ -67,7 +67,7 @@ bool InitializeUI(UIState* state, GameApplication* gameApp)
 {
 	state->App = gameApp;
 
-	InitializeNuklear(&state->Ctx, state, &gameApp->Resources->FontSilver, 16.0f);
+	InitializeNuklear(&state->Ctx, state, &gameApp->Game->Resources.FontSilver, 16.0f);
 
 	S_LOG_INFO("[ UI ] Initialized");
 	return true;

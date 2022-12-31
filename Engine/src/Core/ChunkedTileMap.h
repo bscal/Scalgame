@@ -10,9 +10,6 @@
 
 struct Game;
 
-typedef Vector2i ChunkCoord;
-typedef Vector2i TileCoord;
-
 constexpr int CHUNK_SIZE = 64;
 constexpr int TILE_SIZE = 16;
 constexpr Vector2i VIEW_DISTANCE = { 3, 2 };
