@@ -60,7 +60,8 @@ GameApplication* const GetGameApp();
 void SetCameraPosition(Game* game, Vector3 pos);
 void SetCameraDistance(GameApplication* gameApp, float zoom);
 Player* GetClientPlayer();
-World* GetMainWorld();
+EntityMgr* GetEntityMgr();
+Game* GetGame();
 float GetDeltaTime();
 float GetScale();
 

@@ -4,6 +4,7 @@
 #include "ResourceManager.h"
 #include "Player.h"
 #include "World.h"
+#include "EntityMgr.h"
 #include "SMemory.h"
 
 #include <raymath.h>
@@ -194,7 +195,7 @@ internal Rectangle RectToTextCoords(const Texture2D& texture,
 
 void SCreature::Update(Game* game)
 {
-	const auto& sheet = GetGameApp()->Resources->EntitySpriteSheet;
+	const auto& sheet = game->Resources.EntitySpriteSheet;
 	Rectangle rect = TextureInfo.Rect;
 	if (LookDirection == TileDirection::West ||
 		LookDirection == TileDirection::South)

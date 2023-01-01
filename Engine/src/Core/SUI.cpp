@@ -12,7 +12,7 @@
 
 internal void* MemAlloc(nk_handle handle, void* old, nk_size size)
 {
-	return Scal::MemRealloc(old, size);
+	return Scal::MemAlloc(size);
 }
 
 internal void MemFree(nk_handle handle, void* old)
@@ -76,52 +76,57 @@ bool InitializeUI(UIState* state, GameApplication* gameApp)
 
 void UpdateUI(UIState* state)
 {
+	Player* p = GetClientPlayer();
+
 	UpdateNuklear(&state->Ctx);
 
 	state->IsMouseHoveringUI = IsMouseHoveringUI(&state->Ctx);
 
-	if (nk_begin(&state->Ctx, "Debug", { 5, 5, 400, 250 }, NK_WINDOW_NO_SCROLLBAR))
+	Color c = { 17, 17, 17, 155 };
+	state->Ctx.style.window.fixed_background.data.color = ColorToNuklear(c);
+
+	if (nk_begin(&state->Ctx, "Debug", { 5, 5, 380, 340 },
+		NK_WINDOW_NO_SCROLLBAR))
 	{
 		nk_layout_row_dynamic(&state->Ctx, 16, 2);
 		nk_label(&state->Ctx, "Fps: ", NK_TEXT_LEFT);
-		nk_label(&state->Ctx, 
+		nk_label(&state->Ctx,
 			std::to_string(GetFPS()).c_str(), NK_TEXT_LEFT);
 
 		nk_layout_row_dynamic(&state->Ctx, 16, 2);
 		nk_label(&state->Ctx, "FrameTime: ", NK_TEXT_LEFT);
-		nk_label(&state->Ctx, 
+		nk_label(&state->Ctx,
 			std::to_string(GetGameApp()->DeltaTime * 1000).c_str(), NK_TEXT_LEFT);
 
 		nk_layout_row_dynamic(&state->Ctx, 16, 2);
 		nk_label(&state->Ctx, "RenderTime: ", NK_TEXT_LEFT);
-		nk_label(&state->Ctx, 
+		nk_label(&state->Ctx,
 			std::to_string(GetGameApp()->RenderTime * 1000).c_str(), NK_TEXT_LEFT);
 
 		nk_layout_row_dynamic(&state->Ctx, 16, 2);
 		nk_label(&state->Ctx, "#LoadedChunks: ", NK_TEXT_LEFT);
 		nk_label(&state->Ctx,
 			std::to_string(GetGameApp()->NumOfLoadedChunks).c_str(), NK_TEXT_LEFT);
-	
+
 		nk_layout_row_dynamic(&state->Ctx, 16, 2);
 		nk_label(&state->Ctx, "#UpdatedChunks: ", NK_TEXT_LEFT);
 		nk_label(&state->Ctx,
 			std::to_string(GetGameApp()->NumOfChunksUpdated).c_str(), NK_TEXT_LEFT);
 
 		nk_layout_row_dynamic(&state->Ctx, 16, 2);
-		nk_label(&state->Ctx, "X, Y: ", NK_TEXT_LEFT);
+		const char* xy = TextFormat("X: %.2f, Y: %.2f",
+			p->Transform.Pos.x, p->Transform.Pos.y);
+		nk_label(&state->Ctx, xy, NK_TEXT_LEFT);
 
-		auto p = GetClientPlayer();
-		std::string xy;
-		xy.reserve(10);
-		xy += std::to_string(p->Transform.TilePos.x);
-		xy += ", ";
-		xy += std::to_string(p->Transform.TilePos.y);
-		nk_label(&state->Ctx, xy.c_str(), NK_TEXT_LEFT);
+		const char* tileXY = TextFormat("TX: %d, TY: %d",
+			p->Transform.TilePos.x, p->Transform.TilePos.y);
+		nk_label(&state->Ctx, tileXY, NK_TEXT_LEFT);
 
 		nk_layout_row_dynamic(&state->Ctx, 16, 2);
 		nk_label(&state->Ctx, "Zoom: ", NK_TEXT_LEFT);
-		nk_label(&state->Ctx,
-			std::to_string(GetGameApp()->Scale).c_str(), NK_TEXT_LEFT);
+		nk_label(&state->Ctx, TextFormat("%.3f", GetGameApp()->Scale), NK_TEXT_LEFT);
+
+		RenderMemoryUsage(state);
 	}
 	nk_end(&state->Ctx);
 }
@@ -131,21 +136,36 @@ void DrawUI(UIState* state)
 	DrawNuklear(&state->Ctx);
 }
 
-void RenderMemoryUsage(UIState* state, uint64_t length,
-	const uint32_t* usage, const char* const* usageName)
+void RenderMemoryUsage(UIState* state)
 {
-	if (nk_begin(&state->Ctx, "Memory Usage", { 10, 10, 240, 240 },
-		NK_WINDOW_BORDER | NK_WINDOW_MOVABLE | NK_WINDOW_SCALABLE |
-		NK_WINDOW_MINIMIZABLE | NK_WINDOW_TITLE))
+	const size_t* memUsage = Scal::GetMemoryUsage();
+
+	for (int i = 0; i < Scal::MaxTags; ++i)
 	{
-		for (int i = 0; i < length; ++i)
-		{
-			nk_layout_row_dynamic(&state->Ctx, 30, 1);
-			auto memSize = FindMemSize(usage[i]);
-			char str[32];
-			sprintf(str, "%s: %f %cBs", usageName[i], memSize.Size, memSize.BytePrefix);
-			nk_label(&state->Ctx, str, NK_TEXT_LEFT);
-		}
+		const char* name = Scal::MemoryTagStrings[i];
+		size_t size = memUsage[i];
+
+		MemorySizeData memSize = FindMemSize(size);
+
+		nk_layout_row_dynamic(&state->Ctx, 16, 2);
+		nk_label(&state->Ctx, name, NK_TEXT_LEFT);
+		const char* str = TextFormat("%.3f%cbs",
+			memSize.Size, memSize.BytePrefix);
+		nk_label(&state->Ctx, str, NK_TEXT_LEFT);
 	}
-	nk_end(&state->Ctx);
+
+	nk_layout_row_dynamic(&state->Ctx, 16, 2);
+	nk_label(&state->Ctx, "UI Memory", NK_TEXT_LEFT);
+	const auto& uiMem = state->Ctx.memory;
+	MemorySizeData memSizeAlloc = FindMemSize(uiMem.allocated);
+	MemorySizeData memSizeNeed = FindMemSize(uiMem.needed);
+	const char* str = TextFormat("%.2f%cbs/%.2f%cbs",
+		memSizeAlloc.Size, memSizeAlloc.BytePrefix,
+		memSizeNeed.Size, memSizeNeed.BytePrefix);
+	nk_label(&state->Ctx, str, NK_TEXT_LEFT);
+
+	nk_layout_row_dynamic(&state->Ctx, 16, 2);
+	nk_label(&state->Ctx, "UI Allocations", NK_TEXT_LEFT);
+	nk_label(&state->Ctx, TextFormat("%d", uiMem.calls), NK_TEXT_LEFT);
+
 }

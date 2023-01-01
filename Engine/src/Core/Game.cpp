@@ -426,11 +426,19 @@ Player* GetClientPlayer()
 	return &GetGameApp()->Game->World.EntityMgr.Players[0];
 }
 
-World* GetMainWorld()
+EntityMgr* GetEntityMgr()
 {
 	assert(GetGameApp()->Game->World.IsInitialized);
-	return &GetGameApp()->Game->World;
+	return &GetGameApp()->Game->World.EntityMgr;
 }
+
+Game* GetGame()
+{
+	return GetGameApp()->Game;
+}
+
+
+Game* GetGame();
 
 float GetDeltaTime()
 {

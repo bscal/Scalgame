@@ -2,6 +2,7 @@
 
 #include "Game.h"
 #include "ResourceManager.h"
+#include "EntityMgr.h"
 #include "Creature.h"
 #include "Sprite.h"
 #include "Lighting.h"
@@ -140,4 +141,9 @@ void ProcessActions(World* world)
 Vector2i WorldTileScale(World* world)
 {
 	return world->ChunkedTileMap.TileSize;
+}
+
+Vector2i WorldToTileCoord(World* world, Vector2 tile)
+{
+	return CTileMap::WorldToTile(&world->ChunkedTileMap, tile);
 }

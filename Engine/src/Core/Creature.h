@@ -132,35 +132,3 @@ struct ComponentMgr
 		return (T*)ArrayPeekAt(&componentArray, (uint64_t)index);
 	}
 };
-
-struct CreatureCache
-{
-	uint32_t Index;
-	bool IsPlayer;
-};
-
-struct EntityMgr
-{
-	std::unordered_map<uint32_t, CreatureCache,
-		std::hash<uint32_t>, std::equal_to<uint32_t>,
-		SAllocator<std::pair<const uint32_t, CreatureCache>>> EntityMap;
-	std::vector<Player, SAllocator<Player>> Players;
-	std::vector<SCreature, SAllocator<SCreature>> Creatures;
-	std::vector<uint32_t, SAllocator<uint32_t>> EntitiesToRemove;
-	ComponentMgr ComponentManager;
-	uint32_t NextEntityId;
-
-	void Initialize(Game* game);
-	void Update(Game* game);
-	void RemoveEntity(uint32_t id);
-
-	Player& CreatePlayer(World* world);
-	SCreature& CreatureCreature(World* world);
-
-	Player* GetPlayer(uint32_t id);
-	SCreature* GetCreature(uint32_t id);
-	SCreature* FindEntity(uint32_t id);
-
-	size_t TotalEntities() const;
-	bool IsEmpty(const SCreature& entity) const;
-};

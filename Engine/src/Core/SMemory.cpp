@@ -1,9 +1,12 @@
+#define RMEM_IMPLEMENTATION
 #include "SMemory.h"
+
 
 #include "Core.h"
 #include "SUI.h"
 
 #include <stdlib.h>
+#include <assert.h>
 #include <memory>
 
 
@@ -25,8 +28,9 @@ void* MemAllocZero(size_t size)
 
 void* MemRealloc(void* block, size_t size)
 {
-	block = realloc(block, size);
-	return block;
+	void* mem = realloc(block, size);
+	assert(mem);
+	return mem;
 }
 
 void MemFree(void* block)
@@ -49,46 +53,37 @@ void MemClear(void* block, size_t size)
 	memset(block, 0, size);
 }
 
-
-constexpr static const char* MemoryTagStrings[MaxTags] =
-{
-	"Unknown",
-	"Array",
-	"List",
-	"Application",
-	"Game",
-	"Resources",
-};
-
-static uint32_t MemoryTagUsage[MaxTags] = {};
+global_var size_t MemoryTagUsage[MaxTags];
 
 void* MemAllocTag(size_t size, MemoryTag tag)
 {
-	if (tag == MemoryTag::Unknown)
-	{
-		TraceLog(LOG_ERROR, "Cannot allocate memory with Unknown tag");
-		return nullptr;
-	}
+	assert(tag != MemoryTag::Unknown);
 
-	MemoryTagUsage[tag] += (uint32_t)size;
-	return MemAlloc(size);
+	MemoryTagUsage[tag] += size;
+	return Scal::MemAlloc(size);
+}
+
+void* MemReallocTag(void* block, size_t oldSize, size_t newSize, MemoryTag tag)
+{
+	assert(tag != MemoryTag::Unknown);
+
+	MemoryTagUsage[tag] -= oldSize;
+	MemoryTagUsage[tag] += newSize;
+	return Scal::MemRealloc(block, newSize);
 }
 
 void MemFreeTag(void* block, size_t size, MemoryTag tag)
 {
-	if (tag == MemoryTag::Unknown)
-	{
-		TraceLog(LOG_ERROR, "Cannot free memory with Unknown tag");
-		return;
-	}
+	assert(block);
+	assert(tag != MemoryTag::Unknown);
 
-	MemoryTagUsage[tag] -= (uint32_t)size;
+	MemoryTagUsage[tag] -= size;
 	Scal::MemFree(block);
 }
 
-void ShowMemoryUsage(UIState* uiState)
+const size_t* GetMemoryUsage()
 {
-	RenderMemoryUsage(uiState, MaxTags, MemoryTagUsage, MemoryTagStrings);
+	return MemoryTagUsage;
 }
 
 }

@@ -27,5 +27,4 @@ bool InitializeUI(UIState* state, GameApplication* gameApp);
 void UpdateUI(UIState* state);
 void DrawUI(UIState* state);
 
-void RenderMemoryUsage(UIState* state, uint64_t length,
-	const uint32_t* usage, const char* const *usageName);
+void RenderMemoryUsage(UIState* state);

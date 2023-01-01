@@ -3,6 +3,7 @@
 #include "Core.h"
 #include "Vector2i.h"
 #include "Tile.h"
+#include "EntityMgr.h"
 #include "Structures/SArray.h"
 #include "Structures/SList.h"
 #include "Structures/SLinkedList.h"
@@ -20,6 +21,7 @@ namespace CTileMap
 struct TileMapChunk
 {
 	SList<Tile> Tiles;
+	SList<EntityId> Entities;
 	Rectangle Bounds;
 	ChunkCoord ChunkCoord;
 	bool IsChunkGenerated;
