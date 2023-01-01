@@ -12,6 +12,7 @@ project "Engine"
         "src/**.cpp",
         "src/**.h",
         "src/**.hpp",
+        "src/**.c"
     }
 
     defines
@@ -23,7 +24,7 @@ project "Engine"
     {
         "src",
         "vendor",
-        "vendor/raylib/src",
+        "vendor/raylib/src"
     }
 
     links
