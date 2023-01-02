@@ -57,7 +57,7 @@ struct TextureInfo
 struct SCreature
 {
 	World* WorldRef;
-	uint32_t Id = CREATURE_EMPTY_ENTITY_ID;
+	uint64_t Id = CREATURE_EMPTY_ENTITY_ID;
 	uint32_t ComponentIndex[CREATURE_MAX_COMPONENTS];
 	TextureInfo TextureInfo;
 	EntityTransform Transform;
@@ -65,6 +65,7 @@ struct SCreature
 	bool ShouldRemove;
 	bool IsPlayer;
 	bool HasMoved;
+	bool IsFrozen;
 
 	void Initialize(World* world);
 	void Update(Game* game);

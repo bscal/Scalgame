@@ -11,10 +11,6 @@
 
 void WorldInitialize(World* world, GameApplication* gameApp)
 {
-	// TODO move
-	TileMgrInitialize(&world->TileMgr,
-		&gameApp->Game->Atlas);
-
 	world->TileCoordsInLOS.max_load_factor(0.75f);
 	world->TileCoordsInLOS.reserve(256);
 	world->EntityActionsList.Initialize();
@@ -28,22 +24,6 @@ void WorldInitialize(World* world, GameApplication* gameApp)
 void WorldLoad(World* world, Game* game)
 {
 	LightsInitialized(GetGameApp());
-
-	// TODO 
-	Player& player = world->EntityMgr.CreatePlayer(world);
-	Human human = {};
-	human.Age = 30;
-	world->EntityMgr.ComponentManager.AddComponent(&player, &human);
-
-	Human* playerHuman = world->EntityMgr.ComponentManager
-		.GetComponent<Human>(&player, Human::ID);
-
-	S_LOG_INFO("[ WORLD ] players age is %d from componentId: %d",
-		playerHuman->Age, playerHuman->ID);
-
-	SCreature& rat = world->EntityMgr.CreatureCreature(world);
-	rat.TextureInfo.Rect = RAT_SPRITE.TexCoord;
-	rat.SetTilePos({ 5, 5 });
 
 	// Load chunks around players at start
 	CTileMap::FindChunksInView(&world->ChunkedTileMap, game);
@@ -73,9 +53,6 @@ void WorldUpdate(World* world, Game* game)
 	LightsUpdate(game);
 
 	CTileMap::Update(&world->ChunkedTileMap, game);
-
-	world->EntityMgr.Update(game);
-
 	CTileMap::LateUpdateChunk(&world->ChunkedTileMap, game);
 
 	GetGameApp()->NumOfLoadedChunks = (int)world->ChunkedTileMap.ChunksList.Length;

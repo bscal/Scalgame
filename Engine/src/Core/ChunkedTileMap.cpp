@@ -284,6 +284,7 @@ TileMapChunk* LoadChunk(ChunkedTileMap* tilemap,
 {
 	TileMapChunk chunk = {};
 	chunk.Tiles.InitializeCap(tilemap->ChunkTileCount);
+	chunk.Entities.InitializeCap(10); // TODO
 	chunk.ChunkCoord = coord;
 
 	float chunkOffSetX = (float)coord.x * (float)tilemap->TileSize.x
@@ -299,9 +300,9 @@ TileMapChunk* LoadChunk(ChunkedTileMap* tilemap,
 	return tilemap->ChunksList.Last();
 }
 
-void UnloadChunk(ChunkedTileMap* tilemap,
-	ChunkCoord coord)
+void UnloadChunk(ChunkedTileMap* tilemap, ChunkCoord coord)
 {
+
 	for (size_t i = 0; i < tilemap->ChunksList.Length; ++i)
 	{
 		if (tilemap->ChunksList[i].ChunkCoord.Equals(coord))
@@ -328,7 +329,7 @@ void GenerateChunk(ChunkedTileMap* tilemap,
 		{
 			uint32_t tileId = (uint32_t)SRandNextRange(&Random, 1, 1);
 			const auto& tile = CreateTileId(
-				&GetGameApp()->Game->World.TileMgr,
+				&GetGameApp()->Game->TileMgr,
 				tileId);
 			chunk->Tiles.Push(&tile);
 		}
@@ -451,7 +452,7 @@ bool BlocksLight(ChunkedTileMap* tilemap, TileCoord coord)
 
 	Tile* tile = GetTile(tilemap, coord);
 	assert(tile);
-	return tile->GetTileData(&GetGameApp()->Game->World.TileMgr).Type == TileType::Solid;
+	return tile->GetTileData(&GetGameApp()->Game->TileMgr).Type == TileType::Solid;
 }
 
 }

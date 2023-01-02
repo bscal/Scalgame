@@ -5,8 +5,8 @@
 
 #include <assert.h>
 
-#define SLIST_DEFAULT_CAPACITY 1;
-#define SLIST_DEFAULT_RESIZE 2.0f;
+#define SLIST_DEFAULT_CAPACITY 1
+#define SLIST_DEFAULT_RESIZE 2
 
 template<typename T>
 struct SList
@@ -14,7 +14,6 @@ struct SList
 	T* Memory;
 	uint64_t Capacity;
 	uint64_t Length;
-	float ResizeIncrease;
 
 	bool Initialize();
 	bool InitializeCap(uint64_t capacity);
@@ -65,8 +64,7 @@ bool SList<T>::Initialize()
 		return false;
 	}
 	Capacity = SLIST_DEFAULT_CAPACITY;
-	ResizeIncrease = SLIST_DEFAULT_RESIZE
-		Memory = (T*)Scal::MemAllocZero(Capacity * sizeof(T));
+	Memory = (T*)Scal::MemAllocZero(Capacity * sizeof(T));
 	return true;
 }
 
@@ -80,7 +78,6 @@ bool SList<T>::InitializeCap(uint64_t capacity)
 		return false;
 	}
 	Capacity = capacity;
-	ResizeIncrease = SLIST_DEFAULT_RESIZE;
 	Memory = (T*)Scal::MemAllocZero(Capacity * sizeof(T));
 	return true;
 }
@@ -103,7 +100,6 @@ template<typename T>
 void SList<T>::Resize(uint64_t capacity)
 {
 	assert(Memory);
-	assert(ResizeIncrease > 0.0f);
 	if (capacity < Capacity)
 	{
 		S_LOG_WARN("newSize was < capacity!");
@@ -120,7 +116,7 @@ void SList<T>::Push(const T* valueSrc)
 	assert(valueSrc);
 	if (Length == Capacity)
 	{
-		Resize((uint64_t)floorf((float)Capacity * ResizeIncrease));
+		Resize((uint64_t)floorf((float)Capacity * SLIST_DEFAULT_RESIZE));
 	}
 	Memory[Length] = *valueSrc;
 	++Length;
@@ -133,7 +129,7 @@ void SList<T>::PushAt(uint64_t index, const T* valueSrc)
 	assert(valueSrc);
 	if (Length == Capacity)
 	{
-		Resize((uint64_t)floorf((float)Capacity * ResizeIncrease));
+		Resize(Capacity * SLIST_DEFAULT_RESIZE);
 	}
 	if (index > Length) index = Length;
 	if (index != Length)
@@ -155,7 +151,7 @@ void SList<T>::PushAtFast(uint64_t index, const T* valueSrc)
 	assert(valueSrc);
 	if (Length == Capacity)
 	{
-		Resize((uint64_t)floorf((float)Capacity * ResizeIncrease));
+		Resize(Capacity * SLIST_DEFAULT_RESIZE);
 	}
 	Memory[Length] = Memory[index];
 	Memory[index] = *valueSrc;

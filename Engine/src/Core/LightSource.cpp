@@ -146,7 +146,7 @@ void LightMap::BuildLightMap(Game* game)
 			};
 			if (!IsTileInBounds(&game->World.ChunkedTileMap, coord)) continue;
 			const auto& tile = CTileMap::GetTileRef(&game->World.ChunkedTileMap, coord);
-			const auto& tileData = tile.GetTileData(&game->World.TileMgr);
+			const auto& tileData = tile.GetTileData(&game->TileMgr);
 			Color c;
 			if (tileData.Type == TileType::Solid)
 				c = { 255, 255, 255, 255 };
@@ -269,12 +269,12 @@ void SightMap::Update(World* world, Vector2i pos)
 	EndPos.x = pos.x + halfWidth;
 	EndPos.y = pos.y + halfHeight;
 
-	auto player = world->EntityMgr.Players[0];
+	Player* player = GetClientPlayer();
 	float playerAngleRadians =
-		GetRadiansFromDirection(player.LookDirection);
+		GetRadiansFromDirection(player->LookDirection);
 	constexpr float coneFov = 160.0f * DEG2RAD;
-	float x = player.Transform.Pos.x + 8.0f;
-	float y = player.Transform.Pos.y + 8.0f;
+	float x = player->Transform.Pos.x + 8.0f;
+	float y = player->Transform.Pos.y + 8.0f;
 	constexpr float distance = 16.0f * 16.0f;
 
 	GetTilesInCone(world, playerAngleRadians,

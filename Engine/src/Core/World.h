@@ -48,11 +48,11 @@ struct Equals
 struct World
 {
 	CTileMap::ChunkedTileMap ChunkedTileMap;
-	EntityMgr EntityMgr;
+	
 	SList<Action> EntityActionsList;
 	std::unordered_set<Vector2i,
 		Hash, Equals, SAllocator<Vector2i>> TileCoordsInLOS;
-	TileMgr TileMgr;
+
 	bool IsInitialized;
 	bool IsLoaded;
 };

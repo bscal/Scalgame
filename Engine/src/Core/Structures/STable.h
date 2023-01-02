@@ -49,7 +49,7 @@ internal STableEntry<K, V>* CreateEntry(const K* key, const V* value)
 		Scal::MemAlloc(sizeof(STableEntry<K, V>));
 	entry->Key = *key;
 	entry->Value = *value;
-	entry->Next = nullptr;
+	entry->Next = NULL;
 	return entry;
 }
 

@@ -5,6 +5,9 @@
 #include "Player.h"
 #include "SMemory.h"
 
+#include "Structures/SList.h"
+#include "Structures/SLinkedList.h"
+
 #include <vector>
 #include <unordered_map>
 
@@ -17,24 +20,33 @@ struct World;
 // top 16 bits are used for entity type
 typedef uint64_t EntityId;
 
-constexpr uint32_t GetEntityId(uint64_t val)
+#define ENTITY_TYPE_MASK (0xffffffff00ffffff)
+#define ENTITY_TYPE_OFFSET (32)
+
+constexpr uint32_t GetEntityId(EntityId ent)
 {
-	return static_cast<uint32_t>(val);
+	return static_cast<uint32_t>(ent);
 }
 
-constexpr uint16_t GetEntityType(uint64_t val)
+constexpr uint8_t GetEntityType(EntityId ent)
 {
-	return static_cast<uint16_t>(val >> 48);
+	return static_cast<uint8_t>(ent >> ENTITY_TYPE_OFFSET);
 }
 
-enum EntityType : uint16_t
+constexpr bool IsEmptyEntityId(EntityId ent)
 {
-	UNKNOWN		= 0,
-	PLAYER		= 1,
-	CREATURE	= 2,
-	TILE		= 4,
-	TRIGGER		= 8,
-	ITEM		= 16
+	return (GetEntityId(ent) == CREATURE_EMPTY_ENTITY_ID);
+}
+
+enum EntityType : uint8_t
+{
+	UNKNOWN = 0,
+	PLAYER,
+	CREATURE,
+	TILE,
+	TRIGGER,
+	ITEM,
+	MAX_TYPES
 };
 
 #define IS_TYPE(entityId, type) (GetEntityType(entityId) == static_cast<uint16_t>(type))
@@ -51,37 +63,41 @@ struct CreatureCache
 	bool IsPlayer;
 };
 
+// A possible upgrade could be we reuse entity ids, which
+// would allow use to store all entity indecies in an array
 struct EntityMgr
 {
-	std::unordered_map<uint32_t, CreatureCache,
-		std::hash<uint32_t>, std::equal_to<uint32_t>,
-		SAllocator<std::pair<const uint32_t, CreatureCache>>> EntityMap;
-	std::vector<Player, SAllocator<Player>> Players;
-	std::vector<SCreature, SAllocator<SCreature>> Creatures;
-	std::vector<uint32_t, SAllocator<uint32_t>> EntitiesToRemove;
 	ComponentMgr ComponentManager;
 
-	MemPool EntityMemory;
-	std::unordered_map<EntityId, void*> EntityIdToEntityPtr;
+	std::unordered_map<EntityId, uint32_t> EntityIdToIndex;
+
+	SLinkedList<EntityId> EntitiesToRemove;
+
+	SList<Player> Players;
+	SList<SCreature> Creatures;
 
 	uint32_t NextEntityId;
-
-	void Initialize(Game* game);
-	void Update(Game* game);
-	void RemoveEntity(uint32_t id);
-
-	Player& CreatePlayer(World* world);
-	SCreature& CreatureCreature(World* world);
-
-	Player* GetPlayer(uint32_t id);
-	SCreature* GetCreature(uint32_t id);
-	SCreature* FindEntity(uint32_t id);
 
 	size_t TotalEntities() const;
 	bool IsEmpty(const SCreature& entity) const;
 };
 
-EntityId CreateEntity(EntityMgr* entMgr, uint16_t typeId);
-Player* CreatePlayer(EntityMgr* entMgr);
+void EntityMgrInitialize(Game* game);
+void EntityMgrUpdate(EntityMgr* entMgr, Game* game);
+
+EntityId CreateEntity(EntityMgr* entMgr, EntityType type);
+
+Player* CreatePlayer(EntityMgr* entMgr, World* world);
+SCreature* CreateCreature(EntityMgr* entMgr, World* world);
+
 void RemoveEntity(EntityMgr* entMgr, EntityId entityId);
-void SpawnCreature(SCreature* creature, World* world, Vector2 spawnCoords);
+void MarkEntityForRemove(EntityMgr* entMgr, EntityId entId);
+
+void* FindEntity(EntityMgr* entMgr, EntityId entId, uint32_t entIndex);
+// If you know the type you should use the specific FindType function;
+void* FindEntityById(EntityMgr* entMgr, EntityId entId);
+
+uint32_t TryFindEntityIndex(EntityMgr* entMgr, EntityId entId);
+
+Player* FindPlayer(EntityMgr* entMgr, EntityId entId);
+SCreature* FindCreature(EntityMgr* entMgr, EntityId entId);

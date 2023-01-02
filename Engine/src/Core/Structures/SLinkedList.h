@@ -22,13 +22,17 @@ struct SLinkedList
 	void Push(const T* value);
 	void Pop();
 	[[nodiscard]] T PopValue();
+
+	inline bool HasNext() { return (First != NULL); }
 };
 
 template<typename T>
 internal SLinkedListEntry<T>* FreeEntry(SLinkedListEntry<T>* entry)
 {
+	assert(entry);
 	auto next = entry->Next;
 	Scal::MemFree(entry);
+	entry = NULL;
 	return next;
 }
 
@@ -54,7 +58,7 @@ void SLinkedList<T>::Push(const T* value)
 {
 	assert(value);
 
-	SLinkedListEntry<T>* entry = (SLinkedListEntry<T>*)Scal::MemAllocZero(sizeof(T));
+	SLinkedListEntry<T>* entry = (SLinkedListEntry<T>*)Scal::MemAllocZero(sizeof(SLinkedListEntry<T>));
 	assert(entry);
 
 	entry->Value = *value;
@@ -75,6 +79,7 @@ template<typename T>
 [[nodiscard]] T SLinkedList<T>::PopValue()
 {
 	assert(Size > 0);
+	assert(First);
 	T val = First->Value;
 	First = FreeEntry(First);
 	--Size;

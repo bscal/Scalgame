@@ -134,6 +134,9 @@ internal bool GameInitialize(Game* game, GameApplication* gameApp)
 
 	GameLoadScreen(gameApp, GetScreenWidth(), GetScreenHeight());
 
+	TileMgrInitialize(&game->TileMgr, &game->Atlas);
+	EntityMgrInitialize(game);
+
 	#if Mode3D
 	Camera3D camera = {};
 	camera.position = { 0.0f, 0.0f, 100.0f };   // Camera position
@@ -161,6 +164,25 @@ internal void GameStart(Game* game, GameApplication* gameApp)
 	// TODO world loading / world settings
 	game->ChunkViewDistance = { 4, 3 };
 	WorldInitialize(&game->World, gameApp);
+
+	Player* player = CreatePlayer(&game->EntityMgr, &game->World);
+	player->TextureInfo.Rect = PLAYER_SPRITE.TexCoord;
+
+	Human human = {};
+	human.Age = 30;
+	game->EntityMgr.ComponentManager.AddComponent(player, &human);
+
+	Human* playerHuman = game->EntityMgr.ComponentManager
+		.GetComponent<Human>(player, Human::ID);
+
+	S_LOG_INFO("[ WORLD ] players age is %d from componentId: %d",
+		playerHuman->Age, playerHuman->ID);
+
+	SCreature* rat = CreateCreature(&game->EntityMgr, &game->World);
+	rat->TextureInfo.Rect = RAT_SPRITE.TexCoord;
+	rat->SetTilePos({ 5, 5 });
+
+	MarkEntityForRemove(&game->EntityMgr, rat->Id);
 
 	WorldLoad(&game->World, game);
 }
@@ -248,7 +270,7 @@ SAPI void GameApplication::Run()
                 
 				Tile* tile = CTileMap::GetTile(&Game->World.ChunkedTileMap, { x, y });
                 
-				Tile newTile = CreateTileId(&Game->World.TileMgr, 5);
+				Tile newTile = CreateTileId(&Game->TileMgr, 5);
 				CTileMap::SetTile(&Game->World.ChunkedTileMap, &newTile, { vec.x, vec.y });
                 
 				S_LOG_INFO("Clicked Tile[%d, %d] Id: %d",
@@ -319,6 +341,7 @@ SAPI void GameApplication::Run()
 		// World
         GameUpdate(Game, this);
 		WorldUpdate(&Game->World, Game);
+		EntityMgrUpdate(&Game->EntityMgr, Game);
 
 		EndMode2D();
         EndTextureMode();
@@ -382,6 +405,7 @@ SAPI void GameApplication::Run()
 
 internal void GameUpdate(Game* game, GameApplication* gameApp)
 {
+
 	// Handle Camera Move
 	if (!game->IsFreeCam)
 	{
@@ -422,14 +446,14 @@ GameApplication* const GetGameApp()
 
 Player* GetClientPlayer()
 {
-	assert(GetGameApp()->Game->World.EntityMgr.Players.size() > 0);
-	return &GetGameApp()->Game->World.EntityMgr.Players[0];
+	assert(GetGameApp()->Game->EntityMgr.Players.Length > 0);
+	return GetGameApp()->Game->EntityMgr.Players.PeekAtPtr(0);
 }
 
 EntityMgr* GetEntityMgr()
 {
 	assert(GetGameApp()->Game->World.IsInitialized);
-	return &GetGameApp()->Game->World.EntityMgr;
+	return &GetGameApp()->Game->EntityMgr;
 }
 
 Game* GetGame()

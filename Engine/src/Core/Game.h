@@ -26,6 +26,8 @@ struct Game
     RenderTexture2D ViewTexture;
     
     World World;
+    TileMgr TileMgr;
+    EntityMgr EntityMgr;
     
     Vector2i ChunkViewDistance;
     float CameraLerpTime;
