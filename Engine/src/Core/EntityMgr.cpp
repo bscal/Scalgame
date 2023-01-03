@@ -116,6 +116,35 @@ uint32_t TryFindEntityIndex(EntityMgr* entMgr, EntityId entId)
 	return find->second;
 }
 
+internal void 
+InsertEntity(EntityMgr* entMgr, EntityId entId, Vector2i chunkPos)
+{
+	auto& chunkEntityMap = entMgr->ChunkToEntities;
+	auto find = chunkEntityMap.find(chunkPos);
+	if (find == chunkEntityMap.end())
+	{
+		auto pair = chunkEntityMap.emplace(std::make_pair(chunkPos, std::vector<EntityId>()));
+		pair.first->second.push_back(entId);
+	}
+	else
+	{
+		find->second.push_back(entId);
+	}
+}
+
+void UpdateEntityPosition(EntityId id, Vector2i oldPos, Vector2i newPos)
+{
+	auto entityMgr = GetEntityMgr();
+	auto old = GetEntityMgr()->ChunkToEntities[oldPos];
+	for (auto it = old.begin(); it != old.end(); ++it)
+	{
+		if (*it == id) old.erase(it);
+	}
+
+	InsertEntity(entityMgr, id, newPos);
+}
+
+
 Player* CreatePlayer(EntityMgr* entMgr, World* world)
 {
 	EntityId entityId = CreateEntity(entMgr, PLAYER);
@@ -127,6 +156,7 @@ Player* CreatePlayer(EntityMgr* entMgr, World* world)
 
 	uint32_t index = entMgr->Players.End();
 	entMgr->EntityIdToIndex.insert({ entityId, index });
+	InsertEntity(entMgr, entityId, player.Transform.ChunkPos);
 	
 	return entMgr->Players.Last();
 }
@@ -143,6 +173,7 @@ SCreature* CreateCreature(EntityMgr* entMgr, World* world)
 
 	uint32_t index = entMgr->Creatures.End();
 	entMgr->EntityIdToIndex.insert({ entityId, index });
+	InsertEntity(entMgr, entityId, creature.Transform.ChunkPos);
 
 	return entMgr->Creatures.Last();
 }

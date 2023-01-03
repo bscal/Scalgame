@@ -16,8 +16,8 @@ bool InitializeResources(Resources* resources)
 	//resources->TileSheet = LoadTexture(TILE_MAP_TEXTURE_PATH);
 
 	resources->MainFontM = LoadFont(FONT_PATH);
-    //resources->MainFontS = LoadFontEx(FONT_PATH, 16, 0, 0);
-    resources->FontSilver = LoadFont(SDF_FONT_PATH);
+    resources->MainFontS = LoadFontEx(FONT_PATH, 16, 0, 0);
+    resources->FontSilver = LoadFontEx(SDF_FONT_PATH, 16, 0, 0);
 
     resources->UnlitShader = LoadShader(
         "assets/shaders/tile_shader.vert",

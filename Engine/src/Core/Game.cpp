@@ -17,7 +17,6 @@
 #include "rlgl.h"
 
 global_var GameApplication* GameAppPtr;
-global_var bool IsShowingDebugUi = true;
 
 // TODO
 global_var int UniformLitTileMapId = -1;
@@ -83,18 +82,9 @@ internal void GameLoadScreen(GameApplication* gameApp, int width, int height)
 	game->WorldCamera.offset = gameApp->HalfWidthHeight;
 	game->ViewCamera.offset = gameApp->HalfWidthHeight;
 
-	gameApp->CurScreenRect.width = (float)width;
-	gameApp->CurScreenRect.height = (float)height;
+	UnloadRenderTexture(game->WorldTexture);
 
-	UnloadRenderTexture(game->ScreenTexture);
-	UnloadRenderTexture(game->ScreenLightMapTexture);
-	UnloadRenderTexture(game->LightTexture);
-	UnloadRenderTexture(game->ViewTexture);
-
-	game->ScreenTexture = LoadRenderTexture(width, height);
-	game->ScreenLightMapTexture = LoadRenderTexture(width, width);
-	game->LightTexture = LoadRenderTexture(width / 16, width / 16);
-	game->ViewTexture = LoadRenderTexture(width, height);
+	game->WorldTexture = LoadRenderTexture(width, height);
 
 	Vector2 size = { (float)width, (float)height };
 	SetShaderValue(game->Resources.LightRayShader,
@@ -195,10 +185,7 @@ internal void GameFree(Game* game)
 	UnloadShader(game->Resources.LightRayShader);
 	UnloadShader(game->Resources.UnlitShader);
 	UnloadShader(game->Resources.LightSamplerShader);
-	UnloadRenderTexture(game->ScreenTexture);
-	UnloadRenderTexture(game->ScreenLightMapTexture);
-	UnloadRenderTexture(game->LightTexture);
-	UnloadRenderTexture(game->ViewTexture);
+	UnloadRenderTexture(game->WorldTexture);
 	game->Atlas.Unload();
 	WorldFree(&game->World);
 }
@@ -258,55 +245,50 @@ SAPI void GameApplication::Run()
 			// Debug place tiles
 			if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
 			{
-				// LocalToWorld
-				Matrix invMatCamera = MatrixInvert(GetCameraMatrix2D(Game->WorldCamera));
-				Vector3 transform = Vector3Transform(
-                                                     { (float)GetMouseX(), (float)GetMouseY(), 0.0f }, invMatCamera);
-                
-				int x = (int)transform.x / 16;
-				int y = (int)transform.y / 16;
-				
-				Vector2i vec = ScaleWorldVec2i({ x,y });
-                
-				Tile* tile = CTileMap::GetTile(&Game->World.ChunkedTileMap, { x, y });
-                
-				Tile newTile = CreateTileId(&Game->TileMgr, 5);
-				CTileMap::SetTile(&Game->World.ChunkedTileMap, &newTile, { vec.x, vec.y });
-                
-				S_LOG_INFO("Clicked Tile[%d, %d] Id: %d",
-                           vec.x, vec.y, tile->TileDataId);
+				Vector2 mouseWorld = GetScreenToWorld2D(GetMousePosition(), Game->ViewCamera);
+				Vector2i clickedTileCoord = WorldToTileCoord(&Game->World, mouseWorld);
+				Vector2i vec = ScaleWorldVec2i(clickedTileCoord);;
+
+				auto tilemap = &Game->World.ChunkedTileMap;
+				if (CTileMap::IsTileInBounds(tilemap, vec))
+				{
+					Tile* tile = CTileMap::GetTile(tilemap, vec);
+					Tile newTile = CreateTileId(&Game->TileMgr, 5);
+					CTileMap::SetTile(&Game->World.ChunkedTileMap, &newTile, vec);
+					S_LOG_INFO("Clicked Tile[%d, %d] Id: %d", vec.x, vec.y, tile->TileDataId);
+				}
 			}
 			if (IsMouseButtonPressed(MOUSE_BUTTON_RIGHT))
 			{
-				Vector2 transform = GetScreenToWorld2D(GetMousePosition(), Game->WorldCamera);
+				Vector2 mouseWorld = GetScreenToWorld2D(GetMousePosition(), Game->ViewCamera);
+				Vector2i clickedTileCoord = WorldToTileCoord(&Game->World, mouseWorld);
+				Vector2i vec = ScaleWorldVec2i(clickedTileCoord);
 
-				int x = (int)transform.x / 16;
-				int y = (int)transform.y / 16;
-
-				Vector2i vec = ScaleWorldVec2i({ x,y });
-
-				Light light = {};
-				light.Pos = vec.AsVec2();
-				light.Radius = 16.0f;
-				light.Intensity = 1.0f;
-
-				local_var int next = 0;
-				Color c;
-				++next;
-				if (next == 1)
-					c = RED;
-				else if (next == 2)
-					c = GREEN;
-				else if (next == 3)
-					c = BLUE;
-				else
+				if (CTileMap::IsTileInBounds(&Game->World.ChunkedTileMap, vec))
 				{
-					c = WHITE;
-					next = 0;
-				}
+					Light light = {};
+					light.Pos = vec.AsVec2();
+					light.Radius = 16.0f;
+					light.Intensity = 1.0f;
 
-				light.Color = c;
-				LightsAdd(light);
+					local_var int next = 0;
+					Color c;
+					++next;
+					if (next == 1)
+						c = RED;
+					else if (next == 2)
+						c = GREEN;
+					else if (next == 3)
+						c = BLUE;
+					else
+					{
+						c = WHITE;
+						next = 0;
+					}
+
+					light.Color = c;
+					LightsAdd(light);
+				}
 			}
             
 			if (IsKeyPressed(KEY_ONE))
@@ -317,80 +299,65 @@ SAPI void GameApplication::Run()
 				AddAction(&Game->World, &testAction);
 			}
             
+			if (IsKeyPressed(KEY_F1))
+			{
+				Game->DebugDisableDarkess = !Game->DebugDisableDarkess;
+			}
+			if (IsKeyPressed(KEY_F2))
+			{
+				Game->DebugDisableFOV = !Game->DebugDisableFOV;
+			}
 			if (IsKeyPressed(KEY_GRAVE))
 			{
-				IsShowingDebugUi = !IsShowingDebugUi;
+				UIState->IsDebugPanelOpen = !UIState->IsDebugPanelOpen;
+			}
+			if (IsKeyPressed(KEY_EQUAL))
+			{
+				UIState->IsConsoleOpen = !UIState->IsConsoleOpen;
 			}
 		}
         
-		if (IsShowingDebugUi)
-		{
-			UpdateUI(UIState);
-		}
+		// **************************
+		// Updates UI logic, draws to
+		// screen later in frame
+		// **************************
+		UpdateUI(UIState);
         
 		// *****************
 		// Update/Draw World
 		// *****************
-        
 		BeginShaderMode(Game->Resources.UnlitShader);
-        
-		BeginTextureMode(Game->ScreenTexture);
-        BeginMode2D(Game->WorldCamera);
-		ClearBackground(BLACK);
+			BeginTextureMode(Game->WorldTexture);
+				BeginMode2D(Game->WorldCamera);
+					ClearBackground(BLACK);
 
-		// World
-        GameUpdate(Game, this);
-		WorldUpdate(&Game->World, Game);
-		EntityMgrUpdate(&Game->EntityMgr, Game);
-
-		EndMode2D();
-        EndTextureMode();
-
+					// Updates
+					GameUpdate(Game, this);
+					WorldUpdate(&Game->World, Game);
+					EntityMgrUpdate(&Game->EntityMgr, Game);
+				EndMode2D();
+			 EndTextureMode();
 		EndShaderMode();
 
-		Rectangle rect
-        { 
-			0.0f, 0.0f,
-			(float)GetScreenWidth(), (float)GetScreenWidth()
-        };
-        //DrawRectangleRec(rect, WHITE);
-        //EndTextureMode();
-		//EndShaderMode();
-		
-		// **************
-		// Draw to buffer
-		// **************
+		// ***************
+		// Draws to buffer
+		// ***************
 		BeginDrawing();
         
 		BeginShaderMode(Game->Resources.UnlitShader);
-
-		BeginMode2D(Game->ViewCamera);
-
-		//SetShaderValue(Resources->LitShader, UniformLitLightId,
-			//&light, SHADER_UNIFORM_VEC3);
-
-		//SetShaderValueTexture(Resources->LitShader, UniformLitTileMapId,
-			//Game->LightTexture.texture);
-
-		Rectangle srcRect
-		{
-			0.0f, 0.0f, (float)GetScreenWidth(), (float)-GetScreenHeight()
-		};
-        Vector2 offset = Vector2Subtract(Game->WorldCamera.target, Game->WorldCamera.offset);
-        Rectangle destRect
-        {
-            offset.x, offset.y, (float)GetScreenWidth(), (float)GetScreenHeight()
-        };
+			BeginMode2D(Game->ViewCamera);
+				rlPushMatrix();
+				rlScalef(GetScale(), GetScale(), 1.0f);
         
-        rlPushMatrix();
-        rlScalef(GetScale(), GetScale(), 1.0f);
+				float screenW = (float)GetScreenWidth();
+				float screenH = (float)GetScreenHeight();
+				Rectangle srcRect = { 0.0f, 0.0f, screenW, -screenH };
+				Rectangle dstRect = { ScreenXY.x, ScreenXY.y, screenW, screenH };
+				DrawTexturePro(Game->WorldTexture.texture, srcRect,
+					dstRect, {}, 0.0f, WHITE);
         
-        DrawTexturePro(Game->ScreenTexture.texture,
-			srcRect, destRect, {}, 0.0f, WHITE);
-        
-        rlPopMatrix();
-
-		EndMode2D();
+				rlPopMatrix();
+			EndMode2D();
 		EndShaderMode();
         
 		DrawUI(UIState);
@@ -405,7 +372,6 @@ SAPI void GameApplication::Run()
 
 internal void GameUpdate(Game* game, GameApplication* gameApp)
 {
-
 	// Handle Camera Move
 	if (!game->IsFreeCam)
 	{
@@ -413,23 +379,13 @@ internal void GameUpdate(Game* game, GameApplication* gameApp)
 		else game->CameraLerpTime += GetDeltaTime();
 
 		Vector2 from = game->WorldCamera.target;
-		Vector2 playerPos = GetClientPlayer()->Transform.Pos;
-		playerPos.x += 8.0f;
-		playerPos.y += 8.0f;
-		Vector2 cameraPos = Vector2Lerp(from, playerPos,
-			game->CameraLerpTime);
-		game->WorldCamera.target = cameraPos;
-
-		Vector2 viewTarget = Vector2Multiply(cameraPos,
-			{ GetScale(), GetScale() });
-		game->ViewCamera.target = viewTarget;
+		Vector2 playerPos = VecToTileCenter(GetClientPlayer()->Transform.Pos);
+		game->WorldCamera.target = Vector2Lerp(from, playerPos, game->CameraLerpTime);
+		game->ViewCamera.target = Vector2Multiply(game->WorldCamera.target, { GetScale(), GetScale() });
 	}
-
-	Vector2 viewScaled = Vector2Divide(
-		Vector2Subtract(game->ViewCamera.target, game->ViewCamera.offset),
-		{ GetScale(), GetScale() });
-	gameApp->CurScreenRect.x = viewScaled.x;
-	gameApp->CurScreenRect.y = viewScaled.y;
+	
+	gameApp->ScreenXY = Vector2Subtract(game->WorldCamera.target, game->WorldCamera.offset);
+	gameApp->ScaledScreenXY = Vector2Divide(gameApp->ScreenXY, { GetScale(), GetScale() });
 
 	if (IsWindowResized())
 	{
@@ -475,6 +431,20 @@ float GetScale()
 	return GetGameApp()->Scale;
 }
 
+Rectangle GetScaledScreenRect()
+{
+	return { 
+		GetGameApp()->ScreenXY.x,
+		GetGameApp()->ScreenXY.y,
+		(float)GetScreenWidth(),
+		(float)GetScreenHeight() };
+}
+
+Vector2 VecToTileCenter(Vector2 vec)
+{
+	return { vec.x + HALF_TILE_SIZE, vec.y + HALF_TILE_SIZE };
+}
+
 Vector2 ScaleWorldVec2(Vector2 vec)
 {
 	return Vector2Divide(vec, { GetScale(), GetScale() });
@@ -516,9 +486,9 @@ void SetCameraDistance(GameApplication* gameApp, float zoom)
 	else if (gameApp->Scale > 4.0f)
 		gameApp->Scale = 4.0f;
     
-	Vector2 playerPos = GetClientPlayer()->Transform.Pos;
-	playerPos.x += 8.0f;
-	playerPos.y += 8.0f;
+	// NOTE: this is so we dont get weird camera
+	// jerking when we scroll
+	Vector2 playerPos = VecToTileCenter(GetClientPlayer()->Transform.Pos);
 	gameApp->Game->WorldCamera.target = playerPos;
 	Vector2 viewTarget = Vector2Multiply(playerPos, { GetScale(), GetScale() });
 	gameApp->Game->ViewCamera.target = viewTarget;

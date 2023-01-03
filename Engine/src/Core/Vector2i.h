@@ -28,7 +28,7 @@ struct Vector2i
     Vector2i Max(Vector2i max) const;
 
     inline Vector2 AsVec2() const { return { (float)x, (float)y }; }
-    inline bool Equals(Vector2i other) const { return (x == other.x) && (y == other.y); }
+    inline bool Equals(Vector2i other) const { return (x == other.x && y == other.y); }
 };
 
 int64_t  Vec2iPackInt64(Vector2i v);
@@ -49,5 +49,23 @@ struct std::hash<Vector2i>
         std::size_t i0 = std::hash<int>{}(v.x);
         std::size_t i1 = std::hash<int>{}(v.y);
         return i0 ^ (i1 << 1);
+    }
+};
+
+struct Vector2iHasher
+{
+    std::size_t operator()(const Vector2i& v) const noexcept
+    {
+        std::size_t i0 = std::hash<int>{}(v.x);
+        std::size_t i1 = std::hash<int>{}(v.y);
+        return i0 ^ (i1 << 1);
+    }
+};
+
+struct Vector2iEquals
+{
+    bool operator()(const Vector2i& lhs, const Vector2i& rhs) const noexcept
+    {
+        return lhs.Equals(rhs);
     }
 };

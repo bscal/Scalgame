@@ -20,10 +20,7 @@ struct Game
 
     Resources Resources;
     SpriteAtlas Atlas;
-    RenderTexture2D ScreenTexture;
-    RenderTexture2D ScreenLightMapTexture;
-    RenderTexture2D LightTexture;
-    RenderTexture2D ViewTexture;
+    RenderTexture2D WorldTexture;
     
     World World;
     TileMgr TileMgr;
@@ -33,6 +30,9 @@ struct Game
     float CameraLerpTime;
     uint32_t Time;
     bool IsFreeCam;
+
+    bool DebugDisableDarkess;
+    bool DebugDisableFOV;
 };
 
 struct GameApplication
@@ -40,7 +40,8 @@ struct GameApplication
     Game* Game;
     UIState* UIState;
 
-    Rectangle CurScreenRect;
+    Vector2 ScreenXY; // Camera top left corner
+    Vector2 ScaledScreenXY;
     Vector2 HalfWidthHeight;
 
     double RenderTime;
@@ -49,6 +50,10 @@ struct GameApplication
 
     float DeltaTime;
     float Scale;
+
+    bool IsGameInputDisabled;
+    bool IsHoveringGUIWindow;
+
     bool IsInitialized;
     bool IsRunning;
     bool IsSuspended;
@@ -66,6 +71,9 @@ EntityMgr* GetEntityMgr();
 Game* GetGame();
 float GetDeltaTime();
 float GetScale();
+Rectangle GetScaledScreenRect();
+
+Vector2 VecToTileCenter(Vector2 vec);
 
 Vector2 ScaleWorldVec2(Vector2 vec);
 Vector2i ScaleWorldVec2i(Vector2i vec);
@@ -75,3 +83,5 @@ internal bool GameInitialize(Game* game, GameApplication* gameApp);
 internal void GameStart(Game* game, GameApplication* gameApp);
 internal void GameFree(Game* game);
 internal void GameUpdate(Game* game, GameApplication* gameApp);
+
+internal void GameInputUpdate(Game* game, GameApplication* gameApp);

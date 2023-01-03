@@ -71,6 +71,10 @@ struct EntityMgr
 
 	std::unordered_map<EntityId, uint32_t> EntityIdToIndex;
 
+	// TODO this is just a quick and dirty way to get entities by entityId
+	// in a chunk. Also current I do not clean up any of entries or vectors
+	std::unordered_map<ChunkCoord, std::vector<EntityId>, Vector2iHasher, Vector2iEquals> ChunkToEntities;
+
 	SLinkedList<EntityId> EntitiesToRemove;
 
 	SList<Player> Players;
@@ -86,6 +90,8 @@ void EntityMgrInitialize(Game* game);
 void EntityMgrUpdate(EntityMgr* entMgr, Game* game);
 
 EntityId CreateEntity(EntityMgr* entMgr, EntityType type);
+
+void UpdateEntityPosition(EntityId id, Vector2i oldPos, Vector2i newPos);
 
 Player* CreatePlayer(EntityMgr* entMgr, World* world);
 SCreature* CreateCreature(EntityMgr* entMgr, World* world);

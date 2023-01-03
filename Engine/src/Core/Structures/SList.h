@@ -253,7 +253,9 @@ void SList<T>::RemoveAtFast(uint64_t index)
 {
 	assert(Memory);
 	assert(Length > 0);
-	Memory[index] = Memory[End()];
+	assert(index <= Capacity);
+	Memory[index] = Memory[Length];
+	Memory[Length] = {};
 	--Length;
 }
 
