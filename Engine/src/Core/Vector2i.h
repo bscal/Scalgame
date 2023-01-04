@@ -31,6 +31,9 @@ struct Vector2i
     inline bool Equals(Vector2i other) const { return (x == other.x && y == other.y); }
 };
 
+typedef Vector2i ChunkCoord;
+typedef Vector2i TileCoord;
+
 int64_t  Vec2iPackInt64(Vector2i v);
 Vector2i Vec2iUnpackInt64(int64_t packedVector);
 Vector2i Vec2iOne();
