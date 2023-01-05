@@ -7,7 +7,7 @@
 #include <assert.h>
 #include <stdint.h>
 
-inline float ClampF(float min, float max, float value)
+inline float Clampf(float min, float max, float value)
 {
     return fmaxf(min, fminf(max, value));
 }
@@ -43,7 +43,7 @@ struct SAllocator
         }
         else
         {
-            S_LOG_ERR("SAllocator bad allocation!");
+            SLOG_ERR("SAllocator bad allocation!");
             assert(p);
             return nullptr;
         }
@@ -58,7 +58,7 @@ private:
     void report(T* p, size_t n, bool alloc = true) const
     {
         const char* str = (alloc) ? "Alloc" : "Dealloc";
-        S_LOG_INFO("%sing %d bytes at %p", str, n, p);
+        SLOG_INFO("%sing %d bytes at %p", str, n, p);
     }
 };
 

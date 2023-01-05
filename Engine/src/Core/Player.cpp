@@ -10,7 +10,7 @@
 void Player::InitializePlayer(World* world)
 {
 	TextureInfo.Rect = PLAYER_SPRITE.TexCoord;
-	S_LOG_INFO("Player Initialized!");
+	SLOG_INFO("Player Initialized!");
 }
 
 void Player::UpdatePlayer(Game* game)

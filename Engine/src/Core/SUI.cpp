@@ -4,35 +4,71 @@
 #include "Game.h"
 #include "ResourceManager.h"
 #include "SMemory.h"
+#include "Vector2i.h"
+#include "CommandMgr.h"
 
+#include <vector>
 #include <string>
 #include <stdio.h>
-#include <rlgl.h>
+
+bool InitializeUI(UIState* state, GameApplication* gameApp)
+{
+	InitializeNuklear(&state->Ctx, state, &gameApp->Game->Resources.FontSilver, 16.0f);
+
+	SLOG_INFO("[ UI ] Initialized");
+
+	return true;
+}
 
 
-internal void* MemAlloc(nk_handle handle, void* old, nk_size size)
+void UpdateUI(UIState* state)
+{
+	UpdateNuklear(&state->Ctx);
+
+	state->IsMouseHoveringUI = IsMouseHoveringUI(&state->Ctx);
+
+	if (state->IsDebugPanelOpen)
+		DrawDebugPanel(state);
+
+	if (state->IsConsoleOpen)
+		DrawConsole(state);
+}
+
+void DrawUI(UIState* state)
+{
+	DrawNuklear(&state->Ctx);
+}
+
+internal void*
+MemAlloc(nk_handle handle, void* old, nk_size size)
 {
 	return Scal::MemAlloc(size);
 }
 
-internal void MemFree(nk_handle handle, void* old)
+internal void 
+MemFree(nk_handle handle, void* old)
 {
 	Scal::MemFree(old);
 }
 
-internal float CalculateTextWidth(nk_handle handle,
-	float height, const char* text, int len)
+internal float 
+CalculateTextWidth(nk_handle handle, float height, const char* text, int len)
 {
 	if (len == 0) return 0.0f;
-	return MeasureTextEx(*(Font*)handle.ptr, text, height, 0.0f).x;
+	// Grab the text with the cropped length so that it only measures the desired string length.
+	const char* subtext = TextSubtext(text, 0, len);
+	// Spacing is determined by the font size divided by 10.
+	return MeasureTextEx(*(Font*)handle.ptr, subtext, height, height / 10.0f).x;
 }
 
-internal bool IsMouseHoveringUI(nk_context* ctx)
+internal bool 
+IsMouseHoveringUI(nk_context* ctx)
 {
-	return nk_window_is_any_hovered(ctx) != 0;
+	return false;// nk_window_is_any_hovered(ctx) != 0;
 }
 
-internal void InitializeNuklear(nk_context* nkCtxToInit, UIState* state, Font* font, float fontSize)
+internal void 
+InitializeNuklear(nk_context* nkCtxToInit, UIState* state, Font* font, float fontSize)
 {
 	state->Font.userdata = nk_handle_ptr(font);
 	state->Font.height = fontSize;
@@ -45,10 +81,10 @@ internal void InitializeNuklear(nk_context* nkCtxToInit, UIState* state, Font* f
 	state->Allocator.alloc = MemAlloc;
 	state->Allocator.free = MemFree;
 
-	if (nk_init(nkCtxToInit, &state->Allocator, &state->Font) == 0)
+	if (!nk_init(nkCtxToInit, &state->Allocator, &state->Font))
 	{
-		S_LOG_ERR("[ UI ] Nuklear failed to initialized");
-		return;
+		SLOG_ERR("[ UI ] Nuklear failed to initialized");
+		assert(false);
 	}
 
 	NuklearUserData* userData = (NuklearUserData*)Scal::MemAlloc(sizeof(NuklearUserData));
@@ -60,27 +96,12 @@ internal void InitializeNuklear(nk_context* nkCtxToInit, UIState* state, Font* f
 	userDataHandle.ptr = (void*)userData;
 	nk_set_user_data(nkCtxToInit, userDataHandle);
 
-	S_LOG_INFO("[ UI ] Initialized Nuklear");
+	SLOG_INFO("[ UI ] Initialized Nuklear");
 }
 
-bool InitializeUI(UIState* state, GameApplication* gameApp)
+internal void DrawDebugPanel(UIState* state)
 {
-	state->App = gameApp;
-
-	InitializeNuklear(&state->Ctx, state, &gameApp->Game->Resources.FontSilver, 16.0f);
-
-	S_LOG_INFO("[ UI ] Initialized");
-	return true;
-}
-
-
-void UpdateUI(UIState* state)
-{
-	Player* p = GetClientPlayer();
-
-	UpdateNuklear(&state->Ctx);
-
-	state->IsMouseHoveringUI = IsMouseHoveringUI(&state->Ctx);
+	const Player* p = GetClientPlayer();
 
 	Color c = { 17, 17, 17, 155 };
 	state->Ctx.style.window.fixed_background.data.color = ColorToNuklear(c);
@@ -126,17 +147,12 @@ void UpdateUI(UIState* state)
 		nk_label(&state->Ctx, "Zoom: ", NK_TEXT_LEFT);
 		nk_label(&state->Ctx, TextFormat("%.3f", GetGameApp()->Scale), NK_TEXT_LEFT);
 
-		RenderMemoryUsage(state);
+		AppendMemoryUsage(state);
 	}
 	nk_end(&state->Ctx);
 }
 
-void DrawUI(UIState* state)
-{
-	DrawNuklear(&state->Ctx);
-}
-
-void RenderMemoryUsage(UIState* state)
+internal void AppendMemoryUsage(UIState* state)
 {
 	const size_t* memUsage = Scal::GetMemoryUsage();
 
@@ -168,4 +184,98 @@ void RenderMemoryUsage(UIState* state)
 	nk_label(&state->Ctx, "UI Allocations", NK_TEXT_LEFT);
 	nk_label(&state->Ctx, TextFormat("%d", uiMem.calls), NK_TEXT_LEFT);
 
+}
+
+global_var std::vector<std::string> ConsoleEntries;
+
+internal void DrawConsole(UIState* state)
+{
+	local_var int heightAnimValue;
+	local_var float SuggestionPanelSize;
+
+	if (state->IsConsoleOpen)
+	{
+		constexpr int CONSOLE_ANIM_SPEED = 900 * 6;
+		constexpr int MAX_CONSOLE_HISTORY = 128;
+		constexpr float INPUT_HEIGHT = 36.0f;
+		constexpr float INPUT_WIDTH = INPUT_HEIGHT + 12.0f;
+		constexpr float SCROLL_BAR_OFFSET = 16.0f;
+		constexpr float TEXT_ENTRY_HEIGHT = 16.0f;
+		constexpr int TEXT_ENTRY_HEIGHT_WITH_PADDING = (int)TEXT_ENTRY_HEIGHT + 4;
+
+		int w = GetScreenWidth();
+		int h = GetScreenHeight() * .75f + SuggestionPanelSize;
+		if (heightAnimValue < h)
+		{
+			h = heightAnimValue;
+			heightAnimValue += (int)(GetDeltaTime() * CONSOLE_ANIM_SPEED);
+		}
+
+		float paddingX = 32.0f;
+		float paddingW = (float)w - (paddingX * 2);
+
+		nk_context* ctx = &state->Ctx;
+
+		struct nk_color c = { 117, 117, 117, 200 };
+		ctx->style.window.fixed_background.data.color = c;
+
+		struct nk_rect bounds = { paddingX, 0.0f, paddingW, (float)h };
+		if (nk_begin(ctx, "Console", bounds, NK_WINDOW_NO_SCROLLBAR))
+		{
+			nk_layout_row_static(ctx, h - INPUT_WIDTH - SuggestionPanelSize, (int)paddingW - SCROLL_BAR_OFFSET, 1);
+
+			if (nk_group_begin(ctx, "Messages", 0))
+			{
+				nk_layout_row_dynamic(ctx, TEXT_ENTRY_HEIGHT, 1);
+				for (int i = 0; i < ConsoleEntries.size(); ++i)
+				{
+					nk_label(ctx, ConsoleEntries[i].c_str(), NK_TEXT_LEFT);
+				}
+				nk_group_end(ctx);
+			}
+
+			local_var char TestMem[64];
+			local_var int Length;
+			if (IsKeyPressed(KEY_ENTER) && TestMem)
+			{
+				if (ConsoleEntries.size() > MAX_CONSOLE_HISTORY)
+				{
+					ConsoleEntries.erase(ConsoleEntries.begin());
+				}
+
+				GetGame()->CommandMgr.TryExecuteCommand(TestMem);
+
+				ConsoleEntries.emplace_back(std::string(TestMem, Length));
+
+				if (ConsoleEntries.size() >= h / TEXT_ENTRY_HEIGHT_WITH_PADDING)
+				{
+					nk_group_set_scroll(ctx, "Messages", 0, ConsoleEntries.size() * TEXT_ENTRY_HEIGHT_WITH_PADDING);
+				}
+				Scal::MemSet(TestMem, 0, sizeof(TestMem));
+				Length = 0;
+			}
+
+			// *** Command Input ***
+			nk_layout_row_static(ctx, INPUT_HEIGHT, (int)paddingW, 1);
+			nk_edit_string(&state->Ctx, NK_EDIT_SIMPLE, TestMem, &Length, sizeof(TestMem) - 1, nk_filter_default);
+
+			if (Length > 0)
+			{
+				const auto& sugs = GetGame()->CommandMgr.GetSuggestions(TestMem);
+				SuggestionPanelSize = (float)(24.0f * sugs.size());
+				nk_layout_row_dynamic(ctx, TEXT_ENTRY_HEIGHT, 1);
+				for (int i = 0; i < sugs.size(); ++i)
+				{
+					nk_label(ctx, sugs[i].data(), NK_TEXT_LEFT);
+				}
+			}
+			else
+			{
+				SuggestionPanelSize = 0.0f;
+			}
+		}
+		nk_end(&state->Ctx);
+	}
+	else
+		heightAnimValue = 0;
 }

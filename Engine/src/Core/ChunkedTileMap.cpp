@@ -3,6 +3,7 @@
 #include "Game.h"
 #include "SRandom.h"
 #include "SUtil.h"
+#include "Vector2i.h"
 
 #include "Structures/SLinkedList.h"
 
@@ -102,7 +103,7 @@ void FindChunksInView(ChunkedTileMap* tilemap,
 			ChunkCoord nextChunkCoord = { chunkX, chunkY };
 			if (!IsChunkInBounds(tilemap, nextChunkCoord)) continue;
 			if (IsChunkLoaded(tilemap, nextChunkCoord)) continue;
-			const auto chunk = LoadChunk(tilemap, nextChunkCoord);
+			TileMapChunk* chunk = LoadChunk(tilemap, nextChunkCoord);
 			if (!chunk->IsChunkGenerated)
 			{
 				GenerateChunk(tilemap, chunk);
@@ -126,11 +127,11 @@ internal void FindChunksInViewDistance(ChunkedTileMap* tilemap, Game* game, Chun
 			if (IsChunkLoaded(tilemap, chunkCoord)) continue;
 
 			auto chunk = LoadChunk(tilemap, chunkCoord);
-			S_LOG_INFO("[ Chunk ] Chunk loaded (x: %d, y: %d)", chunkX, chunkY);
+			SLOG_INFO("[ Chunk ] Chunk loaded (x: %d, y: %d)", chunkX, chunkY);
 			if (!chunk->IsChunkGenerated)
 			{
 				GenerateChunk(tilemap, chunk);
-				S_LOG_INFO("[ Chunk ] Chunk generated (x: %d, y: %d)", chunkX, chunkY);
+				SLOG_INFO("[ Chunk ] Chunk generated (x: %d, y: %d)", chunkX, chunkY);
 			}
 		}
 	}
@@ -144,7 +145,7 @@ internal void UpdateChunks(ChunkedTileMap* tilemap, Game* game, ChunkCoord playe
 		offset.x, offset.y,
 		(float)GetScreenWidth(), (float)GetScreenHeight()
 	};
-	for (uint16_t i = 0; i < tilemap->ChunksList.Length; ++i)
+	for (uint16_t i = 0; i < tilemap->ChunksList.Count; ++i)
 	{
 		auto chunk = tilemap->ChunksList.PeekAtPtr(i);
 		if (CheckCollisionRecs(screenRect, chunk->Bounds))
@@ -153,12 +154,12 @@ internal void UpdateChunks(ChunkedTileMap* tilemap, Game* game, ChunkCoord playe
 		}
 		else
 		{
-			constexpr float viewDistance = VIEW_DISTANCE.x * VIEW_DISTANCE.x;
+			constexpr float viewDistance = VIEW_DISTANCE.x * VIEW_DISTANCE.y;
 			float dist = chunk->ChunkCoord.Distance(playerChunkCoord);
 			if (dist > viewDistance)
 			{
 				tilemap->ChunksToUnload.Push(&chunk->ChunkCoord);
-				S_LOG_INFO("[ Chunk ] Chunk marked for removal (x: %d, y: %d)",
+				SLOG_INFO("[ Chunk ] Chunk marked for removal (x: %d, y: %d)",
 					chunk->ChunkCoord.x, chunk->ChunkCoord.y);
 			}
 		}
@@ -237,7 +238,7 @@ internal void Draw(ChunkedTileMap* tilemap, Game* game)
 void LateUpdateChunk(ChunkedTileMap* tilemap, Game* game)
 {
 	const auto& screenRect = GetScaledScreenRect();
-	for (uint64_t i = 0; i < tilemap->ChunksList.Length; ++i)
+	for (uint64_t i = 0; i < tilemap->ChunksList.Count; ++i)
 	{
 		auto chunk = tilemap->ChunksList.PeekAtPtr(i);
 		if (CheckCollisionRecs(screenRect, chunk->Bounds))
@@ -296,7 +297,7 @@ TileMapChunk* LoadChunk(ChunkedTileMap* tilemap,
 
 void UnloadChunk(ChunkedTileMap* tilemap, ChunkCoord coord)
 {
-	for (size_t i = 0; i < tilemap->ChunksList.Length; ++i)
+	for (size_t i = 0; i < tilemap->ChunksList.Count; ++i)
 	{
 		auto chunkPtr = tilemap->ChunksList.PeekAtPtr(i);
 		if (chunkPtr->ChunkCoord.Equals(coord))
@@ -314,7 +315,7 @@ void GenerateChunk(ChunkedTileMap* tilemap,
 	assert(chunk);
 	if (chunk->IsChunkGenerated)
 	{
-		S_LOG_WARN("Trying to generate an already generated chunk!");
+		SLOG_WARN("Trying to generate an already generated chunk!");
 		return;
 	}
 	chunk->IsChunkGenerated = true;
@@ -358,7 +359,7 @@ bool IsChunkInBounds(ChunkedTileMap* tilemap, ChunkCoord chunkPos)
 TileMapChunk* GetChunk(
 	ChunkedTileMap* tilemap, ChunkCoord coord)
 {
-	for (size_t i = 0; i < tilemap->ChunksList.Length; ++i)
+	for (size_t i = 0; i < tilemap->ChunksList.Count; ++i)
 	{
 		const auto& chunk = tilemap->ChunksList[i];
 		if (chunk.ChunkCoord.Equals(coord))
@@ -393,7 +394,7 @@ void SetTile(ChunkedTileMap* tilemap,
 	TileMapChunk* chunk = GetChunk(tilemap, chunkCoord);
 	if (!chunk)
 	{
-		S_LOG_WARN("SETTING tile[%d, %d] to "
+		SLOG_WARN("SETTING tile[%d, %d] to "
 			"unloaded or nonexistent chunk[%d, %d]",
 			tilePos.x, tilePos.y, chunkCoord.x, chunkCoord.y);
 		return;
@@ -411,7 +412,7 @@ Tile* GetTile(ChunkedTileMap* tilemap, TileCoord tilePos)
 	TileMapChunk* chunk = GetChunk(tilemap, chunkCoord);
 	if (!chunk)
 	{
-		S_LOG_WARN("GETTING tile[%d, %d] to "
+		SLOG_WARN("GETTING tile[%d, %d] to "
 			"unloaded or nonexistent chunk[%d, %d]",
 			tilePos.x, tilePos.y, chunkCoord.x, chunkCoord.y);
 		return nullptr;

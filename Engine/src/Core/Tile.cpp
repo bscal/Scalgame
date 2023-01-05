@@ -15,7 +15,7 @@ void TileMgrInitialize(TileMgr* tileMgr, SpriteAtlas* spriteAtlas)
 	RegisterTile(tileMgr, "Tile5", TileType::Solid);
 	RegisterTile(tileMgr, "Tile6", TileType::Solid);
 
-	S_LOG_INFO("TileManager Initialized! %d tiles registered.",
+	SLOG_INFO("TileManager Initialized! %d tiles registered.",
 		tileMgr->NextTileId);
 }
 
@@ -44,7 +44,7 @@ TileData& RegisterTile(TileMgr* tileMgr,
 		tileData.SpriteName);
 	if (find == tileMgr->SpriteAtlas->SpritesByName.end())
 	{
-		S_LOG_ERR("Could not find tile by name!");
+		SLOG_ERR("Could not find tile by name!");
 		return {};
 	}
 	const auto& textCoord = tileMgr->SpriteAtlas->GetRect(find->second);
@@ -69,7 +69,7 @@ TileData& RegisterTile(TileMgr* tileMgr,
 		name);
 	if (find == tileMgr->SpriteAtlas->SpritesByName.end())
 	{
-		S_LOG_ERR("Could not find tile by name!");
+		SLOG_ERR("Could not find tile by name!");
 		return {};
 	}
 	const auto& textCoord = tileMgr->SpriteAtlas->GetRect(find->second);

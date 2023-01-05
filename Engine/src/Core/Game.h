@@ -6,17 +6,14 @@
 #include "World.h"
 #include "SpriteAtlas.h"
 #include "ResourceManager.h"
+#include "CommandMgr.h"
 
 struct UIState;
 
 struct Game
 {
-    #if Mode3D
-    Camera3D Camera;
-    #else
     Camera2D WorldCamera; // Camera world to rendered at
     Camera2D ViewCamera;  // Camera for viewport and scaled
-    #endif
 
     Resources Resources;
     SpriteAtlas Atlas;
@@ -25,6 +22,7 @@ struct Game
     World World;
     TileMgr TileMgr;
     EntityMgr EntityMgr;
+    CommandMgr CommandMgr;
     
     Vector2i ChunkViewDistance;
     float CameraLerpTime;

@@ -4,6 +4,7 @@
 #include "Creature.h"
 #include "Player.h"
 #include "SMemory.h"
+#include "Vector2i.h"
 
 #include "Structures/SList.h"
 #include "Structures/SLinkedList.h"

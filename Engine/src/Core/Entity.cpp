@@ -57,7 +57,7 @@ Entity* CreateEntity(EntitiesManager* entityManager)
 	entity.Handle =
 	{
 		entityManager->NextEntityId++,
-		(uint32_t)entityManager->EntityArray.Length
+		(uint32_t)entityManager->EntityArray.Count
 	};
 	entity.ComponentsLength = MAX_COMPONENTS;
 	Scal::MemSet(&entity.Components, EMPTY_COMPONENT, sizeof(entity.Components));
@@ -88,7 +88,7 @@ void EntityRemove(Entity* entity, EntitiesManager* entityManager)
 
 EntityHandle GetEntityHandleById(EntitiesManager* entityManager, uint32_t entityId)
 {
-	for (uint32_t i = 0; i < entityManager->EntityArray.Length; ++i)
+	for (uint32_t i = 0; i < entityManager->EntityArray.Count; ++i)
 	{
 		if (entityManager->EntityArray.Memory[i].Handle.EntityId == entityId)
 		{
@@ -115,7 +115,7 @@ bool AddComponent(EntitiesManager* entityManager,
 
 	SArray* components = entityManager->ComponentMap.Get(&component->ID);
 	ArrayPush(components, component);
-	uint32_t insertedAt = (uint32_t)components->Length - 1;
+	uint32_t insertedAt = (uint32_t)components->Count - 1;
 
 	Entity* entity = entityManager->EntityArray.PeekAtPtr(entityHandle.EntityIndex);
 	entity->Components[component->ID] = insertedAt;
@@ -142,7 +142,7 @@ void AddComponentId(EntitiesManager* entityManager,
 	componentData->CreateComponent(newComponent);
 
 	ArrayPush(components, newComponent);
-	uint32_t insertedAt = (uint32_t)components->Length - 1;
+	uint32_t insertedAt = (uint32_t)components->Count - 1;
 
 	Entity* entity = entityManager->EntityArray.PeekAtPtr(entityHandle.EntityIndex);
 	entity->Components[componentId] = insertedAt;
@@ -156,7 +156,7 @@ internal bool ComponentDeleteInternal(EntitiesManager* entityManager,
 	assert(components);
 	assert(components->Memory);
 
-	if (components->Length == 0)
+	if (components->Count == 0)
 	{
 		TraceLog(LOG_WARNING, "Deleting a component from a empty list!");
 		return false;
@@ -239,7 +239,7 @@ void SystemRemoveComponent(EntitiesManager* entityManager,
 
 void PostProcessComponents(EntitiesManager* entityManager)
 {
-	for (int i = 0; i < entityManager->ComponentRemoval.Length; ++i)
+	for (int i = 0; i < entityManager->ComponentRemoval.Count; ++i)
 	{
 		auto evt = entityManager->ComponentRemoval[i];
 		RemoveComponent(entityManager, evt.EntityHandle, evt.ComponentId);
@@ -296,7 +296,7 @@ void BurnSystem::Process(EntitiesManager* manager, GameApplication* gameApp)
 	{
 		CounterTime = 0.0f;
 
-		for (uint32_t i = 0; i < Burnables->Length; ++i)
+		for (uint32_t i = 0; i < Burnables->Count; ++i)
 		{
 			Burnable* burn = (Burnable*)ArrayPeekAt(Burnables, i);
 			Entity* entity = manager->EntityArray

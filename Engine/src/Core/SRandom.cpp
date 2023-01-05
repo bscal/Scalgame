@@ -99,7 +99,7 @@ uint64_t SRandNextRange(SRandom* state, uint64_t lower, uint64_t upper)
 {
 	if (lower > upper)
 	{
-		S_LOG_ERR("[ SRandom ] lower(%d) is > upper(%d)!", lower, upper);
+		SLOG_ERR("[ SRandom ] lower(%d) is > upper(%d)!", lower, upper);
 		assert(false);
 		return 0;
 	}
@@ -112,7 +112,7 @@ int64_t SRandNextRangeSigned(SRandom* state, int64_t lower, int64_t upper)
 	assert(state);
 	if (lower > upper)
 	{
-		S_LOG_ERR("[ SRandom ] lower(%d) is > upper(%d)!", lower, upper);
+		SLOG_ERR("[ SRandom ] lower(%d) is > upper(%d)!", lower, upper);
 		assert(false);
 		return 0;
 	}

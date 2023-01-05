@@ -9,7 +9,7 @@ struct SArray
 {
 	void* Memory;
 	uint64_t Capacity;
-	uint64_t Length;
+	uint64_t Count;
 	uint64_t Stride;
 };
 

@@ -3,8 +3,6 @@
 #include "Core/Core.h"
 #include "Core/SMemory.h"
 
-#include <assert.h>
-
 #define SLIST_DEFAULT_CAPACITY 1
 #define SLIST_DEFAULT_RESIZE 2
 
@@ -13,12 +11,12 @@ struct SList
 {
 	T* Memory;
 	uint64_t Capacity;
-	uint64_t Length;
+	uint64_t Count;
 
-	bool Initialize();
-	bool InitializeCap(uint64_t capacity);
+	void Initialize();
+	void InitializeCap(uint64_t capacity);
 
-	bool Free();
+	void Free();
 	void Resize(uint64_t capacity);
 
 	void Push(const T* valueSrc);
@@ -45,10 +43,11 @@ struct SList
 	}
 
 	bool Contains(const T* value) const;
+	int64_t Find(const T* value) const;
 	void Clear();
 
+	// Points to last element, unless 0 then 0
 	inline uint64_t End() const;
-	inline size_t Stride() const;
 	inline size_t MemSize() const;
 	inline bool IsInitialized() const;
 };
@@ -56,106 +55,96 @@ struct SList
 // ********************
 
 template<typename T>
-bool SList<T>::Initialize()
+void SList<T>::Initialize()
 {
-	if (Memory)
-	{
-		S_CRASH("Memory already initialized!");
-		return false;
-	}
+	SASSERT_MSG(!Memory, "Memory already initialized!");
 	Capacity = SLIST_DEFAULT_CAPACITY;
 	Memory = (T*)Scal::MemAllocZero(Capacity * sizeof(T));
-	return true;
+	SASSERT(Memory);
 }
 
 template<typename T>
-bool SList<T>::InitializeCap(uint64_t capacity)
+void SList<T>::InitializeCap(uint64_t capacity)
 {
-	if (Memory)
-	{
-		TraceLog(LOG_ERROR, "Memory already initialized!");
-		assert(false);
-		return false;
-	}
+	SASSERT_MSG(!Memory, "Memory already initialized!");
 	Capacity = capacity;
 	Memory = (T*)Scal::MemAllocZero(Capacity * sizeof(T));
-	return true;
+	SASSERT(Memory);
 }
 
 template<typename T>
-bool SList<T>::Free()
+void SList<T>::Free()
 {
-	if (!Memory)
-	{
-		TraceLog(LOG_ERROR, "Memory was already freed!");
-		assert(false);
-		return false;
-	}
-	Length = 0;
-	Scal::MemFree((void*)Memory);
-	return true;
+	SASSERT_MSG(Memory, "Trying to free uninitalized memory!");
+	Scal::MemFree(Memory);
+	Memory = NULL;
+	Count = 0;
 }
 
 template<typename T>
-void SList<T>::Resize(uint64_t capacity)
+void SList<T>::Resize(uint64_t newCapacity)
 {
-	assert(Memory);
-	if (capacity < Capacity)
+	SASSERT(Memory);
+	SASSERT(newCapacity > Capacity);
+	if (newCapacity < Capacity)
 	{
-		S_LOG_WARN("newSize was < capacity!");
+		SLOG_WARN("newSize was < capacity!");
 		return;
 	}
-	Capacity = capacity;
-	Memory = (T*)Scal::MemRealloc(Memory, Capacity * Stride());
+	Capacity = newCapacity;
+	size_t newSize = Capacity * sizeof(T);
+	Memory = (T*)Scal::MemRealloc(Memory, newSize);
 }
 
 template<typename T>
 void SList<T>::Push(const T* valueSrc)
 {
-	assert(Memory);
-	assert(valueSrc);
-	if (Length == Capacity)
+	SASSERT(Memory);
+	SASSERT(valueSrc);
+	if (Count == Capacity)
 	{
-		Resize((uint64_t)floorf((float)Capacity * SLIST_DEFAULT_RESIZE));
+		Resize(Capacity * SLIST_DEFAULT_RESIZE);
 	}
-	Memory[Length] = *valueSrc;
-	++Length;
+	Memory[Count] = *valueSrc;
+	++Count;
 }
 
 template<typename T>
 void SList<T>::PushAt(uint64_t index, const T* valueSrc)
 {
-	assert(Memory);
-	assert(valueSrc);
-	if (Length == Capacity)
+	SASSERT(Memory);
+	SASSERT(valueSrc);
+	if (Count == Capacity)
 	{
 		Resize(Capacity * SLIST_DEFAULT_RESIZE);
 	}
-	if (index > Length) index = Length;
-	if (index != Length)
+	if (index != Count)
 	{
-		uint64_t dstOffset = (index + 1) * Stride();
-		uint64_t srcOffset = index * Stride();
-		uint64_t sizeTillEnd = (Length - index) * Stride();
-		Scal::MemCopy(((char*)Memory) + dstOffset,
-			((char*)Memory) + srcOffset, sizeTillEnd);
+		uint64_t dstOffset = (index + 1) * sizeof(T);
+		uint64_t srcOffset = index * sizeof(T);
+		uint64_t sizeTillEnd = (Count - index) * sizeof(T);
+		char* mem = (char*)Memory;
+		Scal::MemCopy(mem + dstOffset, mem + srcOffset, sizeTillEnd);
 	}
 	Memory[index] = *valueSrc;
-	++Length;
+	++Count;
 }
 
 template<typename T>
 void SList<T>::PushAtFast(uint64_t index, const T* valueSrc)
 {
-	assert(Memory);
-	assert(valueSrc);
-	if (Length == Capacity)
+	SASSERT(Memory);
+	SASSERT(valueSrc);
+	if (Count == Capacity)
 	{
 		Resize(Capacity * SLIST_DEFAULT_RESIZE);
 	}
-	Memory[Length] = Memory[index];
+	if (Count > 1)
+	{
+		Memory[Count] = Memory[index];
+	}
 	Memory[index] = *valueSrc;
-	++Length;
+	++Count;
 }
 
 template<typename T>
@@ -169,18 +158,15 @@ bool SList<T>::PushUnique(const T* valueSrc)
 template<typename T>
 bool SList<T>::PushAtUnique(uint64_t index, const T* valueSrc)
 {
-	if (Contains(valueSrc))
-		return false;
-	PushAtUnique(index, valueSrc);
+	if (Contains(valueSrc)) return false;
+	PushAt(index, valueSrc);
 	return true;
-
 }
 
 template<typename T>
 bool SList<T>::PushAtFastUnique(uint64_t index, const T* valueSrc)
 {
-	if (Contains(valueSrc))
-		return false;
+	if (Contains(valueSrc)) return false;
 	PushAtFast(index, valueSrc);
 	return true;
 }
@@ -188,122 +174,139 @@ bool SList<T>::PushAtFastUnique(uint64_t index, const T* valueSrc)
 template<typename T>
 void SList<T>::Pop(T* valueDest)
 {
-	assert(Memory);
-	assert(Length > 0);
+	SASSERT(Memory);
+	SASSERT(Count > 0);
 	*valueDest = Memory[End()];
-	--Length;
+	#if SCAL_DEBUG
+	Scal::MemClear(&Memory[End()], sizeof(T));
+	#endif
+	--Count;
 }
 
 template<typename T>
 void SList<T>::PopAt(uint64_t index, T* valueDest)
 {
-	assert(Memory);
-	assert(Length > 0);
-	if (index > Length) return;
+	SASSERT(Memory);
+	SASSERT(Count > 0);
+	SASSERT(index < Count);
 	*valueDest = Memory[index];
-	if (index != Length)
+	if (index < End())
 	{
-		uint64_t dstOffset = index * Stride();
-		uint64_t srcOffset = (index + 1) * Stride();
-		uint64_t sizeTillEnd = (Length - index) * Stride();
-		Scal::MemCopy(((char*)Memory) + dstOffset,
-			((char*)Memory) + srcOffset, sizeTillEnd);
+		uint64_t dstOffset = index * sizeof(T);
+		uint64_t srcOffset = (index + 1) * sizeof(T);
+		uint64_t sizeTillEnd = (Count - index) * sizeof(T);
+		char* mem = (char*)Memory;
+		Scal::MemCopy(mem + dstOffset, mem + srcOffset, sizeTillEnd);
 	}
-	--Length;
+	#if SCAL_DEBUG
+	Scal::MemClear(&Memory[End()], sizeof(T));
+	#endif
+	--Count;
 }
 
 template<typename T>
 void SList<T>::PopAtFast(uint64_t index, T* valueDest)
 {
-	assert(Memory);
-	assert(Length > 0);
-	uint64_t last = End();
-	if (index > last) return;
+	SASSERT(Memory);
+	SASSERT(Count > 0);
+	SASSERT(index < Count);
 	*valueDest = Memory[index];
-	Memory[index] = Memory[last];
-	--Length;
+	if (index < End())
+	{
+		Memory[index] = Memory[End()];
+		#if SCAL_DEBUG
+		Scal::MemClear(&Memory[End()], sizeof(T));
+		#endif
+	}
+	--Count;
 }
 
 template<typename T>
 void SList<T>::Remove()
 {
-	assert(Memory);
-	assert(Length > 0);
-	--Length;
+	SASSERT(Memory);
+	SASSERT(Count > 0);
+	#if SCAL_DEBUG
+	Scal::MemClear(&Memory[End()], sizeof(T));
+	#endif
+	--Count;
 }
 
 template<typename T>
 void SList<T>::RemoveAt(uint64_t index)
 {
-	assert(Memory);
-	assert(Length > 0);
-	if (index != Length)
+	SASSERT(Memory);
+	SASSERT(Count > 0);
+	if (index != End())
 	{
-		uint64_t dstOffset = index * Stride();
-		uint64_t srcOffset = (index + 1) * Stride();
-		uint64_t sizeTillEnd = (Length - index) * Stride();
-		Scal::MemCopy(((char*)Memory) + dstOffset,
-			((char*)Memory) + srcOffset, sizeTillEnd);
+		uint64_t dstOffset = index * sizeof(T);
+		uint64_t srcOffset = (index + 1) * sizeof(T);
+		uint64_t sizeTillEnd = (End() - index) * sizeof(T);
+		char* mem = (char*)Memory;
+		Scal::MemCopy(mem + dstOffset, mem + srcOffset, sizeTillEnd);
 	}
-	--Length;
+	#if SCAL_DEBUG
+	Scal::MemClear(&Memory[End()], sizeof(T));
+	#endif
+	--Count;
 }
 
 template<typename T>
 void SList<T>::RemoveAtFast(uint64_t index)
 {
-	assert(Memory);
-	assert(Length > 0);
-	assert(index <= Capacity);
-	Memory[index] = Memory[Length];
-	Memory[Length] = {};
-	--Length;
+	SASSERT(Memory);
+	SASSERT(Count > 0);
+	SASSERT(index < Count);
+	if (index < End())
+	{
+		Memory[index] = Memory[End()];
+		#if SCAL_DEBUG
+		Scal::MemClear(&Memory[End()], sizeof(T));
+		#endif
+	}
+	--Count;
 }
 
 template<typename T>
 const T& SList<T>::PeekAt(uint64_t index) const
 {
-	assert(Memory);
-	assert(Length > 0);
-	assert(index < Length);
+	SASSERT(Memory);
+	SASSERT(Count > 0);
+	SASSERT(index < Count);
 	return Memory[index];
 }
 
 template<typename T>
 T* SList<T>::PeekAtPtr(uint64_t index) const
 {
-	assert(Memory);
-	assert(Length > 0);
-	assert(index < Length);
+	SASSERT(Memory);
+	SASSERT(Count > 0);
+	SASSERT(index < Count);
 	return &Memory[index];
 }
 
 template<typename T>
 void SList<T>::Set(uint64_t index, const T* valueSrc)
 {
-	assert(Memory);
-	if (index < Length)
-	{
-		Memory[index] = *valueSrc;
-	}
-	else
-	{
-		S_CRASH("index <= End() is false in SList::Set!");
-	}
+	SASSERT(Memory);
+	SASSERT(index < Count);
+	if (index < Count) Memory[index] = *valueSrc;
 }		
 
 template<typename T>
 T* SList<T>::Last() const
 {
-	assert(Memory);
+	SASSERT(Memory);
+	SASSERT(Count > 0);
 	return &Memory[End()];
 }
 
 template<typename T>
 bool SList<T>::Contains(const T* value) const
 {
-	assert(Memory);
-	assert(value);
-	for (int i = 0; i < Length; ++i)
+	SASSERT(Memory);
+	SASSERT(value);
+	for (int i = 0; i < Count; ++i)
 	{
 		if (Memory[i] == *value) return true;
 	}
@@ -311,132 +314,146 @@ bool SList<T>::Contains(const T* value) const
 }
 
 template<typename T>
+int64_t SList<T>::Find(const T* value) const
+{
+	SASSERT(Memory);
+	SASSERT(value);
+	for (int64_t i = 0; i < Count; ++i)
+	{
+		if (Memory[i] == *value) return i;
+	}
+	return -1;
+}
+
+template<typename T>
 void SList<T>::Clear()
 {
-	Length = 0;
+	Count = 0;
+	// NOTE: I only clear memory to 0
+	// in debug mode to help debug.
+	#if SCAL_DEBUG
+	if (Count > 0) Scal::MemClear(Memory, MemSize());
+	#endif
 }
 
 template<typename T>
 inline uint64_t SList<T>::End() const
 {
-	return (Length == 0) ? 0 : (Length - 1);
+	return (Count == 0) ? 0 : (Count - 1);
 }
 
 template<typename T>
 inline size_t SList<T>::MemSize() const
 {
-	return Capacity * Stride();
-}
-
-template<typename T>
-inline size_t SList<T>::Stride() const
-{
-	return sizeof(T);
+	return Capacity * sizeof(T);
 }
 
 template<typename T>
 inline bool SList<T>::IsInitialized() const
 {
-	return (Memory != nullptr);
+	return (Memory);
 }
 
-
-
-inline void Test()
+inline void TestListImpl()
 {
 	SList<int> list = {};
-	list.Initialize();
+	list.Initialize(); // Cap 1
 
 	int i;
 	i = 1;
-	list.Push(&i);
+	list.Push(&i); // Cap 1
 	i = 2;
-	list.Push(&i);
+	list.Push(&i); // Cap 2
 	i = 3;
-	list.Push(&i);
+	list.Push(&i); // Cap 4
+
+	SASSERT(list.Capacity == 4);
+
 	i = 4;
-	list.Push(&i);
+	list.Push(&i); // Cap 4
 	i = 5;
-	list.Push(&i);
+	list.Push(&i); // Cap 8
 	i = 6;
-	list.Push(&i);
+	list.Push(&i); // Cap 8
 	i = 7;
-	list.Push(&i);
+	list.Push(&i); // Cap 8 
 	i = 8;
-	list.Push(&i);
-	i = 9;
-	list.Push(&i);
-	i = 10;
-	list.Push(&i);
+	list.Push(&i); // Cap 8
 
-	assert(list.Length == 10);
-	assert(list.Capacity == 16);
+	SASSERT(list.Count == 8);
+	SASSERT(list.Capacity == 8);
+
+	i = 9;
+	list.Push(&i); // Cap 16
+	i = 10;
+	list.Push(&i); // Cap 16
+
+	SASSERT(list.Count == 10);
+	SASSERT(list.Capacity == 16);
 
 	i = 5;
-	bool u = list.PushAtUnique(5, &i);
+	bool wasUnique = list.PushAtUnique(5, &i);
+	SASSERT(!wasUnique);
 
-	assert(!u);
-
-	i = 0;
+	i = 20;
 	list.PushAt(0, &i);
+	SASSERT(list.Memory[0] == 20);
 
-	int peek0 = list.PeekAt(1);
-
-	i = 999;
+	i = 21;
 	list.PushAtFast(1, &i);
+	SASSERT(list.Memory[1] == 21);
+	SASSERT(list.Memory[list.End()] == 1);
 
-	int peek = list.PeekAt(1);
+	SASSERT(list.Count == 12);
+	SASSERT(list.Capacity == 16);
 
-	assert(peek == 999);
+	int peek = list.PeekAt(2);
+	SASSERT(peek == 2);
 
-	int peek2 = list.PeekAt(2);
-
-	assert(peek2 == 2);
+	int* peekPtr = list.PeekAtPtr(3);
+	SASSERT(peekPtr);
+	SASSERT(*peekPtr == 3);
 
 	int pop = 0;
 	list.Pop(&pop);
-
-	assert(pop == 1);
+	SASSERT(pop == 1);
 
 	pop = 0;
 	list.Pop(&pop);
+	SASSERT(pop == 10);
 
-	assert(pop == 10);
-
-	list.RemoveAt(0);
-
+	SASSERT(list.Count == 10);
+	SASSERT(list.Capacity == 16);
+	
+	pop = 0;
 	list.PopAt(0, &pop);
+	SASSERT(pop == 20);
+	SASSERT(list.Memory[1] == 2);
+	int last = *list.Last();
+	SASSERT(last == 9);
 
-	assert(pop == 999);
-
+	pop = 0;
 	list.PopAtFast(0, &pop);
+	SASSERT(pop == 21);
+	SASSERT(list.Memory[0] == last);
 
-	assert(pop == 2);
+	SASSERT(*list.Last() == 8);
 
-	list.PopAt(0, &pop);
+	SASSERT(list.Count == 8);
 
-	assert(pop == 9);
+	list.Remove();
+	list.RemoveAt(1);
+	list.RemoveAtFast(2);
 
-	int c = 9;
-	bool contains = list.Contains(&c);
-
-	assert(!contains);
-
-	int c2 = 5;
-	bool contains2 = list.Contains(&c2);
-
-	assert(contains2);
-
-	i = 5;
-	list.PushAt(3, &i);
-	i = 255;
-	list.Push(&i);
-	i = 255;
-	list.PushAt(3, &i);
-
-	assert(list.Memory[4] = 5);
-	assert(list.Memory[list.Length - 1] = 255);
-	assert(list.Memory[3] = 255);
+	SASSERT(list.Count == 5);
+	SASSERT(list.Capacity == 16);
+	SASSERT(list.Memory[0] == 9);
+	SASSERT(list.Memory[1] == 3);
+	SASSERT(list.Memory[2] == 7);
+	SASSERT(list.Memory[3] == 5);
+	SASSERT(*list.Last() == 6);
 
 	list.Free();
+
+	SASSERT(!list.IsInitialized());
 }

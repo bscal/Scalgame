@@ -2,25 +2,18 @@
 
 #include "raylib/src/raylib.h"
 
-#include "DebugWindow.h"
-#include "Vector2i.h"
-
 #include <stdint.h>
 
 static_assert(sizeof(size_t) == sizeof(uint64_t), 
 	"ScalEngine does not support 32bit");
-
-#define Mode3D false
 
 #define internal static
 #define local_var static
 #define global_var static
 
 typedef int bool32;
-typedef Vector2i ChunkCoord;
-typedef Vector2i TileCoord;
 
-constexpr float TAO = (float)PI * 2.0f;
+constexpr global_var float TAO = (float)PI * 2.0f;
 
 #ifdef SCAL_PLATFORM_WINDOWS
 #ifdef SCAL_BUILD_DLL
@@ -40,21 +33,36 @@ constexpr float TAO = (float)PI * 2.0f;
 #define BitSet(state, bit) (state | 1U << bit)
 #define BitClear(state, bit) (state & ~(1U << bit))
 #define BitToggle(state, bit) (state ^ 1U << bit)
+#define BitMask(state, mask) ((state & mask) == mask)
+
+inline void ReportAssertFailure(const char* expression, const char* msg, const char* file, int line);
 
 #if SCAL_DEBUG
-#define S_LOG_DEBUG(msg, ...) TraceLog(LOG_DEBUG, msg, __VA_ARGS__)
+#define SLOG_DEBUG(msg, ...) TraceLog(LOG_DEBUG, msg, __VA_ARGS__)
+#define SLOG_WARN(msg, ...) TraceLog(LOG_WARNING, msg, __VA_ARGS__)
+#define SASSERT(expr) if (!(expr)) { ReportAssertFailure(#expr, "", __FILE__, __LINE__); }
+#define SASSERT_MSG(expr, msg) if (!(expr)) { ReportAssertFailure(#expr, msg, __FILE__, __LINE__); }
+
+#if SCAL_PLATFORM_WINDOWS
+#include <intrin.h>
+#define DEBUG_BREAK(void) __debugbreak()
 #else
-#define S_LOG_DEBUG(msg, ...)
+#define DEBUG_BREAK(void) __builtin_trap()
 #endif
 
-#define S_LOG_INFO(msg, ...) TraceLog(LOG_INFO, msg, __VA_ARGS__)
-#define S_LOG_WARN(msg, ...) TraceLog(LOG_WARNING, msg, __VA_ARGS__)
-#define S_LOG_ERR(msg, ...) TraceLog(LOG_ERROR, msg, __VA_ARGS__)
+#else
+#define SLOG_DEBUG(msg, ...)
+#define SLOG_WARN(msg, ...)
+#define SASSERT(expression, msg, ...) 
+#endif
 
-void SCrash(const char* file, int line);
-#define S_CRASH(msg, ...) \
-TraceLog(LOG_FATAL, msg, __VA_ARGS__); \
-SCrash(__FILE__, __LINE__) \
+#define SLOG_INFO(msg, ...) TraceLog(LOG_INFO, msg, __VA_ARGS__)
+#define SLOG_ERR(msg, ...) TraceLog(LOG_ERROR, msg, __VA_ARGS__)
+
+#define SFATAL_CRASH(msg, ...) \
+	TraceLog(LOG_FATAL, msg, __VA_ARGS__); \
+	TraceLog(LOG_FATAL, "Fatal error detected, program crashed! File: %s, Line: %s", __FILE__, __LINE__) \
+	exit(1); \
 
 #define CALL_CONSTRUCTOR(object) new (object)
 
@@ -65,3 +73,10 @@ struct MemorySizeData
 };
 
 MemorySizeData FindMemSize(uint64_t size);
+
+inline void ReportAssertFailure(const char* expression, const char* msg, const char* file, int line)
+{
+	TraceLog(LOG_FATAL, "Assertion Failure: %s, Message: %s\n  File: %s, Line: %d\n",
+		expression, msg, file, line);
+	DEBUG_BREAK();
+}

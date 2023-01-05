@@ -1,13 +1,5 @@
 #include "Core.h"
 
-#include <assert.h>
-
-void SCrash(const char* file, int line)
-{
-	TraceLog(LOG_FATAL, "Attempting to break! File: %s. Line: %d");
-	assert(false);
-}
-
 MemorySizeData FindMemSize(uint64_t size)
 {
 	const uint64_t gb = 1024 * 1024 * 1024;

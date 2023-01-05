@@ -23,15 +23,6 @@ global_var int UniformLitTileMapId = -1;
 global_var int UniformLitLightId = -1;
 global_var int UniformLitSizeId = -1;
 
-global_var int UniformSizeId = -1;
-global_var int UniformTilesId = -1;
-global_var int UniformLightId = -1;
-
-global_var int UniformSamplerSizeId = -1;
-global_var int UniformSamplerTilesId = -1;
-global_var int UniformSamplerLightId = -1;
-global_var int UniformSamplerWorldId = -1;
-
 SAPI bool GameApplication::Start()
 {
 	if (IsInitialized)
@@ -56,7 +47,7 @@ SAPI bool GameApplication::Start()
 	bool didUiInit = InitializeUI(UIState, this);
 	assert(didUiInit);
     
-	Test();
+	TestListImpl();
 	TestSTable();
 
 	IsInitialized = true;
@@ -87,12 +78,6 @@ internal void GameLoadScreen(GameApplication* gameApp, int width, int height)
 	game->WorldTexture = LoadRenderTexture(width, height);
 
 	Vector2 size = { (float)width, (float)height };
-	SetShaderValue(game->Resources.LightRayShader,
-		UniformSizeId, &size, SHADER_UNIFORM_VEC2);
-
-	SetShaderValue(game->Resources.LightSamplerShader,
-		UniformSamplerSizeId, &size, SHADER_UNIFORM_VEC2);
-
 	SetShaderValue(game->Resources.LitShader,
 		UniformLitSizeId, &size, SHADER_UNIFORM_VEC2);
 }
@@ -110,15 +95,6 @@ internal bool GameInitialize(Game* game, GameApplication* gameApp)
 	UniformLitSizeId = GetShaderLocation(game->Resources.LitShader, "Size");
 	UniformLitTileMapId = GetShaderLocation(game->Resources.LitShader, "TileMap");
 	UniformLitLightId = GetShaderLocation(game->Resources.LitShader, "Light");
-
-	UniformSizeId = GetShaderLocation(game->Resources.LightRayShader, "Size");
-	UniformTilesId = GetShaderLocation(game->Resources.LightRayShader, "Tiles");
-	UniformLightId = GetShaderLocation(game->Resources.LightRayShader, "Light");
-
-	UniformSamplerSizeId = GetShaderLocation(game->Resources.LightSamplerShader, "Size");
-	UniformSamplerTilesId = GetShaderLocation(game->Resources.LightSamplerShader, "LightMap");
-	UniformSamplerLightId = GetShaderLocation(game->Resources.LightSamplerShader, "Light");
-	UniformSamplerWorldId = GetShaderLocation(game->Resources.LightSamplerShader, "WorldMap");
 
 	game->Atlas.Load("assets/textures/atlas/tiles.atlas", 32);
 
@@ -145,7 +121,7 @@ internal bool GameInitialize(Game* game, GameApplication* gameApp)
 	assert(game->WorldCamera.zoom > 0.0f);
 	assert(gameApp->Scale > 0.0f);
 
-	S_LOG_INFO("[ GAME ] Successfully initialized game!");
+	SLOG_INFO("[ GAME ] Successfully initialized game!");
 	return true;
 }
 
@@ -165,7 +141,7 @@ internal void GameStart(Game* game, GameApplication* gameApp)
 	Human* playerHuman = game->EntityMgr.ComponentManager
 		.GetComponent<Human>(player, Human::ID);
 
-	S_LOG_INFO("[ WORLD ] players age is %d from componentId: %d",
+	SLOG_INFO("[ WORLD ] players age is %d from componentId: %d",
 		playerHuman->Age, playerHuman->ID);
 
 	SCreature* rat = CreateCreature(&game->EntityMgr, &game->World);
@@ -255,7 +231,7 @@ SAPI void GameApplication::Run()
 					Tile* tile = CTileMap::GetTile(tilemap, vec);
 					Tile newTile = CreateTileId(&Game->TileMgr, 5);
 					CTileMap::SetTile(&Game->World.ChunkedTileMap, &newTile, vec);
-					S_LOG_INFO("Clicked Tile[%d, %d] Id: %d", vec.x, vec.y, tile->TileDataId);
+					SLOG_INFO("Clicked Tile[%d, %d] Id: %d", vec.x, vec.y, tile->TileDataId);
 				}
 			}
 			if (IsMouseButtonPressed(MOUSE_BUTTON_RIGHT))
@@ -359,7 +335,7 @@ SAPI void GameApplication::Run()
 				rlPopMatrix();
 			EndMode2D();
 		EndShaderMode();
-        
+
 		DrawUI(UIState);
         
 		// Swap buffers
@@ -390,7 +366,7 @@ internal void GameUpdate(Game* game, GameApplication* gameApp)
 	if (IsWindowResized())
 	{
 		GameLoadScreen(gameApp, GetScreenWidth(), GetScreenHeight());
-		S_LOG_INFO("[ GAME ] Window Resizing!");
+		SLOG_INFO("[ GAME ] Window Resizing!");
 	}
 }
 
@@ -402,7 +378,7 @@ GameApplication* const GetGameApp()
 
 Player* GetClientPlayer()
 {
-	assert(GetGameApp()->Game->EntityMgr.Players.Length > 0);
+	assert(GetGameApp()->Game->EntityMgr.Players.Count > 0);
 	return GetGameApp()->Game->EntityMgr.Players.PeekAtPtr(0);
 }
 
@@ -416,9 +392,6 @@ Game* GetGame()
 {
 	return GetGameApp()->Game;
 }
-
-
-Game* GetGame();
 
 float GetDeltaTime()
 {
@@ -457,40 +430,22 @@ Vector2i ScaleWorldVec2i(Vector2i vec)
 
 void SetCameraPosition(Game* game, Vector3 pos)
 {
-#if Mode3D // 3D
-	Camera3D& camera = game->Camera;
-	camera->target.x = floorf(camera->target.x + pos.x);
-	camera->target.y = floorf(camera->target.y + pos.y);
-	camera->target.z = floorf(camera->target.z + pos.z);
-	camera->position.x = floorf(camera->position.x + pos.x);
-	camera->position.y = floorf(camera->position.y + pos.y);
-#else
-	Camera2D& camera = game->WorldCamera;
+	Camera2D& camera = game->ViewCamera;
 	camera.target.x += pos.x;
 	camera.target.y += pos.y;
-#endif
 }
 
 void SetCameraDistance(GameApplication* gameApp, float zoom)
 {
-#if Mode3D // 3D
-	Camera3D& camera = game->Camera;
-	zoom = camera->position.z + zoom * 15.0f;
-	if (zoom > 256.0f) zoom = 250.0f;
-	if (zoom < 16.0f) zoom = 15.0f;
-	camera->position.z = floorf(zoom);
-#else // 2D
-	gameApp->Scale += zoom * 0.25f;
-	if (gameApp->Scale < 1.0f)
-		gameApp->Scale = 1.0f;
-	else if (gameApp->Scale > 4.0f)
-		gameApp->Scale = 4.0f;
-    
+	const float ZOOM_MAX = 5.0f;
+	const float ZOOM_MIN = 1.0f;
+	const float ZOOM_SPD = .25f;
+	gameApp->Scale = Clampf(ZOOM_MIN, ZOOM_MAX, zoom * ZOOM_SPD);
+
 	// NOTE: this is so we dont get weird camera
 	// jerking when we scroll
 	Vector2 playerPos = VecToTileCenter(GetClientPlayer()->Transform.Pos);
 	gameApp->Game->WorldCamera.target = playerPos;
 	Vector2 viewTarget = Vector2Multiply(playerPos, { GetScale(), GetScale() });
 	gameApp->Game->ViewCamera.target = viewTarget;
-#endif
 }

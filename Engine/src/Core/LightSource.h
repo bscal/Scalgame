@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core.h"
+#include "Vector2i.h"
 
 #include <vector>
 

@@ -30,7 +30,7 @@ struct SpriteAtlas
 	bool Load(const char* atlasDataPath, uint64_t estimatedSprites);
 	void Unload();
 
-	inline uint64_t Size() const { return SpritesArray.Length; }
+	inline uint64_t Size() const { return SpritesArray.Count; }
 	inline const Rectangle& SpriteAtlas::GetRect(uint64_t index) const
 	{
 		return SpritesArray[index];

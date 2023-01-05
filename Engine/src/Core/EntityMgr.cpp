@@ -34,20 +34,20 @@ void EntityMgrInitialize(Game* game)
 	game->EntityMgr.Players.InitializeCap(1);
 	game->EntityMgr.Creatures.InitializeCap(ESTIMATED_ENTITIES);
 
-	S_LOG_INFO("[ Entity Manager ] Initialized!");
+	SLOG_INFO("[ Entity Manager ] Initialized!");
 }
 
 
 void EntityMgrUpdate(EntityMgr* entMgr, Game* game)
 {
-	for (size_t i = 0; i < entMgr->Players.Length; ++i)
+	for (size_t i = 0; i < entMgr->Players.Count; ++i)
 	{
 		auto player = entMgr->Players.PeekAtPtr(i);
 		player->UpdatePlayer(game);
 		player->Update(game);
 	}
 
-	for (size_t i = 0; i < entMgr->Creatures.Length; ++i)
+	for (size_t i = 0; i < entMgr->Creatures.Count; ++i)
 	{
 		auto creature = entMgr->Creatures.PeekAtPtr(i);
 		if (!creature->IsFrozen) creature->Update(game);
@@ -191,18 +191,18 @@ void RemoveEntity(EntityMgr* entMgr, EntityId entityId)
 	{
 		case PLAYER: {
 			entMgr->Players.RemoveAtFast(entIndex);
-			if (entMgr->Players.Length < entIndex);
-			movedEntityId = entMgr->Players[entIndex].Id;
+			if (entMgr->Players.Count < entIndex)
+				movedEntityId = entMgr->Players[entIndex].Id;
 			break;
 		}
 		case CREATURE: {
 			entMgr->Creatures.RemoveAtFast(entIndex);
-			if (entMgr->Creatures.Length < entIndex);
-			movedEntityId = entMgr->Creatures[entIndex].Id;
+			if (entMgr->Creatures.Count < entIndex)
+				movedEntityId = entMgr->Creatures[entIndex].Id;
 			break;
 		}
 		default: {
-			S_LOG_ERR("Removed entity did not have a type!");
+			SLOG_ERR("Removed entity did not have a type!");
 			assert(false);
 			break;
 		}

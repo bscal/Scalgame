@@ -329,7 +329,7 @@ internal void ComputeLightShadowCast(CTileMap::ChunkedTileMap* tilemap,
 
 internal void UpdateLights(Game* game)
 {
-	for (int i = 0; i < Lights.Length; ++i)
+	for (int i = 0; i < Lights.Count; ++i)
 	{
 		const Light& light = Lights[i];
 

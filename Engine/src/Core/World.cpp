@@ -18,7 +18,7 @@ void WorldInitialize(World* world, GameApplication* gameApp)
 	CTileMap::Initialize(&world->ChunkedTileMap, gameApp->Game);
 
 	world->IsInitialized = true;
-	S_LOG_INFO("[ WORLD ] Successfully initialized world!");
+	SLOG_INFO("[ WORLD ] Successfully initialized world!");
 }
 
 void WorldLoad(World* world, Game* game)
@@ -29,7 +29,7 @@ void WorldLoad(World* world, Game* game)
 	CTileMap::FindChunksInView(&world->ChunkedTileMap, game);
 
 	world->IsLoaded = true;
-	S_LOG_INFO("[ WORLD ] World loaded!");
+	SLOG_INFO("[ WORLD ] World loaded!");
 }
 
 void WorldFree(World* world)
@@ -37,7 +37,7 @@ void WorldFree(World* world)
 	assert(world);
 	if (!world->IsInitialized || !world->IsLoaded)
 	{
-		S_LOG_ERR("Trying to unload a null world");
+		SLOG_ERR("Trying to unload a null world");
 		return;
 	}
 	world->IsLoaded = false;
@@ -55,7 +55,7 @@ void WorldUpdate(World* world, Game* game)
 	CTileMap::Update(&world->ChunkedTileMap, game);
 	CTileMap::LateUpdateChunk(&world->ChunkedTileMap, game);
 
-	GetGameApp()->NumOfLoadedChunks = (int)world->ChunkedTileMap.ChunksList.Length;
+	GetGameApp()->NumOfLoadedChunks = (int)world->ChunkedTileMap.ChunksList.Count;
 }
 
 bool CanMoveToTile(World* world, Vector2i position)
@@ -81,7 +81,7 @@ void TurnEnd(World* world, Game* game, int timeChange)
 
 void AddAction(World* world, Action* action)
 {
-	auto length = world->EntityActionsList.Length;
+	auto length = world->EntityActionsList.Count;
 	if (length < 1)
 	{
 		world->EntityActionsList.Push(action);
@@ -108,7 +108,7 @@ void AddAction(World* world, Action* action)
 
 void ProcessActions(World* world)
 {
-	for (int i = 0; i < world->EntityActionsList.Length; ++i)
+	for (int i = 0; i < world->EntityActionsList.Count; ++i)
 	{
 		Action at = world->EntityActionsList.PeekAt(i);
 		at.ActionFunction(world, &at);

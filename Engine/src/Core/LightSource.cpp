@@ -8,6 +8,7 @@
 #include "TileMapUtils.h"
 #include "raymath.h"
 #include "Tile.h"
+#include "Vector2i.h"
 
 #define LIGHT_MAP_UNIFORM_COUNT "LightMapCount"
 #define LIGHT_MAP_UNIFORM "LightMap"

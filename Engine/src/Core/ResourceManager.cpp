@@ -38,7 +38,7 @@ bool InitializeResources(Resources* resources)
 	//LoadTileSet(&resources->TileSheet, 16, 16,
 	//	&resources->MainTileSet);
 
-	S_LOG_INFO("[ RESOURCES ] Successfully initialized resources!");
+	SLOG_INFO("[ RESOURCES ] Successfully initialized resources!");
 	return resources->IsInitialized = true;
 }
 
