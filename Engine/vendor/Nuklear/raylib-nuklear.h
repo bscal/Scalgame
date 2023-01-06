@@ -645,7 +645,7 @@ NK_API void nk_raylib_input_keyboard(struct nk_context * ctx)
 
     // Functions
     if (IsKeyPressed(KEY_SPACE)) nk_input_unicode(ctx, KEY_SPACE);
-    if (IsKeyPressed(KEY_TAB)) nk_input_unicode(ctx, 9);
+    //if (IsKeyPressed(KEY_TAB)) nk_input_unicode(ctx, 9);
 
     // Keypad
     if (IsKeyPressed(KEY_KP_0)) nk_input_unicode(ctx, KEY_ZERO);

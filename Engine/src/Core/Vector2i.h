@@ -59,9 +59,7 @@ struct Vector2iHasher
 {
     std::size_t operator()(const Vector2i& v) const noexcept
     {
-        std::size_t i0 = std::hash<int>{}(v.x);
-        std::size_t i1 = std::hash<int>{}(v.y);
-        return i0 ^ (i1 << 1);
+        return std::hash<Vector2i>{}(v);
     }
 };
 

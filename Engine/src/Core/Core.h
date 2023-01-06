@@ -74,9 +74,11 @@ struct MemorySizeData
 
 MemorySizeData FindMemSize(uint64_t size);
 
-inline void ReportAssertFailure(const char* expression, const char* msg, const char* file, int line)
+inline void 
+ReportAssertFailure(const char* expression, const char* msg, const char* file, int line)
 {
-	TraceLog(LOG_FATAL, "Assertion Failure: %s, Message: %s\n  File: %s, Line: %d\n",
+	TraceLog(LOG_FATAL, "Assertion Failure: %s,"
+		"Message: % s\n  File : % s, Line : % d\n",
 		expression, msg, file, line);
 	DEBUG_BREAK();
 }

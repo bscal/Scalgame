@@ -27040,7 +27040,31 @@ nk_do_edit(nk_flags *state, struct nk_command_buffer *out,
         int old_mode = edit->mode;
         for (i = 0; i < NK_KEY_MAX; ++i) {
             if (i == NK_KEY_ENTER || i == NK_KEY_TAB) continue; /* special case */
-            if (nk_input_is_key_pressed(in, (enum nk_keys)i)) {
+            if (i == NK_KEY_BACKSPACE) // Note: (bscal) handles held down keys
+            {
+                static float pressedTimer;
+                if (nk_input_is_key_pressed(in, (enum nk_keys)i))
+                {
+                    pressedTimer = 0;
+                    nk_textedit_key(edit, (enum nk_keys)i, shift_mod, font, row_height);
+                    cursor_follow = nk_true;
+                }
+                else if (nk_input_is_key_down(in, (enum nk_keys)i))
+                {
+                    // Note: (bscal) use bad way to increment time
+                    // delta time is in nk_context which function doesn
+                    // have and i dont know if i want to do that big of
+                    // a refactor to this code. Maybe we just make a global
+                    // to store it.
+                    if (pressedTimer > 30)
+                    {
+                        nk_textedit_key(edit, (enum nk_keys)i, shift_mod, font, row_height);
+                        cursor_follow = nk_true;
+                    }
+                    pressedTimer += 1;
+                }
+            }
+            else if (nk_input_is_key_pressed(in, (enum nk_keys)i)) {
                 nk_textedit_key(edit, (enum nk_keys)i, shift_mod, font, row_height);
                 cursor_follow = nk_true;
             }

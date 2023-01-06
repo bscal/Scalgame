@@ -30,8 +30,7 @@ void UpdateUI(UIState* state)
 	if (state->IsDebugPanelOpen)
 		DrawDebugPanel(state);
 
-	if (state->IsConsoleOpen)
-		DrawConsole(state);
+	DrawConsole(state);
 }
 
 void DrawUI(UIState* state)
@@ -235,7 +234,18 @@ internal void DrawConsole(UIState* state)
 			}
 
 			local_var char TestMem[64];
-			local_var int Length;
+			local_var int Length = 0;
+			local_var uint8_t SelectionIndex = 0;
+
+			TestMem[sizeof(TestMem) - 1] = '\0';
+
+			auto& cmdMgr = GetGame()->CommandMgr;
+			if (IsKeyPressed(KEY_TAB) && SelectionIndex < cmdMgr.Suggestions.size())
+			{
+				const auto& sug = cmdMgr.Suggestions[SelectionIndex];
+				Length = sug.size();
+				Scal::MemCopy(TestMem, sug.data(), Length);
+			}
 			if (IsKeyPressed(KEY_ENTER) && TestMem)
 			{
 				if (ConsoleEntries.size() > MAX_CONSOLE_HISTORY)
@@ -243,9 +253,9 @@ internal void DrawConsole(UIState* state)
 					ConsoleEntries.erase(ConsoleEntries.begin());
 				}
 
-				GetGame()->CommandMgr.TryExecuteCommand(TestMem);
+				cmdMgr.TryExecuteCommand();
 
-				ConsoleEntries.emplace_back(std::string(TestMem, Length));
+				ConsoleEntries.emplace_back(TestMem, Length);
 
 				if (ConsoleEntries.size() >= h / TEXT_ENTRY_HEIGHT_WITH_PADDING)
 				{
@@ -258,15 +268,14 @@ internal void DrawConsole(UIState* state)
 			// *** Command Input ***
 			nk_layout_row_static(ctx, INPUT_HEIGHT, (int)paddingW, 1);
 			nk_edit_string(&state->Ctx, NK_EDIT_SIMPLE, TestMem, &Length, sizeof(TestMem) - 1, nk_filter_default);
-
+			cmdMgr.UpdateInputCommand(std::string_view(TestMem, Length));
 			if (Length > 0)
 			{
-				const auto& sugs = GetGame()->CommandMgr.GetSuggestions(TestMem);
-				SuggestionPanelSize = (float)(24.0f * sugs.size());
+				SuggestionPanelSize = (float)(24.0f * cmdMgr.Suggestions.size());
 				nk_layout_row_dynamic(ctx, TEXT_ENTRY_HEIGHT, 1);
-				for (int i = 0; i < sugs.size(); ++i)
+				for (int i = 0; i < cmdMgr.Suggestions.size(); ++i)
 				{
-					nk_label(ctx, sugs[i].data(), NK_TEXT_LEFT);
+					nk_label(ctx, cmdMgr.Suggestions[i].data(), NK_TEXT_LEFT);
 				}
 			}
 			else

@@ -11,10 +11,10 @@
 
 struct Game;
 
-constexpr int CHUNK_SIZE = 64;
-constexpr int TILE_SIZE = 16;
-constexpr float HALF_TILE_SIZE = ((float)TILE_SIZE) / 2.0f;
-constexpr Vector2i VIEW_DISTANCE = { 3, 2 };
+const global_var int CHUNK_SIZE = 64;
+const global_var int TILE_SIZE = 16;
+const global_var float HALF_TILE_SIZE = ((float)TILE_SIZE) / 2.0f;
+constexpr global_var Vector2i VIEW_DISTANCE = { 3, 2 };
 
 namespace CTileMap
 {
