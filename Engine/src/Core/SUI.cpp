@@ -233,43 +233,44 @@ internal void DrawConsole(UIState* state)
 				nk_group_end(ctx);
 			}
 
-			local_var char TestMem[64];
-			local_var int Length = 0;
-			local_var uint8_t SelectionIndex = 0;
-
-			TestMem[sizeof(TestMem) - 1] = '\0';
-
 			auto& cmdMgr = GetGame()->CommandMgr;
-			if (IsKeyPressed(KEY_TAB) && SelectionIndex < cmdMgr.Suggestions.size())
+			if (IsKeyPressed(KEY_TAB) && cmdMgr.Suggestions.size() > 0)
 			{
-				const auto& sug = cmdMgr.Suggestions[SelectionIndex];
-				Length = sug.size();
-				Scal::MemCopy(TestMem, sug.data(), Length);
+				const auto& sug = cmdMgr.Suggestions[0];
+				cmdMgr.Length = sug.size();
+				Scal::MemCopy(cmdMgr.TextInputMemory, sug.data(), cmdMgr.Length);
 			}
-			if (IsKeyPressed(KEY_ENTER) && TestMem)
+			if (IsKeyPressed(KEY_ENTER))
 			{
 				if (ConsoleEntries.size() > MAX_CONSOLE_HISTORY)
 				{
 					ConsoleEntries.erase(ConsoleEntries.begin());
 				}
 
-				cmdMgr.TryExecuteCommand();
-
-				ConsoleEntries.emplace_back(TestMem, Length);
+				ConsoleEntries.emplace_back(cmdMgr.TextInputMemory, cmdMgr.Length);
+				cmdMgr.TryExecuteCommand(std::string_view(cmdMgr.TextInputMemory, cmdMgr.Length));
 
 				if (ConsoleEntries.size() >= h / TEXT_ENTRY_HEIGHT_WITH_PADDING)
 				{
 					nk_group_set_scroll(ctx, "Messages", 0, ConsoleEntries.size() * TEXT_ENTRY_HEIGHT_WITH_PADDING);
 				}
-				Scal::MemSet(TestMem, 0, sizeof(TestMem));
-				Length = 0;
 			}
 
 			// *** Command Input ***
 			nk_layout_row_static(ctx, INPUT_HEIGHT, (int)paddingW, 1);
-			nk_edit_string(&state->Ctx, NK_EDIT_SIMPLE, TestMem, &Length, sizeof(TestMem) - 1, nk_filter_default);
-			cmdMgr.UpdateInputCommand(std::string_view(TestMem, Length));
-			if (Length > 0)
+			nk_edit_string(&state->Ctx,
+				NK_EDIT_SIMPLE,
+				cmdMgr.TextInputMemory,
+				&cmdMgr.Length,
+				sizeof(cmdMgr.TextInputMemory) - 1,
+				nk_filter_default);
+
+			if (cmdMgr.Length != cmdMgr.LastLength)
+			{
+				cmdMgr.LastLength = cmdMgr.Length;
+				cmdMgr.PopulateSuggestions(std::string_view(cmdMgr.TextInputMemory, cmdMgr.Length));
+			}
+			if (cmdMgr.Length > 0)
 			{
 				SuggestionPanelSize = (float)(24.0f * cmdMgr.Suggestions.size());
 				nk_layout_row_dynamic(ctx, TEXT_ENTRY_HEIGHT, 1);

@@ -21,7 +21,7 @@ namespace CTileMap
 
 struct TileMapChunk
 {
-	SList<Tile> Tiles;
+	Tile Tiles[CHUNK_SIZE * CHUNK_SIZE];
 	SList<EntityId> Entities;
 	Rectangle Bounds;
 	ChunkCoord ChunkCoord;

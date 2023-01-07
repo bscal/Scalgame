@@ -53,7 +53,9 @@ inline void ReportAssertFailure(const char* expression, const char* msg, const c
 #else
 #define SLOG_DEBUG(msg, ...)
 #define SLOG_WARN(msg, ...)
-#define SASSERT(expression, msg, ...) 
+#define SASSERT(expression, msg, ...)
+#define SASSERT_MSG(expr, msg)
+#define DEBUG_BREAK(void)
 #endif
 
 #define SLOG_INFO(msg, ...) TraceLog(LOG_INFO, msg, __VA_ARGS__)

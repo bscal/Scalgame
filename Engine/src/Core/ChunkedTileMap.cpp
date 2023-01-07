@@ -188,13 +188,13 @@ internal void Draw(ChunkedTileMap* tilemap, Game* game)
 	Vector2i screenCoord = GetClientPlayer()->Transform.TilePos;
 	Vector2i screenDims
 	{
-		GetRenderWidth() / tileSize.x,
-		GetRenderHeight() / tileSize.y
+		GetScreenWidth() / tileSize.x + 1 + 2,
+		GetScreenHeight() / tileSize.y + 1 + 2
 	};
-	float offsetX = (game->WorldCamera.offset.x) / (float)tileSize.x;
-	float offsetY = (game->WorldCamera.offset.y) / (float)tileSize.y;
-	int tileOffsetX = (int)((float)screenCoord.x - offsetX);
-	int tileOffsetY = (int)((float)screenCoord.y - offsetY);
+	float offsetX = game->WorldCamera.offset.x / TILE_SIZE;
+	float offsetY = game->WorldCamera.offset.y / TILE_SIZE;
+	int tileOffsetX = (int)((float)game->WorldCamera.target.x / TILE_SIZE - floorf(offsetX) - 1.0f);
+	int tileOffsetY = (int)((float)game->WorldCamera.target.y / TILE_SIZE - floorf(offsetY) - 1.0f);
 	for (int y = 0; y < screenDims.y; ++y)
 	{
 		for (int x = 0; x < screenDims.x; ++x)
@@ -226,6 +226,9 @@ internal void Draw(ChunkedTileMap* tilemap, Game* game)
 				0.0f,
 				tile->TileColor);
 
+			if (game->DebugTileView)
+				DrawRectangleLinesEx(position, 1.0f, PINK);
+
 			tile->TileColor = (game->DebugDisableDarkess) ? 
 				Vector4{ 1.0f, 1.0f, 1.0f, 1.0f } : Vector4{};
 
@@ -237,7 +240,9 @@ internal void Draw(ChunkedTileMap* tilemap, Game* game)
 
 void LateUpdateChunk(ChunkedTileMap* tilemap, Game* game)
 {
+	if (!game->DebugTileView) return; 
 	const auto& screenRect = GetScaledScreenRect();
+
 	for (uint64_t i = 0; i < tilemap->ChunksList.Count; ++i)
 	{
 		auto chunk = tilemap->ChunksList.PeekAtPtr(i);
@@ -278,7 +283,7 @@ TileMapChunk* LoadChunk(ChunkedTileMap* tilemap,
 	ChunkCoord coord)
 {
 	TileMapChunk chunk = {};
-	chunk.Tiles.InitializeCap(tilemap->ChunkTileCount);
+	//chunk.Tiles.InitializeCap(tilemap->ChunkTileCount);
 	chunk.Entities.InitializeCap(10); // TODO
 	chunk.ChunkCoord = coord;
 
@@ -302,7 +307,7 @@ void UnloadChunk(ChunkedTileMap* tilemap, ChunkCoord coord)
 		auto chunkPtr = tilemap->ChunksList.PeekAtPtr(i);
 		if (chunkPtr->ChunkCoord.Equals(coord))
 		{
-			chunkPtr->Tiles.Free();
+			//chunkPtr->Tiles.Free();
 			chunkPtr->Entities.Free();
 			tilemap->ChunksList.RemoveAtFast(i);
 		}
@@ -328,7 +333,8 @@ void GenerateChunk(ChunkedTileMap* tilemap,
 			const auto& tile = CreateTileId(
 				&GetGameApp()->Game->TileMgr,
 				tileId);
-			chunk->Tiles.Push(&tile);
+			chunk->Tiles[x + y * CHUNK_SIZE] = tile;
+			//chunk->Tiles.Push(&tile);
 		}
 	}
 }
@@ -401,7 +407,8 @@ void SetTile(ChunkedTileMap* tilemap,
 	}
 	assert(chunk->IsChunkGenerated);
 	uint64_t index = TileToIndex(tilemap, chunkCoord, tilePos);
-	chunk->Tiles.Set(index, tile);
+	chunk->Tiles[index] = *tile;
+	//chunk->Tiles.Set(index, tile);
 }
 
 Tile* GetTile(ChunkedTileMap* tilemap, TileCoord tilePos)
@@ -419,7 +426,8 @@ Tile* GetTile(ChunkedTileMap* tilemap, TileCoord tilePos)
 	}
 	assert(chunk->IsChunkGenerated);
 	uint64_t index = TileToIndex(tilemap, chunkCoord, tilePos);
-	return chunk->Tiles.PeekAtPtr(index);
+	return &chunk->Tiles[index];
+	//return chunk->Tiles.PeekAtPtr(index);
 }
 
 const Tile& GetTileRef(ChunkedTileMap* tilemap,

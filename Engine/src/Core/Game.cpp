@@ -34,7 +34,7 @@ SAPI bool GameApplication::Start()
 	const int screenWidth = 1600;
 	const int screenHeight = 900;
 	InitWindow(screenWidth, screenHeight, "Some roguelike game");
-	SetTargetFPS(60);
+	SetTargetFPS(144);
 	SetTraceLogLevel(LOG_ALL);
     
 	GameAppPtr = this;
@@ -283,6 +283,17 @@ SAPI void GameApplication::Run()
 			{
 				Game->DebugDisableFOV = !Game->DebugDisableFOV;
 			}
+			if (IsKeyPressed(KEY_F3))
+			{
+				Game->DebugTileView = !Game->DebugTileView;
+			}
+			if (IsKeyPressed(KEY_F4))
+			{
+				if (Game->ViewCamera.zoom == 1.f)
+					Game->ViewCamera.zoom = .5f;
+				else
+					Game->ViewCamera.zoom = 1.f;
+			}
 			if (IsKeyPressed(KEY_GRAVE))
 			{
 				UIState->IsDebugPanelOpen = !UIState->IsDebugPanelOpen;
@@ -440,7 +451,7 @@ void SetCameraDistance(GameApplication* gameApp, float zoom)
 	const float ZOOM_MAX = 5.0f;
 	const float ZOOM_MIN = 1.0f;
 	const float ZOOM_SPD = .25f;
-	gameApp->Scale = Clampf(ZOOM_MIN, ZOOM_MAX, zoom * ZOOM_SPD);
+	gameApp->Scale = Clampf(ZOOM_MIN, ZOOM_MAX, gameApp->Scale + zoom * ZOOM_SPD);
 
 	// NOTE: this is so we dont get weird camera
 	// jerking when we scroll

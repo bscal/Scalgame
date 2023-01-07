@@ -31,6 +31,7 @@ struct Game
 
     bool DebugDisableDarkess;
     bool DebugDisableFOV;
+    bool DebugTileView;
 };
 
 struct GameApplication

@@ -42,12 +42,25 @@ struct TileData
 	TileType Type;
 };
 
+struct TileTexData
+{
+	Rectangle TexCoord;
+};
+
 #define MAX_TILES 32
 struct TileMgr
 {
 	SpriteAtlas* SpriteAtlas;
 	TileData Tiles[MAX_TILES];
+	TileTexData TileTextureData[MAX_TILES];
 	uint32_t NextTileId;
+};
+
+struct TileRenderInfo
+{
+	Vector4 Color;
+	uint16_t TileId;
+	TileLOS LOS;
 };
 
 struct Tile
@@ -58,10 +71,9 @@ struct Tile
 	uint32_t TileDataId;
 	uint8_t LightLevel;
 	TileLOS LOS;
-	bool IsUndiscovered;
-	bool IsOccupied;
 
 	const TileData& GetTileData(TileMgr* tileMgr) const;
+	const TileTexData& GetTileTexData(TileMgr* tileMgr) const;
 };
 
 void TileMgrInitialize(TileMgr* tileMgr, SpriteAtlas* spriteAtlas);
