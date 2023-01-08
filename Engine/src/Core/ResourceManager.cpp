@@ -12,8 +12,9 @@ internal SDFFont LoadSDFFont();
 
 bool InitializeResources(Resources* resources)
 {
+    resources->Atlas.Load("assets/textures/atlas/tiles.atlas", 32);
+
     resources->EntitySpriteSheet = LoadTexture(ENTITY_SHEET_PATH);
-	//resources->TileSheet = LoadTexture(TILE_MAP_TEXTURE_PATH);
 
 	resources->MainFontM = LoadFont(FONT_PATH);
     resources->MainFontS = LoadFontEx(FONT_PATH, 16, 0, 0);
@@ -22,21 +23,6 @@ bool InitializeResources(Resources* resources)
     resources->UnlitShader = LoadShader(
         "assets/shaders/tile_shader.vert",
         "assets/shaders/tile_shader.frag");
-
-    resources->LitShader = LoadShader(
-        "assets/shaders/tile_lit.vert",
-        "assets/shaders/tile_lit.frag");
-
-    resources->LightSamplerShader = LoadShader(
-        "assets/shaders/tile_lighting_sampler.vert",
-        "assets/shaders/tile_lighting_sampler.frag");
-
-    resources->LightRayShader = LoadShader(
-        "assets/shaders/tile_lighting_ray.vert",
-        "assets/shaders/tile_lighting_ray.frag");
-
-	//LoadTileSet(&resources->TileSheet, 16, 16,
-	//	&resources->MainTileSet);
 
 	SLOG_INFO("[ RESOURCES ] Successfully initialized resources!");
 	return resources->IsInitialized = true;

@@ -350,18 +350,19 @@ LightsUpdateTileColor(CTileMap::ChunkedTileMap* tilemap,
 {
 	if (!CTileMap::IsTileInBounds(tilemap, tileCoord)) return;
 
-	Tile* tile = CTileMap::GetTile(tilemap, tileCoord);
-	assert(tile);
+	auto chunk = CTileMap::GetChunkByTile(tilemap, tileCoord);
+	SASSERT(chunk);
+	uint64_t i = TileToIndex(tilemap, tileCoord);
 
-	if (tile->LastLightPos.x == light.Pos.x) return;
-	tile->LastLightPos = light.Pos;
+	if (chunk->LastLightPos[i].x == light.Pos.x) return;
+	chunk->LastLightPos[i] = light.Pos;
 
 	float lightFactor = 1.0f - distance / light.Radius;
 	lightFactor *= light.Intensity;
 
 	Vector4 n = ColorNormalize(light.Color);
-	tile->TileColor.x += n.x * lightFactor;
-	tile->TileColor.y += n.y * lightFactor;
-	tile->TileColor.z += n.z * lightFactor;
-	tile->TileColor.w += n.w * lightFactor;
+	chunk->Tiles[i].Color.x += n.x * lightFactor;
+	chunk->Tiles[i].Color.y += n.y * lightFactor;
+	chunk->Tiles[i].Color.z += n.z * lightFactor;
+	chunk->Tiles[i].Color.w += n.w * lightFactor;
 }

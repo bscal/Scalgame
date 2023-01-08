@@ -65,11 +65,8 @@ struct TileRenderInfo
 
 struct Tile
 {
-	Rectangle TextureRect;
-	Vector4 TileColor;
-	Vector2 LastLightPos;
-	uint32_t TileDataId;
-	uint8_t LightLevel;
+	Vector4 Color;
+	uint16_t TileId;
 	TileLOS LOS;
 
 	const TileData& GetTileData(TileMgr* tileMgr) const;
@@ -78,19 +75,9 @@ struct Tile
 
 void TileMgrInitialize(TileMgr* tileMgr, SpriteAtlas* spriteAtlas);
 
-TileData& RegisterTile(TileMgr* tileMgr,
+uint32_t RegisterTile(TileMgr* tileMgr,
 	std::string_view spriteName,
 	TileType type);
 
 [[nodiscard]] Tile CreateTile(TileMgr* tileMgr, const TileData& tileData);
 [[nodiscard]] Tile CreateTileId(TileMgr* tileMgr, uint32_t tileDataId);
-
-//bool TileMgrInitialize(TileMgr* tileMgr);
-//bool TileMgrRegisterTile(TileMgr* tileMgr, TileData* data);
-//
-//Tile CreateTile(TileMgr* tileMgr, TileId tileId);
-//
-//void SetTile(TileMgr* tileMgr, Tile* tile, TileId newTileId);
-//const TileData& GetTileData(TileMgr* tileMgr, TileId tileId);
-
-

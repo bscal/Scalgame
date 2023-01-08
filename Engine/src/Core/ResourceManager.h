@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Engine.h"
-#include "Core/TileMap.h"
+#include "Core.h"
+#include "SpriteAtlas.h"
 
 struct SDFFont
 {
@@ -13,13 +13,11 @@ struct Resources
 {
 	Texture2D EntitySpriteSheet;
 	Texture2D TileSheet;
+	SpriteAtlas Atlas;
 	Font MainFontM;
 	Font MainFontS;
 	Font FontSilver;
 	Shader UnlitShader;
-	Shader LitShader;
-	Shader LightSamplerShader;
-	Shader LightRayShader;
 	bool IsInitialized;
 };
 

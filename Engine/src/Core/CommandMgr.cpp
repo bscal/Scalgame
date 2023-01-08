@@ -100,7 +100,6 @@ void CommandMgr::TryExecuteCommand(const std::string_view input)
 	// argument, so we remove and set
 	// InputCommandStr as it
 	const std::string& command = std::string(InputArgs[0].data(), InputArgs[0].size());
-	const char* inputCommand = InputArgs[0].data();
 
 	InputArgs.erase(InputArgs.begin());
 

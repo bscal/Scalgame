@@ -66,7 +66,8 @@ bool CanMoveToTile(World* world, Vector2i position)
 	}
 	const auto tile = CTileMap::GetTile(&world->ChunkedTileMap,
 		position);
-	return true;
+	const auto tileData = tile->GetTileData(&GetGame()->TileMgr);
+	return tileData.Type == TileType::Floor;
 }
 
 bool WorldIsInBounds(World* world, Vector2i pos)

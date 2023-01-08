@@ -16,13 +16,13 @@ struct Game
     Camera2D ViewCamera;  // Camera for viewport and scaled
 
     Resources Resources;
-    SpriteAtlas Atlas;
     RenderTexture2D WorldTexture;
     
-    World World;
     TileMgr TileMgr;
-    EntityMgr EntityMgr;
     CommandMgr CommandMgr;
+    EntityMgr EntityMgr;
+    
+    World World;
     
     Vector2i ChunkViewDistance;
     float CameraLerpTime;
@@ -65,9 +65,8 @@ struct GameApplication
 GameApplication* const GetGameApp();
 void SetCameraPosition(Game* game, Vector3 pos);
 void SetCameraDistance(GameApplication* gameApp, float zoom);
-Player* GetClientPlayer();
-EntityMgr* GetEntityMgr();
-Game* GetGame();
+Player* const GetClientPlayer();
+Game* const GetGame();
 float GetDeltaTime();
 float GetScale();
 Rectangle GetScaledScreenRect();

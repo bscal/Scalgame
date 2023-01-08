@@ -23,6 +23,9 @@ bool InitializeUI(UIState* state, GameApplication* gameApp)
 
 void UpdateUI(UIState* state)
 {
+	SASSERT_MSG(state->Ctx.memory.needed < state->Ctx.memory.size, 
+		"UI needed memory is larger then memory allocated!");
+
 	UpdateNuklear(&state->Ctx);
 
 	state->IsMouseHoveringUI = IsMouseHoveringUI(&state->Ctx);
@@ -80,13 +83,17 @@ InitializeNuklear(nk_context* nkCtxToInit, UIState* state, Font* font, float fon
 	state->Allocator.alloc = MemAlloc;
 	state->Allocator.free = MemFree;
 
-	if (!nk_init(nkCtxToInit, &state->Allocator, &state->Font))
+	state->UIMemorySize = Megabytes(1);
+	state->UIMemory = Scal::MemAllocTag(state->UIMemorySize, Scal::UI);
+	if (!nk_init_fixed(nkCtxToInit, state->UIMemory,
+		state->UIMemorySize, &state->Font))
 	{
 		SLOG_ERR("[ UI ] Nuklear failed to initialized");
 		assert(false);
 	}
 
-	NuklearUserData* userData = (NuklearUserData*)Scal::MemAlloc(sizeof(NuklearUserData));
+	NuklearUserData* userData = (NuklearUserData*)Scal::MemAllocTag(
+		sizeof(NuklearUserData), Scal::UI);
 
 	// Set the internal user data.
 	userData->scaling = 1.0f;
@@ -169,20 +176,17 @@ internal void AppendMemoryUsage(UIState* state)
 		nk_label(&state->Ctx, str, NK_TEXT_LEFT);
 	}
 
-	nk_layout_row_dynamic(&state->Ctx, 16, 2);
+	nk_layout_row_dynamic(&state->Ctx, 16, 1);
 	nk_label(&state->Ctx, "UI Memory", NK_TEXT_LEFT);
 	const auto& uiMem = state->Ctx.memory;
 	MemorySizeData memSizeAlloc = FindMemSize(uiMem.allocated);
 	MemorySizeData memSizeNeed = FindMemSize(uiMem.needed);
-	const char* str = TextFormat("%.2f%cbs/%.2f%cbs",
+	MemorySizeData memSizeSize = FindMemSize(uiMem.size);
+	const char* str = TextFormat("A%.2f%cbs/N%.2f%cbs/S%.2f%cbs",
 		memSizeAlloc.Size, memSizeAlloc.BytePrefix,
-		memSizeNeed.Size, memSizeNeed.BytePrefix);
+		memSizeNeed.Size, memSizeNeed.BytePrefix,
+		memSizeSize.Size, memSizeSize.BytePrefix);
 	nk_label(&state->Ctx, str, NK_TEXT_LEFT);
-
-	nk_layout_row_dynamic(&state->Ctx, 16, 2);
-	nk_label(&state->Ctx, "UI Allocations", NK_TEXT_LEFT);
-	nk_label(&state->Ctx, TextFormat("%d", uiMem.calls), NK_TEXT_LEFT);
-
 }
 
 global_var std::vector<std::string> ConsoleEntries;
@@ -198,12 +202,12 @@ internal void DrawConsole(UIState* state)
 		constexpr int MAX_CONSOLE_HISTORY = 128;
 		constexpr float INPUT_HEIGHT = 36.0f;
 		constexpr float INPUT_WIDTH = INPUT_HEIGHT + 12.0f;
-		constexpr float SCROLL_BAR_OFFSET = 16.0f;
+		constexpr int SCROLL_BAR_OFFSET = 16;
 		constexpr float TEXT_ENTRY_HEIGHT = 16.0f;
 		constexpr int TEXT_ENTRY_HEIGHT_WITH_PADDING = (int)TEXT_ENTRY_HEIGHT + 4;
 
 		int w = GetScreenWidth();
-		int h = GetScreenHeight() * .75f + SuggestionPanelSize;
+		int h = (float)GetScreenHeight() * .75f + SuggestionPanelSize;
 		if (heightAnimValue < h)
 		{
 			h = heightAnimValue;
@@ -237,7 +241,7 @@ internal void DrawConsole(UIState* state)
 			if (IsKeyPressed(KEY_TAB) && cmdMgr.Suggestions.size() > 0)
 			{
 				const auto& sug = cmdMgr.Suggestions[0];
-				cmdMgr.Length = sug.size();
+				cmdMgr.Length = (int)sug.size();
 				Scal::MemCopy(cmdMgr.TextInputMemory, sug.data(), cmdMgr.Length);
 			}
 			if (IsKeyPressed(KEY_ENTER))
@@ -250,9 +254,9 @@ internal void DrawConsole(UIState* state)
 				ConsoleEntries.emplace_back(cmdMgr.TextInputMemory, cmdMgr.Length);
 				cmdMgr.TryExecuteCommand(std::string_view(cmdMgr.TextInputMemory, cmdMgr.Length));
 
-				if (ConsoleEntries.size() >= h / TEXT_ENTRY_HEIGHT_WITH_PADDING)
+				if ((int)ConsoleEntries.size() >= h / TEXT_ENTRY_HEIGHT_WITH_PADDING)
 				{
-					nk_group_set_scroll(ctx, "Messages", 0, ConsoleEntries.size() * TEXT_ENTRY_HEIGHT_WITH_PADDING);
+					nk_group_set_scroll(ctx, "Messages", 0, (int)ConsoleEntries.size() * TEXT_ENTRY_HEIGHT_WITH_PADDING);
 				}
 			}
 

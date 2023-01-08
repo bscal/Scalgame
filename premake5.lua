@@ -1,7 +1,7 @@
 workspace "ScalGame"
     architecture "x64"
     staticruntime "off"
-    --toolset "msc-ClangCL"
+    toolset "msc-ClangCL"
 
     configurations
     {

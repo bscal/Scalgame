@@ -20,6 +20,7 @@ struct SList
 	void Resize(uint64_t capacity);
 
 	void Push(const T* valueSrc);
+	T* PushZero(); // Push and return zero memory
 	void PushAt(uint64_t index, const T* valueSrc);
 	void PushAtFast(uint64_t index, const T* valueSrc);
 	bool PushUnique(const T* valueSrc);
@@ -107,6 +108,20 @@ void SList<T>::Push(const T* valueSrc)
 	}
 	Memory[Count] = *valueSrc;
 	++Count;
+}
+
+template<typename T>
+T* SList<T>::PushZero()
+{
+	SASSERT(Memory);
+	if (Count == Capacity)
+	{
+		Resize(Capacity * SLIST_DEFAULT_RESIZE);
+	}
+	++Count;
+	T* ptr = &Memory[End()];
+	Scal::MemClear(ptr, sizeof(T));
+	return ptr;
 }
 
 template<typename T>

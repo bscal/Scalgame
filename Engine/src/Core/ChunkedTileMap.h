@@ -21,11 +21,12 @@ namespace CTileMap
 
 struct TileMapChunk
 {
-	Tile Tiles[CHUNK_SIZE * CHUNK_SIZE];
-	SList<EntityId> Entities;
 	Rectangle Bounds;
 	ChunkCoord ChunkCoord;
+	SList<EntityId> Entities;
 	bool IsChunkGenerated;
+	Tile Tiles[CHUNK_SIZE * CHUNK_SIZE];
+	Vector2 LastLightPos[CHUNK_SIZE * CHUNK_SIZE];
 };
 
 struct ChunkedTileMap
@@ -72,6 +73,9 @@ void LateUpdateChunk(ChunkedTileMap* tilemap, Game* game);
 TileMapChunk*
 GetChunk(ChunkedTileMap* tilemap, ChunkCoord coord);
 
+TileMapChunk*
+GetChunkByTile(ChunkedTileMap* tilemap, ChunkCoord coord);
+
 void 
 SetTile(ChunkedTileMap* tilemap, const Tile* tile, TileCoord tilePos);
 
@@ -85,7 +89,7 @@ ChunkCoord
 TileToChunkCoord(ChunkedTileMap* tilemap, TileCoord tilePos);
 
 uint64_t
-TileToIndex(ChunkedTileMap* tilemap, ChunkCoord chunkCoord, TileCoord tilePos);
+TileToIndex(ChunkedTileMap* tilemap, TileCoord tilePos);
 
 TileCoord WorldToTile(ChunkedTileMap* tilemap, Vector2 pos);
 

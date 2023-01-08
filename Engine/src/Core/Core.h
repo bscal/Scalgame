@@ -4,6 +4,14 @@
 
 #include <stdint.h>
 
+/*
+* 
+* -TODO
+* -NOTE
+* -COMMENT_THIS
+* 
+*/
+
 static_assert(sizeof(size_t) == sizeof(uint64_t), 
 	"ScalEngine does not support 32bit");
 
@@ -25,9 +33,9 @@ constexpr global_var float TAO = (float)PI * 2.0f;
 #define SAPI
 #endif // SCAL_PLATFORM_WINDOWS
 
-#define Kilobytes(n) (n * 1024)
-#define Megabytes(n) (Kilobytes(n) * 1024)
-#define Gigabytes(n) (Megabytes(n) * 1024)
+#define Kilobytes(n) (n * 1024ULL)
+#define Megabytes(n) (Kilobytes(n) * 1024ULL)
+#define Gigabytes(n) (Megabytes(n) * 1024ULL)
 
 #define BitGet(state, bit) ((state >> bit) & 1U)
 #define BitSet(state, bit) (state | 1U << bit)
@@ -82,5 +90,5 @@ ReportAssertFailure(const char* expression, const char* msg, const char* file, i
 	TraceLog(LOG_FATAL, "Assertion Failure: %s,"
 		"Message: % s\n  File : % s, Line : % d\n",
 		expression, msg, file, line);
-	DEBUG_BREAK();
+	DEBUG_BREAK(void);
 }

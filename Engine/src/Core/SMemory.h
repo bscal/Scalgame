@@ -19,6 +19,7 @@ enum MemoryTag
 	Pools,
 	Game,
 	GameMemory,
+	UI,
 
 	MaxTags
 };
@@ -32,7 +33,8 @@ constexpr static const char* MemoryTagStrings[MaxTags] =
 	"Sets",
 	"Pools",
 	"Game",
-	"GameMemory"
+	"GameMemory",
+	"UI"
 };
 
 void* MemAlloc(size_t size);

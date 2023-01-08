@@ -1,5 +1,3 @@
 #pragma once
 
-extern "C" {
-	#include "raymath.h"
-}
+#include "raymath.h"

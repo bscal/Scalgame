@@ -31,8 +31,9 @@ struct SpriteAtlas
 	void Unload();
 
 	inline uint64_t Size() const { return SpritesArray.Count; }
-	inline const Rectangle& SpriteAtlas::GetRect(uint64_t index) const
+	inline const Rectangle& GetRect(uint64_t index) const
 	{
 		return SpritesArray[index];
 	}
+	Rectangle GetRectByName(std::string_view name) const;
 };

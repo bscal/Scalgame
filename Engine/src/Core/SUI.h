@@ -11,6 +11,8 @@ struct UIState
 	nk_context Ctx;
 	nk_user_font Font;
 	nk_allocator Allocator;
+	void* UIMemory;
+	size_t UIMemorySize;
 	bool IsMouseHoveringUI;
 	bool IsDebugPanelOpen;
     bool IsConsoleOpen;

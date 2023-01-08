@@ -124,3 +124,14 @@ void SpriteAtlas::Unload()
 	UnloadTexture(Texture);
 	// Other members should be freed by deconstructor
 }
+
+Rectangle SpriteAtlas::GetRectByName(std::string_view name) const
+{
+	auto find = SpritesByName.find({ name.data(), name.size() });
+	SASSERT(find != SpritesByName.end());
+	if (find != SpritesByName.end())
+	{
+		return SpritesArray[find->second];
+	}
+	return {};
+}

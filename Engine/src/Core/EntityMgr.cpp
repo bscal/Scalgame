@@ -134,14 +134,13 @@ InsertEntity(EntityMgr* entMgr, EntityId entId, Vector2i chunkPos)
 
 void UpdateEntityPosition(EntityId id, Vector2i oldPos, Vector2i newPos)
 {
-	auto entityMgr = GetEntityMgr();
-	auto old = GetEntityMgr()->ChunkToEntities[oldPos];
+	auto& old = GetGame()->EntityMgr.ChunkToEntities[oldPos];
 	for (auto it = old.begin(); it != old.end(); ++it)
 	{
 		if (*it == id) old.erase(it);
 	}
 
-	InsertEntity(entityMgr, id, newPos);
+	InsertEntity(&GetGame()->EntityMgr, id, newPos);
 }
 
 
@@ -154,7 +153,7 @@ Player* CreatePlayer(EntityMgr* entMgr, World* world)
 	player.WorldRef = world;
 	entMgr->Players.Push(&player);
 
-	uint32_t index = entMgr->Players.End();
+	uint32_t index = (uint32_t)entMgr->Players.End();
 	entMgr->EntityIdToIndex.insert({ entityId, index });
 	InsertEntity(entMgr, entityId, player.Transform.ChunkPos);
 	
@@ -171,7 +170,7 @@ SCreature* CreateCreature(EntityMgr* entMgr, World* world)
 	creature.WorldRef = world;
 	entMgr->Creatures.Push(&creature);
 
-	uint32_t index = entMgr->Creatures.End();
+	uint32_t index = (uint32_t)entMgr->Creatures.End();
 	entMgr->EntityIdToIndex.insert({ entityId, index });
 	InsertEntity(entMgr, entityId, creature.Transform.ChunkPos);
 

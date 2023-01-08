@@ -19,7 +19,7 @@ void TileMgrInitialize(TileMgr* tileMgr, SpriteAtlas* spriteAtlas)
 		tileMgr->NextTileId);
 }
 
-TileData& RegisterTile(TileMgr* tileMgr,
+uint32_t RegisterTile(TileMgr* tileMgr,
 	std::string_view spriteName,
 	TileType type)
 {
@@ -32,58 +32,39 @@ TileData& RegisterTile(TileMgr* tileMgr,
 	tileMgr->Tiles[id].TileId = id;
 	tileMgr->Tiles[id].SpriteName = spriteName;
 	tileMgr->Tiles[id].Type = type;
-	return tileMgr->Tiles[id];
+
+	tileMgr->TileTextureData[id].TexCoord = 
+		tileMgr->SpriteAtlas->GetRectByName(spriteName);
+
+	return id;
 }
 
 
 [[nodiscard]] Tile CreateTile(TileMgr* tileMgr, const TileData& tileData)
 {
-	assert(tileMgr);
-
-	auto find = tileMgr->SpriteAtlas->SpritesByName.find(
-		tileData.SpriteName);
-	if (find == tileMgr->SpriteAtlas->SpritesByName.end())
-	{
-		SLOG_ERR("Could not find tile by name!");
-		return {};
-	}
-	const auto& textCoord = tileMgr->SpriteAtlas->GetRect(find->second);
-
-	Tile tile = {};
-	tile.TextureRect = textCoord;
-	tile.TileDataId = tileData.TileId;
-	tile.TileColor = {};
+	SASSERT(tileMgr);
+	Tile tile;
+	tile.Color = ColorNormalize(WHITE);
+	tile.TileId = tileData.TileId;
+	tile.LOS = TileLOS::NoVision;
 	return tile;
 }
 
-[[nodiscard]] Tile CreateTileId(TileMgr* tileMgr, uint32_t tileDataId)
+[[nodiscard]] Tile CreateTileId(TileMgr* tileMgr, uint32_t tileId)
 {
-	assert(tileMgr);
-	assert(tileDataId < tileMgr->NextTileId);
-
-	const std::string& name = tileMgr->Tiles[tileDataId].SpriteName;
-	
-	assert(!name.empty());
-
-	auto find = tileMgr->SpriteAtlas->SpritesByName.find(
-		name);
-	if (find == tileMgr->SpriteAtlas->SpritesByName.end())
-	{
-		SLOG_ERR("Could not find tile by name!");
-		return {};
-	}
-	const auto& textCoord = tileMgr->SpriteAtlas->GetRect(find->second);
-
-	Tile tile = {};
-	tile.TextureRect = textCoord;
-	tile.TileDataId = tileDataId;
-	tile.TileColor = {};
-	return tile;
+	SASSERT(tileMgr);
+	SASSERT(tileId < MAX_TILES);
+	return CreateTile(tileMgr, tileMgr->Tiles[tileId]);
 }
 
 const TileData& Tile::GetTileData(TileMgr* tileMgr) const
 {
-	return tileMgr->Tiles[TileDataId];
+	return tileMgr->Tiles[TileId];
+}
+
+const TileTexData& Tile::GetTileTexData(TileMgr* tileMgr) const
+{
+	return tileMgr->TileTextureData[TileId];
 }
 
 void TileColor::AddColor(Color c)

@@ -18,11 +18,6 @@
 
 global_var GameApplication* GameAppPtr;
 
-// TODO
-global_var int UniformLitTileMapId = -1;
-global_var int UniformLitLightId = -1;
-global_var int UniformLitSizeId = -1;
-
 SAPI bool GameApplication::Start()
 {
 	if (IsInitialized)
@@ -39,11 +34,13 @@ SAPI bool GameApplication::Start()
     
 	GameAppPtr = this;
    
-	Game = (struct Game*)Scal::MemAllocZero(sizeof(struct Game));
+	Game = (struct Game*)Scal::MemAllocTag(sizeof(struct Game), Scal::Game);
+	Scal::MemClear(Game, sizeof(struct Game));
 	bool didGameInit = GameInitialize(Game, this);
 	assert(didGameInit);
 
-	UIState = (struct UIState*)Scal::MemAllocZero(sizeof(struct UIState));
+	UIState = (struct UIState*)Scal::MemAllocTag(sizeof(struct UIState), Scal::UI);
+	Scal::MemClear(UIState, sizeof(struct UIState));
 	bool didUiInit = InitializeUI(UIState, this);
 	assert(didUiInit);
     
@@ -76,10 +73,6 @@ internal void GameLoadScreen(GameApplication* gameApp, int width, int height)
 	UnloadRenderTexture(game->WorldTexture);
 
 	game->WorldTexture = LoadRenderTexture(width, height);
-
-	Vector2 size = { (float)width, (float)height };
-	SetShaderValue(game->Resources.LitShader,
-		UniformLitSizeId, &size, SHADER_UNIFORM_VEC2);
 }
 
 internal bool GameInitialize(Game* game, GameApplication* gameApp)
@@ -90,36 +83,16 @@ internal bool GameInitialize(Game* game, GameApplication* gameApp)
 	CALL_CONSTRUCTOR(game) Game();
 
 	bool didResInit = InitializeResources(&game->Resources);
-	assert(didResInit);
-
-	UniformLitSizeId = GetShaderLocation(game->Resources.LitShader, "Size");
-	UniformLitTileMapId = GetShaderLocation(game->Resources.LitShader, "TileMap");
-	UniformLitLightId = GetShaderLocation(game->Resources.LitShader, "Light");
-
-	game->Atlas.Load("assets/textures/atlas/tiles.atlas", 32);
+	SASSERT(didResInit);
 
 	GameLoadScreen(gameApp, GetScreenWidth(), GetScreenHeight());
 
-	TileMgrInitialize(&game->TileMgr, &game->Atlas);
+	TileMgrInitialize(&game->TileMgr, &game->Resources.Atlas);
 	EntityMgrInitialize(game);
 
-	#if Mode3D
-	Camera3D camera = {};
-	camera.position = { 0.0f, 0.0f, 100.0f };   // Camera position
-	camera.target = { 0.0f, 0.0f, 0.0f };        // Camera looking at point
-	camera.up = { 0.0f, 1.0f, 0.0f };            // Camera up vector (rotation towards target)
-	camera.fovy = 90.0f;                         // Camera field-of-view Y
-	camera.projection = CAMERA_PERSPECTIVE;      // Camera mode type
-	game->Camera3D = camera;
-	SetCameraMode(game->Camera3D, game->Camera3D.projection);
-	#else
 	game->WorldCamera.zoom = 1.0f;
 	game->ViewCamera.zoom = 1.0f;
 	gameApp->Scale = 1.0f;
-	#endif
-
-	assert(game->WorldCamera.zoom > 0.0f);
-	assert(gameApp->Scale > 0.0f);
 
 	SLOG_INFO("[ GAME ] Successfully initialized game!");
 	return true;
@@ -158,11 +131,9 @@ internal void GameFree(Game* game)
 	UnloadFont(game->Resources.FontSilver);
 	UnloadFont(game->Resources.MainFontM);
 	UnloadTexture(game->Resources.EntitySpriteSheet);
-	UnloadShader(game->Resources.LightRayShader);
 	UnloadShader(game->Resources.UnlitShader);
-	UnloadShader(game->Resources.LightSamplerShader);
+	game->Resources.Atlas.Unload();
 	UnloadRenderTexture(game->WorldTexture);
-	game->Atlas.Unload();
 	WorldFree(&game->World);
 }
 
@@ -231,7 +202,7 @@ SAPI void GameApplication::Run()
 					Tile* tile = CTileMap::GetTile(tilemap, vec);
 					Tile newTile = CreateTileId(&Game->TileMgr, 5);
 					CTileMap::SetTile(&Game->World.ChunkedTileMap, &newTile, vec);
-					SLOG_INFO("Clicked Tile[%d, %d] Id: %d", vec.x, vec.y, tile->TileDataId);
+					SLOG_INFO("Clicked Tile[%d, %d] Id: %d", vec.x, vec.y, tile->TileId);
 				}
 			}
 			if (IsMouseButtonPressed(MOUSE_BUTTON_RIGHT))
@@ -387,7 +358,7 @@ GameApplication* const GetGameApp()
     return GameAppPtr;
 }
 
-Player* GetClientPlayer()
+Player* const GetClientPlayer()
 {
 	assert(GetGameApp()->Game->EntityMgr.Players.Count > 0);
 	return GetGameApp()->Game->EntityMgr.Players.PeekAtPtr(0);
@@ -399,7 +370,7 @@ EntityMgr* GetEntityMgr()
 	return &GetGameApp()->Game->EntityMgr;
 }
 
-Game* GetGame()
+Game* const GetGame()
 {
 	return GetGameApp()->Game;
 }
