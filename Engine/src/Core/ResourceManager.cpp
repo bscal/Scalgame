@@ -25,7 +25,7 @@ bool InitializeResources(Resources* resources)
         "assets/shaders/tile_shader.frag");
 
 	SLOG_INFO("[ RESOURCES ] Successfully initialized resources!");
-	return resources->IsInitialized = true;
+	return resources->IsAllocated = true;
 }
 
 internal SDFFont LoadSDFFont()

@@ -31,8 +31,8 @@ bool EntityMgr::IsEmpty(const SCreature& creature) const
 void EntityMgrInitialize(Game* game)
 {
 	game->EntityMgr.NextEntityId = 1; // 0 is empty id
-	game->EntityMgr.Players.InitializeCap(1);
-	game->EntityMgr.Creatures.InitializeCap(ESTIMATED_ENTITIES);
+	game->EntityMgr.Players.Resize(1);
+	game->EntityMgr.Creatures.Resize(ESTIMATED_ENTITIES);
 
 	SLOG_INFO("[ Entity Manager ] Initialized!");
 }
@@ -42,14 +42,14 @@ void EntityMgrUpdate(EntityMgr* entMgr, Game* game)
 {
 	for (size_t i = 0; i < entMgr->Players.Count; ++i)
 	{
-		auto player = entMgr->Players.PeekAtPtr(i);
+		auto player = entMgr->Players.PeekAt(i);
 		player->UpdatePlayer(game);
 		player->Update(game);
 	}
 
 	for (size_t i = 0; i < entMgr->Creatures.Count; ++i)
 	{
-		auto creature = entMgr->Creatures.PeekAtPtr(i);
+		auto creature = entMgr->Creatures.PeekAt(i);
 		if (!creature->IsFrozen) creature->Update(game);
 	}
 
@@ -64,13 +64,13 @@ void EntityMgrUpdate(EntityMgr* entMgr, Game* game)
 Player* GetPlayer(EntityMgr* entMgr, EntityId entId)
 {
 	uint32_t index = InternalFindEntityIndex(entMgr, entId);
-	return entMgr->Players.PeekAtPtr(index);
+	return entMgr->Players.PeekAt(index);
 }
 
 SCreature* GetCreature(EntityMgr* entMgr, EntityId entId)
 {
 	uint32_t index = InternalFindEntityIndex(entMgr, entId);
-	return entMgr->Creatures.PeekAtPtr(index);
+	return entMgr->Creatures.PeekAt(index);
 }
 
 EntityId CreateEntity(EntityMgr* entMgr, EntityType typeId)

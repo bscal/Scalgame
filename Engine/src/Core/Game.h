@@ -53,7 +53,7 @@ struct GameApplication
     bool IsGameInputDisabled;
     bool IsHoveringGUIWindow;
 
-    bool IsInitialized;
+    bool IsAllocated;
     bool IsRunning;
     bool IsSuspended;
 

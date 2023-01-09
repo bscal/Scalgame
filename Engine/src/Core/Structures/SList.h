@@ -3,8 +3,8 @@
 #include "Core/Core.h"
 #include "Core/SMemory.h"
 
-#define SLIST_DEFAULT_CAPACITY 1
 #define SLIST_DEFAULT_RESIZE 2
+#define SLIST_NO_POSITION UINT64_MAX
 
 template<typename T>
 struct SList
@@ -13,94 +13,83 @@ struct SList
 	uint64_t Capacity;
 	uint64_t Count;
 
-	void Initialize();
-	void InitializeCap(uint64_t capacity);
-
+	void EnsureSize(uint64_t ensuredCount); // ensures capacity and count elements
 	void Free();
 	void Resize(uint64_t capacity);
 
-	void Push(const T* valueSrc);
-	T* PushZero(); // Push and return zero memory
+	void Push(const T* valueSrc); // Checks resize, inserts and end of array
+	T* PushZero(); // Checks resize, clears memory, returns ptr to end
 	void PushAt(uint64_t index, const T* valueSrc);
-	void PushAtFast(uint64_t index, const T* valueSrc);
+	void PushAtFast(uint64_t index, const T* valueSrc); // Checks resize, inserts at index, moving old index to end
 	bool PushUnique(const T* valueSrc);
 	bool PushAtUnique(uint64_t index, const T* valueSrc);
 	bool PushAtFastUnique(uint64_t index, const T* valueSrc);
-	void Pop(T* valueDest);
+	void Pop(T* valueDest); // Pops end of array
 	void PopAt(uint64_t index, T* valueDest);
-	void PopAtFast(uint64_t index, T* valueDest);
-	void Remove();
+	void PopAtFast(uint64_t index, T* valueDest); // pops index, moving last element to index
+	void Remove(); // Same as pop, but does not do a copy
 	void RemoveAt(uint64_t index);
 	void RemoveAtFast(uint64_t index);
 	void Set(uint64_t index, const T* valueSrc);
 
-	const T& PeekAt(uint64_t index) const;
-	T* PeekAtPtr(uint64_t index) const;
-	T* Last() const;
+	inline T* PeekAt(uint64_t index) const;
+	inline T* Last() const;
 
-	inline const T& operator[](size_t i) const
-	{
-		return Memory[i];
-	}
+	const T& operator[](size_t i) const { SASSERT(i < Count); return Memory[i]; }
+	T& operator[](size_t i) { SASSERT(i < Count); return Memory[i]; }
 
 	bool Contains(const T* value) const;
-	int64_t Find(const T* value) const;
-	void Clear();
+	int64_t Find(const T* value) const; // index to element, SLIST_NO_POSITION if not found
+	inline void Clear();
 
-	// Points to last element, unless 0 then 0
-	inline uint64_t End() const;
-	inline size_t MemSize() const;
-	inline bool IsInitialized() const;
+	inline uint64_t End() const; // Index to last element, SLIST_NO_POSITION = 0 elements
+	inline size_t MemUsed() const; // Total memory used in bytes
+	inline size_t Stride() const;
+	inline bool IsAllocated() const;
 };
 
 // ********************
 
 template<typename T>
-void SList<T>::Initialize()
+void SList<T>::EnsureSize(uint64_t ensuredCount)
 {
-	SASSERT_MSG(!Memory, "Memory already initialized!");
-	Capacity = SLIST_DEFAULT_CAPACITY;
-	Memory = (T*)Scal::MemAllocZero(Capacity * sizeof(T));
-	SASSERT(Memory);
-}
+	if (Count >= ensuredCount) return;
 
-template<typename T>
-void SList<T>::InitializeCap(uint64_t capacity)
-{
-	SASSERT_MSG(!Memory, "Memory already initialized!");
-	Capacity = capacity;
-	Memory = (T*)Scal::MemAllocZero(Capacity * sizeof(T));
-	SASSERT(Memory);
+	if (ensuredCount > Capacity)
+	{
+		Capacity = ensuredCount;
+		Memory = (T*)Scal::MemRealloc(Memory, MemUsed());
+	}
+
+	uint64_t ensuredSize = Capacity - Count;
+	Scal::MemSet(&Memory[Count], 0, ensuredSize * sizeof(T));
+	Count = Capacity;
 }
 
 template<typename T>
 void SList<T>::Free()
 {
-	SASSERT_MSG(Memory, "Trying to free uninitalized memory!");
-	Scal::MemFree(Memory);
-	Memory = NULL;
+	if (Memory)
+	{
+		Scal::MemClear(Memory, MemUsed());
+		Scal::MemFree(Memory);
+		Memory = NULL;
+	}
+	Capacity = 0;
 	Count = 0;
 }
 
 template<typename T>
 void SList<T>::Resize(uint64_t newCapacity)
 {
-	SASSERT(Memory);
-	SASSERT(newCapacity > Capacity);
-	if (newCapacity < Capacity)
-	{
-		SLOG_WARN("newSize was < capacity!");
-		return;
-	}
+	if (newCapacity == 0 && Capacity == 0) newCapacity = 1;
 	Capacity = newCapacity;
-	size_t newSize = Capacity * sizeof(T);
-	Memory = (T*)Scal::MemRealloc(Memory, newSize);
+	Memory = (T*)Scal::MemRealloc(Memory, MemUsed());
 }
 
 template<typename T>
 void SList<T>::Push(const T* valueSrc)
 {
-	SASSERT(Memory);
 	SASSERT(valueSrc);
 	if (Count == Capacity)
 	{
@@ -113,7 +102,6 @@ void SList<T>::Push(const T* valueSrc)
 template<typename T>
 T* SList<T>::PushZero()
 {
-	SASSERT(Memory);
 	if (Count == Capacity)
 	{
 		Resize(Capacity * SLIST_DEFAULT_RESIZE);
@@ -127,7 +115,7 @@ T* SList<T>::PushZero()
 template<typename T>
 void SList<T>::PushAt(uint64_t index, const T* valueSrc)
 {
-	SASSERT(Memory);
+	SASSERT(index < Count);
 	SASSERT(valueSrc);
 	if (Count == Capacity)
 	{
@@ -148,7 +136,7 @@ void SList<T>::PushAt(uint64_t index, const T* valueSrc)
 template<typename T>
 void SList<T>::PushAtFast(uint64_t index, const T* valueSrc)
 {
-	SASSERT(Memory);
+	SASSERT(index < Count);
 	SASSERT(valueSrc);
 	if (Count == Capacity)
 	{
@@ -283,16 +271,7 @@ void SList<T>::RemoveAtFast(uint64_t index)
 }
 
 template<typename T>
-const T& SList<T>::PeekAt(uint64_t index) const
-{
-	SASSERT(Memory);
-	SASSERT(Count > 0);
-	SASSERT(index < Count);
-	return Memory[index];
-}
-
-template<typename T>
-T* SList<T>::PeekAtPtr(uint64_t index) const
+inline T* SList<T>::PeekAt(uint64_t index) const
 {
 	SASSERT(Memory);
 	SASSERT(Count > 0);
@@ -309,7 +288,7 @@ void SList<T>::Set(uint64_t index, const T* valueSrc)
 }		
 
 template<typename T>
-T* SList<T>::Last() const
+inline T* SList<T>::Last() const
 {
 	SASSERT(Memory);
 	SASSERT(Count > 0);
@@ -319,7 +298,6 @@ T* SList<T>::Last() const
 template<typename T>
 bool SList<T>::Contains(const T* value) const
 {
-	SASSERT(Memory);
 	SASSERT(value);
 	for (int i = 0; i < Count; ++i)
 	{
@@ -331,7 +309,6 @@ bool SList<T>::Contains(const T* value) const
 template<typename T>
 int64_t SList<T>::Find(const T* value) const
 {
-	SASSERT(Memory);
 	SASSERT(value);
 	for (int64_t i = 0; i < Count; ++i)
 	{
@@ -341,30 +318,32 @@ int64_t SList<T>::Find(const T* value) const
 }
 
 template<typename T>
-void SList<T>::Clear()
+inline void SList<T>::Clear()
 {
+	Scal::MemClear(Memory, MemUsed());
 	Count = 0;
-	// NOTE: I only clear memory to 0
-	// in debug mode to help debug.
-	#if SCAL_DEBUG
-	if (Count > 0) Scal::MemClear(Memory, MemSize());
-	#endif
 }
 
 template<typename T>
 inline uint64_t SList<T>::End() const
 {
-	return (Count == 0) ? 0 : (Count - 1);
+	return (Count == 0) ? SLIST_NO_POSITION : (Count - 1);
 }
 
 template<typename T>
-inline size_t SList<T>::MemSize() const
+inline size_t SList<T>::MemUsed() const
 {
 	return Capacity * sizeof(T);
 }
 
 template<typename T>
-inline bool SList<T>::IsInitialized() const
+inline size_t SList<T>::Stride() const
+{
+	return sizeof(T);
+}
+
+template<typename T>
+inline bool SList<T>::IsAllocated() const
 {
 	return (Memory);
 }
@@ -372,7 +351,6 @@ inline bool SList<T>::IsInitialized() const
 inline void TestListImpl()
 {
 	SList<int> list = {};
-	list.Initialize(); // Cap 1
 
 	int i;
 	i = 1;
@@ -422,10 +400,10 @@ inline void TestListImpl()
 	SASSERT(list.Count == 12);
 	SASSERT(list.Capacity == 16);
 
-	int peek = list.PeekAt(2);
+	int peek = list[2];
 	SASSERT(peek == 2);
 
-	int* peekPtr = list.PeekAtPtr(3);
+	int* peekPtr = list.PeekAt(3);
 	SASSERT(peekPtr);
 	SASSERT(*peekPtr == 3);
 
@@ -470,5 +448,5 @@ inline void TestListImpl()
 
 	list.Free();
 
-	SASSERT(!list.IsInitialized());
+	SASSERT(!list.IsAllocated());
 }

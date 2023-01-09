@@ -57,14 +57,14 @@ uint32_t RegisterTile(TileMgr* tileMgr,
 	return CreateTile(tileMgr, tileMgr->Tiles[tileId]);
 }
 
-const TileData& Tile::GetTileData(TileMgr* tileMgr) const
+const TileData* const Tile::GetTileData(TileMgr* tileMgr) const
 {
-	return tileMgr->Tiles[TileId];
+	return &tileMgr->Tiles[TileId];
 }
 
-const TileTexData& Tile::GetTileTexData(TileMgr* tileMgr) const
+const TileTexData* const Tile::GetTileTexData(TileMgr* tileMgr) const
 {
-	return tileMgr->TileTextureData[TileId];
+	return &tileMgr->TileTextureData[TileId];
 }
 
 void TileColor::AddColor(Color c)

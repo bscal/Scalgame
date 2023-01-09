@@ -20,6 +20,8 @@ enum MemoryTag
 	Game,
 	GameMemory,
 	UI,
+	New,
+	NewArray,
 
 	MaxTags
 };
@@ -34,7 +36,9 @@ constexpr static const char* MemoryTagStrings[MaxTags] =
 	"Pools",
 	"Game",
 	"GameMemory",
-	"UI"
+	"UI",
+	"New",
+	"NewArray"
 };
 
 void* MemAlloc(size_t size);
@@ -51,5 +55,8 @@ void MemSet(void* block, int value, size_t size);
 void MemClear(void* block, size_t size);
 
 const size_t* GetMemoryUsage();
+size_t GetTotalUsage();
 
 }
+
+uint32_t GetNewCalls();

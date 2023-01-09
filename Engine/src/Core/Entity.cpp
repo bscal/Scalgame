@@ -27,10 +27,10 @@ void InitializeEntitiesManager(EntitiesManager* entityManager)
 {
 	assert(entityManager);
 
-	entityManager->EntityArray.InitializeCap(10);
+	entityManager->EntityArray.Resize(10);
 	entityManager->ComponentMap.InitializeEx(DEFAULT_COMPONENT,
 		EntityHash, EntityEquals);
-	entityManager->ComponentRemoval.InitializeCap(64);
+	entityManager->ComponentRemoval.Resize(64);
 	entityManager->ComponentTypes.Initialize(MAX_COMPONENTS);
 
 	RegisterComponent<Transform2D>(entityManager, Transform2D::ID);
@@ -102,7 +102,7 @@ Entity* GetEntity(EntitiesManager* entityManager, EntityHandle entityHandle)
 {
 	assert(entityManager);
 	assert(entityHandle != EMPTY_ENTITY);
-	return entityManager->EntityArray.PeekAtPtr(entityHandle.EntityIndex);
+	return entityManager->EntityArray.PeekAt(entityHandle.EntityIndex);
 }
 
 template<typename T>
@@ -117,7 +117,7 @@ bool AddComponent(EntitiesManager* entityManager,
 	ArrayPush(components, component);
 	uint32_t insertedAt = (uint32_t)components->Count - 1;
 
-	Entity* entity = entityManager->EntityArray.PeekAtPtr(entityHandle.EntityIndex);
+	Entity* entity = entityManager->EntityArray.PeekAt(entityHandle.EntityIndex);
 	entity->Components[component->ID] = insertedAt;
 	return true;
 }
@@ -144,7 +144,7 @@ void AddComponentId(EntitiesManager* entityManager,
 	ArrayPush(components, newComponent);
 	uint32_t insertedAt = (uint32_t)components->Count - 1;
 
-	Entity* entity = entityManager->EntityArray.PeekAtPtr(entityHandle.EntityIndex);
+	Entity* entity = entityManager->EntityArray.PeekAt(entityHandle.EntityIndex);
 	entity->Components[componentId] = insertedAt;
 }
 
@@ -167,7 +167,7 @@ internal bool ComponentDeleteInternal(EntitiesManager* entityManager,
 	{
 		BaseComponent* movedComponent = 
 			(BaseComponent*)ArrayPeekAt(components, componentIndex);
-		Entity* entity = entityManager->EntityArray.PeekAtPtr(
+		Entity* entity = entityManager->EntityArray.PeekAt(
 			movedComponent->OwningEntityHandle.EntityIndex);
 		entity->Components[componentId] = componentIndex;
 	}
@@ -191,7 +191,7 @@ bool RemoveComponent(EntitiesManager* entityManager,
 		return false;
 	}
 
-	Entity* entity = entityManager->EntityArray.PeekAtPtr(entityHandle.EntityIndex);
+	Entity* entity = entityManager->EntityArray.PeekAt(entityHandle.EntityIndex);
 	uint32_t componentIndex = entity->Components[componentId];
 	if (componentIndex == EMPTY_COMPONENT) return false;
 	ComponentDeleteInternal(entityManager, componentId, componentIndex);
@@ -300,7 +300,7 @@ void BurnSystem::Process(EntitiesManager* manager, GameApplication* gameApp)
 		{
 			Burnable* burn = (Burnable*)ArrayPeekAt(Burnables, i);
 			Entity* entity = manager->EntityArray
-				.PeekAtPtr(burn->OwningEntityHandle.EntityIndex);
+				.PeekAt(burn->OwningEntityHandle.EntityIndex);
 			Health* hp =
 				ArrayIndex<Health>(Healths, entity->Components[Health::ID]);
 			UpdateComponent(manager, gameApp, burn->OwningEntityHandle, hp, burn);

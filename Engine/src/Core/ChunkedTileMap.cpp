@@ -20,7 +20,7 @@ static SRandom Random;
 void Initialize(ChunkedTileMap* tilemap, Game* game)
 {
 	SASSERT(tilemap);
-	SASSERT(!tilemap->ChunksList.IsInitialized());
+	SASSERT(!tilemap->ChunksList.IsAllocated());
 
 	SRandomInitialize(&Random, 0);
 
@@ -58,14 +58,14 @@ void Initialize(ChunkedTileMap* tilemap, Game* game)
 		* tilemap->TileSize.y);
 
 	size_t capacity = (size_t)(tilemap->ViewDistance.x * tilemap->ViewDistance.y);
-	tilemap->ChunksList.InitializeCap(capacity);
+	tilemap->ChunksList.Resize(capacity);
 
 	SASSERT_MSG(tilemap->Origin.x >= 0 && tilemap->Origin.y >= 0, "Non 0, 0 world origin is current not supported");
 }
 
 void Free(ChunkedTileMap* tilemap)
 {
-	SASSERT(tilemap->ChunksList.IsInitialized());
+	SASSERT(tilemap->ChunksList.IsAllocated());
 	tilemap->ChunksList.Free();
 	tilemap->ChunksToUnload.Free();
 }
@@ -147,7 +147,7 @@ internal void UpdateChunks(ChunkedTileMap* tilemap, Game* game, ChunkCoord playe
 	};
 	for (uint16_t i = 0; i < tilemap->ChunksList.Count; ++i)
 	{
-		auto chunk = tilemap->ChunksList.PeekAtPtr(i);
+		auto chunk = tilemap->ChunksList.PeekAt(i);
 		if (CheckCollisionRecs(screenRect, chunk->Bounds))
 		{
 			UpdateChunk(tilemap, chunk, game);
@@ -220,7 +220,7 @@ internal void Draw(ChunkedTileMap* tilemap, Game* game)
 			{
 				DrawTextureProF(
 					tileTexture,
-					tile->GetTileTexData(tileMgr).TexCoord,
+					tile->GetTileTexData(tileMgr)->TexCoord,
 					position,
 					{},
 					0.0f,
@@ -246,7 +246,7 @@ void LateUpdateChunk(ChunkedTileMap* tilemap, Game* game)
 
 	for (uint64_t i = 0; i < tilemap->ChunksList.Count; ++i)
 	{
-		auto chunk = tilemap->ChunksList.PeekAtPtr(i);
+		auto chunk = tilemap->ChunksList.PeekAt(i);
 		if (CheckCollisionRecs(screenRect, chunk->Bounds))
 		{
 			DrawRectangleLinesEx(chunk->Bounds, 4, GREEN);
@@ -270,7 +270,7 @@ TileMapChunk* LoadChunk(ChunkedTileMap* tilemap,
 {
 	TileMapChunk* chunk = tilemap->ChunksList.PushZero();
 	//chunk.Tiles.InitializeCap(tilemap->ChunkTileCount);
-	chunk->Entities.InitializeCap(10); // TODO
+	chunk->Entities.Resize(10); // TODO
 	chunk->ChunkCoord = coord;
 
 	float chunkOffSetX = (float)coord.x * (float)tilemap->TileSize.x
@@ -288,7 +288,7 @@ void UnloadChunk(ChunkedTileMap* tilemap, ChunkCoord coord)
 {
 	for (size_t i = 0; i < tilemap->ChunksList.Count; ++i)
 	{
-		auto chunkPtr = tilemap->ChunksList.PeekAtPtr(i);
+		auto chunkPtr = tilemap->ChunksList.PeekAt(i);
 		if (chunkPtr->ChunkCoord.Equals(coord))
 		{
 			//chunkPtr->Tiles.Free();
@@ -390,7 +390,7 @@ uint64_t TileToIndex(ChunkedTileMap* tilemap, TileCoord tilePos)
 void SetTile(ChunkedTileMap* tilemap,
 	const Tile* tile, TileCoord tilePos)
 {
-	assert(tilemap->ChunksList.IsInitialized());
+	assert(tilemap->ChunksList.IsAllocated());
 	assert(IsTileInBounds(tilemap, tilePos));
 	ChunkCoord chunkCoord = TileToChunkCoord(tilemap, tilePos);
 	TileMapChunk* chunk = GetChunk(tilemap, chunkCoord);
@@ -409,7 +409,7 @@ void SetTile(ChunkedTileMap* tilemap,
 
 Tile* GetTile(ChunkedTileMap* tilemap, TileCoord tilePos)
 {
-	assert(tilemap->ChunksList.IsInitialized());
+	assert(tilemap->ChunksList.IsAllocated());
 	assert(IsTileInBounds(tilemap, tilePos));
 	ChunkCoord chunkCoord = TileToChunkCoord(tilemap, tilePos);
 	TileMapChunk* chunk = GetChunk(tilemap, chunkCoord);
@@ -459,7 +459,7 @@ bool BlocksLight(ChunkedTileMap* tilemap, TileCoord coord)
 
 	Tile* tile = GetTile(tilemap, coord);
 	assert(tile);
-	return tile->GetTileData(&GetGameApp()->Game->TileMgr).Type == TileType::Solid;
+	return tile->GetTileData(&GetGameApp()->Game->TileMgr)->Type == TileType::Solid;
 }
 
 }

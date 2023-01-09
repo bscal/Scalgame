@@ -6,9 +6,10 @@
 #include "SUI.h"
 
 #include <stdlib.h>
-#include <assert.h>
 #include <memory>
 
+#include <string>
+#include <vector>
 
 namespace Scal
 {
@@ -29,7 +30,7 @@ void* MemAllocZero(size_t size)
 void* MemRealloc(void* block, size_t size)
 {
 	void* mem = realloc(block, size);
-	assert(mem);
+	SASSERT(mem);
 	return mem;
 }
 
@@ -54,30 +55,35 @@ void MemClear(void* block, size_t size)
 }
 
 global_var size_t MemoryTagUsage[MaxTags];
+global_var size_t TotalUsage;
 
 void* MemAllocTag(size_t size, MemoryTag tag)
 {
-	assert(tag != MemoryTag::Unknown);
+	SASSERT(tag != MemoryTag::Unknown);
 
 	MemoryTagUsage[tag] += size;
+	TotalUsage += size;
 	return Scal::MemAlloc(size);
 }
 
 void* MemReallocTag(void* block, size_t oldSize, size_t newSize, MemoryTag tag)
 {
-	assert(tag != MemoryTag::Unknown);
+	SASSERT(tag != MemoryTag::Unknown);
 
 	MemoryTagUsage[tag] -= oldSize;
 	MemoryTagUsage[tag] += newSize;
+	TotalUsage -= oldSize;
+	TotalUsage += newSize;
 	return Scal::MemRealloc(block, newSize);
 }
 
 void MemFreeTag(void* block, size_t size, MemoryTag tag)
 {
-	assert(block);
-	assert(tag != MemoryTag::Unknown);
+	SASSERT(block);
+	SASSERT(tag != MemoryTag::Unknown);
 
 	MemoryTagUsage[tag] -= size;
+	TotalUsage -= size;
 	Scal::MemFree(block);
 }
 
@@ -86,4 +92,38 @@ const size_t* GetMemoryUsage()
 	return MemoryTagUsage;
 }
 
+size_t GetTotalUsage()
+{
+	return TotalUsage;
+}
+
+}
+
+global_var uint32_t NewUsageCount;
+
+void* operator new(size_t size)
+{
+	++NewUsageCount;
+	return malloc(size);
+}
+
+void operator delete(void* mem)
+{
+	free(mem);
+}
+
+void* operator new[](size_t size)
+{
+	++NewUsageCount;
+	return malloc(size);
+}
+
+void operator delete[](void* mem)
+{
+	free(mem);
+}
+
+uint32_t GetNewCalls()
+{
+	return NewUsageCount;
 }

@@ -48,10 +48,10 @@ inline void ReportAssertFailure(const char* expression, const char* msg, const c
 #if SCAL_DEBUG
 #define SLOG_DEBUG(msg, ...) TraceLog(LOG_DEBUG, msg, __VA_ARGS__)
 #define SLOG_WARN(msg, ...) TraceLog(LOG_WARNING, msg, __VA_ARGS__)
-#define SASSERT(expr) if (!(expr)) { ReportAssertFailure(#expr, "", __FILE__, __LINE__); }
-#define SASSERT_MSG(expr, msg) if (!(expr)) { ReportAssertFailure(#expr, msg, __FILE__, __LINE__); }
+#define SASSERT(expr) if (!(expr)) { ReportAssertFailure(#expr, "", __FILE__, __LINE__); DEBUG_BREAK(void); }
+#define SASSERT_MSG(expr, msg) if (!(expr)) { ReportAssertFailure(#expr, msg, __FILE__, __LINE__); DEBUG_BREAK(void); }
 
-#if SCAL_PLATFORM_WINDOWS
+#if _MSC_VER
 #include <intrin.h>
 #define DEBUG_BREAK(void) __debugbreak()
 #else
@@ -70,9 +70,8 @@ inline void ReportAssertFailure(const char* expression, const char* msg, const c
 #define SLOG_ERR(msg, ...) TraceLog(LOG_ERROR, msg, __VA_ARGS__)
 
 #define SFATAL_CRASH(msg, ...) \
-	TraceLog(LOG_FATAL, msg, __VA_ARGS__); \
+	TraceLog(LOG_ERROR, msg, __VA_ARGS__); \
 	TraceLog(LOG_FATAL, "Fatal error detected, program crashed! File: %s, Line: %s", __FILE__, __LINE__) \
-	exit(1); \
 
 #define CALL_CONSTRUCTOR(object) new (object)
 
@@ -87,8 +86,7 @@ MemorySizeData FindMemSize(uint64_t size);
 inline void 
 ReportAssertFailure(const char* expression, const char* msg, const char* file, int line)
 {
-	TraceLog(LOG_FATAL, "Assertion Failure: %s,"
+	TraceLog(LOG_ERROR, "Assertion Failure: %s,"
 		"Message: % s\n  File : % s, Line : % d\n",
 		expression, msg, file, line);
-	DEBUG_BREAK(void);
 }

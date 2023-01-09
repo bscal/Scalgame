@@ -39,7 +39,7 @@ struct STable
 	bool Remove(const K* key);
 	bool Contains(const K* key) const;
 
-	inline bool IsInitialized() const;
+	inline bool IsAllocated() const;
 };
 
 template<typename K, typename V>
@@ -325,7 +325,7 @@ bool STable<K, V>::Remove(const K* key)
 }
 
 template<typename K, typename V>
-inline bool STable<K, V>::IsInitialized() const
+inline bool STable<K, V>::IsAllocated() const
 {
 	return (Entries != nullptr);
 }

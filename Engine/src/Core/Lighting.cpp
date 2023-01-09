@@ -10,12 +10,12 @@ global_var SList<Light> Lights;
 
 void LightsInitialized(GameApplication* gameApp)
 {
-	Lights.InitializeCap(32);
+	Lights.Resize(32);
 }
 
 void LightsAdd(const Light& light)
 {
-	assert(Lights.IsInitialized());
+	assert(Lights.IsAllocated());
 	Lights.Push(&light);
 }
 

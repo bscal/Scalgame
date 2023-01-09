@@ -13,11 +13,10 @@ void WorldInitialize(World* world, GameApplication* gameApp)
 {
 	world->TileCoordsInLOS.max_load_factor(0.75f);
 	world->TileCoordsInLOS.reserve(256);
-	world->EntityActionsList.Initialize();
 
 	CTileMap::Initialize(&world->ChunkedTileMap, gameApp->Game);
 
-	world->IsInitialized = true;
+	world->IsAllocated = true;
 	SLOG_INFO("[ WORLD ] Successfully initialized world!");
 }
 
@@ -35,13 +34,13 @@ void WorldLoad(World* world, Game* game)
 void WorldFree(World* world)
 {
 	assert(world);
-	if (!world->IsInitialized || !world->IsLoaded)
+	if (!world->IsAllocated || !world->IsLoaded)
 	{
 		SLOG_ERR("Trying to unload a null world");
 		return;
 	}
 	world->IsLoaded = false;
-	world->IsInitialized = false;
+	world->IsAllocated = false;
 	CTileMap::Free(&world->ChunkedTileMap);
 	world->EntityActionsList.Free();
 }
@@ -64,10 +63,10 @@ bool CanMoveToTile(World* world, Vector2i position)
 	{
 		return false;
 	}
-	const auto tile = CTileMap::GetTile(&world->ChunkedTileMap,
+	const auto& tile = CTileMap::GetTile(&world->ChunkedTileMap,
 		position);
-	const auto tileData = tile->GetTileData(&GetGame()->TileMgr);
-	return tileData.Type == TileType::Floor;
+	const auto& tileData = tile->GetTileData(&GetGame()->TileMgr);
+	return tileData->Type == TileType::Floor;
 }
 
 bool WorldIsInBounds(World* world, Vector2i pos)
@@ -92,8 +91,8 @@ void AddAction(World* world, Action* action)
 	bool added = false;
 	for (int i = 0; i < length; ++i)
 	{
-		Action at = world->EntityActionsList.PeekAt(i);
-		if (at.Cost > action->Cost)
+		Action* at = world->EntityActionsList.PeekAt(i);
+		if (at->Cost > action->Cost)
 		{
 			world->EntityActionsList.PushAt(i, action);
 			added = true;
@@ -111,8 +110,8 @@ void ProcessActions(World* world)
 {
 	for (int i = 0; i < world->EntityActionsList.Count; ++i)
 	{
-		Action at = world->EntityActionsList.PeekAt(i);
-		at.ActionFunction(world, &at);
+		Action* at = world->EntityActionsList.PeekAt(i);
+		at->ActionFunction(world, at);
 	}
 }
 

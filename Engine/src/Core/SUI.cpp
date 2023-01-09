@@ -11,6 +11,10 @@
 #include <string>
 #include <stdio.h>
 
+const global_var struct nk_color BG_COLOR = ColorToNuklear({ 17, 17, 17, 155 });
+
+internal void DrawFPS(struct nk_context* ctx);
+
 bool InitializeUI(UIState* state, GameApplication* gameApp)
 {
 	InitializeNuklear(&state->Ctx, state, &gameApp->Game->Resources.FontSilver, 16.0f);
@@ -29,6 +33,9 @@ void UpdateUI(UIState* state)
 	UpdateNuklear(&state->Ctx);
 
 	state->IsMouseHoveringUI = IsMouseHoveringUI(&state->Ctx);
+
+	if (state->IsDrawingFPS)
+		DrawFPS(&state->Ctx);
 
 	if (state->IsDebugPanelOpen)
 		DrawDebugPanel(state);
@@ -109,39 +116,24 @@ internal void DrawDebugPanel(UIState* state)
 {
 	const Player* p = GetClientPlayer();
 
-	Color c = { 17, 17, 17, 155 };
-	state->Ctx.style.window.fixed_background.data.color = ColorToNuklear(c);
+	state->Ctx.style.window.fixed_background.data.color = BG_COLOR;
 
-	if (nk_begin(&state->Ctx, "Debug", { 5, 5, 380, 340 },
+	if (nk_begin(&state->Ctx, "Debug", { 5, 5, 380, 420 },
 		NK_WINDOW_NO_SCROLLBAR))
 	{
 		nk_layout_row_dynamic(&state->Ctx, 16, 2);
-		nk_label(&state->Ctx, "Fps: ", NK_TEXT_LEFT);
-		nk_label(&state->Ctx,
-			std::to_string(GetFPS()).c_str(), NK_TEXT_LEFT);
 
-		nk_layout_row_dynamic(&state->Ctx, 16, 2);
-		nk_label(&state->Ctx, "FrameTime: ", NK_TEXT_LEFT);
-		nk_label(&state->Ctx,
-			std::to_string(GetGameApp()->DeltaTime * 1000).c_str(), NK_TEXT_LEFT);
+		nk_label(&state->Ctx, "FrameTime:", NK_TEXT_LEFT);
+		nk_label(&state->Ctx, TextFormat("% .2f", GetGameApp()->DeltaTime * 1000), NK_TEXT_LEFT);
 
-		nk_layout_row_dynamic(&state->Ctx, 16, 2);
-		nk_label(&state->Ctx, "RenderTime: ", NK_TEXT_LEFT);
-		nk_label(&state->Ctx,
-			std::to_string(GetGameApp()->RenderTime * 1000).c_str(), NK_TEXT_LEFT);
+		nk_label(&state->Ctx, "RenderTime:", NK_TEXT_LEFT);
+		nk_label(&state->Ctx, TextFormat("% .2f", GetGameApp()->RenderTime * 1000), NK_TEXT_LEFT);
 
-		nk_layout_row_dynamic(&state->Ctx, 16, 2);
-		nk_label(&state->Ctx, "#LoadedChunks: ", NK_TEXT_LEFT);
-		nk_label(&state->Ctx,
-			std::to_string(GetGameApp()->NumOfLoadedChunks).c_str(), NK_TEXT_LEFT);
+		nk_label(&state->Ctx, "Chunks(Load/Up):", NK_TEXT_LEFT);
+		nk_label(&state->Ctx, TextFormat("%d/%d",
+			GetGameApp()->NumOfLoadedChunks, GetGameApp()->NumOfChunksUpdated), NK_TEXT_LEFT);
 
-		nk_layout_row_dynamic(&state->Ctx, 16, 2);
-		nk_label(&state->Ctx, "#UpdatedChunks: ", NK_TEXT_LEFT);
-		nk_label(&state->Ctx,
-			std::to_string(GetGameApp()->NumOfChunksUpdated).c_str(), NK_TEXT_LEFT);
-
-		nk_layout_row_dynamic(&state->Ctx, 16, 2);
-		const char* xy = TextFormat("X: %.2f, Y: %.2f",
+		const char* xy = TextFormat("X: %.1f, Y: %.1f",
 			p->Transform.Pos.x, p->Transform.Pos.y);
 		nk_label(&state->Ctx, xy, NK_TEXT_LEFT);
 
@@ -149,7 +141,6 @@ internal void DrawDebugPanel(UIState* state)
 			p->Transform.TilePos.x, p->Transform.TilePos.y);
 		nk_label(&state->Ctx, tileXY, NK_TEXT_LEFT);
 
-		nk_layout_row_dynamic(&state->Ctx, 16, 2);
 		nk_label(&state->Ctx, "Zoom: ", NK_TEXT_LEFT);
 		nk_label(&state->Ctx, TextFormat("%.3f", GetGameApp()->Scale), NK_TEXT_LEFT);
 
@@ -187,6 +178,8 @@ internal void AppendMemoryUsage(UIState* state)
 		memSizeNeed.Size, memSizeNeed.BytePrefix,
 		memSizeSize.Size, memSizeSize.BytePrefix);
 	nk_label(&state->Ctx, str, NK_TEXT_LEFT);
+
+	nk_label(&state->Ctx, TextFormat("NewCalls: %d", GetNewCalls()), NK_TEXT_LEFT);
 }
 
 global_var std::vector<std::string> ConsoleEntries;
@@ -292,4 +285,17 @@ internal void DrawConsole(UIState* state)
 	}
 	else
 		heightAnimValue = 0;
+}
+
+internal void DrawFPS(struct nk_context* ctx)
+{
+	float w = (float)GetScreenWidth();
+	struct nk_rect bounds = { w - 96.0f, 0.0f, w, 24.0f };
+	if (nk_begin(ctx, "FPS", bounds, NK_WINDOW_NO_SCROLLBAR | NK_WINDOW_NO_INPUT))
+	{
+		ctx->style.window.fixed_background.data.color = {};
+		nk_layout_row_dynamic(ctx, 24.0f, 1);
+		nk_label(ctx, TextFormat("FPS: %d", GetFPS()), NK_TEXT_LEFT);
+	}
+	nk_end(ctx);
 }

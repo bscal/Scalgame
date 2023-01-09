@@ -8,19 +8,19 @@
 #include "SMemory.h"
 #include "SUI.h"
 #include "SUtil.h"
-#include "SMath.h"
 
 #include "Structures/SArray.h"
 #include "Structures/SList.h"
 #include "Structures/STable.h"
 
+#include "raymath.h"
 #include "rlgl.h"
 
 global_var GameApplication* GameAppPtr;
 
 SAPI bool GameApplication::Start()
 {
-	if (IsInitialized)
+	if (IsAllocated)
 	{
 		TraceLog(LOG_ERROR, "GameApplication already initialized!");
 		return false;
@@ -47,11 +47,11 @@ SAPI bool GameApplication::Start()
 	TestListImpl();
 	TestSTable();
 
-	IsInitialized = true;
+	IsAllocated = true;
 
 	GameStart(Game, this);
 
-	return IsInitialized;
+	return IsAllocated;
 }
 
 SAPI void GameApplication::Shutdown()
@@ -165,30 +165,30 @@ SAPI void GameApplication::Run()
 			// Free Camera Controls
 			if (IsKeyPressed(KEY_SLASH))
 				Game->IsFreeCam = !Game->IsFreeCam;
-            
+
 			if (Game->IsFreeCam)
 			{
 				if (IsKeyDown(KEY_L))
 					SetCameraPosition(Game,
-                                      { 512.0f * DeltaTime, 0, 0 });
+						{ 512.0f * DeltaTime, 0, 0 });
 				else if (IsKeyDown(KEY_J))
 					SetCameraPosition(Game,
-                                      { -512.0f * DeltaTime, 0, 0 });
+						{ -512.0f * DeltaTime, 0, 0 });
 				if (IsKeyDown(KEY_K))
 					SetCameraPosition(Game,
-                                      { 0, 512.0f * DeltaTime, 0 });
+						{ 0, 512.0f * DeltaTime, 0 });
 				else if (IsKeyDown(KEY_I))
 					SetCameraPosition(Game,
-                                      { 0, -512.0f * DeltaTime, 0 });
+						{ 0, -512.0f * DeltaTime, 0 });
 			}
-            
+
 			// Camera zoom controls
 			float mouseWheel = GetMouseWheelMove();
 			if (mouseWheel != 0)
 			{
 				SetCameraDistance(this, mouseWheel);
 			}
-            
+
 			// Debug place tiles
 			if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
 			{
@@ -237,7 +237,7 @@ SAPI void GameApplication::Run()
 					LightsAdd(light);
 				}
 			}
-            
+
 			if (IsKeyPressed(KEY_ONE))
 			{
 				Action testAction = {};
@@ -245,7 +245,7 @@ SAPI void GameApplication::Run()
 				testAction.ActionFunction = TestActionFunc;
 				AddAction(&Game->World, &testAction);
 			}
-            
+
 			if (IsKeyPressed(KEY_F1))
 			{
 				Game->DebugDisableDarkess = !Game->DebugDisableDarkess;
@@ -266,13 +266,11 @@ SAPI void GameApplication::Run()
 					Game->ViewCamera.zoom = 1.f;
 			}
 			if (IsKeyPressed(KEY_GRAVE))
-			{
 				UIState->IsDebugPanelOpen = !UIState->IsDebugPanelOpen;
-			}
 			if (IsKeyPressed(KEY_EQUAL))
-			{
 				UIState->IsConsoleOpen = !UIState->IsConsoleOpen;
-			}
+			if (IsKeyPressed(KEY_BACKSLASH))
+				UIState->IsDrawingFPS = !UIState->IsDrawingFPS;
 		}
         
 		// **************************
@@ -354,19 +352,19 @@ internal void GameUpdate(Game* game, GameApplication* gameApp)
 
 GameApplication* const GetGameApp()
 {
-	assert(GameAppPtr->IsInitialized);
+	assert(GameAppPtr->IsAllocated);
     return GameAppPtr;
 }
 
 Player* const GetClientPlayer()
 {
 	assert(GetGameApp()->Game->EntityMgr.Players.Count > 0);
-	return GetGameApp()->Game->EntityMgr.Players.PeekAtPtr(0);
+	return GetGameApp()->Game->EntityMgr.Players.PeekAt(0);
 }
 
 EntityMgr* GetEntityMgr()
 {
-	assert(GetGameApp()->Game->World.IsInitialized);
+	assert(GetGameApp()->Game->World.IsAllocated);
 	return &GetGameApp()->Game->EntityMgr;
 }
 

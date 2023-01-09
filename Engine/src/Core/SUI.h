@@ -14,6 +14,7 @@ struct UIState
 	void* UIMemory;
 	size_t UIMemorySize;
 	bool IsMouseHoveringUI;
+	bool IsDrawingFPS;
 	bool IsDebugPanelOpen;
     bool IsConsoleOpen;
 };

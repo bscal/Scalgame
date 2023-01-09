@@ -18,7 +18,7 @@ struct Resources
 	Font MainFontS;
 	Font FontSilver;
 	Shader UnlitShader;
-	bool IsInitialized;
+	bool IsAllocated;
 };
 
 bool InitializeResources(Resources* outData);

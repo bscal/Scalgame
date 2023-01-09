@@ -69,8 +69,8 @@ struct Tile
 	uint16_t TileId;
 	TileLOS LOS;
 
-	const TileData& GetTileData(TileMgr* tileMgr) const;
-	const TileTexData& GetTileTexData(TileMgr* tileMgr) const;
+	const TileData* const GetTileData(TileMgr* tileMgr) const;
+	const TileTexData* const GetTileTexData(TileMgr* tileMgr) const;
 };
 
 void TileMgrInitialize(TileMgr* tileMgr, SpriteAtlas* spriteAtlas);

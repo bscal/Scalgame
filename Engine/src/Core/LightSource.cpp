@@ -149,7 +149,7 @@ void LightMap::BuildLightMap(Game* game)
 			const auto& tile = CTileMap::GetTileRef(&game->World.ChunkedTileMap, coord);
 			const auto& tileData = tile.GetTileData(&game->TileMgr);
 			Color c;
-			if (tileData.Type == TileType::Solid)
+			if (tileData->Type == TileType::Solid)
 				c = { 255, 255, 255, 255 };
 			else
 				c = {};

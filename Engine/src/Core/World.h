@@ -53,7 +53,7 @@ struct World
 	std::unordered_set<Vector2i,
 		Hash, Equals, SAllocator<Vector2i>> TileCoordsInLOS;
 
-	bool IsInitialized;
+	bool IsAllocated;
 	bool IsLoaded;
 };
 

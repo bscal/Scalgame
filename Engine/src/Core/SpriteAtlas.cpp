@@ -14,7 +14,7 @@ bool SpriteAtlas::Load(const char* atlasDataPath,
 	if (!FileExists(atlasDataPath))
 		return false;
 
-	SpritesArray.InitializeCap(estimatedSprites);
+	SpritesArray.Resize(estimatedSprites);
 	SpritesByName.reserve(estimatedSprites);
 
 	// Info for sprite
@@ -28,16 +28,20 @@ bool SpriteAtlas::Load(const char* atlasDataPath,
 	char* data = LoadFileText(atlasDataPath);
 	std::istringstream input;
 	input.str(data);
-	for (std::string line; std::getline(input, line); )
+
+	std::string lineBuf;
+	lineBuf.reserve(512);
+	for (;std::getline(input, lineBuf); )
 	{
-		if (line.empty()) continue;
+		if (lineBuf.empty()) continue;
 		if (!foundTextureName) // Texture name is the 1st entry
 		{
 			foundTextureName = true;
-			TextureName = line;
+			TextureName = lineBuf;
 			continue;
 		}
 
+		std::string_view line = lineBuf;
 		if (line.substr(0, 2) == "  ") // Are we looking at tile data
 		{
 			if (line.substr(2, 3) == "xy:") // XY
@@ -51,8 +55,11 @@ bool SpriteAtlas::Load(const char* atlasDataPath,
 					{
 						const auto& x = xy.substr(0, found3);
 						const auto& y = xy.substr(found3+1, line.size());
-						tileInfo.X = std::stoi(x);
-						tileInfo.Y = std::stoi(y);
+
+						std::string strX(x);
+						tileInfo.X = std::stoi(strX);
+						std::string strY(y);
+						tileInfo.Y = std::stoi(strY);
 
 					};
 				};
@@ -68,8 +75,10 @@ bool SpriteAtlas::Load(const char* atlasDataPath,
 					{
 						const auto& x = xy.substr(0, found3);
 						const auto& y = xy.substr(found3+1, line.size());
-						tileInfo.TileW = std::stoi(x);
-						tileInfo.TileH = std::stoi(y);
+						std::string strX(x);
+						tileInfo.TileW = std::stoi(strX);
+						std::string strY(y);
+						tileInfo.TileH = std::stoi(strY);
 
 					};
 				};
@@ -96,7 +105,7 @@ bool SpriteAtlas::Load(const char* atlasDataPath,
 						(int)rect.width, (int)rect.height);
 				}
 				// Inserts the next tile to be iterated
-				SpritesByName.insert({ line, Size()});
+				SpritesByName.insert({ std::string(lineBuf), Size()});
 				tileInfo = {};
 				isInTile = true;
 			}
