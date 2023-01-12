@@ -1,9 +1,9 @@
 #pragma once
 
+#include "Core.h"
 #include "rmem/rmem.h"
 
-#include <stdint.h>
-
+struct GameApplication;
 struct UIState;
 
 namespace Scal
@@ -41,6 +41,10 @@ constexpr static const char* MemoryTagStrings[MaxTags] =
 	"NewArray"
 };
 
+void 
+SMemInitialize(GameApplication* gameApp,
+	uint64_t PermenantMemSize, uint64_t GameMemSize);
+
 void* MemAlloc(size_t size);
 void* MemAllocZero(size_t size);
 void* MemRealloc(void* block, size_t size);
@@ -60,3 +64,18 @@ size_t GetTotalUsage();
 }
 
 uint32_t GetNewCalls();
+
+//#if SCAL_DEBUG
+//inline void* operator new(size_t size, const char* file, int line)
+//{
+//	SLOG_DEBUG("New called: %s, %d", file, line);
+//	return Scal::MemAlloc(size);
+//}
+//#endif
+//
+//#ifdef SCAL_DEBUG
+//#define SCAL_DEBUG_NEW new(__FILE__, __LINE__);
+//#else
+//#define SCAL_DEBUG_NEW new
+//#endif
+//#define new new(__FILE__, __LINE__)

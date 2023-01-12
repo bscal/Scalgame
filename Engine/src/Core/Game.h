@@ -7,6 +7,7 @@
 #include "SpriteAtlas.h"
 #include "ResourceManager.h"
 #include "CommandMgr.h"
+#include "SMemory.h"
 
 struct UIState;
 
@@ -14,7 +15,7 @@ struct Game
 {
     Camera2D WorldCamera; // Camera world to rendered at
     Camera2D ViewCamera;  // Camera for viewport and scaled
-
+    
     Resources Resources;
     RenderTexture2D WorldTexture;
     
@@ -28,7 +29,7 @@ struct Game
     float CameraLerpTime;
     uint32_t Time;
     bool IsFreeCam;
-
+    
     bool DebugDisableDarkess;
     bool DebugDisableFOV;
     bool DebugTileView;
@@ -38,25 +39,28 @@ struct GameApplication
 {
     Game* Game;
     UIState* UIState;
-
+    
+    MemPool GameMemory;
+    BiStack PermanentMemory;
+    
     Vector2 ScreenXY; // Camera top left corner
     Vector2 ScaledScreenXY;
     Vector2 HalfWidthHeight;
-
+    
     double RenderTime;
     int NumOfLoadedChunks;
     int NumOfChunksUpdated;
-
+    
     float DeltaTime;
     float Scale;
-
+    
     bool IsGameInputDisabled;
     bool IsHoveringGUIWindow;
-
+    
     bool IsAllocated;
     bool IsRunning;
     bool IsSuspended;
-
+    
     SAPI bool Start();
     SAPI void Shutdown();
     SAPI void Run();
@@ -83,3 +87,4 @@ internal void GameFree(Game* game);
 internal void GameUpdate(Game* game, GameApplication* gameApp);
 
 internal void GameInputUpdate(Game* game, GameApplication* gameApp);
+
