@@ -31,7 +31,7 @@ internal SLinkedListEntry<T>* FreeEntry(SLinkedListEntry<T>* entry)
 {
 	assert(entry);
 	auto next = entry->Next;
-	Scal::MemFree(entry);
+	SMemFree(entry);
 	entry = NULL;
 	return next;
 }
@@ -58,8 +58,9 @@ void SLinkedList<T>::Push(const T* value)
 {
 	assert(value);
 
-	SLinkedListEntry<T>* entry = (SLinkedListEntry<T>*)Scal::MemAllocZero(sizeof(SLinkedListEntry<T>));
+	SLinkedListEntry<T>* entry = (SLinkedListEntry<T>*)SMemAlloc(sizeof(SLinkedListEntry<T>));
 	assert(entry);
+	SMemClear(entry, sizeof(SLinkedListEntry<T>));
 
 	entry->Value = *value;
 	entry->Next = First;

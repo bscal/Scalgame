@@ -9,6 +9,7 @@
 #include "Structures/SLinkedList.h"
 #include "Structures/STable.h"
 
+struct GameApp;
 struct Game;
 
 const global_var int CHUNK_SIZE = 64;

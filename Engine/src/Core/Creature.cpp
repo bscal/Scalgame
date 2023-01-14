@@ -45,7 +45,7 @@ void SCreature::Initialize(struct World* world)
 {
 	WorldRef = world;
 	constexpr size_t size = sizeof(uint32_t) * CREATURE_MAX_COMPONENTS;
-	Scal::MemSet(&ComponentIndex, CREATURE_EMPTY_COMPONENT, size);
+	SMemSet(&ComponentIndex, CREATURE_EMPTY_COMPONENT, size);
 }
 
 

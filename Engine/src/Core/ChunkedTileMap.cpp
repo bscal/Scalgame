@@ -262,7 +262,7 @@ void UpdateChunk(ChunkedTileMap* tilemap,
 	// NOTE: it is move convenient to clear here. Needs
 	// to be reset somewhere, not sure if there is a 
 	// better solution
-	Scal::MemClear(chunk->LastLightPos, sizeof(chunk->LastLightPos));
+	SMemClear(chunk->LastLightPos, sizeof(chunk->LastLightPos));
 }
 
 TileMapChunk* LoadChunk(ChunkedTileMap* tilemap,

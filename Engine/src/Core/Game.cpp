@@ -19,13 +19,13 @@ global_var GameApplication* GameAppPtr;
 
 SAPI bool GameApplication::Start()
 {
-    if (IsAllocated)
+    if (IsInitialized)
     {
         TraceLog(LOG_ERROR, "GameApplication already initialized!");
         return false;
     }
 
-    Scal::SMemInitialize(this, Kilobytes(64), Megabytes(4));
+    SMemInitialize(this, Megabytes(64), Megabytes(1));
 
     const int screenWidth = 1600;
     const int screenHeight = 900;
@@ -35,24 +35,24 @@ SAPI bool GameApplication::Start()
     
     GameAppPtr = this;
    
-    Game = (struct Game*)Scal::MemAllocTag(sizeof(struct Game), Scal::Game);
-    Scal::MemClear(Game, sizeof(struct Game));
+    Game = (struct Game*)SMemAllocTag(sizeof(struct Game), MemoryTag::Game);
+    SMemClear(Game, sizeof(struct Game));
     bool didGameInit = GameInitialize(Game, this);
     SASSERT(didGameInit);
 
-    UIState = (struct UIState*)Scal::MemAllocTag(sizeof(struct UIState), Scal::UI);
-    Scal::MemClear(UIState, sizeof(struct UIState));
+    UIState = (struct UIState*)SMemAllocTag(sizeof(struct UIState), MemoryTag::UI);
+    SMemClear(UIState, sizeof(struct UIState));
     bool didUiInit = InitializeUI(UIState, this);
     SASSERT(didUiInit);
     
     TestListImpl();
     TestSTable();
 
-    IsAllocated = true;
+    IsInitialized = true;
 
     GameStart(Game, this);
 
-    return IsAllocated;
+    return IsInitialized;
 }
 
 SAPI void GameApplication::Shutdown()
@@ -351,19 +351,19 @@ internal void GameUpdate(Game* game, GameApplication* gameApp)
     }
 }
 
-GameApplication* const GetGameApp()
+inline GameApplication* const GetGameApp()
 {
-    assert(GameAppPtr->IsAllocated);
+    assert(GameAppPtr->IsInitialized);
     return GameAppPtr;
 }
 
-Player* const GetClientPlayer()
+inline Player* const GetClientPlayer()
 {
     assert(GetGameApp()->Game->EntityMgr.Players.Count > 0);
     return GetGameApp()->Game->EntityMgr.Players.PeekAt(0);
 }
 
-EntityMgr* GetEntityMgr()
+inline EntityMgr* GetEntityMgr()
 {
     assert(GetGameApp()->Game->World.IsAllocated);
     return &GetGameApp()->Game->EntityMgr;
@@ -374,12 +374,12 @@ Game* const GetGame()
     return GetGameApp()->Game;
 }
 
-float GetDeltaTime()
+inline float GetDeltaTime()
 {
     return GetFrameTime();
 }
 
-float GetScale()
+inline float GetScale()
 {
     assert(GetGameApp()->Scale > 0.0f);
     return GetGameApp()->Scale;
@@ -394,17 +394,17 @@ Rectangle GetScaledScreenRect()
         (float)GetScreenHeight() };
 }
 
-Vector2 VecToTileCenter(Vector2 vec)
+inline Vector2 VecToTileCenter(Vector2 vec)
 {
     return { vec.x + HALF_TILE_SIZE, vec.y + HALF_TILE_SIZE };
 }
 
-Vector2 ScaleWorldVec2(Vector2 vec)
+inline Vector2 ScaleWorldVec2(Vector2 vec)
 {
     return Vector2Divide(vec, { GetScale(), GetScale() });
 }
 
-Vector2i ScaleWorldVec2i(Vector2i vec)
+inline Vector2i ScaleWorldVec2i(Vector2i vec)
 {
     return vec.Divide({ (int)GetScale(), (int)GetScale() });
 }

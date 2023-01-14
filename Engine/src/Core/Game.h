@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Core.h"
-#include "TileMap.h"
+#include "Tile.h"
 #include "Player.h"
 #include "World.h"
 #include "SpriteAtlas.h"
@@ -41,7 +41,7 @@ struct GameApplication
     UIState* UIState;
     
     MemPool GameMemory;
-    BiStack PermanentMemory;
+    BiStack TemporaryMemory;
     
     Vector2 ScreenXY; // Camera top left corner
     Vector2 ScaledScreenXY;
@@ -57,7 +57,7 @@ struct GameApplication
     bool IsGameInputDisabled;
     bool IsHoveringGUIWindow;
     
-    bool IsAllocated;
+    bool IsInitialized;
     bool IsRunning;
     bool IsSuspended;
     
@@ -66,19 +66,17 @@ struct GameApplication
     SAPI void Run();
 };
 
-GameApplication* const GetGameApp();
-void SetCameraPosition(Game* game, Vector3 pos);
-void SetCameraDistance(GameApplication* gameApp, float zoom);
-Player* const GetClientPlayer();
+inline GameApplication* const GetGameApp();
+inline void SetCameraPosition(Game* game, Vector3 pos);
+inline void SetCameraDistance(GameApplication* gameApp, float zoom);
+inline Player* const GetClientPlayer();
 Game* const GetGame();
-float GetDeltaTime();
-float GetScale();
+inline float GetDeltaTime();
+inline float GetScale();
 Rectangle GetScaledScreenRect();
-
-Vector2 VecToTileCenter(Vector2 vec);
-
-Vector2 ScaleWorldVec2(Vector2 vec);
-Vector2i ScaleWorldVec2i(Vector2i vec);
+inline Vector2 VecToTileCenter(Vector2 vec);
+inline Vector2 ScaleWorldVec2(Vector2 vec);
+inline Vector2i ScaleWorldVec2i(Vector2i vec);
 
 internal void GameLoadScreen(GameApplication* gameApp, int width, int height);
 internal bool GameInitialize(Game* game, GameApplication* gameApp);

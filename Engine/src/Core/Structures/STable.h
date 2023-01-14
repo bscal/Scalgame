@@ -46,7 +46,7 @@ template<typename K, typename V>
 internal STableEntry<K, V>* CreateEntry(const K* key, const V* value)
 {
 	STableEntry<K, V>* entry = (STableEntry<K, V>*)
-		Scal::MemAlloc(sizeof(STableEntry<K, V>));
+		SMemAlloc(sizeof(STableEntry<K, V>));
 	entry->Key = *key;
 	entry->Value = *value;
 	entry->Next = NULL;
@@ -56,7 +56,7 @@ internal STableEntry<K, V>* CreateEntry(const K* key, const V* value)
 template<typename K, typename V>
 internal void FreeEntry(STableEntry<K, V>* entry)
 {
-	Scal::MemFree(entry);
+	SMemFree(entry);
 }
 
 template<typename K, typename V>
@@ -92,7 +92,7 @@ void STable<K, V>::Rehash(size_t newCapacity)
 			FreeEntry(entry);
 		}
 	}
-	Scal::MemFree(Entries);
+	SMemFree(Entries);
 	Entries = sTable2.Entries;
 	Size = sTable2.Size;
 	Capacity = sTable2.Capacity;
@@ -126,8 +126,8 @@ void STable<K, V>::Initialize(uint64_t capacity)
 
 	Size = 0;
 	Capacity = capacity;
-	Entries = (STableEntry<K, V>**)
-		Scal::MemAllocZero(Capacity * sizeof(STableEntry<K, V>*));
+	Entries = (STableEntry<K, V>**)SMemAlloc(Capacity * sizeof(STableEntry<K, V>*));
+	SMemClear(Entries, Capacity * sizeof(STableEntry<K, V>*));
 }
 
 template<typename K, typename V>
@@ -145,10 +145,9 @@ void STable<K, V>::InitializeEx(uint64_t capacity,
 
 	Size = 0;
 	Capacity = capacity;
-	Entries = (STableEntry<K, V>**)
-		Scal::MemAllocZero(Capacity * sizeof(STableEntry<K, V>*));
+	Entries = (STableEntry<K, V>**)SMemAlloc(Capacity * sizeof(STableEntry<K, V>*));
+	SMemClear(Entries, Capacity * sizeof(STableEntry<K, V>*));
 }
-
 
 template<typename K, typename V>
 void STable<K, V>::Free()

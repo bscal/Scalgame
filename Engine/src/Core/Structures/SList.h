@@ -58,11 +58,11 @@ void SList<T>::EnsureSize(uint64_t ensuredCount)
 	if (ensuredCount > Capacity)
 	{
 		Capacity = ensuredCount;
-		Memory = (T*)Scal::MemRealloc(Memory, MemUsed());
+		Memory = (T*)SMemRealloc(Memory, MemUsed());
 	}
 
 	uint64_t ensuredSize = Capacity - Count;
-	Scal::MemSet(&Memory[Count], 0, ensuredSize * sizeof(T));
+	SMemSet(&Memory[Count], 0, ensuredSize * sizeof(T));
 	Count = Capacity;
 }
 
@@ -71,8 +71,8 @@ void SList<T>::Free()
 {
 	if (Memory)
 	{
-		Scal::MemClear(Memory, MemUsed());
-		Scal::MemFree(Memory);
+		SMemClear(Memory, MemUsed());
+		SMemFree(Memory);
 		Memory = NULL;
 	}
 	Capacity = 0;
@@ -84,7 +84,7 @@ void SList<T>::Resize(uint64_t newCapacity)
 {
 	if (newCapacity == 0 && Capacity == 0) newCapacity = 1;
 	Capacity = newCapacity;
-	Memory = (T*)Scal::MemRealloc(Memory, MemUsed());
+	Memory = (T*)SMemRealloc(Memory, MemUsed());
 }
 
 template<typename T>
@@ -108,7 +108,7 @@ T* SList<T>::PushZero()
 	}
 	++Count;
 	T* ptr = &Memory[End()];
-	Scal::MemClear(ptr, sizeof(T));
+	SMemClear(ptr, sizeof(T));
 	return ptr;
 }
 
@@ -127,7 +127,7 @@ void SList<T>::PushAt(uint64_t index, const T* valueSrc)
 		uint64_t srcOffset = index * sizeof(T);
 		uint64_t sizeTillEnd = (Count - index) * sizeof(T);
 		char* mem = (char*)Memory;
-		Scal::MemCopy(mem + dstOffset, mem + srcOffset, sizeTillEnd);
+		SMemCopy(mem + dstOffset, mem + srcOffset, sizeTillEnd);
 	}
 	Memory[index] = *valueSrc;
 	++Count;
@@ -181,7 +181,7 @@ void SList<T>::Pop(T* valueDest)
 	SASSERT(Count > 0);
 	*valueDest = Memory[End()];
 	#if SCAL_DEBUG
-	Scal::MemClear(&Memory[End()], sizeof(T));
+	SMemClear(&Memory[End()], sizeof(T));
 	#endif
 	--Count;
 }
@@ -199,10 +199,10 @@ void SList<T>::PopAt(uint64_t index, T* valueDest)
 		uint64_t srcOffset = (index + 1) * sizeof(T);
 		uint64_t sizeTillEnd = (Count - index) * sizeof(T);
 		char* mem = (char*)Memory;
-		Scal::MemCopy(mem + dstOffset, mem + srcOffset, sizeTillEnd);
+		SMemCopy(mem + dstOffset, mem + srcOffset, sizeTillEnd);
 	}
 	#if SCAL_DEBUG
-	Scal::MemClear(&Memory[End()], sizeof(T));
+	SMemClear(&Memory[End()], sizeof(T));
 	#endif
 	--Count;
 }
@@ -218,7 +218,7 @@ void SList<T>::PopAtFast(uint64_t index, T* valueDest)
 	{
 		Memory[index] = Memory[End()];
 		#if SCAL_DEBUG
-		Scal::MemClear(&Memory[End()], sizeof(T));
+		SMemClear(&Memory[End()], sizeof(T));
 		#endif
 	}
 	--Count;
@@ -230,7 +230,7 @@ void SList<T>::Remove()
 	SASSERT(Memory);
 	SASSERT(Count > 0);
 	#if SCAL_DEBUG
-	Scal::MemClear(&Memory[End()], sizeof(T));
+	SMemClear(&Memory[End()], sizeof(T));
 	#endif
 	--Count;
 }
@@ -246,10 +246,10 @@ void SList<T>::RemoveAt(uint64_t index)
 		uint64_t srcOffset = (index + 1) * sizeof(T);
 		uint64_t sizeTillEnd = (End() - index) * sizeof(T);
 		char* mem = (char*)Memory;
-		Scal::MemCopy(mem + dstOffset, mem + srcOffset, sizeTillEnd);
+		SMemCopy(mem + dstOffset, mem + srcOffset, sizeTillEnd);
 	}
 	#if SCAL_DEBUG
-	Scal::MemClear(&Memory[End()], sizeof(T));
+	SMemClear(&Memory[End()], sizeof(T));
 	#endif
 	--Count;
 }
@@ -264,7 +264,7 @@ void SList<T>::RemoveAtFast(uint64_t index)
 	{
 		Memory[index] = Memory[End()];
 		#if SCAL_DEBUG
-		Scal::MemClear(&Memory[End()], sizeof(T));
+		SMemClear(&Memory[End()], sizeof(T));
 		#endif
 	}
 	--Count;
@@ -320,7 +320,7 @@ int64_t SList<T>::Find(const T* value) const
 template<typename T>
 inline void SList<T>::Clear()
 {
-	Scal::MemClear(Memory, MemUsed());
+	SMemClear(Memory, MemUsed());
 	Count = 0;
 }
 

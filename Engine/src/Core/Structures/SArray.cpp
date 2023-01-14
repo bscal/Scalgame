@@ -21,7 +21,7 @@ SAPI void ArrayCreate(uint64_t capacity, uint64_t stride, SArray* outSArray)
 	}
 
 	SArray sArray = {};
-	sArray.Memory = (SArray*)Scal::MemAlloc(capacity * stride);
+	sArray.Memory = (SArray*)SMemAlloc(capacity * stride);
 	sArray.Capacity = capacity;
 	sArray.Stride = stride;
 	*outSArray = sArray;
@@ -35,7 +35,7 @@ SAPI void ArrayFree(SArray* sArray)
 		TraceLog(LOG_ERROR, "outSArray Memory is already freed!");
 		return;
 	}
-	Scal::MemFree(sArray->Memory);
+	SMemFree(sArray->Memory);
 }
 
 SAPI void ArrayResize(SArray* sArray)
@@ -44,7 +44,7 @@ SAPI void ArrayResize(SArray* sArray)
 	assert(sArray->Memory);
 	sArray->Capacity *= SARRAY_DEFAULT_RESIZE;
 	uint64_t newSize = sArray->Capacity * sArray->Stride;
-	sArray->Memory = Scal::MemRealloc(sArray->Memory, newSize);
+	sArray->Memory = SMemRealloc(sArray->Memory, newSize);
 }
 
 SAPI uint64_t GetArrayMemorySize(SArray* sArray)
@@ -65,7 +65,7 @@ SAPI void ArrayPush(SArray* sArray, const void* valuePtr)
 
 	uint64_t offset = sArray->Count * sArray->Stride;
 	char* dest = (char*)sArray->Memory;
-	Scal::MemCopy(dest + offset, valuePtr, sArray->Stride);
+	SMemCopy(dest + offset, valuePtr, sArray->Stride);
 	++sArray->Count;
 }
 
@@ -77,7 +77,7 @@ SAPI void ArrayPop(SArray* sArray, void* dest)
 	if (sArray->Count == 0) return;
 	uint64_t offset = (sArray->Count - 1) * sArray->Stride;
 	const char* src = (char*)(sArray->Memory);
-	Scal::MemCopy(dest, src + offset, sArray->Stride);
+	SMemCopy(dest, src + offset, sArray->Stride);
 	--sArray->Count;
 }
 
@@ -89,7 +89,7 @@ SAPI void ArraySetAt(SArray* sArray, uint64_t index, const void* valuePtr)
 
 	uint64_t offset = index * sArray->Stride;
 	char* dest = (char*)(sArray->Memory) + offset;
-	Scal::MemCopy(dest, valuePtr, sArray->Stride);
+	SMemCopy(dest, valuePtr, sArray->Stride);
 }
 
 SAPI void ArrayPopAt(SArray* sArray, uint64_t index, void* dest)
@@ -100,13 +100,13 @@ SAPI void ArrayPopAt(SArray* sArray, uint64_t index, void* dest)
 
 	uint64_t offset = index * sArray->Stride;
 	char* popAtAddress = (char*)(sArray->Memory) + offset;
-	Scal::MemCopy(dest, popAtAddress, sArray->Stride);
+	SMemCopy(dest, popAtAddress, sArray->Stride);
 	if (index != sArray->Count)
 	{
 		// Moves last element in array popped position
 		uint64_t lastIndexOffset = sArray->Count * sArray->Stride;
 		char* lastIndexAddress = (char*)(sArray->Memory) + lastIndexOffset;
-		Scal::MemCopy(popAtAddress, lastIndexAddress, sArray->Stride);
+		SMemCopy(popAtAddress, lastIndexAddress, sArray->Stride);
 	}
 	--sArray->Count;
 }
@@ -141,7 +141,7 @@ SAPI bool ArrayRemoveAt(SArray* sArray, uint64_t index)
 		// Moves last element in array popped position
 		uint64_t lastIndexOffset = (sArray->Count - 1) * sArray->Stride;
 		char* lastIndexAddress = ((char*)(sArray->Memory)) + lastIndexOffset;
-		Scal::MemCopy(address, lastIndexAddress, sArray->Stride);
+		SMemCopy(address, lastIndexAddress, sArray->Stride);
 	}
 	--sArray->Count;
 	return shouldMoveLast;

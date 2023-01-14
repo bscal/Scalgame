@@ -2,132 +2,164 @@
 #include "SMemory.h"
 
 #include "Game.h"
-#include "Core.h"
-#include "SUI.h"
 
 #include <stdlib.h>
-#include <memory>
 
-#include <string>
-#include <vector>
+global_var struct MemPool* GameMemory;
+global_var struct BiStack* TempMemory;
+global_var uint64_t MemoryTagUsage[(uint8_t)MemoryTag::MaxTags];
+global_var uint64_t TotalUsage;
+global_var uint64_t GameMemSize;
+global_var uint64_t TemporaryMemSize;
+global_var uint64_t TotalMemoryAllocated;
 
 internal inline size_t AlignSize(size_t size, size_t alignment)
 {
     return (size + (alignment - 1)) & -alignment;
 }
 
-namespace Scal
-{
-// TODO for now use standard malloc but should probably switch
-
-global_var uint64_t MemoryTagUsage[MaxTags];
-global_var uint64_t TotalUsage;
-global_var uint64_t TotalMemoryAllocated;
-global_var uint64_t PermanentMemorySize;
-global_var uint64_t GameMemSize;
-
 void 
 SMemInitialize(GameApplication* gameApp,
-    uint64_t permanentMemSize, uint64_t gameMemSize)
+    uint64_t gameMemSize, uint64_t temporaryMemSize)
 {
-    PermanentMemorySize = AlignSize(permanentMemSize, sizeof(void*));
-    GameMemSize = AlignSize(gameMemSize, sizeof(void*));
+    GameMemSize = gameMemSize;
+    TemporaryMemSize = temporaryMemSize;
+    TotalMemoryAllocated = GameMemSize + TemporaryMemSize;
 
-    TotalMemoryAllocated = PermanentMemorySize + GameMemSize;
-    uint8_t* memory = (uint8_t*)malloc(TotalMemoryAllocated);
-    SASSERT(memory);
+    void* gameMem = malloc(GameMemSize);
+    SASSERT(gameMem);
+    SMemClear(gameMem, GameMemSize);
+    gameApp->GameMemory = CreateMemPoolFromBuffer(gameMem, GameMemSize);
+    GameMemory = &gameApp->GameMemory;
 
-    gameApp->PermanentMemory = CreateBiStackFromBuffer(memory, PermanentMemorySize);
-    SASSERT(gameApp->PermanentMemory.mem);
+    void* tempMem = malloc(TemporaryMemSize);
+    SASSERT(tempMem);
+    SMemClear(tempMem, TemporaryMemSize);
+    gameApp->TemporaryMemory = CreateBiStackFromBuffer(tempMem, TemporaryMemSize);
+    TempMemory = &gameApp->TemporaryMemory;
 
-    void* gameMemOffset = memory + PermanentMemorySize;
-    gameApp->GameMemory = CreateMemPoolFromBuffer(gameMemOffset, GameMemSize);
-    SASSERT(gameApp->GameMemory.arena.mem);
+    SASSERT(GameMemory);
+    SASSERT(TempMemory);
 
-    SLOG_INFO("[ Memory ] Initialized! Total: %d", TotalMemoryAllocated);
-    SLOG_INFO("[ Memory ] PermanentMemory size: %d/%d", permanentMemSize, PermanentMemorySize);
-    SLOG_INFO("[ Memory ] GameMemSize size: %d/%d", gameMemSize, GameMemSize);
+    SLOG_INFO("[ Memory ] Initialized! Total Mem: %d", TotalMemoryAllocated);
+    SLOG_INFO("[ Memory ] Temporary mem size: %d", TemporaryMemSize);
+    SLOG_INFO("[ Memory ] Game mem size: %d", GameMemSize);
 }
 
-void* MemAlloc(size_t size)
+void* SMemAlloc(size_t size)
 {
-    return malloc(size);
-}
-
-void* MemAllocZero(size_t size)
-{
-    void* memory = MemAlloc(size);
-    MemSet(memory, 0, size);
-    return memory;
-}
-
-void* MemRealloc(void* block, size_t size)
-{
-    void* mem = realloc(block, size);
+    void* mem = MemPoolAlloc(GameMemory, size);
     SASSERT(mem);
     return mem;
 }
 
-void MemFree(void* block)
+void* SMemRealloc(void* block, size_t size)
+{
+    void* mem = MemPoolRealloc(GameMemory, block, size);
+    SASSERT(mem);
+    return mem;
+}
+
+void SMemFree(void* block)
+{
+    MemPoolFree(GameMemory, block);
+}
+
+void* SMemStdAlloc(size_t size)
+{
+    size_t alignedSize = AlignSize(size, sizeof(void*));
+    return malloc(alignedSize);
+}
+
+void* SMemStdRealloc(void* block, size_t size)
+{
+    size_t alignedSize = AlignSize(size, sizeof(void*));
+    void* mem = realloc(block, alignedSize);
+    SASSERT(mem);
+    return mem;
+}
+
+void SMemStdFree(void* block)
 {
     free(block);
 }
 
-void MemCopy(void* dst, const void* src, size_t size)
-{
-    memcpy(dst, src, size);
-}
-
-void MemSet(void* block, int value, size_t size)
-{
-    memset(block, value, size);
-}
-
-void MemClear(void* block, size_t size)
-{
-    memset(block, 0, size);
-}
-
-void* MemAllocTag(size_t size, MemoryTag tag)
+void* SMemAllocTag(size_t size, MemoryTag tag)
 {
     SASSERT(tag != MemoryTag::Unknown);
 
-    MemoryTagUsage[tag] += size;
+    MemoryTagUsage[(uint8_t)tag] += size;
     TotalUsage += size;
-    return Scal::MemAlloc(size);
+    return SMemAlloc(size);
 }
 
-void* MemReallocTag(void* block, size_t oldSize, size_t newSize, MemoryTag tag)
+void* SMemReallocTag(void* block, size_t oldSize, size_t newSize, MemoryTag tag)
 {
     SASSERT(tag != MemoryTag::Unknown);
 
-    MemoryTagUsage[tag] -= oldSize;
-    MemoryTagUsage[tag] += newSize;
+    MemoryTagUsage[(uint8_t)tag] -= oldSize;
+    MemoryTagUsage[(uint8_t)tag] += newSize;
     TotalUsage -= oldSize;
     TotalUsage += newSize;
-    return Scal::MemRealloc(block, newSize);
+    return SMemRealloc(block, newSize);
 }
 
-void MemFreeTag(void* block, size_t size, MemoryTag tag)
+void SMemFreeTag(void* block, size_t size, MemoryTag tag)
 {
     SASSERT(block);
     SASSERT(tag != MemoryTag::Unknown);
 
-    MemoryTagUsage[tag] -= size;
+    MemoryTagUsage[(uint8_t)tag] -= size;
     TotalUsage -= size;
-    Scal::MemFree(block);
+    SMemFree(block);
 }
 
-const size_t* GetMemoryUsage()
+void SMemCopy(void* dst, const void* src, size_t size)
+{
+    memcpy(dst, src, size);
+}
+
+void SMemSet(void* block, int value, size_t size)
+{
+    memset(block, value, size);
+}
+
+void SMemClear(void* block, size_t size)
+{
+    memset(block, 0, size);
+}
+
+void SMemCopyAligned(void* dst, const void* src, size_t size, size_t alignment)
+{
+    size_t alignedSize = AlignSize(size, alignment);
+    memcpy(dst, src, alignedSize);
+}
+
+void SMemSetAligned(void* block, int value, size_t size, size_t alignment)
+{
+    size_t alignedSize = AlignSize(size, alignment);
+    memset(block, value, alignedSize);
+}
+
+void SMemClearAligned(void* block, size_t size, size_t alignment)
+{
+    size_t alignedSize = AlignSize(size, alignment);
+    memset(block, 0, alignedSize);
+}
+
+const size_t* SMemGetTaggedUsages()
 {
     return MemoryTagUsage;
 }
 
-size_t GetTotalUsage()
+size_t SMemGetUsage()
 {
     return TotalUsage;
 }
 
+uint64_t SMemGetAllocated()
+{
+    return TotalMemoryAllocated;
 }
 
 global_var uint32_t NewUsageCount;

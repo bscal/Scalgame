@@ -51,13 +51,13 @@ void DrawUI(UIState* state)
 internal void*
 MemAlloc(nk_handle handle, void* old, nk_size size)
 {
-	return Scal::MemAlloc(size);
+	return SMemAlloc(size);
 }
 
 internal void 
 MemFree(nk_handle handle, void* old)
 {
-	Scal::MemFree(old);
+	SMemFree(old);
 }
 
 internal float 
@@ -91,7 +91,7 @@ InitializeNuklear(nk_context* nkCtxToInit, UIState* state, Font* font, float fon
 	state->Allocator.free = MemFree;
 
 	state->UIMemorySize = Megabytes(1);
-	state->UIMemory = Scal::MemAllocTag(state->UIMemorySize, Scal::UI);
+	state->UIMemory = SMemAllocTag(state->UIMemorySize, MemoryTag::UI);
 	if (!nk_init_fixed(nkCtxToInit, state->UIMemory,
 		state->UIMemorySize, &state->Font))
 	{
@@ -99,8 +99,8 @@ InitializeNuklear(nk_context* nkCtxToInit, UIState* state, Font* font, float fon
 		assert(false);
 	}
 
-	NuklearUserData* userData = (NuklearUserData*)Scal::MemAllocTag(
-		sizeof(NuklearUserData), Scal::UI);
+	NuklearUserData* userData = (NuklearUserData*)SMemAllocTag(
+		sizeof(NuklearUserData), MemoryTag::UI);
 
 	// Set the internal user data.
 	userData->scaling = 1.0f;
@@ -151,11 +151,36 @@ internal void DrawDebugPanel(UIState* state)
 
 internal void AppendMemoryUsage(UIState* state)
 {
-	const size_t* memUsage = Scal::GetMemoryUsage();
+	const size_t* memUsage = SMemGetTaggedUsages();
 
-	for (int i = 0; i < Scal::MaxTags; ++i)
+
+	nk_layout_row_dynamic(&state->Ctx, 16, 1);
+	nk_label(&state->Ctx, "--- Memory Usage ---", NK_TEXT_LEFT);
+	nk_layout_row_dynamic(&state->Ctx, 16, 1);
+	MemorySizeData usage = FindMemSize(SMemGetUsage());
+	nk_label(&state->Ctx, TextFormat("Tagged: %.2f%cbs", usage.Size, usage.BytePrefix), NK_TEXT_LEFT);
+	size_t freeMem = GetMemPoolFreeMemory(GetGameApp()->GameMemory);
+	MemorySizeData arena = FindMemSize(GetGameApp()->GameMemory.arena.size - freeMem);
+	nk_label(&state->Ctx, TextFormat("Arena: %.2f%cbs", arena.Size, arena.BytePrefix), NK_TEXT_LEFT);
+	MemorySizeData alloced = FindMemSize(SMemGetAllocated());
+	nk_label(&state->Ctx, TextFormat("Allocated: %.2f%cbs", alloced.Size, alloced.BytePrefix), NK_TEXT_LEFT);
+
+	nk_layout_row_dynamic(&state->Ctx, 16, 1);
+	nk_label(&state->Ctx, "--- UI Memory ---", NK_TEXT_LEFT);
+	const auto& uiMem = state->Ctx.memory;
+	MemorySizeData memSizeAlloc = FindMemSize(uiMem.allocated);
+	MemorySizeData memSizeNeed = FindMemSize(uiMem.needed);
+	MemorySizeData memSizeSize = FindMemSize(uiMem.size);
+	const char* str = TextFormat("A%.2f%cbs/N%.2f%cbs/S%.2f%cbs",
+		memSizeAlloc.Size, memSizeAlloc.BytePrefix,
+		memSizeNeed.Size, memSizeNeed.BytePrefix,
+		memSizeSize.Size, memSizeSize.BytePrefix);
+	nk_label(&state->Ctx, str, NK_TEXT_LEFT);
+
+	// Start at 1, we dont allow allocatios to Unknown
+	for (int i = 1; i < (int)MemoryTag::MaxTags; ++i)
 	{
-		const char* name = Scal::MemoryTagStrings[i];
+		const char* name = MemoryTagStrings[i];
 		size_t size = memUsage[i];
 
 		MemorySizeData memSize = FindMemSize(size);
@@ -168,16 +193,7 @@ internal void AppendMemoryUsage(UIState* state)
 	}
 
 	nk_layout_row_dynamic(&state->Ctx, 16, 1);
-	nk_label(&state->Ctx, "UI Memory", NK_TEXT_LEFT);
-	const auto& uiMem = state->Ctx.memory;
-	MemorySizeData memSizeAlloc = FindMemSize(uiMem.allocated);
-	MemorySizeData memSizeNeed = FindMemSize(uiMem.needed);
-	MemorySizeData memSizeSize = FindMemSize(uiMem.size);
-	const char* str = TextFormat("A%.2f%cbs/N%.2f%cbs/S%.2f%cbs",
-		memSizeAlloc.Size, memSizeAlloc.BytePrefix,
-		memSizeNeed.Size, memSizeNeed.BytePrefix,
-		memSizeSize.Size, memSizeSize.BytePrefix);
-	nk_label(&state->Ctx, str, NK_TEXT_LEFT);
+
 
 	nk_label(&state->Ctx, TextFormat("NewCalls: %d", GetNewCalls()), NK_TEXT_LEFT);
 }
@@ -235,7 +251,7 @@ internal void DrawConsole(UIState* state)
 			{
 				const auto& sug = cmdMgr.Suggestions[0];
 				cmdMgr.Length = (int)sug.size();
-				Scal::MemCopy(cmdMgr.TextInputMemory, sug.data(), cmdMgr.Length);
+				SMemCopy(cmdMgr.TextInputMemory, sug.data(), cmdMgr.Length);
 			}
 			if (IsKeyPressed(KEY_ENTER))
 			{

@@ -60,7 +60,7 @@ Entity* CreateEntity(EntitiesManager* entityManager)
 		(uint32_t)entityManager->EntityArray.Count
 	};
 	entity.ComponentsLength = MAX_COMPONENTS;
-	Scal::MemSet(&entity.Components, EMPTY_COMPONENT, sizeof(entity.Components));
+	SMemSet(&entity.Components, EMPTY_COMPONENT, sizeof(entity.Components));
 
 	entityManager->EntityArray.Push(&entity);
 	return entityManager->EntityArray.Last();

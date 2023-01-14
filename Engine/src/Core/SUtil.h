@@ -35,7 +35,7 @@ struct SAllocator
     [[nodiscard]] T* allocate(size_t n)
     {
         assert(n < (SIZE_MAX / sizeof(T)));
-        auto p = static_cast<T*>(Scal::MemAlloc(n * sizeof(T)));
+        auto p = static_cast<T*>(SMemAlloc(n * sizeof(T)));
         if (p)
         {
             report(p, n);
@@ -52,7 +52,7 @@ struct SAllocator
     void deallocate(T* p, size_t n) noexcept
     {
         report(p, n, 0);
-        Scal::MemFree(p);
+        SMemFree(p);
     }
 private:
     void report(T* p, size_t n, bool alloc = true) const

@@ -116,7 +116,7 @@ void CommandMgr::TryExecuteCommand(const std::string_view input)
 			SLOG_ERR("[ Command ] Error: %s", LastCmdError.c_str());
 		}
 	}
-	Scal::MemClear(TextInputMemory, sizeof(TextInputMemory));
+	SMemClear(TextInputMemory, sizeof(TextInputMemory));
 	TextInputMemory[sizeof(TextInputMemory) - 1] = '\0';
 	Length = 0;
 	LastLength = 0;
