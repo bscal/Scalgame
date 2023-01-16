@@ -2,6 +2,7 @@
 
 #include "Core/Core.h"
 #include "Core/SMemory.h"
+#include "Core/SUtil.h"
 
 #define SLIST_DEFAULT_RESIZE 2
 #define SLIST_NO_POSITION UINT64_MAX
@@ -12,6 +13,7 @@ struct SList
 	T* Memory;
 	uint64_t Capacity;
 	uint64_t Count;
+	SMemAllocator Allocator = SGameAllocator;
 
 	void EnsureSize(uint64_t ensuredCount); // ensures capacity and count elements
 	void Free();

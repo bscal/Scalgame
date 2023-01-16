@@ -13,7 +13,8 @@ global_var uint64_t GameMemSize;
 global_var uint64_t TemporaryMemSize;
 global_var uint64_t TotalMemoryAllocated;
 
-internal inline size_t AlignSize(size_t size, size_t alignment)
+internal inline size_t
+AlignSize(size_t size, size_t alignment)
 {
     return (size + (alignment - 1)) & -alignment;
 }
@@ -63,6 +64,11 @@ void* SMemRealloc(void* block, size_t size)
 void SMemFree(void* block)
 {
     MemPoolFree(GameMemory, block);
+}
+
+void* SMemTempAlloc(size_t size)
+{
+    return BiStackAllocFront(TempMemory, size);
 }
 
 void* SMemStdAlloc(size_t size)
@@ -167,6 +173,16 @@ global_var uint32_t NewUsageCount;
 uint32_t GetNewCalls()
 {
     return NewUsageCount;
+}
+
+inline MemPool* const GetGameMemory()
+{
+    return GameMemory;
+}
+
+inline BiStack* const GetTempMemory()
+{
+    return TempMemory;
 }
 
 //void* operator new(size_t size)

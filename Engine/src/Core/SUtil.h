@@ -22,6 +22,20 @@ inline Rectangle RectangleExpand(const Rectangle& rect, float width, float heigh
     return r;
 }
 
+inline void* SGameAllocator(size_t size, uint16_t alignment)
+{
+    return SMemAlloc(size);
+}
+#define S_GAME_ALLOCATOR SGameAllocator;
+
+inline void* STempAllocator(size_t size, uint16_t alignment)
+{
+    void* allocation = BiStackAllocFront(GetTempMemory(), size);
+    SASSERT(allocation);
+    return allocation;
+}
+#define S_TEMP_ALLOCATOR STempAllocator;
+
 template<typename T>
 struct SAllocator
 {

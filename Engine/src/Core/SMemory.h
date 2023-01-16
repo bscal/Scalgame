@@ -7,6 +7,8 @@
 struct GameApplication;
 struct UIState;
 
+typedef void* (*SMemAllocator)(size_t, uint16_t);
+
 enum class MemoryTag : uint8_t
 {
 	Unknown = 0,
@@ -35,7 +37,9 @@ SMemInitialize(GameApplication* gameApp,
 
 void* SMemAlloc(size_t size);
 void* SMemRealloc(void* block, size_t size);
-void  SMemFree(void* block); 
+void  SMemFree(void* block);
+
+void* SMemTempAlloc(size_t size);
 
 void* SMemStdAlloc(size_t size);
 void* SMemStdRealloc(void* block, size_t size);
@@ -58,3 +62,6 @@ uint64_t SMemGetUsage();
 uint64_t SMemGetAllocated();
 
 uint32_t GetNewCalls();
+
+MemPool* const GetGameMemory();
+BiStack* const GetTempMemory();

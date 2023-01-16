@@ -25,7 +25,7 @@ SAPI bool GameApplication::Start()
         return false;
     }
 
-    SMemInitialize(this, Megabytes(64), Megabytes(1));
+    SMemInitialize(this, Megabytes(32), Megabytes(1));
 
     const int screenWidth = 1600;
     const int screenHeight = 900;
@@ -159,6 +159,8 @@ SAPI void GameApplication::Run()
         // Update
         // ***************
         
+        BiStackResetFront(&TemporaryMemory);
+
         // Don't want game input when over UI
         if (!UIState->IsMouseHoveringUI)
         {
