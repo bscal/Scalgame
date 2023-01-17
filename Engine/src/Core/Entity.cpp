@@ -28,10 +28,11 @@ void InitializeEntitiesManager(EntitiesManager* entityManager)
 	assert(entityManager);
 
 	entityManager->EntityArray.Resize(10);
-	entityManager->ComponentMap.InitializeEx(DEFAULT_COMPONENT,
-		EntityHash, EntityEquals);
+	entityManager->ComponentMap.Reserve(DEFAULT_COMPONENT, 1.0f);
+	entityManager->ComponentMap.KeyHashFunction = EntityHash;
+	entityManager->ComponentMap.KeyEqualsFunction = EntityEquals;
 	entityManager->ComponentRemoval.Resize(64);
-	entityManager->ComponentTypes.Initialize(MAX_COMPONENTS);
+	entityManager->ComponentTypes.Reserve(MAX_COMPONENTS, 1.0f);
 
 	RegisterComponent<Transform2D>(entityManager, Transform2D::ID);
 	RegisterComponent<Health>(entityManager, Health::ID);

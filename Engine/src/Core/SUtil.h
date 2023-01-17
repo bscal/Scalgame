@@ -4,7 +4,6 @@
 #include "SHash.hpp"
 #include "SMemory.h"
 
-#include <assert.h>
 #include <stdint.h>
 
 inline float Clampf(float min, float max, float value)
@@ -22,19 +21,31 @@ inline Rectangle RectangleExpand(const Rectangle& rect, float width, float heigh
     return r;
 }
 
-inline void* SGameAllocator(size_t size, uint16_t alignment)
+struct SMemAllocator
 {
-    return SMemAlloc(size);
-}
-#define S_GAME_ALLOCATOR SGameAllocator;
+    [[nodiscard]] inline void* Alloc(size_t size) const
+    {
+        return SMemAlloc(size);
+    }
 
-inline void* STempAllocator(size_t size, uint16_t alignment)
+    inline void Free(void* block) const
+    {
+        return SMemFree(block);
+    }
+};
+
+struct SMemTempAllocator : public SMemAllocator
 {
-    void* allocation = BiStackAllocFront(GetTempMemory(), size);
-    SASSERT(allocation);
-    return allocation;
-}
-#define S_TEMP_ALLOCATOR STempAllocator;
+    [[nodiscard]] inline void* Alloc(size_t size) const
+    {
+        void* allocation = BiStackAllocFront(GetTempMemory(), size);
+        SASSERT(allocation);
+        return allocation;
+    }
+
+    inline void Free(void* block) const {}
+};
+#define SMEM_TEMP_ALLOCATOR SMemTempAllocator{}
 
 template<typename T>
 struct SAllocator
@@ -48,7 +59,7 @@ struct SAllocator
 
     [[nodiscard]] T* allocate(size_t n)
     {
-        assert(n < (SIZE_MAX / sizeof(T)));
+        SASSERT(n < (SIZE_MAX / sizeof(T)));
         auto p = static_cast<T*>(SMemAlloc(n * sizeof(T)));
         if (p)
         {
@@ -58,7 +69,7 @@ struct SAllocator
         else
         {
             SLOG_ERR("SAllocator bad allocation!");
-            assert(p);
+            SASSERT(p);
             return nullptr;
         }
     }

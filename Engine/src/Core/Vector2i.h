@@ -63,6 +63,11 @@ struct Vector2iHasher
     }
 };
 
+inline bool Vector2iEqualsFunc(const Vector2i* lhs, const Vector2i* rhs) noexcept
+{
+    return lhs->Equals(*rhs);
+}
+
 struct Vector2iEquals
 {
     bool operator()(const Vector2i& lhs, const Vector2i& rhs) const noexcept

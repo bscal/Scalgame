@@ -7,8 +7,6 @@
 struct GameApplication;
 struct UIState;
 
-typedef void* (*SMemAllocator)(size_t, uint16_t);
-
 enum class MemoryTag : uint8_t
 {
 	Unknown = 0,
@@ -50,6 +48,7 @@ void* SMemReallocTag(void* block, size_t oldSize, size_t newSize, MemoryTag tag)
 void  SMemFreeTag(void* block, size_t size, MemoryTag tag);
 
 void SMemCopy(void* dst, const void* src, size_t size);
+void SMemMove(void* dst, const void* src, size_t size);
 void SMemSet(void* block, int value, size_t size);
 void SMemClear(void* block, size_t size);
 

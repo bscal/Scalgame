@@ -13,7 +13,7 @@ struct SList
 	T* Memory;
 	uint64_t Capacity;
 	uint64_t Count;
-	SMemAllocator Allocator = SGameAllocator;
+	SMemAllocator Allocator;
 
 	void EnsureSize(uint64_t ensuredCount); // ensures capacity and count elements
 	void Free();
@@ -86,7 +86,15 @@ void SList<T>::Resize(uint64_t newCapacity)
 {
 	if (newCapacity == 0 && Capacity == 0) newCapacity = 1;
 	Capacity = newCapacity;
-	Memory = (T*)SMemRealloc(Memory, MemUsed());
+
+	if (Memory)
+	{
+		T* newMem = (T*)Allocator.Alloc(MemUsed());
+		SMemMove(newMem, Memory, MemUsed());
+		Allocator.Free(Memory);
+		Memory = newMem;
+	}
+	else Memory = (T*)Allocator.Alloc(MemUsed());
 }
 
 template<typename T>
@@ -129,7 +137,7 @@ void SList<T>::PushAt(uint64_t index, const T* valueSrc)
 		uint64_t srcOffset = index * sizeof(T);
 		uint64_t sizeTillEnd = (Count - index) * sizeof(T);
 		char* mem = (char*)Memory;
-		SMemCopy(mem + dstOffset, mem + srcOffset, sizeTillEnd);
+		SMemMove(mem + dstOffset, mem + srcOffset, sizeTillEnd);
 	}
 	Memory[index] = *valueSrc;
 	++Count;
@@ -201,7 +209,7 @@ void SList<T>::PopAt(uint64_t index, T* valueDest)
 		uint64_t srcOffset = (index + 1) * sizeof(T);
 		uint64_t sizeTillEnd = (Count - index) * sizeof(T);
 		char* mem = (char*)Memory;
-		SMemCopy(mem + dstOffset, mem + srcOffset, sizeTillEnd);
+		SMemMove(mem + dstOffset, mem + srcOffset, sizeTillEnd);
 	}
 	#if SCAL_DEBUG
 	SMemClear(&Memory[End()], sizeof(T));
@@ -248,7 +256,7 @@ void SList<T>::RemoveAt(uint64_t index)
 		uint64_t srcOffset = (index + 1) * sizeof(T);
 		uint64_t sizeTillEnd = (End() - index) * sizeof(T);
 		char* mem = (char*)Memory;
-		SMemCopy(mem + dstOffset, mem + srcOffset, sizeTillEnd);
+		SMemMove(mem + dstOffset, mem + srcOffset, sizeTillEnd);
 	}
 	#if SCAL_DEBUG
 	SMemClear(&Memory[End()], sizeof(T));

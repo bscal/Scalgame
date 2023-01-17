@@ -125,6 +125,11 @@ void SMemCopy(void* dst, const void* src, size_t size)
     memcpy(dst, src, size);
 }
 
+void SMemMove(void* dst, const void* src, size_t size)
+{
+    memmove(dst, src, size);
+}
+
 void SMemSet(void* block, int value, size_t size)
 {
     memset(block, value, size);

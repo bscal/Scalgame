@@ -2,12 +2,27 @@
 
 #include "Core/Core.h"
 #include "Core/SMemory.h"
+#include "Core/SUtil.h"
 
-#include <assert.h>
+#define STABLE_DEFAULT_SPACE 0.8f
+#define STABLE_DEFAULT_RESIZE 2
 
-#define S_TABLE_DEFAULT_CAPACITY 10
-#define S_TABLE_DEFAULT_SPACE 0.75f
-#define S_TABLE_DEFAULT_RESIZE 2
+template<typename K>
+internal inline uint64_t
+DefaultKeyHash(const K* key)
+{
+	const uint8_t* const data = (const uint8_t* const)key;
+	size_t length = sizeof(K);
+	size_t hash = FNVHash(data, length);
+	return hash;
+}
+
+template<typename K>
+inline bool
+DefaultKeyEquals(const K* k0, const K* k1)
+{
+	return *k0 == *k1;
+}
 
 template<typename K, typename V>
 struct STableEntry
@@ -20,33 +35,41 @@ struct STableEntry
 template<typename K, typename V>
 struct STable
 {
-	uint64_t Size;
-	uint64_t Capacity;
+	uint32_t Size;
+	uint32_t Capacity;
 	STableEntry<K, V>** Entries;
+	SMemAllocator Allocator;
 
-	uint64_t (*KeyHashFunction)(const K* key);
+	uint64_t(*KeyHashFunction)(const K* key) = DefaultKeyHash;
 	bool (*KeyEqualsFunction)(const K* v0, const K* v1);
 
-	void Initialize(uint64_t capacity);
-	void InitializeEx(uint64_t capacity,
-		uint64_t(*KeyHashFunction)(const K* key),
-		bool (*KeyEqualsFunction)(const K* v0, const K* v1));
+	STable() = default;
+	STable(bool (*keyEqualsFunction)(const K* v0, const K* v1));
+
+	// Sets Capacity capacity * loadFactor, if the table
+	// contains entries will trigger a rehash
+	void Reserve(uint32_t estimatedCapacity, float loadFactor); 
 	void Free();
-	void Rehash(size_t newCapacity);
-	bool Put(const K* key, V* value);
+	bool Put(const K* key, const V* value);
 	V* Get(const K* key) const;
-	const V& GetRef(const K* key) const;
 	bool Remove(const K* key);
 	bool Contains(const K* key) const;
 
 	inline bool IsAllocated() const;
+	inline size_t MemUsed() const;
 };
 
 template<typename K, typename V>
-internal STableEntry<K, V>* CreateEntry(const K* key, const V* value)
+STable<K, V>::STable(bool (*keyEqualsFunction)(const K* v0, const K* v1))
+	: KeyEqualsFunction(keyEqualsFunction)
+{ }
+
+template<typename K, typename V>
+internal STableEntry<K, V>*
+CreateEntry(const STable<K, V>* table, const K* key, const V* value)
 {
 	STableEntry<K, V>* entry = (STableEntry<K, V>*)
-		SMemAlloc(sizeof(STableEntry<K, V>));
+		table->Allocator.Alloc(sizeof(STableEntry<K, V>));
 	entry->Key = *key;
 	entry->Value = *value;
 	entry->Next = NULL;
@@ -54,106 +77,86 @@ internal STableEntry<K, V>* CreateEntry(const K* key, const V* value)
 }
 
 template<typename K, typename V>
-internal void FreeEntry(STableEntry<K, V>* entry)
+internal inline void
+FreeEntry(const STable<K, V>* table, STableEntry<K, V>* entry)
 {
-	SMemFree(entry);
+	SASSERT(entry);
+	table->Allocator.Free(entry);
 }
 
 template<typename K, typename V>
-internal uint64_t HashKey(const STable<K, V>* sTable, const K* key)
+internal inline uint64_t
+HashKey(const STable<K, V>* sTable, const K* key)
 {
 	uint64_t hash = sTable->KeyHashFunction(key);
 	return hash % sTable->Capacity;
 }
 
 template<typename K, typename V>
-void STable<K, V>::Rehash(size_t newCapacity)
+void STable<K, V>::Reserve(uint32_t capacity, float loadFactor)
 {
-	TraceLog(LOG_INFO, "Resizing!");
-
-	STable<K, V> sTable2 = {};
-	sTable2.InitializeEx(newCapacity,
-		KeyHashFunction, KeyEqualsFunction);
-
-	for (int i = 0; i < Capacity; ++i)
+	SASSERT(loadFactor > 0.0f);
+	uint32_t newCap = capacity * loadFactor;
+	SASSERT(newCap > Capacity);
+	if (!IsAllocated())
 	{
-		STableEntry<K, V>* entry = Entries[i];
-		if (entry)
+		Capacity = newCap;
+		Entries = (STableEntry<K, V>**)Allocator.Alloc(MemUsed());
+	}
+	else if (Size == 0)
+	{
+		Capacity = newCap;
+		Allocator.Free(Entries);
+		Entries = (STableEntry<K, V>**)Allocator.Alloc(MemUsed());
+	}
+	else // Rehash
+	{
+		SASSERT(Entries);
+		// Create temporary table
+		STable<K, V> sTable2;
+		sTable2.Capacity = newCap;
+		sTable2.Size = 0;
+		size_t memSize = newCap * sizeof(STableEntry<K, V>*);
+		sTable2.Entries = (STableEntry<K, V>**)Allocator.Alloc(memSize);
+		SASSERT(sTable2.Entries);
+		sTable2.Allocator = Allocator;
+		sTable2.KeyHashFunction = KeyHashFunction;
+		sTable2.KeyEqualsFunction = KeyEqualsFunction;
+
+		// Put old values, Free old values
+		for (int i = 0; i < Capacity; ++i)
 		{
-			STableEntry<K, V>* next = entry->Next;
-			while (next)
+			STableEntry<K, V>* entry = Entries[i];
+			if (entry)
 			{
-				sTable2.Put(&next->Key, &next->Value);
-				auto tmpNext = next->Next;
-				FreeEntry(next);
-				next = tmpNext;
+				STableEntry<K, V>* next = entry->Next;
+				while (next)
+				{
+					sTable2.Put(&next->Key, &next->Value);
+					auto tmpNext = next->Next;
+					FreeEntry(this, next);
+					next = tmpNext;
+				}
+				sTable2.Put(&entry->Key, &entry->Value);
+				FreeEntry(this, entry);
 			}
-			sTable2.Put(&entry->Key, &entry->Value);
-			FreeEntry(entry);
 		}
+
+		SASSERT(sTable2.Size == Size);
+
+		// Frees old entries
+		Allocator.Free(Entries);
+		Entries = sTable2.Entries;
+		Capacity = sTable2.Capacity;
 	}
-	SMemFree(Entries);
-	Entries = sTable2.Entries;
-	Size = sTable2.Size;
-	Capacity = sTable2.Capacity;
-}
-
-template<typename K>
-internal uint64_t DefaultHash(const K* key)
-{
-	return static_cast<uint64_t>(*key);
-}
-
-template<typename K>
-internal bool DefaultEquals(const K* k0, const K* k1)
-{
-	return *k0 == *k1;
-}
-
-template<typename K, typename V>
-void STable<K, V>::Initialize(uint64_t capacity)
-{
-	if (capacity < 1) capacity = S_TABLE_DEFAULT_CAPACITY;
-
-	if (!KeyHashFunction)
-	{
-		KeyHashFunction = &DefaultHash;
-	}
-	if (!KeyEqualsFunction)
-	{
-		KeyEqualsFunction = &DefaultEquals;
-	}
-
-	Size = 0;
-	Capacity = capacity;
-	Entries = (STableEntry<K, V>**)SMemAlloc(Capacity * sizeof(STableEntry<K, V>*));
-	SMemClear(Entries, Capacity * sizeof(STableEntry<K, V>*));
-}
-
-template<typename K, typename V>
-void STable<K, V>::InitializeEx(uint64_t capacity,
-	uint64_t(*keyHashFunction)(const K* key),
-	bool (*keyEqualsFunction)(const K* v0, const K* v1))
-{
-	if (capacity < 1) capacity = S_TABLE_DEFAULT_CAPACITY;
-
-	assert(keyHashFunction);
-	KeyHashFunction = keyHashFunction;
-
-	assert(keyEqualsFunction);
-	KeyEqualsFunction = keyEqualsFunction;
-
-	Size = 0;
-	Capacity = capacity;
-	Entries = (STableEntry<K, V>**)SMemAlloc(Capacity * sizeof(STableEntry<K, V>*));
-	SMemClear(Entries, Capacity * sizeof(STableEntry<K, V>*));
+	SASSERT(Entries);
 }
 
 template<typename K, typename V>
 void STable<K, V>::Free()
 {
 	// TODO look at this
-	for (uint64_t i = 0; i < Capacity; ++i)
+	for (uint32_t i = 0; i < Capacity; ++i)
 	{
 		STableEntry<K, V>* entry = Entries[i];
 		if (!entry) continue;
@@ -167,35 +170,33 @@ void STable<K, V>::Free()
 		}
 	}
 
-	Scal::MemFree(Entries);
+	Allocator.Free(Entries);
+	Entries = NULL;
 	Size = 0;
 	Capacity = 0;
 }
 
 template<typename K, typename V>
-bool STable<K, V>::Put(const K* key, V* value)
+bool STable<K, V>::Put(const K* key, const V* value)
 {
-	if (!key)
+	SASSERT(key);
+	SASSERT(value);
+	SASSERT(KeyEqualsFunction(key, key));
+
+	uint32_t load = (uint32_t)((float)Capacity * STABLE_DEFAULT_SPACE);
+	if (Size >= load)
 	{
-		TraceLog(LOG_ERROR, "key cannot be null");
-		return false;
-	}
-	if (!value)
-	{
-		TraceLog(LOG_ERROR, "value cannot be null");
-		return false;
+		Reserve(Capacity, STABLE_DEFAULT_RESIZE);
 	}
 
-	if ((float)Size >= (float)Capacity * S_TABLE_DEFAULT_SPACE)
-	{
-		Rehash(Capacity * S_TABLE_DEFAULT_RESIZE);
-	}
+	SASSERT(Entries);
+	SASSERT(Capacity > 0);
 
 	uint64_t hash = HashKey(this, key);
 	STableEntry<K, V>* entry = Entries[hash];
 	if (!entry) // No entry at hash
 	{
-		Entries[hash] = CreateEntry(key, value);
+		Entries[hash] = CreateEntry(this, key, value);
 		++Size;
 		return true;
 	}
@@ -203,28 +204,25 @@ bool STable<K, V>::Put(const K* key, V* value)
 	while (entry) // Loop till end of linked list to insert, break if duplicate
 	{
 		if (KeyEqualsFunction(key, &entry->Key))
-		{
-			break;
-		}
+			return false;
+
 		if (!entry->Next)
 		{
-			entry->Next = CreateEntry(key, value);
+			entry->Next = CreateEntry(this, key, value);
 			++Size;
-			return true;
+			break;
 		}
 		entry = entry->Next;
 	}
-	return false;
+	return true;
 }
 
 template<typename K, typename V>
 V* STable<K, V>::Get(const K* key) const
 {
-	if (!key)
-	{
-		TraceLog(LOG_ERROR, "key cannot be null");
-		return nullptr;
-	}
+	SASSERT(key);
+	SASSERT(Entries);
+	SASSERT(KeyEqualsFunction(key, key));
 
 	uint64_t hash = HashKey(this, key);
 	STableEntry<K, V>* entry = Entries[hash];
@@ -240,30 +238,13 @@ V* STable<K, V>::Get(const K* key) const
 }
 
 template<typename K, typename V>
-const V& STable<K, V>::GetRef(const K* key) const
-{
-	assert(key);
-	uint64_t hash = HashKey(this, key);
-	STableEntry<K, V>* entry = Entries[hash];
-	while (entry)
-	{
-		if (KeyEqualsFunction(key, &entry->Key))
-		{
-			return entry->Value;
-		}
-		entry = entry->Next;
-	}
-	return {};
-}
-
-template<typename K, typename V>
 bool STable<K, V>::Contains(const K* key) const
 {
-	if (!key)
-	{
-		TraceLog(LOG_ERROR, "key cannot be null");
-		return false;
-	}
+	SASSERT(key);
+	SASSERT(Entries);
+	SASSERT(KeyEqualsFunction(key, key));
+
+	if (Size == 0) return false;
 
 	uint64_t hash = HashKey(this, key);
 	STableEntry<K, V>* entry = Entries[hash];
@@ -279,48 +260,32 @@ bool STable<K, V>::Contains(const K* key) const
 template<typename K, typename V>
 bool STable<K, V>::Remove(const K* key)
 {
-	if (!key)
-	{
-		TraceLog(LOG_ERROR, "key cannot be null");
-		return false;
-	}
+	SASSERT(key);
+	SASSERT(Entries);
+	SASSERT(KeyEqualsFunction(key, key));
 
 	uint64_t hash = HashKey(this, key);
 	STableEntry<K, V>* entry = Entries[hash];
 	if (!entry) return false;
 
-	STableEntry<K, V>* previous = 0;
+	STableEntry<K, V>* last = NULL;
 	while (entry)
 	{
 		if (KeyEqualsFunction(key, &entry->Key))
 		{
-			if (entry->Next)
-			{
-				if (previous)
-					previous->Next = entry->Next;
-				else
-					Entries[hash] = entry->Next;
-			}
-			else if (previous)
-			{
-				previous->Next = 0;
-			}
-			else if (!previous)
-			{
-				Entries[hash] = 0;
-			}
-			FreeEntry(entry);
+			if (Entries[hash] == entry) // Set head to next
+				Entries[hash] = entry->Next;
+			else if (entry->Next && last)
+				last->Next = entry->Next;
+			FreeEntry(this, entry);
 			--Size;
-			return true;
-		}
-		if (!entry->Next)
-		{
 			break;
 		}
-		previous = entry;
+		if (!entry->Next) return false; // No next not found
+		last = entry;
 		entry = entry->Next;
 	}
-	return false;
+	return true;
 }
 
 template<typename K, typename V>
@@ -329,72 +294,79 @@ inline bool STable<K, V>::IsAllocated() const
 	return (Entries != nullptr);
 }
 
+template<typename K, typename V>
+inline size_t STable<K, V>::MemUsed() const
+{
+	return Capacity * sizeof(STableEntry<K, V>*);
+}
+
+#include "Core/Vector2i.h"
 inline void TestSTable()
 {
-	//STable<Vector3, char> table;
-	//table.InitializeEx(5, [](const Vector3* key)
-	//	{
-	//		return Hash
-	//	},
-	//	[](const Vector3* k0, const Vector3* k1)
-	//	{
-	//		return *k0 == *k1;
-	//	});
+	// NOTE: somewhat of a bad test
+	// if default resize changes the capacity
+	// asserts will trigger
 
-	//assert(table.Entries);
+	STable<Vector2i, char> table = {};
+	table.KeyEqualsFunction = Vector2iEqualsFunc;
+	SASSERT(!table.Entries);
+	table.Reserve(2, 1.0f);
+	SASSERT(table.IsAllocated());
+	SASSERT(table.Capacity == 2);
 
-	//Vector2i k = { 1, 2 };
-	//char v = 1;
-	//table.Put(&k, &v);
+	Vector2i k = { 1, 2 };
+	char v = 1;
+	table.Put(&k, &v);
 
-	//Vector2i kk = { 2, 2 };
-	//char vv = 2;
-	//table.Put(&kk, &vv);
+	SASSERT(table.Size == 1);
+	SASSERT(table.Capacity == 2);
 
-	//Vector2i kk1 = { 3, 2 };
-	//char vv1 = 3;
-	//table.Put(&kk1, &vv1);
+	Vector2i kk = { 2, 2 };
+	char v1 = 2;
+	table.Put(&kk, &v1);
 
-	//Vector2i kk2 = { 4, 2 };
-	//char vv2 = 4;
-	//table.Put(&kk2, &vv2);
+	SASSERT(table.Size == 2);
+	SASSERT(table.Capacity == 4);
 
-	//Vector2i kk3 = { 5, 2 };
-	//char vv3 = 5;
-	//table.Put(&kk3, &vv3);
+	Vector2i kk1 = { 3, 2 };
+	char v2 = 3;
+	table.Put(&kk1, &v2);
 
-	//Vector2i kk4 = { 6, 2 };
-	//char vv4 = 6;
-	//table.Put(&kk4, &vv4);
+	Vector2i kk2 = { 4, 2 };
+	char v3 = 4;
+	table.Put(&kk2, &v3);
 
-	//assert(table.Size == 6);
+	SASSERT(table.Size == 4);
+	SASSERT(table.Capacity == 8);
 
-	//Vector2i k1 = { 100, 15 };
-	//char v1 = 255;
-	//table.Put(&k1, &v1);
+	Vector2i kk3 = { 5, 2 };
+	char v4 = 5;
+	table.Put(&kk3, &v4);
 
-	//assert(table.Size == 7);
+	Vector2i kk4 = { 6, 2 };
+	char v5 = 6;
+	table.Put(&kk4, &v5);
 
-	//Vector2i k2 = { 2, 2 };
-	//char v2 = 64;
-	//table.Put(&k2, &v2);
+	bool added = table.Put(&k, &v);
+	SASSERT(!added);
 
-	//assert(table.Size == 7);
+	Vector2i noDup = { 0, 0 };
+	bool added3 = table.Put(&noDup, &v);
+	SASSERT(added3);
 
-	//char* get = table.Get(&k);
-	//assert(*get == v);
+	SASSERT(table.Size == 7);
+	SASSERT(table.Capacity == 16);
 
-	//bool contains = table.Contains(&k1);
+	char* get = table.Get(&noDup);
+	SASSERT(*get == v);
+	
+	bool contains = table.Contains(&noDup);
+	SASSERT(contains == true);
 
-	//assert(contains == true);
+	bool removed = table.Remove(&k);
+	SASSERT(removed == true);
+	SASSERT(table.Size == 6);
 
-	//bool removed = table.Remove(&kk);
-
-	//assert(removed == true);
-
-	//Vector2i k3 = { 2, 2 };
-	//char v3 = 128;
-	//bool added = table.Put(&k3, &v3);
-
-	//assert(added == true);
+	char* getNull = table.Get(&k);
+	SASSERT(getNull == NULL);
 }
