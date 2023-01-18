@@ -8,7 +8,7 @@
 #include <string>
 #include <unordered_map>
 
-constexpr std::string_view Stone = "Tile1";
+constexpr const char* Stone = "Tile1";
 
 struct SpriteAtlas
 {

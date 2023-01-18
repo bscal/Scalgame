@@ -7,13 +7,8 @@
 #include "Sprite.h"
 #include "Lighting.h"
 
-#include <assert.h>
-
 void WorldInitialize(World* world, GameApplication* gameApp)
 {
-	world->TileCoordsInLOS.max_load_factor(0.75f);
-	world->TileCoordsInLOS.reserve(256);
-
 	CTileMap::Initialize(&world->ChunkedTileMap, gameApp->Game);
 
 	world->IsAllocated = true;
@@ -33,7 +28,7 @@ void WorldLoad(World* world, Game* game)
 
 void WorldFree(World* world)
 {
-	assert(world);
+	SASSERT(world);
 	if (!world->IsAllocated || !world->IsLoaded)
 	{
 		SLOG_ERR("Trying to unload a null world");

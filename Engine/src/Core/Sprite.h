@@ -10,8 +10,6 @@
 struct Sprite;
 struct Animation;
 
-global_var std::unordered_map<uint32_t, Animation> Animations;
-
 struct Sprite
 {
     Rectangle TexCoord;

@@ -158,6 +158,8 @@ void SMemClearAligned(void* block, size_t size, size_t alignment)
     memset(block, 0, alignedSize);
 }
 
+
+
 const size_t* SMemGetTaggedUsages()
 {
     return MemoryTagUsage;
@@ -173,13 +175,6 @@ uint64_t SMemGetAllocated()
     return TotalMemoryAllocated;
 }
 
-global_var uint32_t NewUsageCount;
-
-uint32_t GetNewCalls()
-{
-    return NewUsageCount;
-}
-
 inline MemPool* const GetGameMemory()
 {
     return GameMemory;
@@ -190,24 +185,30 @@ inline BiStack* const GetTempMemory()
     return TempMemory;
 }
 
-//void* operator new(size_t size)
-//{
-//	++NewUsageCount;
-//	return malloc(size);
-//}
-//
-//void operator delete(void* mem)
-//{
-//	free(mem);
-//}
-//
-//void* operator new[](size_t size)
-//{
-//	++NewUsageCount;
-//	return malloc(size);
-//}
-//
-//void operator delete[](void* mem)
-//{
-//	free(mem);
-//}
+static int NewUsageCount;
+
+int GetNewCalls()
+{
+    return NewUsageCount;
+}
+
+void* operator new(size_t size) noexcept(false)
+{
+    ++NewUsageCount;
+    return SMemAlloc(size);
+}
+
+void operator delete(void* block) noexcept(false)
+{
+    SMemFree(block);
+}
+
+void* operator new[](size_t size) noexcept(false)
+{
+    ++NewUsageCount;
+    return SMemAlloc(size);
+}
+void operator delete[](void* block) noexcept(false)
+{
+    SMemFree(block);
+}

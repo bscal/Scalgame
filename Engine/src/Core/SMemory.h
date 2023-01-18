@@ -56,11 +56,11 @@ void SMemCopyAligned(void* dst, const void* src, size_t size, size_t alignment);
 void SMemSetAligned(void* block, int value, size_t size, size_t alignment);
 void SMemClearAligned(void* block, size_t size, size_t alignment);
 
+int GetNewCalls();
+
 const uint64_t* SMemGetTaggedUsages();
 uint64_t SMemGetUsage();
 uint64_t SMemGetAllocated();
-
-uint32_t GetNewCalls();
 
 MemPool* const GetGameMemory();
 BiStack* const GetTempMemory();

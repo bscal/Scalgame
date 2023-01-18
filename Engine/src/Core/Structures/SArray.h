@@ -13,7 +13,7 @@ struct SArray
 	uint64_t Stride;
 };
 
-SAPI void ArrayCreate(uint64_t capacity, uint64_t stride, SArray* outSArray);
+SAPI SArray ArrayCreate(uint64_t capacity, uint64_t stride);
 SAPI void ArrayFree(SArray* sArray);
 SAPI void ArrayResize(SArray* sArray);
 SAPI uint64_t GetArrayMemorySize(SArray* sArray);
@@ -26,8 +26,7 @@ SAPI void ArrayClear(SArray* sArray);
 SAPI bool ArrayRemoveAt(SArray* sArray, uint64_t index);
 
 template<typename T>
-T* ArrayIndex(SArray* sArray, uint64_t index)
+inline T* ArrayIndex(const SArray* sArray, uint64_t index)
 {
-	T* castedArray = (T*)sArray->Memory;
-	return &castedArray[index];
+	return &static_cast<T*>(sArray->Memory)[index];
 }

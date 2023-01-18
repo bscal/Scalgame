@@ -353,19 +353,19 @@ internal void GameUpdate(Game* game, GameApplication* gameApp)
     }
 }
 
-inline GameApplication* const GetGameApp()
+GameApplication* const GetGameApp()
 {
     assert(GameAppPtr->IsInitialized);
     return GameAppPtr;
 }
 
-inline Player* const GetClientPlayer()
+Player* const GetClientPlayer()
 {
     assert(GetGameApp()->Game->EntityMgr.Players.Count > 0);
     return GetGameApp()->Game->EntityMgr.Players.PeekAt(0);
 }
 
-inline EntityMgr* GetEntityMgr()
+EntityMgr* GetEntityMgr()
 {
     assert(GetGameApp()->Game->World.IsAllocated);
     return &GetGameApp()->Game->EntityMgr;
@@ -376,12 +376,12 @@ Game* const GetGame()
     return GetGameApp()->Game;
 }
 
-inline float GetDeltaTime()
+float GetDeltaTime()
 {
     return GetFrameTime();
 }
 
-inline float GetScale()
+float GetScale()
 {
     assert(GetGameApp()->Scale > 0.0f);
     return GetGameApp()->Scale;
@@ -396,17 +396,17 @@ Rectangle GetScaledScreenRect()
         (float)GetScreenHeight() };
 }
 
-inline Vector2 VecToTileCenter(Vector2 vec)
+Vector2 VecToTileCenter(Vector2 vec)
 {
     return { vec.x + HALF_TILE_SIZE, vec.y + HALF_TILE_SIZE };
 }
 
-inline Vector2 ScaleWorldVec2(Vector2 vec)
+Vector2 ScaleWorldVec2(Vector2 vec)
 {
     return Vector2Divide(vec, { GetScale(), GetScale() });
 }
 
-inline Vector2i ScaleWorldVec2i(Vector2i vec)
+Vector2i ScaleWorldVec2i(Vector2i vec)
 {
     return vec.Divide({ (int)GetScale(), (int)GetScale() });
 }

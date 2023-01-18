@@ -2,14 +2,14 @@
 
 #include "Core.h"
 #include "Components.h"
+#include "SMemory.h"
 #include "SUtil.h"
 #include "Sprite.h"
+#include "Structures/STable.h"
 #include "Structures/SArray.h"
+#include "Structures/SList.h"
+#include "Structures/BitArray.h"
 #include "Vector2i.h"
-
-#include <assert.h>
-#include <vector>
-#include <unordered_map>
 
 typedef uint32_t ComponentId;
 
@@ -56,6 +56,7 @@ struct TextureInfo
 	Rectangle CollisionBox;
 };
 
+
 struct SCreature
 {
 	World* WorldRef;
@@ -76,62 +77,3 @@ struct SCreature
 };
 
 Vector2 TileDirToVec2(TileDirection dir);
-
-struct ComponentMgr
-{
-	std::unordered_map
-		<ComponentId, SArray,
-		std::hash<ComponentId>,
-		std::equal_to<ComponentId>,
-		SAllocator<std::pair<const ComponentId, SArray>>> Components;
-
-	ComponentMgr();
-
-	template<typename T>
-	void RegisterComponent(ComponentId componentId)
-	{
-		assert(componentId < CREATURE_MAX_COMPONENTS);
-		if (Components.find(componentId) == Components.end())
-		{
-			// NOT FOUND
-			SArray sArray = {};
-			ArrayCreate(16, sizeof(T), &sArray);
-			Components.insert({ componentId, sArray });
-		}
-	}
-
-	template<typename T>
-	void AddComponent(SCreature* creature,
-		const SComponent<T>* component)
-	{
-		assert(component->ID < CREATURE_MAX_COMPONENTS);
-		SArray componentArray = Components[T::ID];
-		ArrayPush(&componentArray, component);
-		creature->ComponentIndex[T::ID] = (uint32_t)componentArray.Count - 1;
-	}
-
-	template<typename T>
-	void RemoveComponent(SCreature* creature,
-		ComponentId componentId)
-	{
-		assert(componentId < CREATURE_MAX_COMPONENTS);
-		assert(creature->ComponentIndex[componentId]
-			!= CREATURE_EMPTY_COMPONENT);
-		uint32_t index = creature->ComponentIndex[T::ID];
-		creature->ComponentIndex[T::ID] = CREATURE_EMPTY_COMPONENT;
-		SArray componentArray = Components[T::ID];
-		ArrayRemoveAt(&componentArray, static_cast<uint64_t>(index));
-	}
-
-	template<typename T>
-	T* GetComponent(SCreature* creature,
-		ComponentId componentId) const
-	{
-		assert(componentId < CREATURE_MAX_COMPONENTS);
-		assert(creature->ComponentIndex[componentId]
-			!= CREATURE_EMPTY_COMPONENT);
-		uint32_t index = creature->ComponentIndex[componentId];
-		SArray componentArray = Components.at(componentId);
-		return (T*)ArrayPeekAt(&componentArray, (uint64_t)index);
-	}
-};

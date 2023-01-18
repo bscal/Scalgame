@@ -21,8 +21,11 @@ struct World;
 // top 16 bits are used for entity type
 typedef uint64_t EntityId;
 
-#define ENTITY_TYPE_MASK (0xffffffff00ffffff)
+#define ENTITY_TYPE_MASK (0x00000000ff000000)
 #define ENTITY_TYPE_OFFSET (32)
+
+#define ENTITY_INDEX_MASK (0x0000000000ffffff)
+#define ENTITY_INDEX_OFFSET (ENTITY_TYPE_OFFSET + 8)
 
 constexpr uint32_t GetEntityId(EntityId ent)
 {
@@ -31,7 +34,26 @@ constexpr uint32_t GetEntityId(EntityId ent)
 
 constexpr uint8_t GetEntityType(EntityId ent)
 {
-	return static_cast<uint8_t>(ent >> ENTITY_TYPE_OFFSET);
+	uint8_t type = static_cast<uint8_t>(ent >> ENTITY_TYPE_OFFSET);
+	return type;
+}
+
+constexpr void SetEntityType(EntityId* ent, EntityType type)
+{
+	EntityId tmp = ENTITY_TYPE_MASK & ((EntityId)type >> ENTITY_TYPE_OFFSET);
+	*ent |= tmp;
+}
+
+constexpr uint32_t GetEntityIndex(EntityId ent)
+{
+	uint32_t index = static_cast<uint32_t>(ent >> ENTITY_INDEX_OFFSET);
+	return index;
+}
+
+constexpr void SetEntiyIndex(EntityId* ent, uint32_t index)
+{
+	EntityId tmp = ENTITY_INDEX_MASK & ((EntityId)index >> ENTITY_INDEX_OFFSET);
+	*ent |= tmp;
 }
 
 constexpr bool IsEmptyEntityId(EntityId ent)
@@ -64,6 +86,14 @@ struct CreatureCache
 	bool IsPlayer;
 };
 
+struct Entity
+{
+	uint32_t Id;
+	uint32_t Type;
+};
+
+typedef void* EntityDataPtr;
+
 // A possible upgrade could be we reuse entity ids, which
 // would allow use to store all entity indecies in an array
 struct EntityMgr
@@ -77,6 +107,10 @@ struct EntityMgr
 	std::unordered_map<ChunkCoord, std::vector<EntityId>, Vector2iHasher, Vector2iEquals> ChunkToEntities;
 
 	SLinkedList<EntityId> EntitiesToRemove;
+	SLinkedList<EntityId> FreeIds;
+
+	SList<void*> Entities;
+
 
 	SList<Player> Players;
 	SList<SCreature> Creatures;

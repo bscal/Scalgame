@@ -9,7 +9,7 @@
 
 template<typename K>
 internal inline uint64_t
-DefaultKeyHash(const K* key)
+STableDefaultKeyHash(const K* key)
 {
 	const uint8_t* const data = (const uint8_t* const)key;
 	size_t length = sizeof(K);
@@ -18,8 +18,8 @@ DefaultKeyHash(const K* key)
 }
 
 template<typename K>
-inline bool
-DefaultKeyEquals(const K* k0, const K* k1)
+bool
+STableDefaultKeyEquals(const K* k0, const K* k1)
 {
 	return *k0 == *k1;
 }
@@ -40,7 +40,7 @@ struct STable
 	STableEntry<K, V>** Entries;
 	SMemAllocator Allocator;
 
-	uint64_t(*KeyHashFunction)(const K* key) = DefaultKeyHash;
+	uint64_t(*KeyHashFunction)(const K* key) = STableDefaultKeyHash;
 	bool (*KeyEqualsFunction)(const K* v0, const K* v1);
 
 	STable() = default;

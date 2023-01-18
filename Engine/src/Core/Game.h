@@ -66,17 +66,17 @@ struct GameApplication
     SAPI void Run();
 };
 
-inline GameApplication* const GetGameApp();
-inline void SetCameraPosition(Game* game, Vector3 pos);
-inline void SetCameraDistance(GameApplication* gameApp, float zoom);
-inline Player* const GetClientPlayer();
+GameApplication* const GetGameApp();
+void SetCameraPosition(Game* game, Vector3 pos);
+void SetCameraDistance(GameApplication* gameApp, float zoom);
+Player* const GetClientPlayer();
 Game* const GetGame();
-inline float GetDeltaTime();
-inline float GetScale();
+float GetDeltaTime();
+float GetScale();
 Rectangle GetScaledScreenRect();
-inline Vector2 VecToTileCenter(Vector2 vec);
-inline Vector2 ScaleWorldVec2(Vector2 vec);
-inline Vector2i ScaleWorldVec2i(Vector2i vec);
+Vector2 VecToTileCenter(Vector2 vec);
+Vector2 ScaleWorldVec2(Vector2 vec);
+Vector2i ScaleWorldVec2i(Vector2i vec);
 
 internal void GameLoadScreen(GameApplication* gameApp, int width, int height);
 internal bool GameInitialize(Game* game, GameApplication* gameApp);

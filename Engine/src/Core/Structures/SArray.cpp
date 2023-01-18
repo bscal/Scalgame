@@ -2,34 +2,22 @@
 
 #include "Core/SMemory.h"
 
-#include <assert.h>
-
-SAPI void ArrayCreate(uint64_t capacity, uint64_t stride, SArray* outSArray)
+SAPI SArray ArrayCreate(uint64_t capacity, uint64_t stride)
 {
-	assert(stride > 0);
-	assert(outSArray != nullptr);
+	SASSERT(capacity > 0);
+	SASSERT(stride > 0);
 
-	if (capacity == 0)
-	{
-		TraceLog(LOG_WARNING, "capacity is equal to 0, setting to DEFAULT_SIZE");
-		capacity = SARRAY_DEFAULT_SIZE;
-	}
-	if (outSArray->Memory)
-	{
-		TraceLog(LOG_ERROR, "outSArray Memory is already allocated!");
-		return;
-	}
-
-	SArray sArray = {};
+	SArray sArray;
 	sArray.Memory = (SArray*)SMemAlloc(capacity * stride);
 	sArray.Capacity = capacity;
+	sArray.Count = 0;
 	sArray.Stride = stride;
-	*outSArray = sArray;
+	return sArray;
 }
 
 SAPI void ArrayFree(SArray* sArray)
 {
-	assert(sArray);
+	SASSERT(sArray);
 	if (!sArray->Memory)
 	{
 		TraceLog(LOG_ERROR, "outSArray Memory is already freed!");
@@ -40,8 +28,8 @@ SAPI void ArrayFree(SArray* sArray)
 
 SAPI void ArrayResize(SArray* sArray)
 {
-	assert(sArray);
-	assert(sArray->Memory);
+	SASSERT(sArray);
+	SASSERT(sArray->Memory);
 	sArray->Capacity *= SARRAY_DEFAULT_RESIZE;
 	uint64_t newSize = sArray->Capacity * sArray->Stride;
 	sArray->Memory = SMemRealloc(sArray->Memory, newSize);
@@ -49,14 +37,14 @@ SAPI void ArrayResize(SArray* sArray)
 
 SAPI uint64_t GetArrayMemorySize(SArray* sArray)
 {
-	assert(sArray);
+	SASSERT(sArray);
 	return sArray->Capacity * sArray->Stride;
 }
 
 SAPI void ArrayPush(SArray* sArray, const void* valuePtr)
 {
-	assert(sArray);
-	assert(sArray->Memory);
+	SASSERT(sArray);
+	SASSERT(sArray->Memory);
 
 	if (sArray->Count == sArray->Capacity)
 	{
@@ -71,8 +59,8 @@ SAPI void ArrayPush(SArray* sArray, const void* valuePtr)
 
 SAPI void ArrayPop(SArray* sArray, void* dest)
 {
-	assert(sArray);
-	assert(sArray->Memory);
+	SASSERT(sArray);
+	SASSERT(sArray->Memory);
 
 	if (sArray->Count == 0) return;
 	uint64_t offset = (sArray->Count - 1) * sArray->Stride;
@@ -83,9 +71,9 @@ SAPI void ArrayPop(SArray* sArray, void* dest)
 
 SAPI void ArraySetAt(SArray* sArray, uint64_t index, const void* valuePtr)
 {
-	assert(sArray);
-	assert(sArray->Memory);
-	assert(index <= sArray->Count);
+	SASSERT(sArray);
+	SASSERT(sArray->Memory);
+	SASSERT(index <= sArray->Count);
 
 	uint64_t offset = index * sArray->Stride;
 	char* dest = (char*)(sArray->Memory) + offset;
@@ -94,9 +82,9 @@ SAPI void ArraySetAt(SArray* sArray, uint64_t index, const void* valuePtr)
 
 SAPI void ArrayPopAt(SArray* sArray, uint64_t index, void* dest)
 {
-	assert(sArray);
-	assert(sArray->Memory);
-	assert(index <= sArray->Count);
+	SASSERT(sArray);
+	SASSERT(sArray->Memory);
+	SASSERT(index <= sArray->Count);
 
 	uint64_t offset = index * sArray->Stride;
 	char* popAtAddress = (char*)(sArray->Memory) + offset;
@@ -113,9 +101,9 @@ SAPI void ArrayPopAt(SArray* sArray, uint64_t index, void* dest)
 
 SAPI void* ArrayPeekAt(SArray* sArray, uint64_t index)
 {
-	assert(sArray);
-	assert(sArray->Memory);
-	assert(index <= sArray->Count);
+	SASSERT(sArray);
+	SASSERT(sArray->Memory);
+	SASSERT(index <= sArray->Count);
 
 	uint64_t offset = index * sArray->Stride;
 	return (char*)(sArray->Memory) + offset;
@@ -123,15 +111,15 @@ SAPI void* ArrayPeekAt(SArray* sArray, uint64_t index)
 
 SAPI void ArrayClear(SArray* sArray)
 {
-	assert(sArray);
+	SASSERT(sArray);
 	sArray->Count = 0;
 }
 
 SAPI bool ArrayRemoveAt(SArray* sArray, uint64_t index)
 {
-	assert(sArray);
-	assert(sArray->Memory);
-	assert(index <= sArray->Count);
+	SASSERT(sArray);
+	SASSERT(sArray->Memory);
+	SASSERT(index <= sArray->Count);
 
 	size_t offset = index * sArray->Stride;
 	char* address = ((char*)(sArray->Memory)) + offset;

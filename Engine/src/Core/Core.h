@@ -61,7 +61,7 @@ inline void ReportAssertFailure(const char* expression, const char* msg, const c
 #else
 #define SLOG_DEBUG(msg, ...)
 #define SLOG_WARN(msg, ...)
-#define SASSERT(expression, msg, ...)
+#define SASSERT(expr)
 #define SASSERT_MSG(expr, msg)
 #define DEBUG_BREAK(void)
 #endif
@@ -90,3 +90,5 @@ ReportAssertFailure(const char* expression, const char* msg, const char* file, i
 		"Message: % s\n  File : % s, Line : % d\n",
 		expression, msg, file, line);
 }
+
+#include "SMemory.h"

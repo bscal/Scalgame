@@ -8,6 +8,7 @@ template<typename T>
 struct SComponent
 {
 	static const uint32_t ID;
+	uint32_t EntityId;
 };
 
 template<typename T>

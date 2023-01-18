@@ -3,8 +3,14 @@
 #include "Core.h"
 #include "Nuklear/raylib-nuklear.h"
 
+#include "Structures/SList.h"
+
+#include <string>
+
 struct GameApplication;
 struct Font;
+
+#define CONSOLE_MAX_LENGTH 128
 
 struct UIState
 {
@@ -17,6 +23,7 @@ struct UIState
 	bool IsDrawingFPS;
 	bool IsDebugPanelOpen;
     bool IsConsoleOpen;
+	SList<std::string> ConsoleEntries;
 };
 
 bool InitializeUI(UIState* state, GameApplication* gameApp);

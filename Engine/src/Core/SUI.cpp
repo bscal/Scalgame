@@ -19,6 +19,8 @@ bool InitializeUI(UIState* state, GameApplication* gameApp)
 {
 	InitializeNuklear(&state->Ctx, state, &gameApp->Game->Resources.FontSilver, 16.0f);
 
+	state->ConsoleEntries.Resize(CONSOLE_MAX_LENGTH);
+
 	SLOG_INFO("[ UI ] Initialized");
 
 	return true;
@@ -198,8 +200,6 @@ internal void AppendMemoryUsage(UIState* state)
 	nk_label(&state->Ctx, TextFormat("NewCalls: %d", GetNewCalls()), NK_TEXT_LEFT);
 }
 
-global_var std::vector<std::string> ConsoleEntries;
-
 internal void DrawConsole(UIState* state)
 {
 	local_var int heightAnimValue;
@@ -239,9 +239,9 @@ internal void DrawConsole(UIState* state)
 			if (nk_group_begin(ctx, "Messages", 0))
 			{
 				nk_layout_row_dynamic(ctx, TEXT_ENTRY_HEIGHT, 1);
-				for (int i = 0; i < ConsoleEntries.size(); ++i)
+				for (int i = 0; i < state->ConsoleEntries.Count; ++i)
 				{
-					nk_label(ctx, ConsoleEntries[i].c_str(), NK_TEXT_LEFT);
+					nk_label(ctx, state->ConsoleEntries[i].c_str(), NK_TEXT_LEFT);
 				}
 				nk_group_end(ctx);
 			}
@@ -255,17 +255,18 @@ internal void DrawConsole(UIState* state)
 			}
 			if (IsKeyPressed(KEY_ENTER))
 			{
-				if (ConsoleEntries.size() > MAX_CONSOLE_HISTORY)
+				if (state->ConsoleEntries.Count > MAX_CONSOLE_HISTORY)
 				{
-					ConsoleEntries.erase(ConsoleEntries.begin());
+					state->ConsoleEntries.RemoveAt(0);
 				}
+				std::string* str = state->ConsoleEntries.PushZero();
+				str->assign(cmdMgr.TextInputMemory, cmdMgr.Length);
 
-				ConsoleEntries.emplace_back(cmdMgr.TextInputMemory, cmdMgr.Length);
 				cmdMgr.TryExecuteCommand(std::string_view(cmdMgr.TextInputMemory, cmdMgr.Length));
 
-				if ((int)ConsoleEntries.size() >= h / TEXT_ENTRY_HEIGHT_WITH_PADDING)
+				if (state->ConsoleEntries.Count >= h / TEXT_ENTRY_HEIGHT_WITH_PADDING)
 				{
-					nk_group_set_scroll(ctx, "Messages", 0, (int)ConsoleEntries.size() * TEXT_ENTRY_HEIGHT_WITH_PADDING);
+					nk_group_set_scroll(ctx, "Messages", 0, state->ConsoleEntries.Count * TEXT_ENTRY_HEIGHT_WITH_PADDING);
 				}
 			}
 

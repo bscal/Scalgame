@@ -5,11 +5,11 @@
 #define CMD_SUCCESS 0
 #define CMD_FAILURE 1
 
-global_var std::string LastCmdError = "Unknown error";
+global_var const char* LastCmdError = "Unknown error";
 
 int SetCmdError(const char* err)
 {
-	LastCmdError = std::string(err);
+	LastCmdError = err;
 	return CMD_FAILURE;
 }
 
@@ -113,7 +113,7 @@ void CommandMgr::TryExecuteCommand(const std::string_view input)
 		}
 		else
 		{
-			SLOG_ERR("[ Command ] Error: %s", LastCmdError.c_str());
+			SLOG_ERR("[ Command ] Error: %s", LastCmdError);
 		}
 	}
 	SMemClear(TextInputMemory, sizeof(TextInputMemory));

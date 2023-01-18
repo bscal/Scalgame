@@ -10,10 +10,11 @@ internal uint32_t InternalFindEntityIndex(EntityMgr* entMgr, EntityId entId)
 }
 
 ComponentMgr::ComponentMgr()
-	: Components()
+	: Components(STableDefaultKeyEquals)
 {
-	Components.max_load_factor(COMPONENT_LOAD_FACTOR);
-	Components.reserve(CREATURE_MAX_COMPONENTS);
+	ComponentArray.EnsureSize(CREATURE_MAX_COMPONENTS);
+
+	Components.Reserve(CREATURE_MAX_COMPONENTS, 1.2f);
 
 	RegisterComponent<Human>(Human::ID);
 }

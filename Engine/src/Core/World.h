@@ -8,9 +8,6 @@
 #include "LightSource.h"
 #include "Structures/SList.h"
 
-#include <unordered_set>
-#include <vector>
-
 struct GameApplication;
 struct Game;
 struct Resources;
@@ -50,9 +47,6 @@ struct World
 	CTileMap::ChunkedTileMap ChunkedTileMap;
 	
 	SList<Action> EntityActionsList;
-	std::unordered_set<Vector2i,
-		Hash, Equals, SAllocator<Vector2i>> TileCoordsInLOS;
-
 	bool IsAllocated;
 	bool IsLoaded;
 };
