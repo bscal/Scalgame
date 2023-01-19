@@ -21,45 +21,8 @@ struct World;
 // top 16 bits are used for entity type
 typedef uint64_t EntityId;
 
-#define ENTITY_TYPE_MASK (0x00000000ff000000)
+#define ENTITY_TYPE_MASK (0xffffffff00ffffff)
 #define ENTITY_TYPE_OFFSET (32)
-
-#define ENTITY_INDEX_MASK (0x0000000000ffffff)
-#define ENTITY_INDEX_OFFSET (ENTITY_TYPE_OFFSET + 8)
-
-constexpr uint32_t GetEntityId(EntityId ent)
-{
-	return static_cast<uint32_t>(ent);
-}
-
-constexpr uint8_t GetEntityType(EntityId ent)
-{
-	uint8_t type = static_cast<uint8_t>(ent >> ENTITY_TYPE_OFFSET);
-	return type;
-}
-
-constexpr void SetEntityType(EntityId* ent, EntityType type)
-{
-	EntityId tmp = ENTITY_TYPE_MASK & ((EntityId)type >> ENTITY_TYPE_OFFSET);
-	*ent |= tmp;
-}
-
-constexpr uint32_t GetEntityIndex(EntityId ent)
-{
-	uint32_t index = static_cast<uint32_t>(ent >> ENTITY_INDEX_OFFSET);
-	return index;
-}
-
-constexpr void SetEntiyIndex(EntityId* ent, uint32_t index)
-{
-	EntityId tmp = ENTITY_INDEX_MASK & ((EntityId)index >> ENTITY_INDEX_OFFSET);
-	*ent |= tmp;
-}
-
-constexpr bool IsEmptyEntityId(EntityId ent)
-{
-	return (GetEntityId(ent) == CREATURE_EMPTY_ENTITY_ID);
-}
 
 enum EntityType : uint8_t
 {
@@ -69,8 +32,34 @@ enum EntityType : uint8_t
 	TILE,
 	TRIGGER,
 	ITEM,
+
 	MAX_TYPES
 };
+
+constexpr inline uint32_t GetEntityId(EntityId ent)
+{
+	return static_cast<uint32_t>(ent);
+}
+
+constexpr inline EntityType GetEntityType(EntityId ent)
+{
+	uint8_t type = static_cast<uint8_t>(ent >> ENTITY_TYPE_OFFSET);
+	SASSERT(type > 0);
+	return (EntityType)type;
+}
+
+constexpr inline void SetEntityType(EntityId* ent, EntityType type)
+{
+	EntityId editedEnt = *ent;
+	editedEnt &= ENTITY_TYPE_MASK;
+	editedEnt |= (0ULL | (EntityId)(type) << ENTITY_TYPE_OFFSET);
+	*ent = editedEnt;
+}
+
+constexpr inline bool IsEmptyEntityId(EntityId ent)
+{
+	return (GetEntityId(ent) == CREATURE_EMPTY_ENTITY_ID);
+}
 
 #define IS_TYPE(entityId, type) (GetEntityType(entityId) == static_cast<uint16_t>(type))
 
@@ -80,19 +69,78 @@ enum EntityType : uint8_t
 #define IS_TRIGGER(entityId) (IS_TYPE(entityId, TRIGGER))
 #define IS_ITEM(entityId) (IS_TYPE(entityId, ITEM))
 
-struct CreatureCache
+struct ComponentMgr
 {
-	uint32_t Index;
-	bool IsPlayer;
-};
+	SList<SArray> ComponentArray;
 
-struct Entity
-{
-	uint32_t Id;
-	uint32_t Type;
-};
+	ComponentMgr();
 
-typedef void* EntityDataPtr;
+	template<typename T>
+	void RegisterComponent(ComponentId componentId)
+	{
+		SASSERT(componentId < CREATURE_MAX_COMPONENTS);
+		SArray* componentArray = ComponentArray.PeekAt(componentId);
+		if (!componentArray->Memory)
+		{
+			*componentArray = ArrayCreate(16, sizeof(T));
+		}
+	}
+
+	template<typename T>
+	void AddComponent(SCreature* creature, SComponent<T>* component)
+	{
+		SASSERT(component->ID < CREATURE_MAX_COMPONENTS);
+		SArray* componentArray = ComponentArray.PeekAt(T::ID);
+		SASSERT(componentArray);
+		SASSERT(componentArray->Memory);
+		component->EntityId = creature->Id;
+		ArrayPush(componentArray, component);
+		creature->ComponentIndex[T::ID] = (uint32_t)componentArray->Count - 1;
+	}
+
+	template<typename T>
+	void RemoveComponent(SCreature* creature,
+		ComponentId componentId)
+	{
+		SASSERT(component->ID < CREATURE_MAX_COMPONENTS);
+		SArray* componentArray = ComponentArray.PeekAt(componentId);
+		SASSERT(componentArray);
+		SASSERT(componentArray->Memory);
+
+		if (creature->ComponentIndex[componentId] == CREATURE_EMPTY_COMPONENT)
+		{
+			SLOG_WARN("Failed removing component from entity that doesnt"
+				"have the required component!");
+			return;
+		}
+
+		uint32_t index = creature->ComponentIndex[componentId];
+		creature->ComponentIndex[componentId] = CREATURE_EMPTY_COMPONENT;
+
+		if (ArrayRemoveAt(componentArray, static_cast<uint64_t>(index)))
+		{
+			SComponent<T>* movedComponent = (SComponent<T>*)ArrayPeekAt(componentArray, index);
+			SASSERT(!IsEmptyEntityId(movedComponent->EntityId));
+			// Currently only SCreatures support components, Players are creatures
+			SCreature* creature = (SCreature*)FindEntity
+				(&GetGame()->EntityMgr, movedComponent->EntityId);
+			creature->ComponentIndex[componentId] = index;
+		}
+	}
+
+	template<typename T>
+	T* GetComponent(const SCreature* creature,
+		ComponentId componentId) const
+	{
+		SASSERT(componentId < CREATURE_MAX_COMPONENTS);
+		SASSERT(creature->ComponentIndex[componentId]
+			!= CREATURE_EMPTY_COMPONENT);
+		uint32_t index = creature->ComponentIndex[componentId];
+		SArray* componentArray = ComponentArray.PeekAt(componentId);
+		SASSERT(componentArray);
+		return (T*)ArrayPeekAt(componentArray, (uint64_t)index);
+	}
+};
 
 // A possible upgrade could be we reuse entity ids, which
 // would allow use to store all entity indecies in an array
@@ -100,45 +148,79 @@ struct EntityMgr
 {
 	ComponentMgr ComponentManager;
 
-	std::unordered_map<EntityId, uint32_t> EntityIdToIndex;
-
-	// TODO this is just a quick and dirty way to get entities by entityId
-	// in a chunk. Also current I do not clean up any of entries or vectors
-	std::unordered_map<ChunkCoord, std::vector<EntityId>, Vector2iHasher, Vector2iEquals> ChunkToEntities;
-
 	SLinkedList<EntityId> EntitiesToRemove;
-	SLinkedList<EntityId> FreeIds;
+	SLinkedList<uint64_t> FreeIds;
 
-	SList<void*> Entities;
-
+	SList<uint32_t> Entities;
 
 	SList<Player> Players;
 	SList<SCreature> Creatures;
 
 	uint32_t NextEntityId;
-
-	size_t TotalEntities() const;
-	bool IsEmpty(const SCreature& entity) const;
+	uint32_t ActiveEntities;
+	uint32_t TotalEntities;
 };
 
 void EntityMgrInitialize(Game* game);
+
 void EntityMgrUpdate(EntityMgr* entMgr, Game* game);
 
-EntityId CreateEntity(EntityMgr* entMgr, EntityType type);
+void MarkEntityForRemove(EntityMgr* entMgr, EntityId entId);
 
-void UpdateEntityPosition(EntityId id, Vector2i oldPos, Vector2i newPos);
+EntityId CreateEntityId(EntityMgr* entMgr, EntityType type);
+
+void SpawnEntity(EntityMgr* entMgr, EntityId ent, uint32_t index);
 
 Player* CreatePlayer(EntityMgr* entMgr, World* world);
 SCreature* CreateCreature(EntityMgr* entMgr, World* world);
 
-void RemoveEntity(EntityMgr* entMgr, EntityId entityId);
-void MarkEntityForRemove(EntityMgr* entMgr, EntityId entId);
+void* FindEntity(EntityMgr* entMgr, EntityId ent);
 
-void* FindEntity(EntityMgr* entMgr, EntityId entId, uint32_t entIndex);
-// If you know the type you should use the specific FindType function;
-void* FindEntityById(EntityMgr* entMgr, EntityId entId);
+void RemoveEntity(EntityMgr* entMgr, EntityId ent);
 
-uint32_t TryFindEntityIndex(EntityMgr* entMgr, EntityId entId);
+internal inline void 
+SwapPlayer(EntityMgr* entMgr, uint32_t index)
+{
+	entMgr->Players.RemoveAtFast(index);
+	if (entMgr->Players.Count <= index)
+	{
+		Player* swapped = entMgr->Players.PeekAt(index);
+		SASSERT(swapped);
+		uint32_t* entIndex = entMgr->Entities.PeekAt(GetEntityId(swapped->Id));
+		*entIndex = index;
+	}
+}
 
-Player* FindPlayer(EntityMgr* entMgr, EntityId entId);
-SCreature* FindCreature(EntityMgr* entMgr, EntityId entId);
+internal inline void 
+SwapCreature(EntityMgr* entMgr, uint32_t index)
+{
+	entMgr->Creatures.RemoveAtFast(index);
+	if (entMgr->Creatures.Count < index)
+	{
+		SCreature* swapped = entMgr->Creatures.PeekAt(index);
+		SASSERT(swapped);
+		uint32_t* entIndex = entMgr->Entities.PeekAt(GetEntityId(swapped->Id));
+		*entIndex = index;
+	}
+}
+
+constexpr global_var void (*SwapFuncs[MAX_TYPES])(EntityMgr*, uint32_t) = {
+	nullptr,
+	SwapPlayer,
+	SwapCreature,
+	nullptr,
+	nullptr,
+	nullptr
+};
+
+inline void TestEntities()
+{
+	EntityId ent = 1005;
+	SetEntityType(&ent, CREATURE);
+
+	uint32_t id = GetEntityId(ent);
+	SASSERT(id == 1005);
+
+	EntityType type = GetEntityType(ent);
+	SASSERT(type == CREATURE);
+}

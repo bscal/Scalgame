@@ -2,15 +2,14 @@
 
 #include "Core.h"
 
-global_var uint32_t SNextComponentId;
-
 template<typename T>
 struct SComponent
 {
 	static const uint32_t ID;
-	uint32_t EntityId;
+	uint64_t EntityId;
 };
 
+global_var uint32_t SNextComponentId;
 template<typename T>
 const uint32_t SComponent<T>::ID = SNextComponentId++;
 

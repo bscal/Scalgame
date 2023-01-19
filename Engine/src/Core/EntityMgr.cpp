@@ -2,42 +2,20 @@
 
 #include "Game.h"
 
-internal uint32_t InternalFindEntityIndex(EntityMgr* entMgr, EntityId entId)
-{
-	const auto& find = entMgr->EntityIdToIndex.find(entId);
-	assert(find != entMgr->EntityIdToIndex.end());
-	return find->second;
-}
-
 ComponentMgr::ComponentMgr()
-	: Components(STableDefaultKeyEquals)
 {
 	ComponentArray.EnsureSize(CREATURE_MAX_COMPONENTS);
-
-	Components.Reserve(CREATURE_MAX_COMPONENTS, 1.2f);
 
 	RegisterComponent<Human>(Human::ID);
 }
 
-size_t EntityMgr::TotalEntities() const
-{
-	return EntityIdToIndex.size();
-}
-
-bool EntityMgr::IsEmpty(const SCreature& creature) const
-{
-	return (creature.Id == CREATURE_EMPTY_ENTITY_ID);
-}
-
 void EntityMgrInitialize(Game* game)
 {
-	game->EntityMgr.NextEntityId = 1; // 0 is empty id
 	game->EntityMgr.Players.Resize(1);
 	game->EntityMgr.Creatures.Resize(ESTIMATED_ENTITIES);
 
 	SLOG_INFO("[ Entity Manager ] Initialized!");
 }
-
 
 void EntityMgrUpdate(EntityMgr* entMgr, Game* game)
 {
@@ -62,162 +40,102 @@ void EntityMgrUpdate(EntityMgr* entMgr, Game* game)
 	}
 }
 
-Player* GetPlayer(EntityMgr* entMgr, EntityId entId)
+void MarkEntityForRemove(EntityMgr* entMgr, EntityId ent)
 {
-	uint32_t index = InternalFindEntityIndex(entMgr, entId);
-	return entMgr->Players.PeekAt(index);
+	SASSERT(!IsEmptyEntityId(ent));
+	entMgr->EntitiesToRemove.Push(&ent);
+	EntityType type = GetEntityType(ent);
+	if (type == PLAYER || type == CREATURE)
+	{
+		SCreature* creature = (SCreature*)FindEntity(entMgr, ent);
+		SASSERT(!creature->ShouldRemove);
+		creature->ShouldRemove = true;
+	}
 }
 
-SCreature* GetCreature(EntityMgr* entMgr, EntityId entId)
+EntityId CreateEntityId(EntityMgr* entMgr, EntityType type)
 {
-	uint32_t index = InternalFindEntityIndex(entMgr, entId);
-	return entMgr->Creatures.PeekAt(index);
-}
+	EntityId id;
 
-EntityId CreateEntity(EntityMgr* entMgr, EntityType typeId)
-{
-	assert(entMgr->NextEntityId != 0);
-	EntityId id = entMgr->NextEntityId++;
-	id |= (ENTITY_TYPE_MASK & ((uint64_t)(typeId) << ENTITY_TYPE_OFFSET));
+	if (entMgr->FreeIds.HasNext())
+		id = entMgr->FreeIds.PopValue();
+	else
+		id = entMgr->NextEntityId++;
 
-	assert(GetEntityType(id) != UNKNOWN);
-	assert(GetEntityType(id) < MAX_TYPES);
+	SetEntityType(&id, type);
 	return id;
 }
 
-void* FindEntity(EntityMgr* entMgr, EntityId entId, uint32_t entIndex)
+void SpawnEntity(EntityMgr* entMgr, EntityId ent, uint32_t index)
 {
-	EntityType typeId = (EntityType)GetEntityType(entId);
+	SASSERT(!IsEmptyEntityId(ent));
 
-	assert(entIndex != CREATURE_EMPTY_ENTITY_ID);
-
-	void* entMemory;
-	switch (typeId)
-	{
-		case PLAYER: entMemory = (void*)&entMgr->Players[entIndex]; break;
-		case CREATURE: entMemory = (void*)&entMgr->Creatures[entIndex]; break;
-		default: entMemory = NULL; break;
-	}
-
-	assert(entMemory);
-	return entMemory;
+	uint32_t id = GetEntityId(ent);
+	entMgr->Entities.EnsureSize(id + 1);
+	entMgr->Entities.Set(id, &index);
 }
-
-void* FindEntityById(EntityMgr* entMgr, EntityId entId)
-{
-	uint32_t entityId = TryFindEntityIndex(entMgr, entId);
-	return FindEntity(entMgr, entId, entityId);
-}
-
-uint32_t TryFindEntityIndex(EntityMgr* entMgr, EntityId entId)
-{
-	if (IsEmptyEntityId(entId)) return CREATURE_EMPTY_ENTITY_ID;
-	auto find = entMgr->EntityIdToIndex.find(entId);
-	assert(find != entMgr->EntityIdToIndex.end());
-	return find->second;
-}
-
-internal void 
-InsertEntity(EntityMgr* entMgr, EntityId entId, Vector2i chunkPos)
-{
-	auto& chunkEntityMap = entMgr->ChunkToEntities;
-	auto find = chunkEntityMap.find(chunkPos);
-	if (find == chunkEntityMap.end())
-	{
-		auto pair = chunkEntityMap.emplace(std::make_pair(chunkPos, std::vector<EntityId>()));
-		pair.first->second.push_back(entId);
-	}
-	else
-	{
-		find->second.push_back(entId);
-	}
-}
-
-void UpdateEntityPosition(EntityId id, Vector2i oldPos, Vector2i newPos)
-{
-	auto& old = GetGame()->EntityMgr.ChunkToEntities[oldPos];
-	for (auto it = old.begin(); it != old.end(); ++it)
-	{
-		if (*it == id) old.erase(it);
-	}
-
-	InsertEntity(&GetGame()->EntityMgr, id, newPos);
-}
-
 
 Player* CreatePlayer(EntityMgr* entMgr, World* world)
 {
-	EntityId entityId = CreateEntity(entMgr, PLAYER);
+	EntityId ent = CreateEntityId(entMgr, PLAYER);
 
-	Player player = {};
-	player.Id = entityId;
-	player.WorldRef = world;
-	entMgr->Players.Push(&player);
+	Player* player = entMgr->Players.PushZero();
+	player->WorldRef = world;
+	player->Id = ent;
+	SMemSet(player->ComponentIndex, CREATURE_EMPTY_COMPONENT, sizeof(player->ComponentIndex));
 
-	uint32_t index = (uint32_t)entMgr->Players.End();
-	entMgr->EntityIdToIndex.insert({ entityId, index });
-	InsertEntity(entMgr, entityId, player.Transform.ChunkPos);
-	
-	return entMgr->Players.Last();
+	SpawnEntity(entMgr, ent, entMgr->Players.End());
+	SASSERT(player);
+	return player;
 }
-
 
 SCreature* CreateCreature(EntityMgr* entMgr, World* world)
 {
-	EntityId entityId = CreateEntity(entMgr, CREATURE);
+	EntityId ent = CreateEntityId(entMgr, CREATURE);
 
-	SCreature creature = {};
-	creature.Id = entityId;
-	creature.WorldRef = world;
-	entMgr->Creatures.Push(&creature);
+	SCreature* creature = entMgr->Creatures.PushZero();
+	creature->WorldRef = world;
+	creature->Id = ent;
+	SMemSet(creature->ComponentIndex, CREATURE_EMPTY_COMPONENT, sizeof(creature->ComponentIndex));
 
-	uint32_t index = (uint32_t)entMgr->Creatures.End();
-	entMgr->EntityIdToIndex.insert({ entityId, index });
-	InsertEntity(entMgr, entityId, creature.Transform.ChunkPos);
-
-	return entMgr->Creatures.Last();
+	SpawnEntity(entMgr, ent, entMgr->Creatures.End());
+	SASSERT(creature);
+	return creature;
 }
 
-void RemoveEntity(EntityMgr* entMgr, EntityId entityId)
+void* FindEntity(EntityMgr* entMgr, EntityId ent)
 {
-	assert(!IsEmptyEntityId(entityId));
-	auto find = entMgr->EntityIdToIndex.find(entityId);
-	assert(find != entMgr->EntityIdToIndex.end());
+	if (IsEmptyEntityId(ent)) return NULL;
+	uint32_t id = GetEntityId(ent);
+	EntityType type = GetEntityType(ent);
 
-	uint32_t entIndex = find->second;
-	EntityId movedEntityId = CREATURE_EMPTY_ENTITY_ID;
-	EntityType typeId = (EntityType)GetEntityType(entityId);
-	switch (typeId)
+	uint32_t index = entMgr->Entities[id];
+
+	void* entity;
+	switch (type)
 	{
-		case PLAYER: {
-			entMgr->Players.RemoveAtFast(entIndex);
-			if (entMgr->Players.Count < entIndex)
-				movedEntityId = entMgr->Players[entIndex].Id;
-			break;
-		}
-		case CREATURE: {
-			entMgr->Creatures.RemoveAtFast(entIndex);
-			if (entMgr->Creatures.Count < entIndex)
-				movedEntityId = entMgr->Creatures[entIndex].Id;
-			break;
-		}
-		default: {
-			SLOG_ERR("Removed entity did not have a type!");
-			assert(false);
-			break;
-		}
+		case PLAYER: entity = entMgr->Players.PeekAt(index); break;
+		case CREATURE: entity = entMgr->Creatures.PeekAt(index); break;
+		default: entity = NULL;
 	}
-
-	entMgr->EntityIdToIndex.erase(entityId);
-
-	if (movedEntityId != CREATURE_EMPTY_ENTITY_ID)
-	{
-		assert(entMgr->EntityIdToIndex.find(movedEntityId) == entMgr->EntityIdToIndex.end());
-		entMgr->EntityIdToIndex.at(movedEntityId) = entIndex;
-	}
+	SASSERT(entity);
+	return entity;
 }
 
-void MarkEntityForRemove(EntityMgr* entMgr, EntityId entId)
+void RemoveEntity(EntityMgr* entMgr, EntityId ent)
 {
-	entMgr->EntitiesToRemove.Push(&entId);
+	SASSERT(!IsEmptyEntityId(ent));
+
+	uint32_t id = GetEntityId(ent);
+	SASSERT(id != CREATURE_EMPTY_ENTITY_ID);
+	EntityType type = GetEntityType(ent);
+	SASSERT(type != UNKNOWN);
+
+	uint32_t* index = entMgr->Entities.PeekAt(id);
+	auto entitySwapFunc = SwapFuncs[type];
+	SASSERT(entitySwapFunc);
+	entitySwapFunc(entMgr, *index);
+
+	entMgr->FreeIds.Push((uint64_t*)index);
+	*index = CREATURE_EMPTY_ENTITY_ID;
 }

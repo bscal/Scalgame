@@ -47,8 +47,7 @@ template<typename T>
 void RegisterComponent(EntitiesManager* entityManager,
 	uint32_t componentId)
 {
-	SArray componentsArray = {};
-	ArrayCreate(32, sizeof(T), &componentsArray);
+	SArray componentsArray = ArrayCreate(32, sizeof(T));
 	entityManager->ComponentMap.Put(&componentId, &componentsArray);
 }
 

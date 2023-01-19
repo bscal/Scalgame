@@ -58,7 +58,7 @@ void SCreature::SetTilePos(Vector2i tilePos)
 	Vector2i newChunkPos = tilePos.Divide({ CHUNK_SIZE, CHUNK_SIZE });
 	if (!newChunkPos.Equals(Transform.ChunkPos))
 	{
-		UpdateEntityPosition(Id, Transform.ChunkPos, newChunkPos);
+		//UpdateEntityPosition(Id, Transform.ChunkPos, newChunkPos);
 		Transform.ChunkPos = newChunkPos;
 	}
 }

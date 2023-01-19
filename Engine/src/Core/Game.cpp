@@ -1,7 +1,6 @@
 #include "Game.h"
 
 #include "Creature.h"
-#include "LightSource.h"
 #include "ResourceManager.h"
 #include "SpriteAtlas.h"
 #include "Lighting.h"
@@ -47,6 +46,7 @@ SAPI bool GameApplication::Start()
     
     TestListImpl();
     TestSTable();
+    TestEntities();
 
     IsInitialized = true;
 
@@ -115,6 +115,10 @@ internal void GameStart(Game* game, GameApplication* gameApp)
     Human* playerHuman = game->EntityMgr.ComponentManager
         .GetComponent<Human>(player, Human::ID);
 
+    SASSERT(playerHuman);
+    SASSERT(playerHuman->Age == 30);
+    SASSERT(playerHuman->EntityId == player->Id);
+
     SLOG_INFO("[ WORLD ] players age is %d from componentId: %d",
         playerHuman->Age, playerHuman->ID);
 
@@ -123,6 +127,13 @@ internal void GameStart(Game* game, GameApplication* gameApp)
     rat->SetTilePos({ 5, 5 });
 
     MarkEntityForRemove(&game->EntityMgr, rat->Id);
+
+    SCreature* getRat = (SCreature*)FindEntity(&game->EntityMgr, rat->Id);
+    SASSERT(getRat);
+    SASSERT(getRat->ComponentIndex[0] == CREATURE_EMPTY_COMPONENT);
+    SASSERT(GetEntityId(getRat->Id) == 1);
+    SASSERT(GetEntityType(getRat->Id) == CREATURE);
+    SASSERT(getRat->ShouldRemove);
 
     WorldLoad(&game->World, game);
 }

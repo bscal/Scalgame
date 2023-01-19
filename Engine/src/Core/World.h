@@ -5,7 +5,6 @@
 #include "EntityMgr.h"
 #include "TileMapUtils.h"
 #include "Creature.h"
-#include "LightSource.h"
 #include "Structures/SList.h"
 
 struct GameApplication;

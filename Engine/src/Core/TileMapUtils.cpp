@@ -32,10 +32,10 @@ void GetTilesInCone(World* world, float playerAngleRadians,
 		float xPos1 = x + x1 * distance;
 		float yPos1 = y + y1 * distance;
 
-		Raytrace2DInt(world, (int)x, (int)y,
-			(int)xPos0, (int)yPos0, OnVisitTile);
-		Raytrace2DInt(world, (int)x, (int)y,
-			(int)xPos1, (int)yPos1, OnVisitTile);
+		//Raytrace2DInt(world, (int)x, (int)y,
+			//(int)xPos0, (int)yPos0, OnVisitTile);
+		//Raytrace2DInt(world, (int)x, (int)y,
+			//(int)xPos1, (int)yPos1, OnVisitTile);
 
 		DrawLineEx({ x, y }, { xPos0, yPos0 }, 2.0f, PINK);
 		DrawLineEx({ x, y }, { xPos1, yPos1 }, 2.0f, PINK);
@@ -80,25 +80,25 @@ internal float Distance(float x0, float y0, float x1, float y1)
 	return sqrtf(xL * xL + yL * yL);
 }
 
-void GetSurroundingTilesRadius(World* world,
-	const LightSource& light,
-	void (OnVisit)(World* world, int x, int y,
-		const LightSource& light))
-{
-	int startX = (int)(light.Position.x - light.Intensity);
-	int startY = (int)(light.Position.y - light.Intensity);
-	int endX = (int)(light.Position.x + light.Intensity);
-	int endY = (int)(light.Position.y + light.Intensity);
-	for (int yi = startY; yi <= endY; ++yi)
-	{
-		for (int xi = startX; xi <= endX; ++xi)
-		{
-			if (WorldIsInBounds(world, { xi, yi }) &&
-				Distance(light.Position.x, light.Position.y,
-					(float)xi + 0.5f, (float)yi + 0.5f) < light.Intensity)
-			{
-				OnVisit(world, xi, yi, light);
-			}
-		}
-	}
-}
+//void GetSurroundingTilesRadius(World* world,
+//	const LightSource& light,
+//	void (OnVisit)(World* world, int x, int y,
+//		const LightSource& light))
+//{
+//	int startX = (int)(light.Position.x - light.Intensity);
+//	int startY = (int)(light.Position.y - light.Intensity);
+//	int endX = (int)(light.Position.x + light.Intensity);
+//	int endY = (int)(light.Position.y + light.Intensity);
+//	for (int yi = startY; yi <= endY; ++yi)
+//	{
+//		for (int xi = startX; xi <= endX; ++xi)
+//		{
+//			if (WorldIsInBounds(world, { xi, yi }) &&
+//				Distance(light.Position.x, light.Position.y,
+//					(float)xi + 0.5f, (float)yi + 0.5f) < light.Intensity)
+//			{
+//				OnVisit(world, xi, yi, light);
+//			}
+//		}
+//	}
+//}

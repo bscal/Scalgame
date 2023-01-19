@@ -15,6 +15,7 @@ struct SList
 	uint64_t Count;
 	SMemAllocator Allocator;
 
+	void EnsureCapacity(uint64_t ensuredCapacity);
 	void EnsureSize(uint64_t ensuredCount); // ensures capacity and count elements
 	void Free();
 	void Resize(uint64_t capacity);
@@ -51,6 +52,13 @@ struct SList
 };
 
 // ********************
+
+template<typename T>
+void SList<T>::EnsureCapacity(uint64_t ensuredCapacity)
+{
+	if (Capacity >= ensuredCapacity) return;
+	Resize(ensuredCapacity);
+}
 
 template<typename T>
 void SList<T>::EnsureSize(uint64_t ensuredCount)
