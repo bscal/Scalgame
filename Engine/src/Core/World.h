@@ -3,7 +3,6 @@
 #include "Core.h"
 #include "ChunkedTileMap.h"
 #include "EntityMgr.h"
-#include "TileMapUtils.h"
 #include "Creature.h"
 #include "Structures/SList.h"
 

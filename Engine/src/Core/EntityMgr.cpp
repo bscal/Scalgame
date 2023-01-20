@@ -1,6 +1,7 @@
 #include "EntityMgr.h"
 
 #include "Game.h"
+#include "SMemory.h"
 
 ComponentMgr::ComponentMgr()
 {
@@ -121,6 +122,42 @@ void* FindEntity(EntityMgr* entMgr, EntityId ent)
 	SASSERT(entity);
 	return entity;
 }
+
+
+internal void
+SwapPlayer(EntityMgr* entMgr, uint32_t index)
+{
+	entMgr->Players.RemoveAtFast(index);
+	if (entMgr->Players.Count <= index)
+	{
+		Player* swapped = entMgr->Players.PeekAt(index);
+		SASSERT(swapped);
+		uint32_t* entIndex = entMgr->Entities.PeekAt(GetEntityId(swapped->Id));
+		*entIndex = index;
+	}
+}
+
+internal void
+SwapCreature(EntityMgr* entMgr, uint32_t index)
+{
+	entMgr->Creatures.RemoveAtFast(index);
+	if (entMgr->Creatures.Count < index)
+	{
+		SCreature* swapped = entMgr->Creatures.PeekAt(index);
+		SASSERT(swapped);
+		uint32_t* entIndex = entMgr->Entities.PeekAt(GetEntityId(swapped->Id));
+		*entIndex = index;
+	}
+}
+
+constexpr global_var void (*SwapFuncs[MAX_TYPES])(EntityMgr*, uint32_t) = {
+	nullptr,
+	SwapPlayer,
+	SwapCreature,
+	nullptr,
+	nullptr,
+	nullptr
+};
 
 void RemoveEntity(EntityMgr* entMgr, EntityId ent)
 {

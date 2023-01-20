@@ -1,15 +1,6 @@
 #pragma once
 
 #include "Core.h"
-#include "SHash.hpp"
-#include "SMemory.h"
-
-#include <stdint.h>
-
-inline float Clampf(float min, float max, float value)
-{
-    return fmaxf(min, fminf(max, value));
-}
 
 inline Rectangle RectangleExpand(const Rectangle& rect, float width, float height)
 {
@@ -21,31 +12,6 @@ inline Rectangle RectangleExpand(const Rectangle& rect, float width, float heigh
     return r;
 }
 
-struct SMemAllocator
-{
-    [[nodiscard]] inline void* Alloc(size_t size) const
-    {
-        return SMemAlloc(size);
-    }
-
-    inline void Free(void* block) const
-    {
-        return SMemFree(block);
-    }
-};
-
-struct SMemTempAllocator : public SMemAllocator
-{
-    [[nodiscard]] inline void* Alloc(size_t size) const
-    {
-        void* allocation = BiStackAllocFront(GetTempMemory(), size);
-        SASSERT(allocation);
-        return allocation;
-    }
-
-    inline void Free(void* block) const {}
-};
-#define SMEM_TEMP_ALLOCATOR SMemTempAllocator{}
 
 //template<typename T>
 //struct SAllocator

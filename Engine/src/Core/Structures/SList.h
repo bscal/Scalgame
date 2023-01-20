@@ -2,7 +2,6 @@
 
 #include "Core/Core.h"
 #include "Core/SMemory.h"
-#include "Core/SUtil.h"
 
 #define SLIST_DEFAULT_RESIZE 2
 #define SLIST_NO_POSITION UINT64_MAX
@@ -11,31 +10,31 @@ template<typename T>
 struct SList
 {
 	T* Memory;
-	uint64_t Capacity;
-	uint64_t Count;
+	uint32_t Capacity;
+	uint32_t Count;
 	SMemAllocator Allocator;
 
-	void EnsureCapacity(uint64_t ensuredCapacity);
-	void EnsureSize(uint64_t ensuredCount); // ensures capacity and count elements
+	void EnsureCapacity(uint32_t ensuredCapacity);
+	void EnsureSize(uint32_t ensuredCount); // ensures capacity and count elements
 	void Free();
-	void Resize(uint64_t capacity);
+	void Resize(uint32_t capacity);
 
 	void Push(const T* valueSrc); // Checks resize, inserts and end of array
 	T* PushZero(); // Checks resize, clears memory, returns ptr to end
-	void PushAt(uint64_t index, const T* valueSrc);
-	void PushAtFast(uint64_t index, const T* valueSrc); // Checks resize, inserts at index, moving old index to end
+	void PushAt(uint32_t index, const T* valueSrc);
+	void PushAtFast(uint32_t index, const T* valueSrc); // Checks resize, inserts at index, moving old index to end
 	bool PushUnique(const T* valueSrc);
-	bool PushAtUnique(uint64_t index, const T* valueSrc);
-	bool PushAtFastUnique(uint64_t index, const T* valueSrc);
+	bool PushAtUnique(uint32_t index, const T* valueSrc);
+	bool PushAtFastUnique(uint32_t index, const T* valueSrc);
 	void Pop(T* valueDest); // Pops end of array
-	void PopAt(uint64_t index, T* valueDest);
-	void PopAtFast(uint64_t index, T* valueDest); // pops index, moving last element to index
+	void PopAt(uint32_t index, T* valueDest);
+	void PopAtFast(uint32_t index, T* valueDest); // pops index, moving last element to index
 	void Remove(); // Same as pop, but does not do a copy
-	void RemoveAt(uint64_t index);
-	void RemoveAtFast(uint64_t index);
-	void Set(uint64_t index, const T* valueSrc);
+	void RemoveAt(uint32_t index);
+	void RemoveAtFast(uint32_t index);
+	void Set(uint32_t index, const T* valueSrc);
 
-	inline T* PeekAt(uint64_t index) const;
+	inline T* PeekAt(uint32_t index) const;
 	inline T* Last() const;
 
 	const T& operator[](size_t i) const { SASSERT(i < Count); return Memory[i]; }
@@ -45,7 +44,7 @@ struct SList
 	int64_t Find(const T* value) const; // index to element, SLIST_NO_POSITION if not found
 	inline void Clear();
 
-	inline uint64_t End() const; // Index to last element, SLIST_NO_POSITION = 0 elements
+	inline uint32_t End() const; // Index to last element, SLIST_NO_POSITION = 0 elements
 	inline size_t MemUsed() const; // Total memory used in bytes
 	inline size_t Stride() const;
 	inline bool IsAllocated() const;
@@ -54,24 +53,25 @@ struct SList
 // ********************
 
 template<typename T>
-void SList<T>::EnsureCapacity(uint64_t ensuredCapacity)
+void SList<T>::EnsureCapacity(uint32_t ensuredCapacity)
 {
 	if (Capacity >= ensuredCapacity) return;
 	Resize(ensuredCapacity);
 }
 
 template<typename T>
-void SList<T>::EnsureSize(uint64_t ensuredCount)
+void SList<T>::EnsureSize(uint32_t ensuredCount)
 {
 	if (Count >= ensuredCount) return;
 
 	if (ensuredCount > Capacity)
 	{
 		Capacity = ensuredCount;
-		Memory = (T*)SMemRealloc(Memory, MemUsed());
+		Allocator.Free(Memory);
+		Memory = (T*)Allocator.Alloc(MemUsed());
 	}
 
-	uint64_t ensuredSize = Capacity - Count;
+	uint32_t ensuredSize = Capacity - Count;
 	SMemSet(&Memory[Count], 0, ensuredSize * sizeof(T));
 	Count = Capacity;
 }
@@ -82,7 +82,7 @@ void SList<T>::Free()
 	if (Memory)
 	{
 		SMemClear(Memory, MemUsed());
-		SMemFree(Memory);
+		Allocator.Free(Memory);
 		Memory = NULL;
 	}
 	Capacity = 0;
@@ -90,7 +90,7 @@ void SList<T>::Free()
 }
 
 template<typename T>
-void SList<T>::Resize(uint64_t newCapacity)
+void SList<T>::Resize(uint32_t newCapacity)
 {
 	if (newCapacity == 0 && Capacity == 0) newCapacity = 1;
 	Capacity = newCapacity;
@@ -126,12 +126,12 @@ T* SList<T>::PushZero()
 	}
 	++Count;
 	T* ptr = &Memory[End()];
-	SMemClear(ptr, sizeof(T));
+	*ptr = {};
 	return ptr;
 }
 
 template<typename T>
-void SList<T>::PushAt(uint64_t index, const T* valueSrc)
+void SList<T>::PushAt(uint32_t index, const T* valueSrc)
 {
 	SASSERT(index < Count);
 	SASSERT(valueSrc);
@@ -141,9 +141,9 @@ void SList<T>::PushAt(uint64_t index, const T* valueSrc)
 	}
 	if (index != Count)
 	{
-		uint64_t dstOffset = (index + 1) * sizeof(T);
-		uint64_t srcOffset = index * sizeof(T);
-		uint64_t sizeTillEnd = (Count - index) * sizeof(T);
+		uint32_t dstOffset = (index + 1) * sizeof(T);
+		uint32_t srcOffset = index * sizeof(T);
+		uint32_t sizeTillEnd = (Count - index) * sizeof(T);
 		char* mem = (char*)Memory;
 		SMemMove(mem + dstOffset, mem + srcOffset, sizeTillEnd);
 	}
@@ -152,7 +152,7 @@ void SList<T>::PushAt(uint64_t index, const T* valueSrc)
 }
 
 template<typename T>
-void SList<T>::PushAtFast(uint64_t index, const T* valueSrc)
+void SList<T>::PushAtFast(uint32_t index, const T* valueSrc)
 {
 	SASSERT(index < Count);
 	SASSERT(valueSrc);
@@ -177,7 +177,7 @@ bool SList<T>::PushUnique(const T* valueSrc)
 }
 
 template<typename T>
-bool SList<T>::PushAtUnique(uint64_t index, const T* valueSrc)
+bool SList<T>::PushAtUnique(uint32_t index, const T* valueSrc)
 {
 	if (Contains(valueSrc)) return false;
 	PushAt(index, valueSrc);
@@ -185,7 +185,7 @@ bool SList<T>::PushAtUnique(uint64_t index, const T* valueSrc)
 }
 
 template<typename T>
-bool SList<T>::PushAtFastUnique(uint64_t index, const T* valueSrc)
+bool SList<T>::PushAtFastUnique(uint32_t index, const T* valueSrc)
 {
 	if (Contains(valueSrc)) return false;
 	PushAtFast(index, valueSrc);
@@ -205,7 +205,7 @@ void SList<T>::Pop(T* valueDest)
 }
 
 template<typename T>
-void SList<T>::PopAt(uint64_t index, T* valueDest)
+void SList<T>::PopAt(uint32_t index, T* valueDest)
 {
 	SASSERT(Memory);
 	SASSERT(Count > 0);
@@ -213,9 +213,9 @@ void SList<T>::PopAt(uint64_t index, T* valueDest)
 	*valueDest = Memory[index];
 	if (index < End())
 	{
-		uint64_t dstOffset = index * sizeof(T);
-		uint64_t srcOffset = (index + 1) * sizeof(T);
-		uint64_t sizeTillEnd = (Count - index) * sizeof(T);
+		uint32_t dstOffset = index * sizeof(T);
+		uint32_t srcOffset = (index + 1) * sizeof(T);
+		uint32_t sizeTillEnd = (Count - index) * sizeof(T);
 		char* mem = (char*)Memory;
 		SMemMove(mem + dstOffset, mem + srcOffset, sizeTillEnd);
 	}
@@ -226,7 +226,7 @@ void SList<T>::PopAt(uint64_t index, T* valueDest)
 }
 
 template<typename T>
-void SList<T>::PopAtFast(uint64_t index, T* valueDest)
+void SList<T>::PopAtFast(uint32_t index, T* valueDest)
 {
 	SASSERT(Memory);
 	SASSERT(Count > 0);
@@ -254,15 +254,15 @@ void SList<T>::Remove()
 }
 
 template<typename T>
-void SList<T>::RemoveAt(uint64_t index)
+void SList<T>::RemoveAt(uint32_t index)
 {
 	SASSERT(Memory);
 	SASSERT(Count > 0);
 	if (index != End())
 	{
-		uint64_t dstOffset = index * sizeof(T);
-		uint64_t srcOffset = (index + 1) * sizeof(T);
-		uint64_t sizeTillEnd = (End() - index) * sizeof(T);
+		uint32_t dstOffset = index * sizeof(T);
+		uint32_t srcOffset = (index + 1) * sizeof(T);
+		uint32_t sizeTillEnd = (End() - index) * sizeof(T);
 		char* mem = (char*)Memory;
 		SMemMove(mem + dstOffset, mem + srcOffset, sizeTillEnd);
 	}
@@ -273,7 +273,7 @@ void SList<T>::RemoveAt(uint64_t index)
 }
 
 template<typename T>
-void SList<T>::RemoveAtFast(uint64_t index)
+void SList<T>::RemoveAtFast(uint32_t index)
 {
 	SASSERT(Memory);
 	SASSERT(Count > 0);
@@ -289,7 +289,7 @@ void SList<T>::RemoveAtFast(uint64_t index)
 }
 
 template<typename T>
-inline T* SList<T>::PeekAt(uint64_t index) const
+inline T* SList<T>::PeekAt(uint32_t index) const
 {
 	SASSERT(Memory);
 	SASSERT(Count > 0);
@@ -298,7 +298,7 @@ inline T* SList<T>::PeekAt(uint64_t index) const
 }
 
 template<typename T>
-void SList<T>::Set(uint64_t index, const T* valueSrc)
+void SList<T>::Set(uint32_t index, const T* valueSrc)
 {
 	SASSERT(Memory);
 	SASSERT(index < Count);
@@ -343,7 +343,7 @@ inline void SList<T>::Clear()
 }
 
 template<typename T>
-inline uint64_t SList<T>::End() const
+inline uint32_t SList<T>::End() const
 {
 	return (Count == 0) ? SLIST_NO_POSITION : (Count - 1);
 }

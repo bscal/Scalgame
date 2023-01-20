@@ -16,7 +16,7 @@ template<typename T>
 struct SLinkedList
 {
 	SLinkedListEntry<T>* First;
-	uint64_t Size;
+	uint32_t Size;
 
 	void Free();
 	void Push(const T* value);

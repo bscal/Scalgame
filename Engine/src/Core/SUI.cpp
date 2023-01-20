@@ -7,7 +7,6 @@
 #include "Vector2i.h"
 #include "CommandMgr.h"
 
-#include <vector>
 #include <string>
 #include <stdio.h>
 
@@ -18,7 +17,11 @@ internal void DrawFPS(struct nk_context* ctx);
 bool InitializeUI(UIState* state, GameApplication* gameApp)
 {
 	InitializeNuklear(&state->Ctx, state, &gameApp->Game->Resources.FontSilver, 16.0f);
-
+	
+	// NOTE: generally you dont need to specify
+	// an allocator, but since UIState is allocated
+	// directly it is 0
+	state->ConsoleEntries.Allocator = SMemAllocator();
 	state->ConsoleEntries.Resize(CONSOLE_MAX_LENGTH);
 
 	SLOG_INFO("[ UI ] Initialized");

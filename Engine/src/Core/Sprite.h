@@ -49,11 +49,6 @@ inline constexpr Sprite AsSprite(const Rectangle& rect)
     return sprite;
 }
 
-inline constexpr uint32_t HashName(std::string_view Name)
-{
-    return CrcHashString(Name);
-}
-
 //
 // Sprites
 //

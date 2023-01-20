@@ -3,18 +3,12 @@
 #include "Core.h"
 #include "Creature.h"
 #include "Player.h"
-#include "SMemory.h"
-#include "Vector2i.h"
 
 #include "Structures/SList.h"
 #include "Structures/SLinkedList.h"
 
-#include <vector>
-#include <unordered_map>
-
 struct Game;
 struct World;
-
 
 // NOTE current 16 bits are not used
 // bottom bits are entity id
@@ -44,7 +38,7 @@ constexpr inline uint32_t GetEntityId(EntityId ent)
 constexpr inline EntityType GetEntityType(EntityId ent)
 {
 	uint8_t type = static_cast<uint8_t>(ent >> ENTITY_TYPE_OFFSET);
-	SASSERT(type > 0);
+	SASSERT(type > UNKNOWN);
 	return (EntityType)type;
 }
 
@@ -102,7 +96,7 @@ struct ComponentMgr
 	void RemoveComponent(SCreature* creature,
 		ComponentId componentId)
 	{
-		SASSERT(component->ID < CREATURE_MAX_COMPONENTS);
+		SASSERT(componentId < CREATURE_MAX_COMPONENTS);
 		SArray* componentArray = ComponentArray.PeekAt(componentId);
 		SASSERT(componentArray);
 		SASSERT(componentArray->Memory);
@@ -132,10 +126,10 @@ struct ComponentMgr
 	T* GetComponent(const SCreature* creature,
 		ComponentId componentId) const
 	{
+		SASSERT(creature);
 		SASSERT(componentId < CREATURE_MAX_COMPONENTS);
-		SASSERT(creature->ComponentIndex[componentId]
-			!= CREATURE_EMPTY_COMPONENT);
 		uint32_t index = creature->ComponentIndex[componentId];
+		if (index == CREATURE_EMPTY_COMPONENT) return NULL;
 		SArray* componentArray = ComponentArray.PeekAt(componentId);
 		SASSERT(componentArray);
 		return (T*)ArrayPeekAt(componentArray, (uint64_t)index);
@@ -177,41 +171,6 @@ SCreature* CreateCreature(EntityMgr* entMgr, World* world);
 void* FindEntity(EntityMgr* entMgr, EntityId ent);
 
 void RemoveEntity(EntityMgr* entMgr, EntityId ent);
-
-internal inline void 
-SwapPlayer(EntityMgr* entMgr, uint32_t index)
-{
-	entMgr->Players.RemoveAtFast(index);
-	if (entMgr->Players.Count <= index)
-	{
-		Player* swapped = entMgr->Players.PeekAt(index);
-		SASSERT(swapped);
-		uint32_t* entIndex = entMgr->Entities.PeekAt(GetEntityId(swapped->Id));
-		*entIndex = index;
-	}
-}
-
-internal inline void 
-SwapCreature(EntityMgr* entMgr, uint32_t index)
-{
-	entMgr->Creatures.RemoveAtFast(index);
-	if (entMgr->Creatures.Count < index)
-	{
-		SCreature* swapped = entMgr->Creatures.PeekAt(index);
-		SASSERT(swapped);
-		uint32_t* entIndex = entMgr->Entities.PeekAt(GetEntityId(swapped->Id));
-		*entIndex = index;
-	}
-}
-
-constexpr global_var void (*SwapFuncs[MAX_TYPES])(EntityMgr*, uint32_t) = {
-	nullptr,
-	SwapPlayer,
-	SwapCreature,
-	nullptr,
-	nullptr,
-	nullptr
-};
 
 inline void TestEntities()
 {

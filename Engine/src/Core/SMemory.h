@@ -1,8 +1,7 @@
 #pragma once
 
+#include "Core.h"
 #include "rmem/rmem.h"
-
-#include <stdint.h>
 
 struct GameApplication;
 struct UIState;
@@ -64,3 +63,39 @@ uint64_t SMemGetAllocated();
 
 MemPool* const GetGameMemory();
 BiStack* const GetTempMemory();
+
+internal inline void* 
+SMemAllactorAlloc(size_t size)
+{
+	return SMemAlloc(size);
+}
+
+internal inline void 
+SMemAllactorFree(void* block)
+{
+	return SMemFree(block);
+}
+
+struct SMemAllocator
+{
+	void* (*Alloc)(size_t) = SMemAllactorAlloc;
+	void (*Free)(void*) = SMemAllactorFree;
+};
+
+struct SMemTempAllocator : public SMemAllocator
+{
+	[[nodiscard]] static void* SMemTempAllocatorAlloc(size_t size)
+	{
+		void* allocation = BiStackAllocFront(GetTempMemory(), size);
+		SASSERT(allocation);
+		return allocation;
+	}
+
+	static void SMemTempAllocatorFree(void* block) {};
+
+	SMemTempAllocator()
+	{
+		Alloc = SMemTempAllocatorAlloc;
+		Free = SMemTempAllocatorFree;
+	}
+};

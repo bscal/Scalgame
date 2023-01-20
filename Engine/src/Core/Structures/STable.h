@@ -2,13 +2,13 @@
 
 #include "Core/Core.h"
 #include "Core/SMemory.h"
-#include "Core/SUtil.h"
+#include "Core/SHash.hpp"
 
 #define STABLE_DEFAULT_SPACE 0.8f
 #define STABLE_DEFAULT_RESIZE 2
 
 template<typename K>
-internal inline uint64_t
+internal inline size_t
 STableDefaultKeyHash(const K* key)
 {
 	const uint8_t* const data = (const uint8_t* const)key;
@@ -35,12 +35,12 @@ struct STableEntry
 template<typename K, typename V>
 struct STable
 {
+	STableEntry<K, V>** Entries;
 	uint32_t Size;
 	uint32_t Capacity;
-	STableEntry<K, V>** Entries;
 	SMemAllocator Allocator;
 
-	uint64_t(*KeyHashFunction)(const K* key) = STableDefaultKeyHash;
+	size_t(*KeyHashFunction)(const K* key) = STableDefaultKeyHash;
 	bool (*KeyEqualsFunction)(const K* v0, const K* v1);
 
 	STable() = default;
@@ -85,10 +85,10 @@ FreeEntry(const STable<K, V>* table, STableEntry<K, V>* entry)
 }
 
 template<typename K, typename V>
-internal inline uint64_t
+internal inline uint32_t
 HashKey(const STable<K, V>* sTable, const K* key)
 {
-	uint64_t hash = sTable->KeyHashFunction(key);
+	uint32_t hash = sTable->KeyHashFunction(key);
 	return hash % sTable->Capacity;
 }
 
@@ -192,7 +192,7 @@ bool STable<K, V>::Put(const K* key, const V* value)
 	SASSERT(Entries);
 	SASSERT(Capacity > 0);
 
-	uint64_t hash = HashKey(this, key);
+	size_t hash = HashKey(this, key);
 	STableEntry<K, V>* entry = Entries[hash];
 	if (!entry) // No entry at hash
 	{
@@ -224,7 +224,7 @@ V* STable<K, V>::Get(const K* key) const
 	SASSERT(Entries);
 	SASSERT(KeyEqualsFunction(key, key));
 
-	uint64_t hash = HashKey(this, key);
+	size_t hash = HashKey(this, key);
 	STableEntry<K, V>* entry = Entries[hash];
 	while (entry)
 	{
@@ -246,7 +246,7 @@ bool STable<K, V>::Contains(const K* key) const
 
 	if (Size == 0) return false;
 
-	uint64_t hash = HashKey(this, key);
+	size_t hash = HashKey(this, key);
 	STableEntry<K, V>* entry = Entries[hash];
 	while (entry)
 	{
@@ -264,7 +264,7 @@ bool STable<K, V>::Remove(const K* key)
 	SASSERT(Entries);
 	SASSERT(KeyEqualsFunction(key, key));
 
-	uint64_t hash = HashKey(this, key);
+	size_t hash = HashKey(this, key);
 	STableEntry<K, V>* entry = Entries[hash];
 	if (!entry) return false;
 

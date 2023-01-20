@@ -1,9 +1,6 @@
 #pragma once
 
 #include <stdint.h>
-#include <string_view>
-
-//#include "Murmur.h"
 
 constexpr size_t S_FNV_offset_basis = 0xcbf29ce484222325;
 constexpr size_t S_FNV_prime = 0x100000001b3;
@@ -93,20 +90,12 @@ static constexpr unsigned int crc_table[256] = {
     0xb40bbe37, 0xc30c8ea1, 0x5a05df1b, 0x2d02ef8d
 };
 
-constexpr uint32_t CrcHashCString(const char* str)
+constexpr uint32_t CrcHash(const char* str)
 {
     uint32_t crc = 0xffffffff;
     for (char c = *str; c != '\0'; c = *(++str))
     {
         crc = (crc >> 8) ^ crc_table[(crc ^ c) & 0xff];
     }
-    return crc ^ 0xffffffff;
-}
-
-constexpr uint32_t CrcHashString(std::string_view str)
-{
-    uint32_t crc = 0xffffffff;
-    for (auto c : str)
-        crc = (crc >> 8) ^ crc_table[(crc ^ c) & 0xff];
     return crc ^ 0xffffffff;
 }
