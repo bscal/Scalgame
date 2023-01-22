@@ -6,6 +6,7 @@
 #include "Lighting.h"
 #include "SUI.h"
 #include "SUtil.h"
+#include "SString.h"
 
 #include "Structures/SArray.h"
 #include "Structures/SList.h"
@@ -47,6 +48,7 @@ SAPI bool GameApplication::Start()
 	TestListImpl();
 	TestSTable();
 	TestEntities();
+	TestStringImpls();
 
 	IsInitialized = true;
 

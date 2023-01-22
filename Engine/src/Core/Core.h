@@ -46,6 +46,7 @@ constexpr global_var float TAO = (float)PI * 2.0f;
 inline void ReportAssertFailure(const char* expression, const char* msg, const char* file, int line);
 
 #if SCAL_DEBUG
+
 #define SLOG_DEBUG(msg, ...) TraceLog(LOG_DEBUG, msg, __VA_ARGS__)
 #define SLOG_WARN(msg, ...) TraceLog(LOG_WARNING, msg, __VA_ARGS__)
 #define SASSERT(expr) if (!(expr)) { ReportAssertFailure(#expr, "", __FILE__, __LINE__); DEBUG_BREAK(void); }
@@ -59,11 +60,13 @@ inline void ReportAssertFailure(const char* expression, const char* msg, const c
 #endif
 
 #else
+
 #define SLOG_DEBUG(msg, ...)
 #define SLOG_WARN(msg, ...)
 #define SASSERT(expr)
 #define SASSERT_MSG(expr, msg)
 #define DEBUG_BREAK(void)
+
 #endif
 
 #define SLOG_INFO(msg, ...) TraceLog(LOG_INFO, msg, __VA_ARGS__)
@@ -90,5 +93,3 @@ ReportAssertFailure(const char* expression, const char* msg, const char* file, i
 		"Message: % s\n  File : % s, Line : % d\n",
 		expression, msg, file, line);
 }
-
-#include "SMemory.h"
