@@ -165,10 +165,12 @@ internal void AppendMemoryUsage(UIState* state)
 	MemorySizeData usage = FindMemSize(SMemGetUsage());
 	nk_label(&state->Ctx, TextFormat("Tagged: %.2f%cbs", usage.Size, usage.BytePrefix), NK_TEXT_LEFT);
 	size_t freeMem = GetMemPoolFreeMemory(GetGameApp()->GameMemory);
-	MemorySizeData arena = FindMemSize(GetGameApp()->GameMemory.arena.size - freeMem);
-	nk_label(&state->Ctx, TextFormat("Arena: %.2f%cbs", arena.Size, arena.BytePrefix), NK_TEXT_LEFT);
 	MemorySizeData alloced = FindMemSize(SMemGetAllocated());
 	nk_label(&state->Ctx, TextFormat("Allocated: %.2f%cbs", alloced.Size, alloced.BytePrefix), NK_TEXT_LEFT);
+	MemorySizeData game = FindMemSize(GetGameApp()->GameMemory.arena.size - freeMem);
+	nk_label(&state->Ctx, TextFormat("GameAlloc: %.2f%cbs", game.Size, game.BytePrefix), NK_TEXT_LEFT);
+	MemorySizeData temp = FindMemSize(SMemGetTempAllocated());
+	nk_label(&state->Ctx, TextFormat("TempAlloc: %.2f%cbs", temp.Size, temp.BytePrefix), NK_TEXT_LEFT);
 
 	nk_layout_row_dynamic(&state->Ctx, 16, 1);
 	nk_label(&state->Ctx, "--- UI Memory ---", NK_TEXT_LEFT);

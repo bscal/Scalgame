@@ -5,6 +5,7 @@
 
 #include <stdlib.h>
 
+// TODO: maybe move this to an internal state struct?
 global_var struct MemPool* GameMemory;
 global_var struct BiStack* TempMemory;
 global_var uint64_t MemoryTagUsage[(uint8_t)MemoryTag::MaxTags];
@@ -12,6 +13,7 @@ global_var uint64_t TotalUsage;
 global_var uint64_t GameMemSize;
 global_var uint64_t TemporaryMemSize;
 global_var uint64_t TotalMemoryAllocated;
+global_var uint64_t TotalTempMemAllocated;
 
 internal inline size_t
 AlignSize(size_t size, size_t alignment)
@@ -68,7 +70,14 @@ void SMemFree(void* block)
 
 void* SMemTempAlloc(size_t size)
 {
+    TotalTempMemAllocated += size;
     return BiStackAllocFront(TempMemory, size);
+}
+
+void SMemTempReset()
+{
+    TotalTempMemAllocated = 0;
+    BiStackResetFront(TempMemory);
 }
 
 void* SMemStdAlloc(size_t size)
@@ -140,30 +149,12 @@ void SMemClear(void* block, size_t size)
     memset(block, 0, size);
 }
 
-void SMemCopyAligned(void* dst, const void* src, size_t size, size_t alignment)
-{
-    size_t alignedSize = AlignSize(size, alignment);
-    memcpy(dst, src, alignedSize);
-}
-
-void SMemSetAligned(void* block, int value, size_t size, size_t alignment)
-{
-    size_t alignedSize = AlignSize(size, alignment);
-    memset(block, value, alignedSize);
-}
-
-void SMemClearAligned(void* block, size_t size, size_t alignment)
-{
-    size_t alignedSize = AlignSize(size, alignment);
-    memset(block, 0, alignedSize);
-}
-
-
 
 const size_t* SMemGetTaggedUsages()
 {
     return MemoryTagUsage;
 }
+
 
 size_t SMemGetUsage()
 {
@@ -173,6 +164,11 @@ size_t SMemGetUsage()
 uint64_t SMemGetAllocated()
 {
     return TotalMemoryAllocated;
+}
+
+uint64_t SMemGetTempAllocated()
+{
+    return TotalTempMemAllocated;
 }
 
 inline MemPool* const GetGameMemory()

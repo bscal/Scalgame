@@ -1,12 +1,11 @@
 #pragma once
 
+#include "SString.h"
 #include "Structures/SList.h"
+#include "Structures/STable.h"
 
 #include <stdint.h>
 #include <raylib/src/raylib.h>
-
-#include <string>
-#include <unordered_map>
 
 constexpr const char* Stone = "Tile1";
 
@@ -21,10 +20,10 @@ struct SpriteAtlas
 	};
 
 	Texture2D Texture;
-	std::string TextureName;
-	std::string AtlasFilePath;
+	SString TextureName;
+	SString AtlasFilePath;
 	SList<Rectangle> SpritesArray;
-	std::unordered_map<std::string, uint32_t> SpritesByName;
+	STable<SString, uint32_t> SpritesByName = STable<SString, uint32_t>(STableDefaultKeyEquals);
 	bool IsLoaded;
 
 	bool Load(const char* atlasDataPath, uint64_t estimatedSprites);

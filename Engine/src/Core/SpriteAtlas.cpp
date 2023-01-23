@@ -4,6 +4,7 @@
 #undef internal
 
 #include <assert.h>
+#include <string>
 #include <sstream>
 
 #include "SMemory.h"
@@ -15,7 +16,7 @@ bool SpriteAtlas::Load(const char* atlasDataPath,
 		return false;
 
 	SpritesArray.Resize(estimatedSprites);
-	SpritesByName.reserve(estimatedSprites);
+	SpritesByName.Reserve(estimatedSprites, 1.0f);
 
 	// Info for sprite
 	AtlasInfo tileInfo = {};
@@ -29,6 +30,7 @@ bool SpriteAtlas::Load(const char* atlasDataPath,
 	std::istringstream input;
 	input.str(data);
 
+	// TODO eventually like to fully remove std::string
 	std::string lineBuf;
 	lineBuf.reserve(512);
 	for (;std::getline(input, lineBuf); )
@@ -37,7 +39,7 @@ bool SpriteAtlas::Load(const char* atlasDataPath,
 		if (!foundTextureName) // Texture name is the 1st entry
 		{
 			foundTextureName = true;
-			TextureName = lineBuf;
+			TextureName = SString(lineBuf.c_str());
 			continue;
 		}
 
@@ -105,23 +107,24 @@ bool SpriteAtlas::Load(const char* atlasDataPath,
 						(int)rect.width, (int)rect.height);
 				}
 				// Inserts the next tile to be iterated
-				SpritesByName.insert({ std::string(lineBuf), Size()});
+				SString name(lineBuf.c_str());
+				uint32_t size = Size();
+				SpritesByName.Put(&name, &size);
 				tileInfo = {};
 				isInTile = true;
 			}
 		}
 	}
-	auto path = std::string("assets/textures/atlas/");
-	path.append(TextureName);
-	auto pathStr = path.c_str();
 
-	assert(FileExists(pathStr));
-	Texture = LoadTexture(pathStr);
+	const char* texturePath = 
+		TextFormat("assets/textures/atlas/%s", TextureName.Data());
+	assert(FileExists(texturePath));
+	Texture = LoadTexture(texturePath);
 
 	UnloadFileText(data);
 
 	TraceLog(LOG_INFO, "Loaded atlas: %s, Texture: %s, Total Tiles: %d",
-		atlasDataPath, pathStr, Size() - 1);
+		atlasDataPath, texturePath, Size() - 1);
 	IsLoaded = true;
 	return true;
 }
@@ -136,11 +139,11 @@ void SpriteAtlas::Unload()
 
 Rectangle SpriteAtlas::GetRectByName(std::string_view name) const
 {
-	auto find = SpritesByName.find({ name.data(), name.size() });
-	SASSERT(find != SpritesByName.end());
-	if (find != SpritesByName.end())
-	{
-		return SpritesArray[find->second];
-	}
+	// TODO hack to get this to work for now.
+	STempString temp(name.data(), (uint32_t)name.length());
+	SString sStrTemp(&temp); // Copies only temp str pointer
+	uint32_t* index = SpritesByName.Get(&sStrTemp);
+	if (index) return SpritesArray[*index];
+	// TODO probably want some type of pink tile to be more ERRORY
 	return {};
 }

@@ -179,7 +179,7 @@ SAPI void GameApplication::Run()
 		// Update
 		// ***************
 
-		BiStackResetFront(&TemporaryMemory);
+		SMemTempReset();
 
 		// Don't want game input when over UI
 		if (!UIState->IsMouseHoveringUI)

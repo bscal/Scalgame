@@ -26,6 +26,7 @@ struct SString
 	SString(const char* str);
 	SString(const char* str, uint32_t length);
 	SString(const SString& other);
+	SString(const STempString* tempStr);
 	
 	~SString();
 

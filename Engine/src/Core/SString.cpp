@@ -2,6 +2,8 @@
 
 #include <string.h>
 
+static_assert(sizeof(char) == 1, "SString does not support char size > 1");
+
 SString::SString()
 {
 	Length = 0;
@@ -20,7 +22,7 @@ SString::SString(const char* str, uint32_t length)
 	if (Length > SHORT_STRING_LENGTH)
 	{
 		last = Length;
-		m_Buffer.StrMemory = (char*)SMemAlloc(Length);
+		m_Buffer.StrMemory = (char*)SMemAllocTag(Length, MemoryTag::Strings);
 	}
 	SMemCopy(Data(), str, Length);
 	Data()[last] = '\0';
@@ -31,13 +33,24 @@ SString::SString(const SString& other)
 {
 }
 
+SString::SString(const STempString* tempStr)
+{
+	SASSERT(tempStr);
+	SASSERT(tempStr->Str);
+	// NOTE: Since this is a temp string, we want to use the pointer
+	// and not SSO. Look into maybe not using that length and just
+	// Copy it in maybe
+	Length = SHORT_STRING_LENGTH + tempStr->Length;
+	m_Buffer.StrMemory = tempStr->Str;
+}
+
 SString& SString::operator=(const SString& other)
 {
 	if (this == &other) return *this;
 	Length = other.Length;
 	if (Length > SHORT_STRING_LENGTH)
 	{
-		m_Buffer.StrMemory = (char*)SMemAlloc(Length);
+		m_Buffer.StrMemory = (char*)SMemAllocTag(Length, MemoryTag::Strings);
 	}
 	SMemCopy(Data(), other.Data(), Length);
 	return *this;
@@ -48,7 +61,7 @@ SString& SString::operator=(const char* cString)
 	Length = strlen(cString) + 1;
 	if (Length > SHORT_STRING_LENGTH)
 	{
-		m_Buffer.StrMemory = (char*)SMemAlloc(Length);
+		m_Buffer.StrMemory = (char*)SMemAllocTag(Length, MemoryTag::Strings);
 	}
 	SMemCopy(Data(), cString, Length);
 	return *this;
@@ -61,7 +74,7 @@ SString::~SString()
 {
 	if (Length > SHORT_STRING_LENGTH)
 	{
-		SMemFree(m_Buffer.StrMemory);
+		SMemFreeTag(m_Buffer.StrMemory, Length, MemoryTag::Strings);
 	}
 }
 
