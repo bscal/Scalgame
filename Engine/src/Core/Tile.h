@@ -35,7 +35,7 @@ struct TileColor
 
 struct TileData
 {
-	std::string SpriteName;
+	SString SpriteName;
 	uint32_t TileId;
 	int MovementCost;
 	short Cover;
@@ -76,7 +76,7 @@ struct Tile
 void TileMgrInitialize(TileMgr* tileMgr, SpriteAtlas* spriteAtlas);
 
 uint32_t RegisterTile(TileMgr* tileMgr,
-	std::string_view spriteName,
+	const char* tileName,
 	TileType type);
 
 [[nodiscard]] Tile CreateTile(TileMgr* tileMgr, const TileData& tileData);

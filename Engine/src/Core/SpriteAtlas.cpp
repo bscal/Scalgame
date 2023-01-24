@@ -1,13 +1,12 @@
 #include "SpriteAtlas.h"
-#include "SHash.hpp"
 
 #undef internal
 
-#include <assert.h>
+#include "SMemory.h"
+
 #include <string>
 #include <sstream>
 
-#include "SMemory.h"
 
 bool SpriteAtlas::Load(const char* atlasDataPath,
 	uint64_t estimatedSprites)
@@ -100,8 +99,8 @@ bool SpriteAtlas::Load(const char* atlasDataPath,
 					rect.width = (float)tileInfo.TileW;
 					rect.height = (float)tileInfo.TileH;
 					SpritesArray.Push(&rect);
-					TraceLog(LOG_INFO,
-						"Tile: %d, x: %d, y: %d, w: %d, h: %d",
+					SLOG_INFO("Tile: %s, Id: %d, x: %d, y: %d, w: %d, h: %d",
+						lineBuf.c_str(),
 						Size(),
 						(int)rect.x, (int)rect.y,
 						(int)rect.width, (int)rect.height);
@@ -118,13 +117,13 @@ bool SpriteAtlas::Load(const char* atlasDataPath,
 
 	const char* texturePath = 
 		TextFormat("assets/textures/atlas/%s", TextureName.Data());
-	assert(FileExists(texturePath));
+	SASSERT(FileExists(texturePath));
 	Texture = LoadTexture(texturePath);
 
 	UnloadFileText(data);
 
-	TraceLog(LOG_INFO, "Loaded atlas: %s, Texture: %s, Total Tiles: %d",
-		atlasDataPath, texturePath, Size() - 1);
+	SLOG_INFO("[ SpriteAtlas] Loaded %s, Texture: %s, Total Tiles: %d",
+		atlasDataPath, texturePath, Size());
 	IsLoaded = true;
 	return true;
 }
@@ -137,12 +136,10 @@ void SpriteAtlas::Unload()
 	// Other members should be freed by deconstructor
 }
 
-Rectangle SpriteAtlas::GetRectByName(std::string_view name) const
+Rectangle SpriteAtlas::GetRectByName(SStringView tileName) const
 {
-	// TODO hack to get this to work for now.
-	STempString temp(name.data(), (uint32_t)name.length());
-	SString sStrTemp(&temp); // Copies only temp str pointer
-	uint32_t* index = SpritesByName.Get(&sStrTemp);
+	SString tempSStr = SString::CreateTemp(&tileName);
+	uint32_t* index = SpritesByName.Get(&tempSStr);
 	if (index) return SpritesArray[*index];
 	// TODO probably want some type of pink tile to be more ERRORY
 	return {};

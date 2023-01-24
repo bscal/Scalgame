@@ -45,6 +45,8 @@ struct STable
 
 	STable() = default;
 	STable(bool (*keyEqualsFunction)(const K* v0, const K* v1));
+	STable(bool (*keyEqualsFunction)(const K* v0, const K* v1),
+		size_t(*keyHashFunction)(const K* key));
 
 	// Sets Capacity capacity * loadFactor, if the table
 	// contains entries will trigger a rehash
@@ -63,6 +65,13 @@ template<typename K, typename V>
 STable<K, V>::STable(bool (*keyEqualsFunction)(const K* v0, const K* v1))
 	: KeyEqualsFunction(keyEqualsFunction)
 { }
+
+template<typename K, typename V>
+STable<K, V>::STable(bool (*keyEqualsFunction)(const K* v0, const K* v1),
+	size_t(*keyHashFunction)(const K* key))
+	: KeyEqualsFunction(keyEqualsFunction), KeyHashFunction(keyHashFunction)
+{
+}
 
 template<typename K, typename V>
 internal STableEntry<K, V>*

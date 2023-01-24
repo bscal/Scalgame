@@ -4,6 +4,7 @@
 #include "SRandom.h"
 #include "SUtil.h"
 #include "Vector2i.h"
+#include "RenderExtensions.h"
 
 #include "Structures/SLinkedList.h"
 
@@ -181,7 +182,7 @@ void Update(ChunkedTileMap* tilemap, Game* game)
 
 internal void Draw(ChunkedTileMap* tilemap, Game* game)
 {
-	const auto& tileTexture = game->Resources.Atlas.Texture;
+	Texture2D* texture = &game->Resources.Atlas.Texture;
 	TileMgr* tileMgr = &game->TileMgr;
 
 	const int PADDING = 1;
@@ -218,12 +219,10 @@ internal void Draw(ChunkedTileMap* tilemap, Game* game)
 			};
 			if (tile->LOS == TileLOS::FullVision || game->DebugDisableFOV)
 			{
-				DrawTextureProF(
-					tileTexture,
+				ScalDrawTextureProF(
+					texture,
 					tile->GetTileTexData(tileMgr)->TexCoord,
 					position,
-					{},
-					0.0f,
 					tile->Color);
 			}
 			tile->LOS = TileLOS::NoVision;

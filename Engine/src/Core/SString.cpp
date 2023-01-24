@@ -2,12 +2,14 @@
 
 #include <string.h>
 
-static_assert(sizeof(char) == 1, "SString does not support char size > 1");
+static_assert(sizeof(char) == 1, "SString does not support char size > 1.");
+static_assert(sizeof(SString) == 24, "SString should equal 24.");
 
 SString::SString()
 {
 	Length = 0;
-	SMemClear(m_Buffer.ShortStringBuf, sizeof(m_Buffer.ShortStringBuf));
+	IsTemp = false;
+	m_Buffer.StrMemory = NULL;
 }
 
 SString::SString(const char* str)
@@ -18,6 +20,7 @@ SString::SString(const char* str)
 SString::SString(const char* str, uint32_t length)
 {
 	Length = length;
+	IsTemp = false;
 	uint32_t last = SHORT_STRING_LENGTH;
 	if (Length > SHORT_STRING_LENGTH)
 	{
@@ -33,15 +36,44 @@ SString::SString(const SString& other)
 {
 }
 
-SString::SString(const STempString* tempStr)
+SString SString::CreateTemp(const STempString* tempStr)
 {
 	SASSERT(tempStr);
 	SASSERT(tempStr->Str);
-	// NOTE: Since this is a temp string, we want to use the pointer
-	// and not SSO. Look into maybe not using that length and just
-	// Copy it in maybe
-	Length = SHORT_STRING_LENGTH + tempStr->Length;
-	m_Buffer.StrMemory = tempStr->Str;
+
+	SString string;
+	string.Length = tempStr->Length;
+	string.IsTemp = true;
+	if (string.Length > SHORT_STRING_LENGTH)
+	{
+		string.m_Buffer.StrMemory = tempStr->Str;
+	}
+	else
+	{
+		SMemCopy(string.Data(), tempStr->Str, string.Length);
+		string.Data()[SHORT_STRING_LENGTH] = '\0';
+	}
+	return string;
+}
+
+SString SString::CreateTemp(const SStringView* tempStr)
+{
+	SASSERT(tempStr);
+	SASSERT(tempStr->Str);
+
+	SString string;
+	string.Length = tempStr->Length;
+	string.IsTemp = true;
+	if (string.Length > SHORT_STRING_LENGTH)
+	{
+		string.m_Buffer.StrMemory = tempStr->Str;
+	}
+	else
+	{
+		SMemCopy(string.Data(), tempStr->Str, string.Length);
+		string.Data()[SHORT_STRING_LENGTH] = '\0';
+	}
+	return string;
 }
 
 SString& SString::operator=(const SString& other)
@@ -72,7 +104,7 @@ bool SString::operator!=(const STempString& other) const { return !SStrEquals(Da
 
 SString::~SString()
 {
-	if (Length > SHORT_STRING_LENGTH)
+	if (!IsTemp && Length > SHORT_STRING_LENGTH)
 	{
 		SMemFreeTag(m_Buffer.StrMemory, Length, MemoryTag::Strings);
 	}
@@ -121,13 +153,32 @@ STempString& STempString::operator=(const char* cString)
 	return *this;
 }
 
-SStringView::SStringView(const char* str, uint32_t length)
-	: Str(str), Length(length)
+SStringView::SStringView(const char* str)
+	:SStringView(str, strlen(str) + 1)
 {
 }
 
+SStringView::SStringView(const char* str, uint32_t length)
+	: Str((char*)str), Length(length)
+{
+}
+
+SStringView::SStringView(const char* str, uint32_t length, uint32_t offset)
+{
+	SASSERT(offset < length);
+	Str = (char*)str + offset;
+	Length = length;
+}
+
+SStringView::SStringView(const SStringView* string, uint32_t offset)
+{
+	SASSERT(offset < string->Length);
+	Str = (char*)string->Str + offset;
+	Length = string->Length - offset;
+}
+
 SStringView::SStringView(const SString* string)
-	: Str(string->Data()), Length(string->Length)
+	: Str((char*)string->Data()), Length(string->Length)
 {
 }
 

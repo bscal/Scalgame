@@ -1,11 +1,10 @@
 #pragma once
 
+#include "Core.h"
 #include "SString.h"
 #include "Structures/SList.h"
 #include "Structures/STable.h"
-
-#include <stdint.h>
-#include <raylib/src/raylib.h>
+#include "SUtil.h"
 
 constexpr const char* Stone = "Tile1";
 
@@ -23,7 +22,7 @@ struct SpriteAtlas
 	SString TextureName;
 	SString AtlasFilePath;
 	SList<Rectangle> SpritesArray;
-	STable<SString, uint32_t> SpritesByName = STable<SString, uint32_t>(STableDefaultKeyEquals);
+	STable<SString, uint32_t> SpritesByName = STable<SString, uint32_t>(STableDefaultKeyEquals, SStringHash);
 	bool IsLoaded;
 
 	bool Load(const char* atlasDataPath, uint64_t estimatedSprites);
@@ -34,5 +33,5 @@ struct SpriteAtlas
 	{
 		return SpritesArray[index];
 	}
-	Rectangle GetRectByName(std::string_view name) const;
+	Rectangle GetRectByName(SStringView tileName) const;
 };

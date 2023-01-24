@@ -1,6 +1,8 @@
 #pragma once
 
 #include "Core.h"
+#include "SString.h"
+#include "SHash.hpp"
 
 inline Rectangle RectangleExpand(const Rectangle& rect, float width, float height)
 {
@@ -12,6 +14,12 @@ inline Rectangle RectangleExpand(const Rectangle& rect, float width, float heigh
     return r;
 }
 
+constexpr inline uint64_t
+SStringHash(const SString* key)
+{
+    const uint8_t* const data = (const uint8_t* const)key->Data();
+    return FNVHash(data, key->Length);
+}
 
 //template<typename T>
 //struct SAllocator

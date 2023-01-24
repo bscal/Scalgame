@@ -20,12 +20,12 @@ void TileMgrInitialize(TileMgr* tileMgr, SpriteAtlas* spriteAtlas)
 }
 
 uint32_t RegisterTile(TileMgr* tileMgr,
-	std::string_view spriteName,
+	const char* spriteName,
 	TileType type)
 {
 	assert(tileMgr);
 	assert(tileMgr->NextTileId < MAX_TILES);
-	assert(spriteName.length() > 0);
+	assert(spriteName[0] != 0);
 
 	uint32_t id = tileMgr->NextTileId++;
 
@@ -34,7 +34,7 @@ uint32_t RegisterTile(TileMgr* tileMgr,
 	tileMgr->Tiles[id].Type = type;
 
 	tileMgr->TileTextureData[id].TexCoord = 
-		tileMgr->SpriteAtlas->GetRectByName(spriteName);
+		tileMgr->SpriteAtlas->GetRectByName(SStringView(spriteName, strlen(spriteName) + 1));
 
 	return id;
 }
