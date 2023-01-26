@@ -65,7 +65,6 @@ struct TileRenderInfo
 
 struct Tile
 {
-	Vector4 Color;
 	uint16_t TileId;
 	TileLOS LOS;
 

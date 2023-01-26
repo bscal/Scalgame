@@ -4,7 +4,8 @@
 #include "Core/SMemory.h"
 
 #define SLIST_DEFAULT_RESIZE 2
-#define SLIST_NO_POSITION UINT64_MAX
+
+global_var constexpr uint32_t SLIST_NO_POS = UINT32_MAX;
 
 template<typename T>
 struct SList
@@ -125,7 +126,7 @@ T* SList<T>::PushZero()
 		Resize(Capacity * SLIST_DEFAULT_RESIZE);
 	}
 	++Count;
-	Memory[End()] = T{};
+	SMemClear(Last(), sizeof(T));
 	return &Memory[End()];
 }
 
@@ -140,9 +141,9 @@ void SList<T>::PushAt(uint32_t index, const T* valueSrc)
 	}
 	if (index != Count)
 	{
-		uint32_t dstOffset = (index + 1) * sizeof(T);
-		uint32_t srcOffset = index * sizeof(T);
-		uint32_t sizeTillEnd = (Count - index) * sizeof(T);
+		size_t dstOffset = (size_t)(index + 1) * sizeof(T);
+		size_t srcOffset = index * sizeof(T);
+		size_t sizeTillEnd = (size_t)(Count - index) * sizeof(T);
 		char* mem = (char*)Memory;
 		SMemMove(mem + dstOffset, mem + srcOffset, sizeTillEnd);
 	}
@@ -212,9 +213,9 @@ void SList<T>::PopAt(uint32_t index, T* valueDest)
 	*valueDest = Memory[index];
 	if (index < End())
 	{
-		uint32_t dstOffset = index * sizeof(T);
-		uint32_t srcOffset = (index + 1) * sizeof(T);
-		uint32_t sizeTillEnd = (Count - index) * sizeof(T);
+		size_t dstOffset = index * sizeof(T);
+		size_t srcOffset = (size_t)(index + 1) * sizeof(T);
+		size_t sizeTillEnd = (size_t)(Count - index) * sizeof(T);
 		char* mem = (char*)Memory;
 		SMemMove(mem + dstOffset, mem + srcOffset, sizeTillEnd);
 	}
@@ -259,9 +260,9 @@ void SList<T>::RemoveAt(uint32_t index)
 	SASSERT(Count > 0);
 	if (index != End())
 	{
-		uint32_t dstOffset = index * sizeof(T);
-		uint32_t srcOffset = (index + 1) * sizeof(T);
-		uint32_t sizeTillEnd = (End() - index) * sizeof(T);
+		size_t dstOffset = index * sizeof(T);
+		size_t srcOffset = (size_t)(index + 1) * sizeof(T);
+		size_t sizeTillEnd = (size_t)(End() - index) * sizeof(T);
 		char* mem = (char*)Memory;
 		SMemMove(mem + dstOffset, mem + srcOffset, sizeTillEnd);
 	}
@@ -344,7 +345,7 @@ inline void SList<T>::Clear()
 template<typename T>
 inline uint32_t SList<T>::End() const
 {
-	return (Count == 0) ? SLIST_NO_POSITION : (Count - 1);
+	return (Count == 0) ? SLIST_NO_POS : (Count - 1);
 }
 
 template<typename T>

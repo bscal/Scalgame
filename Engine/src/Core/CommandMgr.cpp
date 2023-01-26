@@ -2,7 +2,7 @@
 
 #include "SMemory.h"
 
-#include <string>
+#include <stdlib.h>
 
 #define CMD_SUCCESS 0
 #define CMD_FAILURE 1
@@ -166,7 +166,7 @@ GetArgInt(int index, const SList<SStringView>& args)
 	if (index >= args.Count) return arg;
 	try
 	{
-		arg.Value = std::stoi(args[index].Str);
+		arg.Value = strtol(args[index].Str, NULL, 10);
 		arg.IsPresent = true;
 	}
 	catch (std::exception e)
@@ -183,7 +183,9 @@ GetArgFloat(int index, const SList<SStringView>& args)
 	if (index >= args.Count) return arg;
 	try
 	{
-		arg.Value = std::stof(args[index].Str);
+		// TODO maybe move to custom warpped strto function
+		// in string class? just for better errors
+		arg.Value = strtof(args[index].Str, NULL);
 		arg.IsPresent = true;
 	}
 	catch (std::exception e)
@@ -206,8 +208,8 @@ GetArgVec2(int index, const SList<SStringView>& args)
 		{
 			SStringView xStr = strView.SubString(0, found);
 			SStringView yStr = strView.SubString(found + 1, strView.Length);
-			arg.Value.x = std::stof(xStr.Str);
-			arg.Value.y = std::stof(yStr.Str);
+			arg.Value.x = strtof(xStr.Str, NULL);
+			arg.Value.y = strtof(yStr.Str, NULL);
 			arg.IsPresent = true;
 		}
 	}

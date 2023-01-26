@@ -34,7 +34,7 @@ uint32_t RegisterTile(TileMgr* tileMgr,
 	tileMgr->Tiles[id].Type = type;
 
 	tileMgr->TileTextureData[id].TexCoord = 
-		tileMgr->SpriteAtlas->GetRectByName(SStringView(spriteName, strlen(spriteName) + 1));
+		tileMgr->SpriteAtlas->GetRectByName(SStringView(spriteName, strlen(spriteName)));
 
 	return id;
 }
@@ -44,7 +44,6 @@ uint32_t RegisterTile(TileMgr* tileMgr,
 {
 	SASSERT(tileMgr);
 	Tile tile;
-	tile.Color = ColorNormalize(WHITE);
 	tile.TileId = tileData.TileId;
 	tile.LOS = TileLOS::NoVision;
 	return tile;

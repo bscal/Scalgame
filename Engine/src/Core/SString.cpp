@@ -78,7 +78,7 @@ SString SString::CreateTemp(const SStringView* tempStr)
 	SASSERT(tempStr->Str);
 
 	SString string;
-	string.Length = tempStr->Length;
+	string.Length = tempStr->Length + 1;
 	string.DoNotFree = true;
 	if (string.Length > SSTR_SSO_LENGTH)
 	{
@@ -88,10 +88,10 @@ SString SString::CreateTemp(const SStringView* tempStr)
 	else
 	{
 		string.Capacity = SSTR_SSO_LENGTH;
-		SMemCopy(string.Data(), tempStr->Str, string.Length);
+		SMemCopy(string.Data(), tempStr->Str, string.Length - 1);
 		SASSERT(string.Data()[SSTR_SSO_LENGTH] == 0);
-		string.Data()[SSTR_SSO_LENGTH] = '\0';
 	}
+	string.Data()[string.End()] = '\0';
 	return string;
 }
 

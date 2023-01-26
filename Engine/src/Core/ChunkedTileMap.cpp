@@ -207,9 +207,12 @@ internal void Draw(ChunkedTileMap* tilemap, Game* game)
 			};
 			if (!IsTileInBounds(tilemap, coord)) continue;
 
-			Tile* tile = GetTile(tilemap, coord);
-			SASSERT(tile);
+			TileMapChunk* chunk = GetChunkByTile(tilemap, coord);
+			SASSERT(chunk);
+			SASSERT(chunk->IsChunkGenerated);
 
+			uint32_t index = TileToIndex(tilemap, coord);
+			Tile tile = chunk->Tiles[index];
 			Rectangle position
 			{
 				(float)(coord.x * TILE_SIZE),
@@ -217,23 +220,24 @@ internal void Draw(ChunkedTileMap* tilemap, Game* game)
 				(float)TILE_SIZE,
 				(float)TILE_SIZE
 			};
-			if (tile->LOS == TileLOS::FullVision || game->DebugDisableFOV)
+			Vector4* color = &chunk->TileColors[index];
+			if (tile.LOS == TileLOS::FullVision || game->DebugDisableFOV)
 			{
 				ScalDrawTextureProF(
 					texture,
-					tile->GetTileTexData(tileMgr)->TexCoord,
+					tile.GetTileTexData(tileMgr)->TexCoord,
 					position,
-					tile->Color);
+					*color);
 			}
-			tile->LOS = TileLOS::NoVision;
+			chunk->Tiles[index].LOS = TileLOS::NoVision;
 
 			if (game->DebugTileView)
 				DrawRectangleLinesEx(position, 1.0f, PINK);
 
 			if (game->DebugDisableDarkess)
-				tile->Color = { 1.0f, 1.0f, 1.0f, 1.0f };
+				*color = Vector4{ 1.0f, 1.0f, 1.0f, 1.0f };
 			else
-				tile->Color = { 1.0f, 1.0f, 1.0f, 0.0f };
+				*color = Vector4{ 1.0f, 1.0f, 1.0f, 0.0f };
 		}
 	}
 }
@@ -269,8 +273,12 @@ TileMapChunk* LoadChunk(ChunkedTileMap* tilemap,
 {
 	TileMapChunk* chunk = tilemap->ChunksList.PushZero();
 	//chunk.Tiles.InitializeCap(tilemap->ChunkTileCount);
+	chunk->Entities.Allocator = SMemAllocator{};
 	chunk->Entities.Resize(10); // TODO
 	chunk->ChunkCoord = coord;
+
+	for (int i = 0; i < sizeof(chunk->TileColors); ++i)
+		chunk->TileColors[i] = { 1.0f, 1.0f, 1.0f, 1.0f };
 
 	float chunkOffSetX = (float)coord.x * (float)tilemap->TileSize.x
 		* (float)tilemap->ChunkSize.x;

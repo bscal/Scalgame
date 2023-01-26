@@ -38,7 +38,7 @@ constexpr inline uint32_t GetEntityId(EntityId ent)
 constexpr inline EntityType GetEntityType(EntityId ent)
 {
 	uint8_t type = static_cast<uint8_t>(ent >> ENTITY_TYPE_OFFSET);
-	SASSERT(type > UNKNOWN);
+	//SASSERT_CONSTEXPR(type > UNKNOWN);
 	return (EntityType)type;
 }
 

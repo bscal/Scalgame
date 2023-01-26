@@ -122,7 +122,8 @@ struct SStringView
 	SStringView(const SStringView* string, uint32_t offset);
 
 	inline bool Empty() const { return Length == 0; }
-	inline uint32_t End() const { return Length; }
+	inline uint32_t End() const { return Length; } // SStringView are not null terminated
+	inline const char* EndPtr() const { return Str + End(); }
 
 	// Returns a new SString, may allocate.
 	inline SString ToSString() const { return SString(Str, Length + 1); }
