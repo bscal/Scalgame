@@ -131,6 +131,7 @@ extern "C" {
  */
 typedef struct NuklearUserData {
     float scaling;
+    float deltaTime;
 } NuklearUserData;
 
 /**

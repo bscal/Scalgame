@@ -40,8 +40,8 @@ struct STable
 	uint32_t Capacity;
 	SMemAllocator Allocator;
 
-	size_t(*KeyHashFunction)(const K* key) = STableDefaultKeyHash;
 	bool (*KeyEqualsFunction)(const K* v0, const K* v1);
+	size_t(*KeyHashFunction)(const K* key) = STableDefaultKeyHash;
 
 	STable() = default;
 	STable(bool (*keyEqualsFunction)(const K* v0, const K* v1));
@@ -105,8 +105,9 @@ template<typename K, typename V>
 void STable<K, V>::Reserve(uint32_t capacity, float loadFactor)
 {
 	SASSERT(loadFactor > 0.0f);
+	if (capacity == 0) capacity = 1;
 	uint32_t newCap = capacity * loadFactor;
-	SASSERT(newCap > Capacity);
+
 	if (!IsAllocated())
 	{
 		Capacity = newCap;

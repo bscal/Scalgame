@@ -1,16 +1,20 @@
 #pragma once
 
-#include "Core.h"
 #include "Nuklear/raylib-nuklear.h"
 
+#include "Core.h"
+#include "SString.h"
 #include "Structures/SList.h"
-
-#include <string>
 
 struct GameApplication;
 struct Font;
 
 #define CONSOLE_MAX_LENGTH 128
+
+struct UIUserData
+{
+	float Scale;
+};
 
 struct UIState
 {
@@ -23,7 +27,8 @@ struct UIState
 	bool IsDrawingFPS;
 	bool IsDebugPanelOpen;
     bool IsConsoleOpen;
-	SList<std::string> ConsoleEntries;
+	SList<SString> ConsoleEntries;
+	UIUserData UserData;
 };
 
 bool InitializeUI(UIState* state, GameApplication* gameApp);

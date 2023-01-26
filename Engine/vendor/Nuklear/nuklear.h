@@ -26944,6 +26944,11 @@ nk_edit_draw_text(struct nk_command_buffer *out,
             &txt, NK_TEXT_LEFT, font);
     }}
 }
+
+// Note(bscal): best way to get
+// deltaTime 
+#include "raylib/src/raylib.h"
+
 NK_LIB nk_flags
 nk_do_edit(nk_flags *state, struct nk_command_buffer *out,
     struct nk_rect bounds, nk_flags flags, nk_plugin_filter filter,
@@ -27056,12 +27061,12 @@ nk_do_edit(nk_flags *state, struct nk_command_buffer *out,
                     // have and i dont know if i want to do that big of
                     // a refactor to this code. Maybe we just make a global
                     // to store it.
-                    if (pressedTimer > 30)
+                    if (pressedTimer > 1.0f)
                     {
                         nk_textedit_key(edit, (enum nk_keys)i, shift_mod, font, row_height);
                         cursor_follow = nk_true;
                     }
-                    pressedTimer += 1;
+                    pressedTimer += 2.0f * GetFrameTime();
                 }
             }
             else if (nk_input_is_key_pressed(in, (enum nk_keys)i)) {

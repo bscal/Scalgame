@@ -21,6 +21,13 @@ SStringHash(const SString* key)
     return FNVHash(data, key->Length);
 }
 
+constexpr inline uint64_t
+SStringViewHash(const SStringView* key)
+{
+    const uint8_t* const data = (const uint8_t* const)key->Str;
+    return FNVHash(data, key->Length);
+}
+
 //template<typename T>
 //struct SAllocator
 //{

@@ -4,8 +4,10 @@
 
 #include <stdint.h>
 
-#define SHORT_STRING_ARRAY_SIZE 16
-#define SHORT_STRING_LENGTH (SHORT_STRING_ARRAY_SIZE - 1)
+global_var constexpr uint32_t SSTR_SSO_ARRAY_SIZE = 16;
+global_var constexpr uint32_t SSTR_SSO_LENGTH = SSTR_SSO_ARRAY_SIZE - 1;
+
+global_var constexpr uint32_t SSTR_NO_POS = UINT32_MAX - 1;
 
 bool SStrEquals(const char* str0, const char* str1);
 
@@ -17,27 +19,32 @@ struct SString
 	union StringMemory
 	{
 		char* StrMemory;
-		char ShortStringBuf[SHORT_STRING_ARRAY_SIZE];
+		char ShortStringBuf[SSTR_SSO_ARRAY_SIZE];
 	};
 
-	uint32_t Length : 31, IsTemp : 1;
+	uint32_t Length : 31, DoNotFree: 1;
 	uint32_t Capacity;
 
-	SString();
+	SString() = default;
 	SString(const char* str);
 	SString(const char* str, uint32_t length);
 	SString(const SString& other);
 
-	/// NOTE: Creates a "temporary" SString, allowing you to
-	/// use STempString or SStringView char* as its own pointer.
-	/// If Smaller then SSO then it will copy. IsTemp will == true.
-	/// Useful it you need an SString but do not want to worry,
-	/// about any lifetime or allocations from it.
+	// If not SSOed then frees
+	~SString();
+
+	// NOTE: Creates a "temporary" SString, allowing you to
+	// use STempString or SStringView char* as its own pointer.
+	// If Smaller then SSO then it will copy. IsTemp will == true.
+	// Useful it you need an SString but do not want to worry,
+	// about any lifetime or allocations from it.
 	static SString CreateTemp(const STempString* tempStr);
 	static SString CreateTemp(const SStringView* tempStr);
 
-	// If not SSOed then frees
-	~SString();
+	void SetCapacity(uint32_t capacity);
+
+	void Assign(const char* cStr);
+	void Assign(const char* cStr, uint32_t length);
 
 	SString& operator=(const SString& other);
 	SString& operator=(const char* cString);
@@ -51,13 +58,22 @@ struct SString
 
 	inline const char* Data() const
 	{
-		return (Length > SHORT_STRING_LENGTH) ? m_Buffer.StrMemory : m_Buffer.ShortStringBuf;
+		return (Length > SSTR_SSO_LENGTH) ? m_Buffer.StrMemory : m_Buffer.ShortStringBuf;
 	}
 
 	inline char* Data()
 	{
-		return (Length > SHORT_STRING_LENGTH) ? m_Buffer.StrMemory : m_Buffer.ShortStringBuf;
+		return (Length > SSTR_SSO_LENGTH) ? m_Buffer.StrMemory : m_Buffer.ShortStringBuf;
 	}
+
+	inline bool Empty() const { return Length == 0; }
+	inline uint32_t End() const { return Length - 1; }
+
+	void Append(const char* str);
+	void Append(const char* str, uint32_t length);
+
+	uint32_t FindChar(char c) const;
+	uint32_t Find(const char* cString) const;
 
 private:
 	// NOTE: Not sure if I want to
@@ -88,6 +104,9 @@ struct STempString
 	inline bool operator!=(const STempString& other) const { return !SStrEquals(Str, other.Str); }
 	inline bool operator==(const char* other) const { return SStrEquals(Str, other); }
 	inline bool operator!=(const char* other) const { return !SStrEquals(Str, other); }
+
+	inline bool Empty() const { return Length == 0; }
+	inline uint32_t End() const { return Length - 1; }
 };
 
 struct SStringView
@@ -102,16 +121,38 @@ struct SStringView
 	SStringView(const SString* string);
 	SStringView(const SStringView* string, uint32_t offset);
 
+	inline bool Empty() const { return Length == 0; }
+	inline uint32_t End() const { return Length; }
+
 	// Returns a new SString, may allocate.
-	inline SString ToSString() const { return SString(Str, Length); }
+	inline SString ToSString() const { return SString(Str, Length + 1); }
+	inline STempString ToTempString() const { return STempString(Str, Length + 1); }
+
+	inline bool operator==(const SStringView& other) const { return SStrEquals(Str, other.Str); }
+	inline bool operator!=(const SStringView& other) const { return !SStrEquals(Str, other.Str); }
+
+	SStringView SubString(uint32_t start, uint32_t end) const;
+
+	uint32_t FindChar(char c) const;
+	uint32_t FindChar(char c, uint32_t start) const;
+	uint32_t Find(const char* cString) const;
 };
 
 inline void TestStringImpls()
 {
 	SString string0 = {};
-	SASSERT(sizeof(SString) == 24);
 	SASSERT(string0.Data());
 	SASSERT(string0.Data()[0] == 0);
+	SASSERT(string0.Capacity == 0);
+	
+	string0.Append("HELLO!");
+	SASSERT(string0 == "HELLO!");
+	SASSERT(string0.Capacity == SSTR_SSO_LENGTH);
+	SASSERT(string0.Length == 7);
+	string0.Append("1 2 3");
+	SASSERT(string0 == "HELLO!1 2 3");
+	SASSERT(string0.Capacity == SSTR_SSO_LENGTH);
+	SASSERT(string0.Length == 12);
 
 	SString string1 = "Literal";
 	SASSERT(string1 == "Literal");
@@ -123,21 +164,41 @@ inline void TestStringImpls()
 		SASSERT(string1Copy == string1);
 	}
 	SASSERT(string1.Data());
+	SASSERT(string1.Length == 8);
+	SASSERT(string1.Capacity == SSTR_SSO_LENGTH);
+
+	string1.Append("This");
+	SASSERT(string1 == "LiteralThis")
+	SASSERT(string1.Length == 12);
+	SASSERT(string1.Capacity == SSTR_SSO_LENGTH);
 
 	SString string2("Big long string test wow!!!!!");
 	SASSERT(string2 == "Big long string test wow!!!!!");
 	SASSERT(string2.Length == 30);
+	SASSERT(string2.Capacity == 30);
 
 	STempString tempString = "Testing Temporary!!";
 	SASSERT(tempString == "Testing Temporary!!");
 
 	SString sStringTemp = SString::CreateTemp(&tempString);
-	SASSERT(sStringTemp.IsTemp);
+	SASSERT(sStringTemp.DoNotFree);
 	SASSERT(sStringTemp == tempString);
 
 	SStringView view(&string2);
 	SASSERT(SStrEquals(view.Str, string2.Data()));
 	SASSERT(view.Str == string2.Data());
+
+	SString testStr("String working");
+	SASSERT(testStr == "String working");
+	SASSERT(testStr.Length == 15);
+
+	testStr = "Assigning!";
+	SASSERT(testStr == "Assigning!");
+	SASSERT(testStr.Length == 11);
+
+	SStringView testStrView(&testStr);
+	SASSERT(testStrView == "Assigning!");
+	SASSERT(testStrView.Length == 10);
 
 	SLOG_INFO("[ Test ] String test passed!");
 }

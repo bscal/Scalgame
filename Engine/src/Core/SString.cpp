@@ -5,12 +5,16 @@
 static_assert(sizeof(char) == 1, "SString does not support char size > 1.");
 static_assert(sizeof(SString) == 24, "SString should equal 24.");
 
-SString::SString()
-{
-	Length = 0;
-	IsTemp = false;
-	m_Buffer.StrMemory = NULL;
-}
+// *****************
+// *    SString    *
+// *****************
+
+// Info: Most constructors or functions that create/assign strings,
+// will add a null terminator to the end just to be safe.
+//
+// - SString and STempString ARE null terminated strings.
+// - SStringView ARE NOT null terminated
+//
 
 SString::SString(const char* str)
 	: SString(str, strlen(str) + 1)
@@ -19,21 +23,30 @@ SString::SString(const char* str)
 
 SString::SString(const char* str, uint32_t length)
 {
+	SASSERT(length != 0);
+	SASSERT_MSG(str[length - 1] == 0, "str should be null terminated.");
 	Length = length;
-	IsTemp = false;
-	uint32_t last = SHORT_STRING_LENGTH;
-	if (Length > SHORT_STRING_LENGTH)
+	DoNotFree = false;
+	Capacity = SSTR_SSO_LENGTH;
+	if (Length > Capacity)
 	{
-		last = Length;
-		m_Buffer.StrMemory = (char*)SMemAllocTag(Length, MemoryTag::Strings);
+		Capacity = Length;
+		m_Buffer.StrMemory = (char*)SMemAllocTag(Capacity, MemoryTag::Strings);
 	}
-	SMemCopy(Data(), str, Length);
-	Data()[last] = '\0';
+	SMemCopy(Data(), str, End());
+	Data()[End()] = '\0';
 }
 
 SString::SString(const SString& other)
 	: SString(other.Data(), other.Length)
 {
+	DoNotFree = other.DoNotFree;
+}
+
+SString::~SString()
+{
+	if (!DoNotFree && Capacity > SSTR_SSO_LENGTH)
+		SMemFreeTag(m_Buffer.StrMemory, Capacity, MemoryTag::Strings);
 }
 
 SString SString::CreateTemp(const STempString* tempStr)
@@ -43,15 +56,18 @@ SString SString::CreateTemp(const STempString* tempStr)
 
 	SString string;
 	string.Length = tempStr->Length;
-	string.IsTemp = true;
-	if (string.Length > SHORT_STRING_LENGTH)
+	string.DoNotFree = true;
+	if (string.Length > SSTR_SSO_LENGTH)
 	{
+		string.Capacity = string.Length;
 		string.m_Buffer.StrMemory = tempStr->Str;
 	}
 	else
 	{
+		string.Capacity = SSTR_SSO_LENGTH;
 		SMemCopy(string.Data(), tempStr->Str, string.Length);
-		string.Data()[SHORT_STRING_LENGTH] = '\0';
+		SASSERT(string.Data()[SSTR_SSO_LENGTH] == 0);
+		string.Data()[SSTR_SSO_LENGTH] = '\0';
 	}
 	return string;
 }
@@ -63,52 +79,137 @@ SString SString::CreateTemp(const SStringView* tempStr)
 
 	SString string;
 	string.Length = tempStr->Length;
-	string.IsTemp = true;
-	if (string.Length > SHORT_STRING_LENGTH)
+	string.DoNotFree = true;
+	if (string.Length > SSTR_SSO_LENGTH)
 	{
+		string.Capacity = string.Length;
 		string.m_Buffer.StrMemory = tempStr->Str;
 	}
 	else
 	{
+		string.Capacity = SSTR_SSO_LENGTH;
 		SMemCopy(string.Data(), tempStr->Str, string.Length);
-		string.Data()[SHORT_STRING_LENGTH] = '\0';
+		SASSERT(string.Data()[SSTR_SSO_LENGTH] == 0);
+		string.Data()[SSTR_SSO_LENGTH] = '\0';
 	}
 	return string;
 }
 
+void SString::SetCapacity(uint32_t capacity)
+{
+	if (capacity > Capacity && capacity > SSTR_SSO_LENGTH)
+	{
+		if (Capacity > SSTR_SSO_LENGTH)
+		{
+			m_Buffer.StrMemory = (char*)SMemReallocTag(
+				Data(), Capacity, capacity, MemoryTag::Strings);
+		}
+		else
+		{
+			char* memory = (char*)SMemAllocTag(capacity, MemoryTag::Strings);
+			SMemCopy(memory, Data(), SSTR_SSO_LENGTH);
+			m_Buffer.StrMemory = memory;
+		}
+		Capacity = capacity;
+	}
+	else
+	{
+		Capacity = SSTR_SSO_LENGTH;
+	}
+}
+
+void SString::Assign(const char* cStr)
+{
+	SASSERT(cStr);
+	Assign(cStr, strlen(cStr) + 1);
+}
+
+void SString::Assign(const char* cStr, uint32_t length)
+{
+	SASSERT(cStr);
+	if (Data() == cStr) return;
+	if (length == 0)
+	{
+		Data()[0] = '\0';
+		Length = 0;
+		return;
+	}
+	if (cStr[length - 1] != '\0') ++length;
+	if (length > SSTR_SSO_LENGTH)
+	{
+		if (Capacity <= SSTR_SSO_LENGTH)
+		{
+			m_Buffer.StrMemory = (char*)SMemAllocTag(
+				length, MemoryTag::Strings);
+		}
+		else
+		{
+			m_Buffer.StrMemory = (char*)SMemReallocTag(
+				Data(), Capacity, length, MemoryTag::Strings);
+		}
+		Capacity = length;
+	}
+	else if (Capacity == 0)
+		Capacity = SSTR_SSO_LENGTH;
+
+	Length = length;
+	SMemCopy(Data(), cStr, End());
+	Data()[End()] = '\0';
+}
+
+uint32_t SString::FindChar(char c) const
+{
+	SASSERT(Data());
+	for (uint32_t i = 0; i < Length; ++i)
+	{
+		char character = Data()[i];
+		if (!character) break;
+		if (character == c) return i;
+	}
+	return SSTR_NO_POS;
+}
+
+uint32_t SString::Find(const char* cString) const
+{
+	SASSERT(cString);
+	const char* foundPtr = strstr(Data(), cString);
+	return (foundPtr) ? foundPtr - Data() : SSTR_NO_POS;
+}
+
 SString& SString::operator=(const SString& other)
 {
-	if (this == &other) return *this;
-	Length = other.Length;
-	if (Length > SHORT_STRING_LENGTH)
-	{
-		m_Buffer.StrMemory = (char*)SMemAllocTag(Length, MemoryTag::Strings);
-	}
-	SMemCopy(Data(), other.Data(), Length);
+	if (this != &other) Assign(other.Data(), other.Length);
 	return *this;
 }
 
 SString& SString::operator=(const char* cString)
 {
-	Length = strlen(cString) + 1;
-	if (Length > SHORT_STRING_LENGTH)
-	{
-		m_Buffer.StrMemory = (char*)SMemAllocTag(Length, MemoryTag::Strings);
-	}
-	SMemCopy(Data(), cString, Length);
+	Assign(cString);
 	return *this;
 }
 
 bool SString::operator==(const STempString& other) const { return SStrEquals(Data(), other.Str); }
 bool SString::operator!=(const STempString& other) const { return !SStrEquals(Data(), other.Str); }
 
-SString::~SString()
+void SString::Append(const char* str)
 {
-	if (!IsTemp && Length > SHORT_STRING_LENGTH)
-	{
-		SMemFreeTag(m_Buffer.StrMemory, Length, MemoryTag::Strings);
-	}
+	Append(str, strlen(str) + 1);
 }
+
+void SString::Append(const char* str, uint32_t length)
+{
+	if (Length + length > Capacity)
+	{
+		SetCapacity(Length + length);
+	}
+	uint32_t offset = (Length == 0) ? 0 : Length - 1;
+	SMemCopy(Data() + offset, str, length);
+	Length = offset + length;
+}
+
+// *********************
+// *    STempString    *
+// *********************
 
 STempString::STempString(const char* str)
 	: STempString(str, strlen(str) + 1)
@@ -118,10 +219,9 @@ STempString::STempString(const char* str)
 STempString::STempString(const char* str, uint32_t length)
 {
 	Length = length;
-	uint32_t termiatedLength = Length + 1;
-	Str = (char*)SMemTempAlloc(termiatedLength);
-	SMemCopy(Str, str, termiatedLength);
-	Str[Length] = '\0';
+	Str = (char*)SMemTempAlloc(Length);
+	SMemCopy(Str, str, Length - 1);
+	Str[End()] = '\0';
 }
 
 STempString::STempString(const STempString& other)
@@ -134,11 +234,9 @@ STempString& STempString::operator=(const STempString& other)
 	if (this == &other) return *this;
 
 	Length = other.Length;
-
-	uint32_t termiatedLength = Length + 1;
-	Str = (char*)SMemTempAlloc(termiatedLength);
-	SMemCopy(Str, other.Str, termiatedLength);
-	Str[Length] = '\0';
+	Str = (char*)SMemTempAlloc(Length);
+	SMemCopy(Str, other.Str, Length);
+	Str[Length - 1] = '\0';
 
 	return *this;
 }
@@ -146,42 +244,84 @@ STempString& STempString::operator=(const STempString& other)
 STempString& STempString::operator=(const char* cString)
 {
 	Length = strlen(cString) + 1;
-	uint32_t termiatedLength = Length + 1;
-	Str = (char*)SMemTempAlloc(termiatedLength);
-	SMemCopy(Str, cString, termiatedLength);
-	Str[Length] = '\0';
+	Str = (char*)SMemTempAlloc(Length);
+	SMemCopy(Str, cString, Length);
+	Str[Length - 1] = '\0';
 	return *this;
 }
 
+// *********************
+// *    SStringView    *
+// *********************
+
 SStringView::SStringView(const char* str)
-	:SStringView(str, strlen(str) + 1)
+	: SStringView(str, strlen(str))
 {
 }
 
 SStringView::SStringView(const char* str, uint32_t length)
-	: Str((char*)str), Length(length)
+	: SStringView((char*)str, length, 0)
 {
 }
 
 SStringView::SStringView(const char* str, uint32_t length, uint32_t offset)
 {
-	SASSERT(offset < length);
-	Str = (char*)str + offset;
-	Length = length;
+	if (length == 0)
+	{
+		Str = (char*)str;
+		Length = length;
+	}
+	else
+	{
+		Str = (char*)str + offset;
+		Length = (Str[length - 1] == '\0') ? length - 1 : length;
+		SASSERT(Str < Str + Length);
+	}
 }
 
 SStringView::SStringView(const SStringView* string, uint32_t offset)
+	: SStringView(string->Str, string->Length - 1, offset)
 {
-	SASSERT(offset < string->Length);
-	Str = (char*)string->Str + offset;
-	Length = string->Length - offset;
 }
 
 SStringView::SStringView(const SString* string)
-	: Str((char*)string->Data()), Length(string->Length)
+	: SStringView(string->Data(), string->Length, 0)
 {
 }
 
+SStringView SStringView::SubString(uint32_t start, uint32_t end) const
+{
+	return SStringView(Str, end - start, start);
+}
+
+uint32_t SStringView::FindChar(char c) const
+{
+	return FindChar(c, 0);
+}
+
+uint32_t SStringView::FindChar(char c, uint32_t start) const
+{
+	SASSERT(Str);
+	SASSERT(start < Length);
+	for (uint32_t i = start; i < Length; ++i)
+	{
+		char character = Str[i];
+		if (!character) break;
+		if (character == c) return i;
+	}
+	return SSTR_NO_POS;
+}
+
+uint32_t SStringView::Find(const char* cString) const
+{
+	SASSERT(cString);
+	const char* foundPtr = strstr(Str, cString);
+	return (foundPtr) ? foundPtr - Str : SSTR_NO_POS;
+}
+
+// **************************
+// *    String Functions    *
+// **************************
 
 bool SStrEquals(const char* str1, const char* str2)
 {

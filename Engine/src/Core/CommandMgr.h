@@ -2,32 +2,34 @@
 
 #include "Core.h"
 
-#include <unordered_map>
-#include <vector>
-#include <string>
+#include "SString.h"
+#include "SUtil.h"
+#include "Structures/SList.h"
+#include "Structures/STable.h"
 
-constexpr int MAX_SUGGESTIONS = 6;
+global_var constexpr uint32_t MAX_SUGGESTIONS = 6;
 
 struct Command
 {
-	int(*Execute)(const std::string_view cmd, const std::vector<std::string_view>& args);
+	int(*Execute)(const SStringView cmd, const SList<SStringView>& args);
 };
 
 struct CommandMgr
 {
-	std::unordered_map<std::string, Command> Commands;
-	std::vector<std::string_view> CommandsNames;
-	std::vector<std::string_view> Suggestions;
-	std::vector<std::string_view> InputArgs;
+	STable<SStringView, Command> Commands;
+	SList<SStringView> CommandNames;
+	SList<SStringView> Suggestions;
+	SList<SStringView> InputArgs;
+
 	int Length;
 	int LastLength;
 	char TextInputMemory[96];
 
 	CommandMgr();
 
-	void RegisterCommand(std::string_view CmdName, const Command& cmd);
-	void TryExecuteCommand(const std::string_view input);
-	void PopulateSuggestions(const std::string_view input);
+	void RegisterCommand(const char* CmdName, const Command& cmd);
+	void TryExecuteCommand(const SStringView input);
+	void PopulateSuggestions(const SStringView input);
 };
 
 /// Copies err to a global error state 
@@ -44,14 +46,14 @@ struct Argument
 /// NOTE: This returns a string view from the command input string!
 /// This means that the string is temporary and the null 
 /// terminator is at the end of the command not the string!
-Argument<std::string_view>
-GetArgString(int index, const std::vector<std::string_view>& args);
+Argument<SStringView>
+GetArgString(int index, const SList<SStringView>& args);
 
 Argument<int>
-GetArgInt(int index, const std::vector<std::string_view>& args);
+GetArgInt(int index, const SList<SStringView>& args);
 
 Argument<float>
-GetArgFloat(int index, const std::vector<std::string_view>& args);
+GetArgFloat(int index, const SList<SStringView>& args);
 
 Argument<Vector2>
-GetArgVec2(int index, const std::vector<std::string_view>& args);
+GetArgVec2(int index, const SList<SStringView>& args);

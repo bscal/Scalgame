@@ -2,6 +2,8 @@
 
 #include "SMemory.h"
 
+#include <string>
+
 #define CMD_SUCCESS 0
 #define CMD_FAILURE 1
 
@@ -13,31 +15,30 @@ int SetCmdError(const char* err)
 	return CMD_FAILURE;
 }
 
-internal int TestStringExecute(const std::string_view cmd, const std::vector<std::string_view>& args)
+internal int TestStringExecute(const SStringView cmd, const SList<SStringView>& args)
 {
 	SLOG_INFO("TEST COMMAND EXECUTE!");
 
-	Argument<std::string_view> arg0 = GetArgString(0, args);
+	Argument<SStringView> arg0 = GetArgString(0, args);
 	if (!arg0.IsPresent) return SetCmdError("Argument 0 not specified");
 
 	auto arg1 = GetArgVec2(1, args);
 	if (!arg1.IsPresent) return SetCmdError("Arg 1 not set");
 
-	std::string str(arg0.Value.begin(), arg0.Value.end());
 	TraceLog(LOG_DEBUG, "TestStringCommand = %s, x = %f, y = %f",
-		str.c_str(), arg1.Value.x, arg1.Value.y);
+		arg0.Value.Str , arg1.Value.x, arg1.Value.y);
 
 	return CMD_SUCCESS;
 }
 
-internal int TestExecute(const std::string_view cmd, const std::vector<std::string_view>& args)
+internal int TestExecute(const SStringView cmd, const SList<SStringView>& args)
 {
 	SLOG_INFO("TEST COMMAND EXECUTE!");
 
 	return CMD_SUCCESS;
 }
 
-internal int TestExecute2(const std::string_view cmd, const std::vector<std::string_view>& args)
+internal int TestExecute2(const SStringView cmd, const SList<SStringView>& args)
 {
 	SLOG_INFO("TEST 2 COMMAND EXECUTE!");
 
@@ -53,8 +54,11 @@ internal int TestExecute2(const std::string_view cmd, const std::vector<std::str
 
 CommandMgr::CommandMgr()
 {
-	Suggestions.reserve(MAX_SUGGESTIONS);
-	InputArgs.reserve(5);
+	Commands.KeyEqualsFunction = STableDefaultKeyEquals;
+	Commands.KeyHashFunction = SStringViewHash;
+
+	Suggestions.EnsureCapacity(MAX_SUGGESTIONS);
+	InputArgs.EnsureCapacity(5);
 
 	Command testCommand = {};
 	testCommand.Execute = TestExecute;
@@ -70,43 +74,48 @@ CommandMgr::CommandMgr()
 	RegisterCommand("testCommand2", testCommand2);
 }
 
-void CommandMgr::RegisterCommand(std::string_view CmdName, const Command& cmd)
+void CommandMgr::RegisterCommand(const char* cmdName, const Command& cmd)
 {
-	Commands.emplace(std::make_pair(CmdName, cmd));
-	CommandsNames.emplace_back(CmdName);
+	SStringView cmdNameStringView(cmdName);
 
-	SLOG_INFO("[ Commands ] Registered command %s", CmdName.data());
+	CommandNames.Push(&cmdNameStringView);
+	Commands.Put(&cmdNameStringView, &cmd);
+
+	SLOG_INFO("[ Commands ] Registered command %s", cmdNameStringView.Str);
 }
 
-void CommandMgr::TryExecuteCommand(const std::string_view input)
+void CommandMgr::TryExecuteCommand(const SStringView input)
 {
-	if (input.empty()) return;
+	if (input.Empty()) return;
 
-	InputArgs.clear();
+	InputArgs.Clear();
 
 	// Handle getting command and
 	// splitting arguments
 	const char delim = ' ';
-	size_t start = 0;
+	uint32_t start = 0;
 	size_t end = 0;
-	while ((end = input.find(delim, start)) != std::string::npos)
+	while ((end = input.FindChar(delim, start)) != SSTR_NO_POS)
 	{
-		InputArgs.emplace_back(input.substr(start, end - start));
+		SStringView subStr = input.SubString(start, end);
+		InputArgs.Push(&subStr);
 		start = end + 1;
 	}
-	InputArgs.emplace_back(input.substr(start));
+	SStringView subStr = input.SubString(start, input.End());
+	InputArgs.Push(&subStr);
 
 	// NOTE: The command name is the 1st
 	// argument, so we remove and set
 	// InputCommandStr as it
-	const std::string& command = std::string(InputArgs[0].data(), InputArgs[0].size());
+	STempString commandStr = InputArgs[0].ToTempString();
+	SStringView commandStrView(commandStr.Str, commandStr.Length);
 
-	InputArgs.erase(InputArgs.begin());
+	InputArgs.RemoveAt(0);
 
-	auto find = Commands.find(command);
-	if (find != Commands.end())
+	Command* foundCommand = Commands.Get(&commandStrView);
+	if (foundCommand)
 	{		
-		int ret = find->second.Execute(command, InputArgs);
+		int ret = foundCommand->Execute(commandStrView, InputArgs);
 		if (ret == CMD_SUCCESS)
 		{
 			SLOG_INFO("Success cmd");
@@ -120,29 +129,29 @@ void CommandMgr::TryExecuteCommand(const std::string_view input)
 	TextInputMemory[sizeof(TextInputMemory) - 1] = '\0';
 	Length = 0;
 	LastLength = 0;
-	Suggestions.clear();
+	Suggestions.Clear();
 }
 
-void CommandMgr::PopulateSuggestions(const std::string_view input)
+void CommandMgr::PopulateSuggestions(const SStringView input)
 {
 	if (Length <= 0) return;
 
-	Suggestions.clear();
-	for (int i = 0; i < CommandsNames.size(); ++i)
+	Suggestions.Clear();
+	for (int i = 0; i < CommandNames.Count; ++i)
 	{
-		if (Suggestions.size() == MAX_SUGGESTIONS) break;
-		if (CommandsNames[i].find(input) != std::string::npos)
+		if (Suggestions.Count == MAX_SUGGESTIONS) break;
+		if (CommandNames[i].Find(input.Str) != SSTR_NO_POS)
 		{
-			Suggestions.emplace_back(CommandsNames[i]);
+			Suggestions.Push(CommandNames.PeekAt(i));
 		}
 	}
 }
 
-Argument<std::string_view>
-GetArgString(int index, const std::vector<std::string_view>& args)
+Argument<SStringView>
+GetArgString(int index, const SList<SStringView>& args)
 {
-	Argument<std::string_view> arg = {};
-	if (index < args.size())
+	Argument<SStringView> arg = {};
+	if (index < args.Count)
 	{
 		arg.Value = args[index];
 		arg.IsPresent = true;
@@ -151,13 +160,13 @@ GetArgString(int index, const std::vector<std::string_view>& args)
 }
 
 Argument<int>
-GetArgInt(int index, const std::vector<std::string_view>& args)
+GetArgInt(int index, const SList<SStringView>& args)
 {
 	Argument<int> arg = {};
-	if (index >= args.size()) return arg;
+	if (index >= args.Count) return arg;
 	try
 	{
-		arg.Value = std::stoi(args[index].data());
+		arg.Value = std::stoi(args[index].Str);
 		arg.IsPresent = true;
 	}
 	catch (std::exception e)
@@ -168,13 +177,13 @@ GetArgInt(int index, const std::vector<std::string_view>& args)
 }
 
 Argument<float>
-GetArgFloat(int index, const std::vector<std::string_view>& args)
+GetArgFloat(int index, const SList<SStringView>& args)
 {
 	Argument<float> arg = {};
-	if (index >= args.size()) return arg;
+	if (index >= args.Count) return arg;
 	try
 	{
-		arg.Value = std::stof(args[index].data());
+		arg.Value = std::stof(args[index].Str);
 		arg.IsPresent = true;
 	}
 	catch (std::exception e)
@@ -185,20 +194,20 @@ GetArgFloat(int index, const std::vector<std::string_view>& args)
 }
 
 Argument<Vector2>
-GetArgVec2(int index, const std::vector<std::string_view>& args)
+GetArgVec2(int index, const SList<SStringView>& args)
 {
 	Argument<Vector2> arg = {};
-	if (index >= args.size()) return arg;
+	if (index >= args.Count) return arg;
 	try
 	{
-		const auto& strView = args[index];
-		size_t found = strView.find(',');
-		if (found != std::string::npos)
+		SStringView strView = args[index];
+		uint32_t found = strView.FindChar(',');
+		if (found != SSTR_NO_POS)
 		{
-			auto xStr = strView.substr(0, found);
-			auto yStr = strView.substr(found + 1, strView.size());
-			arg.Value.x = std::stof(xStr.data());
-			arg.Value.y = std::stof(yStr.data());
+			SStringView xStr = strView.SubString(0, found);
+			SStringView yStr = strView.SubString(found + 1, strView.Length);
+			arg.Value.x = std::stof(xStr.Str);
+			arg.Value.y = std::stof(yStr.Str);
 			arg.IsPresent = true;
 		}
 	}

@@ -7,9 +7,6 @@
 #include "Vector2i.h"
 #include "CommandMgr.h"
 
-#include <string>
-#include <stdio.h>
-
 const global_var struct nk_color BG_COLOR = ColorToNuklear({ 17, 17, 17, 155 });
 
 internal void DrawFPS(struct nk_context* ctx);
@@ -104,14 +101,12 @@ InitializeNuklear(nk_context* nkCtxToInit, UIState* state, Font* font, float fon
 		assert(false);
 	}
 
-	NuklearUserData* userData = (NuklearUserData*)SMemAllocTag(
-		sizeof(NuklearUserData), MemoryTag::UI);
-
 	// Set the internal user data.
-	userData->scaling = 1.0f;
+	state->UserData.Scale = 1.0f;
+
 	nk_handle userDataHandle;
 	userDataHandle.id = 1;
-	userDataHandle.ptr = (void*)userData;
+	userDataHandle.ptr = &state->UserData;
 	nk_set_user_data(nkCtxToInit, userDataHandle);
 
 	SLOG_INFO("[ UI ] Initialized Nuklear");
@@ -246,28 +241,39 @@ internal void DrawConsole(UIState* state)
 				nk_layout_row_dynamic(ctx, TEXT_ENTRY_HEIGHT, 1);
 				for (int i = 0; i < state->ConsoleEntries.Count; ++i)
 				{
-					nk_label(ctx, state->ConsoleEntries[i].c_str(), NK_TEXT_LEFT);
+					nk_label(ctx, state->ConsoleEntries[i].Data(), NK_TEXT_LEFT);
 				}
 				nk_group_end(ctx);
 			}
 
-			auto& cmdMgr = GetGame()->CommandMgr;
-			if (IsKeyPressed(KEY_TAB) && cmdMgr.Suggestions.size() > 0)
+			CommandMgr* cmdMgr = &GetGame()->CommandMgr;
+			if (IsKeyPressed(KEY_TAB) && cmdMgr->Suggestions.Count > 0)
 			{
-				const auto& sug = cmdMgr.Suggestions[0];
-				cmdMgr.Length = (int)sug.size();
-				SMemCopy(cmdMgr.TextInputMemory, sug.data(), cmdMgr.Length);
+				SStringView sug = cmdMgr->Suggestions[0];
+				cmdMgr->Length = (int)sug.Length;
+				SMemCopy(cmdMgr->TextInputMemory, sug.Str, cmdMgr->Length);
 			}
+
+			// *** Command Input ***
+			nk_layout_row_static(ctx, INPUT_HEIGHT, (int)paddingW, 1);
+			nk_edit_string(&state->Ctx,
+				NK_EDIT_SIMPLE,
+				cmdMgr->TextInputMemory,
+				&cmdMgr->Length,
+				sizeof(cmdMgr->TextInputMemory) - 1,
+				nk_filter_default);
+
 			if (IsKeyPressed(KEY_ENTER))
 			{
 				if (state->ConsoleEntries.Count > MAX_CONSOLE_HISTORY)
 				{
 					state->ConsoleEntries.RemoveAt(0);
 				}
-				std::string* str = state->ConsoleEntries.PushZero();
-				str->assign(cmdMgr.TextInputMemory, cmdMgr.Length);
 
-				cmdMgr.TryExecuteCommand(std::string_view(cmdMgr.TextInputMemory, cmdMgr.Length));
+				SString* string = state->ConsoleEntries.PushZero();
+				string->Assign(cmdMgr->TextInputMemory, cmdMgr->Length);
+
+				cmdMgr->TryExecuteCommand(SStringView(cmdMgr->TextInputMemory, cmdMgr->Length));
 
 				if (state->ConsoleEntries.Count >= h / TEXT_ENTRY_HEIGHT_WITH_PADDING)
 				{
@@ -275,27 +281,18 @@ internal void DrawConsole(UIState* state)
 				}
 			}
 
-			// *** Command Input ***
-			nk_layout_row_static(ctx, INPUT_HEIGHT, (int)paddingW, 1);
-			nk_edit_string(&state->Ctx,
-				NK_EDIT_SIMPLE,
-				cmdMgr.TextInputMemory,
-				&cmdMgr.Length,
-				sizeof(cmdMgr.TextInputMemory) - 1,
-				nk_filter_default);
-
-			if (cmdMgr.Length != cmdMgr.LastLength)
+			if (cmdMgr->Length != cmdMgr->LastLength)
 			{
-				cmdMgr.LastLength = cmdMgr.Length;
-				cmdMgr.PopulateSuggestions(std::string_view(cmdMgr.TextInputMemory, cmdMgr.Length));
+				cmdMgr->LastLength = cmdMgr->Length;
+				cmdMgr->PopulateSuggestions(SStringView(cmdMgr->TextInputMemory, cmdMgr->Length));
 			}
-			if (cmdMgr.Length > 0)
+			if (cmdMgr->Length > 0)
 			{
-				SuggestionPanelSize = (float)(24.0f * cmdMgr.Suggestions.size());
+				SuggestionPanelSize = (float)(24.0f * cmdMgr->Suggestions.Count);
 				nk_layout_row_dynamic(ctx, TEXT_ENTRY_HEIGHT, 1);
-				for (int i = 0; i < cmdMgr.Suggestions.size(); ++i)
+				for (int i = 0; i < cmdMgr->Suggestions.Count; ++i)
 				{
-					nk_label(ctx, cmdMgr.Suggestions[i].data(), NK_TEXT_LEFT);
+					nk_label(ctx, cmdMgr->Suggestions[i].Str, NK_TEXT_LEFT);
 				}
 			}
 			else

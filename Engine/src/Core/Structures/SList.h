@@ -125,9 +125,8 @@ T* SList<T>::PushZero()
 		Resize(Capacity * SLIST_DEFAULT_RESIZE);
 	}
 	++Count;
-	T* ptr = &Memory[End()];
-	*ptr = {};
-	return ptr;
+	Memory[End()] = T{};
+	return &Memory[End()];
 }
 
 template<typename T>

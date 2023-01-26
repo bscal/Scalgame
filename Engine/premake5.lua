@@ -22,9 +22,9 @@ project "Engine"
 
     includedirs
     {
-        "src",
-        "vendor",
-        "vendor/raylib/src"
+        "src/",
+        "vendor/raylib/src/",
+        "vendor/",
     }
 
     links

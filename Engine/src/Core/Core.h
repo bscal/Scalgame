@@ -89,7 +89,7 @@ MemorySizeData FindMemSize(uint64_t size);
 inline void 
 ReportAssertFailure(const char* expression, const char* msg, const char* file, int line)
 {
-	TraceLog(LOG_ERROR, "Assertion Failure: %s,"
-		"Message: % s\n  File : % s, Line : % d\n",
+	TraceLog(LOG_ERROR, "Assertion Failure: %s\n"
+		"  Message: % s\n  File : % s, Line : % d\n",
 		expression, msg, file, line);
 }
