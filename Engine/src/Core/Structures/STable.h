@@ -32,13 +32,14 @@ struct STableEntry
 	STableEntry<K, V>* Next;
 };
 
+
 template<typename K, typename V>
 struct STable
 {
 	STableEntry<K, V>** Entries;
 	uint32_t Size;
 	uint32_t Capacity;
-	SMemAllocator Allocator;
+	SMemAllocator Allocator = SMEM_GAME_ALLOCATOR;
 
 	bool (*KeyEqualsFunction)(const K* v0, const K* v1);
 	size_t(*KeyHashFunction)(const K* key) = STableDefaultKeyHash;

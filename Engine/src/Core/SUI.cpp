@@ -15,10 +15,8 @@ bool InitializeUI(UIState* state, GameApplication* gameApp)
 {
 	InitializeNuklear(&state->Ctx, state, &gameApp->Game->Resources.FontSilver, 16.0f);
 	
-	// NOTE: generally you dont need to specify
-	// an allocator, but since UIState is allocated
-	// directly it is 0
-	state->ConsoleEntries.Allocator = SMemAllocator();
+	// Initialize ConsoleEntries
+	state->ConsoleEntries.Allocator = SMEM_GAME_ALLOCATOR;
 	state->ConsoleEntries.Resize(CONSOLE_MAX_LENGTH);
 
 	SLOG_INFO("[ UI ] Initialized");

@@ -29,20 +29,18 @@ SMemInitialize(GameApplication* gameApp,
     TemporaryMemSize = temporaryMemSize;
     TotalMemoryAllocated = GameMemSize + TemporaryMemSize;
 
-    void* gameMem = malloc(GameMemSize);
-    SASSERT(gameMem);
-    SMemClear(gameMem, GameMemSize);
-    gameApp->GameMemory = CreateMemPoolFromBuffer(gameMem, GameMemSize);
+    uint8_t* memory = (uint8_t*)malloc(TotalMemoryAllocated);
+    SASSERT(memory);
+    SMemClear(memory, TotalMemoryAllocated);
+
+    gameApp->GameMemory = CreateMemPoolFromBuffer(memory, GameMemSize);
     GameMemory = &gameApp->GameMemory;
 
-    void* tempMem = malloc(TemporaryMemSize);
-    SASSERT(tempMem);
-    SMemClear(tempMem, TemporaryMemSize);
-    gameApp->TemporaryMemory = CreateBiStackFromBuffer(tempMem, TemporaryMemSize);
+    gameApp->TemporaryMemory = CreateBiStackFromBuffer(memory + GameMemSize, TemporaryMemSize);
     TempMemory = &gameApp->TemporaryMemory;
 
-    SASSERT(GameMemory);
-    SASSERT(TempMemory);
+    SASSERT(GameMemory->arena.mem);
+    SASSERT(TempMemory->mem);
 
     SLOG_INFO("[ Memory ] Initialized! Total Mem: %d", TotalMemoryAllocated);
     SLOG_INFO("[ Memory ] Temporary mem size: %d", TemporaryMemSize);

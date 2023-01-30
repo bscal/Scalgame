@@ -64,38 +64,16 @@ uint64_t SMemGetTempAllocated();
 MemPool* const GetGameMemory();
 BiStack* const GetTempMemory();
 
-internal inline void* 
-SMemAllactorAlloc(size_t size)
-{
-	return SMemAlloc(size);
-}
-
-internal inline void 
-SMemAllactorFree(void* block)
-{
-	return SMemFree(block);
-}
-
 struct SMemAllocator
 {
-	void* (*Alloc)(size_t) = SMemAllactorAlloc;
-	void (*Free)(void*) = SMemAllactorFree;
+	void* (*Alloc)(size_t);
+	void (*Free)(void*);
 };
 
-struct SMemTempAllocator : public SMemAllocator
+// Temp memory gets freed at start of a frame
+internal inline void
+SMemTempAllocatorFree(void* block)
 {
-	[[nodiscard]] static void* SMemTempAllocatorAlloc(size_t size)
-	{
-		void* allocation = BiStackAllocFront(GetTempMemory(), size);
-		SASSERT(allocation);
-		return allocation;
-	}
-
-	static void SMemTempAllocatorFree(void* block) {};
-
-	SMemTempAllocator()
-	{
-		Alloc = SMemTempAllocatorAlloc;
-		Free = SMemTempAllocatorFree;
-	}
 };
+global_var const SMemAllocator SMEM_GAME_ALLOCATOR = { SMemAlloc, SMemFree };
+global_var const SMemAllocator SMEM_TEMP_ALLOCATOR = { SMemTempAlloc, SMemTempAllocatorFree };

@@ -13,7 +13,7 @@ struct SList
 	T* Memory;
 	uint32_t Capacity;
 	uint32_t Count;
-	SMemAllocator Allocator;
+	SMemAllocator Allocator = SMEM_GAME_ALLOCATOR;
 
 	void EnsureCapacity(uint32_t ensuredCapacity);
 	void EnsureSize(uint32_t ensuredCount); // ensures capacity and count elements

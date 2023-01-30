@@ -273,7 +273,7 @@ TileMapChunk* LoadChunk(ChunkedTileMap* tilemap,
 {
 	TileMapChunk* chunk = tilemap->ChunksList.PushZero();
 	//chunk.Tiles.InitializeCap(tilemap->ChunkTileCount);
-	chunk->Entities.Allocator = SMemAllocator{};
+	chunk->Entities.Allocator = SMEM_GAME_ALLOCATOR;
 	chunk->Entities.Resize(10); // TODO
 	chunk->ChunkCoord = coord;
 
