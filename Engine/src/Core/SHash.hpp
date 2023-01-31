@@ -1,47 +1,36 @@
 #pragma once
 
-#include <stdint.h>
+#include "Core.h"
+#include "Murmur.h"
 
-constexpr size_t S_FNV_offset_basis = 0xcbf29ce484222325;
-constexpr size_t S_FNV_prime = 0x100000001b3;
+global_var constexpr uint32_t FNV32_offset_basis = 0x811c9dc5;
+global_var constexpr uint32_t FNV32_prime = 0x1000193;
 
-[[nodiscard]] constexpr size_t SDBMHashMerge(
-    size_t seed, const unsigned char* const str, size_t length)
+global_var constexpr uint64_t FNV64_offset_basis = 0xcbf29ce484222325;
+global_var constexpr uint64_t FNV64_prime = 0x100000001b3;
+
+[[nodiscard]] constexpr uint64_t FNVHash64(
+    const uint8_t* const str, size_t length)
 {
+    uint64_t val = FNV64_offset_basis;
     for (size_t i = 0; i < length; ++i)
     {
-        seed = static_cast<size_t>(str[i]) + (seed << 6) + (seed << 16) - seed;
-    }
-    return seed;
-}
-
-[[nodiscard]] constexpr size_t FNVHash(
-    const unsigned char* const str, size_t length)
-{
-    size_t val = S_FNV_offset_basis;
-    for (size_t i = 0; i < length; ++i)
-    {
-        val ^= static_cast<size_t>(str[i]);
-        val *= S_FNV_prime;
+        val ^= str[i];
+        val *= FNV64_prime;
     }
     return val;
 }
 
-[[nodiscard]] constexpr size_t FNVHashMerge(
-    size_t val, const unsigned char* const str, size_t length)
+[[nodiscard]] constexpr uint32_t FNVHash32(
+    const uint8_t* const str, size_t length)
 {
+    uint32_t val = FNV32_offset_basis;
     for (size_t i = 0; i < length; ++i)
     {
-        val ^= static_cast<size_t>(str[i]);
-        val *= S_FNV_prime;
+        val ^= str[i];
+        val *= FNV32_prime;
     }
     return val;
-}
-
-template<typename T>
-[[nodiscard]] constexpr size_t SHashMerge(size_t seed, const T& object)
-{
-    return FNVHash(&reinterpret_cast<const unsigned char&>(object), sizeof(T));
 }
 
 static constexpr unsigned int crc_table[256] = {

@@ -24,22 +24,6 @@ struct WorldTime
 	uint8_t Minute;
 };
 
-struct Hash
-{
-	[[nodiscard]] constexpr size_t operator()(const Vector2i& v) const
-	{
-		 return SHashMerge(0, v);
-	}
-};
-
-struct Equals
-{
-	[[nodiscard]] bool operator()(const Vector2i& l, const Vector2i& r) const
-	{
-		return l.Equals(r);
-	}
-};
-
 struct World
 {
 	CTileMap::ChunkedTileMap ChunkedTileMap;
