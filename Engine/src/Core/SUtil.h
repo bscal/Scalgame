@@ -14,18 +14,42 @@ inline Rectangle RectangleExpand(const Rectangle& rect, float width, float heigh
     return r;
 }
 
-constexpr inline uint64_t
+inline constexpr uint64_t
 SStringHash(const SString* key)
 {
     const uint8_t* const data = (const uint8_t* const)key->Data();
     return FNVHash64(data, key->Length);
 }
 
-constexpr inline uint64_t
+inline constexpr uint64_t
 SStringViewHash(const SStringView* key)
 {
     const uint8_t* const data = (const uint8_t* const)key->Str;
     return FNVHash64(data, key->Length);
+}
+
+inline constexpr uint32_t
+AlignSize32(uint32_t size, uint32_t alignment)
+{
+    return (size + (alignment - 1)) & -alignment;
+}
+
+inline constexpr bool
+IsPowerOf2_32(uint32_t num)
+{
+    return (num > 0 && ((num & (num - 1)) == 0));
+}
+
+inline constexpr size_t
+AlignSize(size_t size, size_t alignment)
+{
+    return (size + (alignment - 1)) & -alignment;
+}
+
+inline constexpr bool
+IsPowerOf2(size_t num)
+{
+    return (num > 0 && ((num & (num - 1)) == 0));
 }
 
 //template<typename T>

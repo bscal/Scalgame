@@ -11,6 +11,7 @@
 #include "Structures/SArray.h"
 #include "Structures/SList.h"
 #include "Structures/STable.h"
+#include "Structures/SHoodTable.h"
 
 #include "raymath.h"
 #include "rlgl.h"
@@ -49,6 +50,7 @@ SAPI bool GameApplication::Start()
 	TestSTable();
 	TestEntities();
 	TestStringImpls();
+	TestSHoodTable();
 
 	IsInitialized = true;
 

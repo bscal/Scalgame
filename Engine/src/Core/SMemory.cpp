@@ -2,6 +2,7 @@
 #include "SMemory.h"
 
 #include "Game.h"
+#include "SUtil.h"
 
 #include <stdlib.h>
 
@@ -14,12 +15,6 @@ global_var uint64_t GameMemSize;
 global_var uint64_t TemporaryMemSize;
 global_var uint64_t TotalMemoryAllocated;
 global_var uint64_t TotalTempMemAllocated;
-
-internal inline size_t
-AlignSize(size_t size, size_t alignment)
-{
-    return (size + (alignment - 1)) & -alignment;
-}
 
 void 
 SMemInitialize(GameApplication* gameApp,
