@@ -15,7 +15,7 @@ bool SpriteAtlas::Load(const char* atlasDataPath,
 		return false;
 
 	SpritesArray.Resize(estimatedSprites);
-	SpritesByName.Reserve(estimatedSprites, 1.0f);
+	SpritesByName.Reserve(estimatedSprites);
 
 	// Info for sprite
 	AtlasInfo tileInfo = {};
@@ -138,7 +138,7 @@ void SpriteAtlas::Unload()
 
 Rectangle SpriteAtlas::GetRectByName(SStringView tileName) const
 {
-	SString tempSStr = SString::CreateTemp(&tileName);
+	SString tempSStr = SString::CreateFake(&tileName);
 	uint32_t* index = SpritesByName.Get(&tempSStr);
 	if (index) return SpritesArray[*index];
 	// TODO probably want some type of pink tile to be more ERRORY

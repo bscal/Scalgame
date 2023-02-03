@@ -49,7 +49,7 @@ SString::~SString()
 		SMemFreeTag(m_Buffer.StrMemory, Capacity, MemoryTag::Strings);
 }
 
-SString SString::CreateTemp(const STempString* tempStr)
+SString SString::CreateFake(const STempString* tempStr)
 {
 	SASSERT(tempStr);
 	SASSERT(tempStr->Str);
@@ -72,7 +72,7 @@ SString SString::CreateTemp(const STempString* tempStr)
 	return string;
 }
 
-SString SString::CreateTemp(const SStringView* tempStr)
+SString SString::CreateFake(const SStringView* tempStr)
 {
 	SASSERT(tempStr);
 	SASSERT(tempStr->Str);
@@ -83,7 +83,9 @@ SString SString::CreateTemp(const SStringView* tempStr)
 	if (string.Length > SSTR_SSO_LENGTH)
 	{
 		string.Capacity = string.Length;
-		string.m_Buffer.StrMemory = tempStr->Str;
+		// Note: const -> unconst, this points to another
+		// strin's memory a not a unique memory
+		string.m_Buffer.StrMemory = (char*)tempStr->Str;
 	}
 	else
 	{

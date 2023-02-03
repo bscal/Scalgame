@@ -33,13 +33,13 @@ struct SString
 	// If not SSOed then frees
 	~SString();
 
-	// NOTE: Creates a "temporary" SString, allowing you to
-	// use STempString or SStringView char* as its own pointer.
-	// If Smaller then SSO then it will copy. IsTemp will == true.
-	// Useful it you need an SString but do not want to worry,
-	// about any lifetime or allocations from it.
-	static SString CreateTemp(const STempString* tempStr);
-	static SString CreateTemp(const SStringView* tempStr);
+	// Note: CreateFake is used if you want to create a
+	// SString to compare in a map, but not worry about
+	// allocations, like a hashmap lookup. These will use,
+	// SSO and copy, but if larger will just point to the
+	// pointer of the input string
+	static SString CreateFake(const STempString* tempStr);
+	static SString CreateFake(const SStringView* tempStr);
 
 	void SetCapacity(uint32_t capacity);
 
@@ -111,7 +111,7 @@ struct STempString
 
 struct SStringView
 {
-	char* Str;
+	const char* Str;
 	uint32_t Length;
 
 	SStringView() = default;
@@ -181,7 +181,7 @@ inline void TestStringImpls()
 	STempString tempString = "Testing Temporary!!";
 	SASSERT(tempString == "Testing Temporary!!");
 
-	SString sStringTemp = SString::CreateTemp(&tempString);
+	SString sStringTemp = SString::CreateFake(&tempString);
 	SASSERT(sStringTemp.DoNotFree);
 	SASSERT(sStringTemp == tempString);
 
