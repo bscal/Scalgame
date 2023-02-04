@@ -77,8 +77,9 @@ template<typename K, typename V>
 internal STableEntry<K, V>*
 CreateEntry(const STable<K, V>* table, const K* key, const V* value)
 {
+	size_t entrySize = sizeof(STableEntry<K, V>);
 	STableEntry<K, V>* entry = (STableEntry<K, V>*)
-		table->Allocator.Alloc(sizeof(STableEntry<K, V>));
+		table->Allocator.Alloc(entrySize);
 	entry->Key = *key;
 	entry->Value = *value;
 	entry->Next = NULL;
@@ -109,24 +110,27 @@ template<typename K, typename V>
 void STable<K, V>::Reserve(uint32_t capacity)
 {
 	if (capacity == 0) capacity = STABLE_DEFAULT_CAPACITY;
-	if (!IsPowerOf2(capacity))
+	else if (!IsPowerOf2(capacity))
 	{
-		capacity = AlignSize(capacity, 2);
+		capacity = AlignPowTwo32Ceil(capacity);
 		SLOG_WARN("Reserving STable with non power of 2 capacity!, automatically aligning!");
 	}
 
 	SASSERT(IsPowerOf2(capacity));
+	uint32_t oldCapacity = Capacity; // Used in rehash
 	Capacity = capacity;
-	MaxSize = capacity * STABLE_DEFAULT_LOADFACTOR;
+	MaxSize = (uint32_t)((float)capacity * STABLE_DEFAULT_LOADFACTOR);
 
 	if (!IsAllocated())
 	{
 		Entries = (STableEntry<K, V>**)Allocator.Alloc(MemUsed());
+		SMemClear(Entries, MemUsed());
 	}
 	else if (Size == 0)
 	{
 		Allocator.Free(Entries);
 		Entries = (STableEntry<K, V>**)Allocator.Alloc(MemUsed());
+		SMemClear(Entries, MemUsed());
 	}
 	else // Rehash
 	{
@@ -139,7 +143,7 @@ void STable<K, V>::Reserve(uint32_t capacity)
 		sTable2.Reserve(capacity);
 
 		// Put old values, Free old values
-		for (int i = 0; i < Capacity; ++i)
+		for (uint32_t i = 0; i < oldCapacity; ++i)
 		{
 			STableEntry<K, V>* entry = Entries[i];
 			if (entry)
@@ -318,12 +322,17 @@ inline void TestSTable()
 	// if default resize changes the capacity
 	// asserts will trigger
 
+	STable<int, int> testTable = {};
+	testTable.Allocator = SMEM_TEMP_ALLOCATOR;
+	testTable.Reserve(16);
+	SASSERT(testTable.Capacity == 16);
+
 	STable<Vector2i, char> table(Vector2iEqualsFunc, STableDefaultKeyHash<Vector2i>);
 	SASSERT(!table.Entries);
 	table.Reserve(5);
 	SASSERT(table.IsAllocated());
 	SASSERT(table.Capacity == 8);
-	SASSERT(table.MaxSize == 8 * STABLE_DEFAULT_LOADFACTOR);
+	SASSERT(table.MaxSize == (uint32_t)((float)8 * STABLE_DEFAULT_LOADFACTOR));
 
 	Vector2i k = { 1, 2 };
 	char v = 1;
@@ -360,7 +369,7 @@ inline void TestSTable()
 
 	SASSERT(table.Size == 7);
 	SASSERT(table.Capacity == 16);
-	SASSERT(table.MaxSize == 16 * STABLE_DEFAULT_LOADFACTOR);
+	SASSERT(table.MaxSize == (uint32_t)((float)16 * STABLE_DEFAULT_LOADFACTOR));
 
 	char* get = table.Get(&noDup);
 	SASSERT(*get == v);

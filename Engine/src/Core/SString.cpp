@@ -155,6 +155,7 @@ void SString::Assign(const char* cStr, uint32_t length)
 		Capacity = SSTR_SSO_LENGTH;
 
 	Length = length;
+	DoNotFree = false;
 	SMemCopy(Data(), cStr, End());
 	Data()[End()] = '\0';
 }
