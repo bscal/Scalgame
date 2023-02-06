@@ -90,7 +90,7 @@ InitializeNuklear(nk_context* nkCtxToInit, UIState* state, Font* font, float fon
 	state->Allocator.alloc = MemAlloc;
 	state->Allocator.free = MemFree;
 
-	state->UIMemorySize = Megabytes(1);
+	state->UIMemorySize = Megabytes(4);
 	state->UIMemory = SMemAllocTag(state->UIMemorySize, MemoryTag::UI);
 	if (!nk_init_fixed(nkCtxToInit, state->UIMemory,
 		state->UIMemorySize, &state->Font))

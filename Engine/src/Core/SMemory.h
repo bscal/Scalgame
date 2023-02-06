@@ -30,7 +30,7 @@ constexpr static const char* MemoryTagStrings[(uint8_t)MemoryTag::MaxTags] =
 	"UI"
 };
 
-void 
+void
 SMemInitialize(GameApplication* gameApp,
 	uint64_t gameMemorySize, uint64_t tempMemorySize);
 
@@ -77,3 +77,38 @@ SMemTempAllocatorFree(void* block)
 };
 global_var const SMemAllocator SMEM_GAME_ALLOCATOR = { SMemAlloc, SMemFree };
 global_var const SMemAllocator SMEM_TEMP_ALLOCATOR = { SMemTempAlloc, SMemTempAllocatorFree };
+
+
+struct SMemAllocO
+{
+	[[nodiscard]] inline void* operator()(size_t n, MemoryTag tag) const noexcept
+	{
+		void* mem = SMemAllocTag(n, tag);
+		SASSERT(mem);
+		return mem;
+	}
+};
+
+struct SMemFreeO
+{
+	inline void Free(void* block, size_t n, MemoryTag tag) const noexcept
+	{
+		SMemFreeTag(block, n, tag);
+	}
+};
+
+template<typename AllocatorFunc, typename FreeFunc>
+struct SMemTagAllocator
+{
+	[[nodiscard]] inline void* Alloc(size_t size, MemoryTag tag) const noexcept
+	{ 
+		return AllocatorFunc(size, tag);
+	}
+
+	inline void Free(void* block, size_t size, MemoryTag tag) const noexcept
+	{
+		FreeFunc(block, size, tag);
+	}
+};
+
+global_var constexpr const SMemTagAllocator<SMemAllocO, SMemFreeO> SMemTagGameAllocator;

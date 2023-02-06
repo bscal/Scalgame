@@ -56,25 +56,23 @@ struct SList
 template<typename T>
 void SList<T>::EnsureCapacity(uint32_t ensuredCapacity)
 {
-	if (Capacity >= ensuredCapacity) return;
-	Resize(ensuredCapacity);
+	if (ensuredCapacity > Capacity) Resize(ensuredCapacity);
 }
 
 template<typename T>
 void SList<T>::EnsureSize(uint32_t ensuredCount)
 {
-	if (Count >= ensuredCount) return;
-
-	if (ensuredCount > Capacity)
+	if (ensuredCount > Count)
 	{
-		Capacity = ensuredCount;
-		Allocator.Free(Memory);
-		Memory = (T*)Allocator.Alloc(MemUsed());
-	}
+		EnsureCapacity(ensuredCount);
 
-	uint32_t ensuredSize = Capacity - Count;
-	SMemSet(&Memory[Count], 0, ensuredSize * sizeof(T));
-	Count = Capacity;
+		for (size_t i = Count; i < ensuredCount; ++i)
+		{
+			Memory[i] = {};
+		}
+
+		Count = ensuredCount;
+	}
 }
 
 template<typename T>
@@ -82,7 +80,6 @@ void SList<T>::Free()
 {
 	if (Memory)
 	{
-		SMemClear(Memory, MemUsed());
 		Allocator.Free(Memory);
 		Memory = NULL;
 	}
@@ -94,16 +91,22 @@ template<typename T>
 void SList<T>::Resize(uint32_t newCapacity)
 {
 	if (newCapacity == 0 && Capacity == 0) newCapacity = 1;
+	
+	SASSERT(newCapacity > Capacity);
+	
+	size_t oldSize = Capacity * sizeof(T);
+	size_t newSize = newCapacity * sizeof(T);
 	Capacity = newCapacity;
-
 	if (Memory)
 	{
-		T* newMem = (T*)Allocator.Alloc(MemUsed());
-		SMemMove(newMem, Memory, MemUsed());
+		T* newMem = (T*)Allocator.Alloc(newSize);
+		SMemCopy(newMem, Memory, oldSize);
 		Allocator.Free(Memory);
 		Memory = newMem;
 	}
-	else Memory = (T*)Allocator.Alloc(MemUsed());
+	else Memory = (T*)Allocator.Alloc(newSize);
+
+	SASSERT(Memory);
 }
 
 template<typename T>
@@ -125,9 +128,11 @@ T* SList<T>::PushZero()
 	{
 		Resize(Capacity * SLIST_DEFAULT_RESIZE);
 	}
+	
+	uint32_t index = Count;
 	++Count;
-	SMemClear(Last(), sizeof(T));
-	return &Memory[End()];
+	Memory[index] = {};
+	return &Memory[index];
 }
 
 template<typename T>

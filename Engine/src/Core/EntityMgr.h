@@ -15,8 +15,9 @@ struct World;
 // top 16 bits are used for entity type
 typedef uint64_t EntityId;
 
-#define ENTITY_TYPE_MASK (0xffffffff00ffffff)
-#define ENTITY_TYPE_OFFSET (32)
+#define ENTITY_ID_MASK (0xffffffff00000000)
+#define ENTITY_TYPE_MASK (0x00000000ffffffff)
+#define ENTITY_TYPE_OFFSET (32ULL)
 
 enum EntityType : uint8_t
 {
@@ -42,12 +43,16 @@ constexpr inline EntityType GetEntityType(EntityId ent)
 	return (EntityType)type;
 }
 
+constexpr inline void SetEntityId(EntityId* ent, uint32_t id)
+{
+	*ent &= ENTITY_ID_MASK;
+	*ent |= (uint64_t)(id);
+}
+
 constexpr inline void SetEntityType(EntityId* ent, EntityType type)
 {
-	EntityId editedEnt = *ent;
-	editedEnt &= ENTITY_TYPE_MASK;
-	editedEnt |= (0ULL | (EntityId)(type) << ENTITY_TYPE_OFFSET);
-	*ent = editedEnt;
+	*ent &= ENTITY_TYPE_MASK;
+	*ent |= ((uint64_t)(type) << ENTITY_TYPE_OFFSET);
 }
 
 constexpr inline bool IsEmptyEntityId(EntityId ent)
@@ -143,7 +148,7 @@ struct EntityMgr
 	ComponentMgr ComponentManager;
 
 	SLinkedList<EntityId> EntitiesToRemove;
-	SLinkedList<uint64_t> FreeIds;
+	SLinkedList<uint32_t> FreeIds;
 
 	SList<uint32_t> Entities;
 

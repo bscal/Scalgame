@@ -66,11 +66,14 @@ struct GameApplication
     SAPI void Run();
 };
 
+
+
 GameApplication* const GetGameApp();
 void SetCameraPosition(Game* game, Vector3 pos);
 void SetCameraDistance(GameApplication* gameApp, float zoom);
 Player* const GetClientPlayer();
 Game* const GetGame();
+
 float GetDeltaTime();
 float GetScale();
 Rectangle GetScaledScreenRect();

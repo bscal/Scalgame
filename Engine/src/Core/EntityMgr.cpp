@@ -1,5 +1,6 @@
 #include "EntityMgr.h"
 
+#include "Core.h"
 #include "Game.h"
 #include "SMemory.h"
 
@@ -56,24 +57,19 @@ void MarkEntityForRemove(EntityMgr* entMgr, EntityId ent)
 
 EntityId CreateEntityId(EntityMgr* entMgr, EntityType type)
 {
-	EntityId id;
-
+	uint32_t id;
 	if (entMgr->FreeIds.HasNext())
 		id = entMgr->FreeIds.PopValue();
 	else
 		id = entMgr->NextEntityId++;
 
-	SetEntityType(&id, type);
-	return id;
-}
-
-void SpawnEntity(EntityMgr* entMgr, EntityId ent, uint32_t index)
-{
-	SASSERT(!IsEmptyEntityId(ent));
-
-	uint32_t id = GetEntityId(ent);
-	entMgr->Entities.EnsureSize(id + 1);
-	entMgr->Entities.Set(id, &index);
+	EntityId entity = CREATURE_EMPTY_ENTITY_ID;
+	SetEntityId(&entity, id);
+	SetEntityType(&entity, type);
+	SASSERT(GetEntityId(entity) != CREATURE_EMPTY_ENTITY_ID);
+	SASSERT(GetEntityType(entity) != EntityType::UNKNOWN);
+	SASSERT(GetEntityType(entity) < EntityType::MAX_TYPES)
+	return entity;
 }
 
 Player* CreatePlayer(EntityMgr* entMgr, World* world)
@@ -85,7 +81,9 @@ Player* CreatePlayer(EntityMgr* entMgr, World* world)
 	player->Id = ent;
 	SMemSet(player->ComponentIndex, CREATURE_EMPTY_COMPONENT, sizeof(player->ComponentIndex));
 
-	SpawnEntity(entMgr, ent, entMgr->Players.End());
+	uint32_t id = GetEntityId(ent);
+	entMgr->Entities.EnsureSize(id + 1);
+	entMgr->Entities[id] = entMgr->Players.End();
 	SASSERT(player);
 	return player;
 }
@@ -99,7 +97,9 @@ SCreature* CreateCreature(EntityMgr* entMgr, World* world)
 	creature->Id = ent;
 	SMemSet(creature->ComponentIndex, CREATURE_EMPTY_COMPONENT, sizeof(creature->ComponentIndex));
 
-	SpawnEntity(entMgr, ent, entMgr->Creatures.End());
+	uint32_t id = GetEntityId(ent);
+	entMgr->Entities.EnsureSize(id + 1);
+	entMgr->Entities[id] = entMgr->Creatures.End();
 	SASSERT(creature);
 	return creature;
 }
@@ -127,30 +127,36 @@ void* FindEntity(EntityMgr* entMgr, EntityId ent)
 internal void
 SwapPlayer(EntityMgr* entMgr, uint32_t index)
 {
+	bool isRemovingLast = (entMgr->Players.Count > 1 &&
+		index != entMgr->Players.End());
+
 	entMgr->Players.RemoveAtFast(index);
-	if (entMgr->Players.Count <= index)
+	if (isRemovingLast)
 	{
-		Player* swapped = entMgr->Players.PeekAt(index);
+		SCreature* swapped = entMgr->Players.PeekAt(index);
 		SASSERT(swapped);
-		uint32_t* entIndex = entMgr->Entities.PeekAt(GetEntityId(swapped->Id));
-		*entIndex = index;
+		uint32_t swappedId = GetEntityId(swapped->Id);
+		entMgr->Entities[swappedId] = index;
 	}
 }
 
 internal void
 SwapCreature(EntityMgr* entMgr, uint32_t index)
 {
+	bool isRemovingLast = (entMgr->Creatures.Count > 1 && 
+		index != entMgr->Creatures.End());
+	
 	entMgr->Creatures.RemoveAtFast(index);
-	if (entMgr->Creatures.Count < index)
+	if (isRemovingLast)
 	{
 		SCreature* swapped = entMgr->Creatures.PeekAt(index);
 		SASSERT(swapped);
-		uint32_t* entIndex = entMgr->Entities.PeekAt(GetEntityId(swapped->Id));
-		*entIndex = index;
+		uint32_t swappedId = GetEntityId(swapped->Id);
+		entMgr->Entities[swappedId] = index;
 	}
 }
 
-constexpr global_var void (*SwapFuncs[MAX_TYPES])(EntityMgr*, uint32_t) = {
+global_var constexpr void (*SwapFuncs[MAX_TYPES])(EntityMgr*, uint32_t) = {
 	nullptr,
 	SwapPlayer,
 	SwapCreature,
@@ -161,18 +167,21 @@ constexpr global_var void (*SwapFuncs[MAX_TYPES])(EntityMgr*, uint32_t) = {
 
 void RemoveEntity(EntityMgr* entMgr, EntityId ent)
 {
-	SASSERT(!IsEmptyEntityId(ent));
-
+	// Gets all the entity ids
 	uint32_t id = GetEntityId(ent);
 	SASSERT(id != CREATURE_EMPTY_ENTITY_ID);
 	EntityType type = GetEntityType(ent);
 	SASSERT(type != UNKNOWN);
+	uint32_t index = entMgr->Entities[id];
+	SASSERT(index != CREATURE_EMPTY_ENTITY_ID);
 
-	uint32_t* index = entMgr->Entities.PeekAt(id);
+	// Handles removal of object and if there
+	// was a swapped element
 	auto entitySwapFunc = SwapFuncs[type];
 	SASSERT(entitySwapFunc);
-	entitySwapFunc(entMgr, *index);
+	entitySwapFunc(entMgr, index);
 
-	entMgr->FreeIds.Push((uint64_t*)index);
-	*index = CREATURE_EMPTY_ENTITY_ID;
+	// Frees up id
+	entMgr->FreeIds.Push(&id);
+	entMgr->Entities[id] = CREATURE_EMPTY_ENTITY_ID;
 }

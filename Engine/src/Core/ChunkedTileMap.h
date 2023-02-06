@@ -4,6 +4,7 @@
 #include "Vector2i.h"
 #include "Tile.h"
 #include "EntityMgr.h"
+
 #include "Structures/SArray.h"
 #include "Structures/SList.h"
 #include "Structures/SLinkedList.h"
@@ -98,6 +99,7 @@ TileCoord WorldToTile(ChunkedTileMap* tilemap, Vector2 pos);
 bool IsChunkLoaded(ChunkedTileMap* tilemap, ChunkCoord coord);
 bool IsTileInBounds(ChunkedTileMap* tilemap, TileCoord tilePos);
 bool IsChunkInBounds(ChunkedTileMap* tilemap, ChunkCoord chunkPos);
+void SetColor(ChunkedTileMap* tilemap, TileCoord coord, Vector4 color);
 void SetVisible(ChunkedTileMap* tilemap, TileCoord coord);
 bool BlocksLight(ChunkedTileMap* tilemap, TileCoord coord);
 

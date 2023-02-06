@@ -26,7 +26,9 @@ SAPI bool GameApplication::Start()
 		return false;
 	}
 
-	SMemInitialize(this, Megabytes(32), Megabytes(1));
+	size_t gameMemorySize = Megabytes(32);
+	size_t tempMemorySize = Megabytes(1);
+	SMemInitialize(this, gameMemorySize, tempMemorySize);
 
 	const int screenWidth = 1600;
 	const int screenHeight = 900;
@@ -48,7 +50,7 @@ SAPI bool GameApplication::Start()
 
 	TestListImpl();
 	TestSTable();
-	TestEntities();
+	//TestEntities();
 	TestStringImpls();
 	TestSHoodTable();
 
@@ -316,6 +318,7 @@ SAPI void GameApplication::Run()
 		GameUpdate(Game, this);
 		WorldUpdate(&Game->World, Game);
 		EntityMgrUpdate(&Game->EntityMgr, Game);
+
 		EndMode2D();
 		EndTextureMode();
 		EndShaderMode();
@@ -373,6 +376,25 @@ internal void GameUpdate(Game* game, GameApplication* gameApp)
 		GameLoadScreen(gameApp, GetScreenWidth(), GetScreenHeight());
 		SLOG_INFO("[ GAME ] Window Resizing!");
 	}
+
+	// TODO move
+	//CTileMap::SetVisible(
+	//	&game->World.ChunkedTileMap,
+	//	GetClientPlayer()->Transform.TilePos);
+
+	SList<Vector2i> nearbyTiles = QueryTilesRadius(&game->World, GetClientPlayer()->Transform.TilePos, 4.0f);
+	for (int i = 0; i < nearbyTiles.Count; ++i)
+	{
+		CTileMap::SetVisible(
+			&game->World.ChunkedTileMap,
+			nearbyTiles[i]);
+
+		CTileMap::SetColor(
+			&game->World.ChunkedTileMap,
+			nearbyTiles[i],
+			{ 1.0f, 1.0f, 1.0f, 1.0f});
+	}
+
 }
 
 GameApplication* const GetGameApp()

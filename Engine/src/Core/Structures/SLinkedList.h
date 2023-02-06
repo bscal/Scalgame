@@ -23,16 +23,15 @@ struct SLinkedList
 	void Pop();
 	[[nodiscard]] T PopValue();
 
-	inline bool HasNext() { return (First != NULL); }
+	inline bool HasNext() const { return (Size > 0); }
 };
 
 template<typename T>
 internal SLinkedListEntry<T>* FreeEntry(SLinkedListEntry<T>* entry)
 {
 	assert(entry);
-	auto next = entry->Next;
+	SLinkedListEntry<T>* next = entry->Next;
 	SMemFree(entry);
-	entry = NULL;
 	return next;
 }
 

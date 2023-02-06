@@ -7,8 +7,7 @@
 #include <stdlib.h>
 
 // TODO: maybe move this to an internal state struct?
-global_var struct MemPool* GameMemory;
-global_var struct BiStack* TempMemory;
+global_var GameApplication* GameAppPtr;
 global_var uint64_t MemoryTagUsage[(uint8_t)MemoryTag::MaxTags];
 global_var uint64_t TotalUsage;
 global_var uint64_t GameMemSize;
@@ -20,6 +19,7 @@ void
 SMemInitialize(GameApplication* gameApp,
     uint64_t gameMemSize, uint64_t temporaryMemSize)
 {
+    GameAppPtr = gameApp;
     GameMemSize = gameMemSize;
     TemporaryMemSize = temporaryMemSize;
     TotalMemoryAllocated = GameMemSize + TemporaryMemSize;
@@ -29,48 +29,46 @@ SMemInitialize(GameApplication* gameApp,
     SMemClear(memory, TotalMemoryAllocated);
 
     gameApp->GameMemory = CreateMemPoolFromBuffer(memory, GameMemSize);
-    GameMemory = &gameApp->GameMemory;
 
     gameApp->TemporaryMemory = CreateBiStackFromBuffer(memory + GameMemSize, TemporaryMemSize);
-    TempMemory = &gameApp->TemporaryMemory;
 
-    SASSERT(GameMemory->arena.mem);
-    SASSERT(TempMemory->mem);
+    SASSERT(gameApp->GameMemory.arena.mem);
+    SASSERT(gameApp->TemporaryMemory.mem);
 
-    SLOG_INFO("[ Memory ] Initialized! Total Mem: %d", TotalMemoryAllocated);
-    SLOG_INFO("[ Memory ] Temporary mem size: %d", TemporaryMemSize);
-    SLOG_INFO("[ Memory ] Game mem size: %d", GameMemSize);
+    SLOG_INFO("[ Memory ] Initialized! Total Mem: %d.", TotalMemoryAllocated);
+    SLOG_INFO("[ Memory ] Game mem size: %d. At: 0x%p", GameMemSize, memory);
+    SLOG_INFO("[ Memory ] Temporary mem size: %d. At: 0x%p", TemporaryMemSize, memory + GameMemSize);
 }
 
 void* SMemAlloc(size_t size)
 {
-    void* mem = MemPoolAlloc(GameMemory, size);
+    void* mem = MemPoolAlloc(&GameAppPtr->GameMemory, size);
     SASSERT(mem);
     return mem;
 }
 
 void* SMemRealloc(void* block, size_t size)
 {
-    void* mem = MemPoolRealloc(GameMemory, block, size);
+    void* mem = MemPoolRealloc(&GameAppPtr->GameMemory, block, size);
     SASSERT(mem);
     return mem;
 }
 
 void SMemFree(void* block)
 {
-    MemPoolFree(GameMemory, block);
+    MemPoolFree(&GameAppPtr->GameMemory, block);
 }
 
 void* SMemTempAlloc(size_t size)
 {
     TotalTempMemAllocated += size;
-    return BiStackAllocFront(TempMemory, size);
+    return BiStackAllocFront(&GameAppPtr->TemporaryMemory, size);
 }
 
 void SMemTempReset()
 {
     TotalTempMemAllocated = 0;
-    BiStackResetFront(TempMemory);
+    BiStackResetFront(&GameAppPtr->TemporaryMemory);
 }
 
 void* SMemStdAlloc(size_t size)
@@ -166,12 +164,12 @@ uint64_t SMemGetTempAllocated()
 
 inline MemPool* const GetGameMemory()
 {
-    return GameMemory;
+    return &GameAppPtr->GameMemory;
 }
 
 inline BiStack* const GetTempMemory()
 {
-    return TempMemory;
+    return &GameAppPtr->TemporaryMemory;
 }
 
 static int NewUsageCount;

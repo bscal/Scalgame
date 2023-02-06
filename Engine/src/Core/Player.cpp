@@ -2,7 +2,9 @@
 
 #include "Game.h"
 #include "ResourceManager.h"
-#include "raymath.h"
+#include "SUtil.h"
+
+#include "raylib/src/raymath.h"
 
 #include <assert.h>
 

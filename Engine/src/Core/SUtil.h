@@ -3,6 +3,9 @@
 #include "Core.h"
 #include "SString.h"
 #include "SHash.hpp"
+#include "Vector2i.h"
+
+#include "Structures/SList.h"
 
 inline Rectangle RectangleExpand(const Rectangle& rect, float width, float height)
 {
@@ -85,6 +88,53 @@ IsPowerOf2(size_t num)
 {
 	return (num > 0ULL && ((num & (num - 1ULL)) == 0ULL));
 }
+
+struct World;
+
+
+// bresenhams line algorithm int
+template<typename OnVisit>
+void 
+Raytrace2DInt(World* world, int x0, int y0, int x1, int y1)
+{
+	int dx = abs(x1 - x0);
+	int dy = abs(y1 - y0);
+	int x = x0;
+	int y = y0;
+	int n = 1 + dx + dy;
+	int xInc = (x1 > x0) ? 1 : -1;
+	int yInc = (y1 > y0) ? 1 : -1;
+	int error = dx - dy;
+
+	dx *= 2;
+	dy *= 2;
+	for (; n > 0; --n)
+	{
+		if (OnVisit{}(world, x, y))
+			break;
+
+		if (error > 0)
+		{
+			x += xInc;
+			error -= dy;
+		}
+		else
+		{
+			y += yInc;
+			error += dx;
+		}
+	}
+}
+
+// Temporary list of tile coordinates
+SList<Vector2i>
+QueryTilesRect(World* world, Vector2i start, Vector2i end);
+
+// Returns a temporary array of tile positions
+SList<Vector2i>
+QueryTilesRadius(World* world, Vector2i center, float radius);
+
+
 
 //template<typename T>
 //struct SAllocator

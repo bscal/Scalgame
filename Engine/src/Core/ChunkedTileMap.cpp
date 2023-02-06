@@ -454,6 +454,14 @@ TileCoord WorldToTile(ChunkedTileMap* tilemap, Vector2 pos)
 	return v;
 }
 
+void SetColor(ChunkedTileMap* tilemap, TileCoord tileCoord, Vector4 color)
+{
+	auto chunk = GetChunkByTile(tilemap, tileCoord);
+	
+	uint32_t i = tileCoord.x + tileCoord.y * CHUNK_SIZE;
+	chunk->TileColors[i] = color;
+}
+
 void SetVisible(ChunkedTileMap* tilemap, TileCoord coord)
 {
 	if (!IsTileInBounds(tilemap, coord)) return;
