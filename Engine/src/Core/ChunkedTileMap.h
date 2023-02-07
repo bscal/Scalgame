@@ -13,10 +13,11 @@
 struct GameApp;
 struct Game;
 
-global_var constexpr int CHUNK_SIZE = 64;
+global_var constexpr int CHUNK_DIMENSIONS = 64;
+global_var constexpr int CHUNK_SIZE = CHUNK_DIMENSIONS * CHUNK_DIMENSIONS;
 global_var constexpr int TILE_SIZE = 16;
 global_var constexpr float HALF_TILE_SIZE = ((float)TILE_SIZE) / 2.0f;
-global_var constexpr Vector2i VIEW_DISTANCE = { 3, 2 };
+global_var constexpr Vector2i VIEW_DISTANCE = { 1, 1 };
 
 namespace CTileMap
 {
@@ -27,9 +28,9 @@ struct TileMapChunk
 	ChunkCoord ChunkCoord;
 	SList<EntityId> Entities;
 	bool IsChunkGenerated;
-	Tile Tiles[CHUNK_SIZE * CHUNK_SIZE];
-	Vector4 TileColors[CHUNK_SIZE * CHUNK_SIZE];
-	Vector2 LastLightPos[CHUNK_SIZE * CHUNK_SIZE];
+	Tile Tiles[CHUNK_SIZE];
+	Vector4 TileColors[CHUNK_SIZE];
+	Vector2 LastLightPos[CHUNK_SIZE];
 };
 
 struct ChunkedTileMap

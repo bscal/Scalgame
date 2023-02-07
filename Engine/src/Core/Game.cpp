@@ -50,7 +50,7 @@ SAPI bool GameApplication::Start()
 
 	TestListImpl();
 	TestSTable();
-	//TestEntities();
+	TestEntities();
 	TestStringImpls();
 	TestSHoodTable();
 
@@ -108,7 +108,6 @@ internal bool GameInitialize(Game* game, GameApplication* gameApp)
 internal void GameStart(Game* game, GameApplication* gameApp)
 {
 	// TODO world loading / world settings
-	game->ChunkViewDistance = { 4, 3 };
 	WorldInitialize(&game->World, gameApp);
 
 	Player* player = CreatePlayer(&game->EntityMgr, &game->World);

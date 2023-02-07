@@ -25,7 +25,6 @@ struct Game
     
     World World;
     
-    Vector2i ChunkViewDistance;
     float CameraLerpTime;
     uint32_t Time;
     bool IsFreeCam;

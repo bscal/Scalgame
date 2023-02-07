@@ -29,7 +29,7 @@ void Initialize(ChunkedTileMap* tilemap, Game* game)
 	Vector2i worldDim = { 4, 4 };
 
 	tilemap->TileSize = { TILE_SIZE, TILE_SIZE };
-	tilemap->ChunkSize = { CHUNK_SIZE, CHUNK_SIZE };
+	tilemap->ChunkSize = { CHUNK_DIMENSIONS, CHUNK_DIMENSIONS };
 	tilemap->Origin = origin;
 	tilemap->WorldDimChunks = worldDim;
 
@@ -38,8 +38,8 @@ void Initialize(ChunkedTileMap* tilemap, Game* game)
 	tilemap->WorldDimTiles.y = tilemap->WorldDimChunks.y
 		* tilemap->ChunkSize.y;
 
-	tilemap->ViewDistance.x = game->ChunkViewDistance.x;
-	tilemap->ViewDistance.y = game->ChunkViewDistance.y;
+	tilemap->ViewDistance.x = VIEW_DISTANCE.x;
+	tilemap->ViewDistance.y = VIEW_DISTANCE.y;
 
 	tilemap->ChunkTileCount = tilemap->ChunkSize.x *
 		tilemap->ChunkSize.y;
@@ -71,23 +71,6 @@ void Free(ChunkedTileMap* tilemap)
 	tilemap->ChunksToUnload.Free();
 }
 
-internal void CreateChunk(ChunkedTileMap* tilemap, int loadWidth,
-	int loadHeight)
-{
-	for (int y = 0; y < loadHeight; ++y)
-	{
-		for (int x = 0; x < loadWidth; ++x)
-		{
-			ChunkCoord chunkCoord;
-			chunkCoord.x = x;
-			chunkCoord.y = y;
-			TileMapChunk* chunk = LoadChunk(tilemap, chunkCoord);
-			assert(chunk);
-			GenerateChunk(tilemap, chunk);
-		}
-	}
-}
-
 void FindChunksInView(ChunkedTileMap* tilemap,
 	Game* game)
 {
@@ -116,8 +99,8 @@ void FindChunksInView(ChunkedTileMap* tilemap,
 internal void FindChunksInViewDistance(ChunkedTileMap* tilemap, Game* game, ChunkCoord playerChunkCoord)
 {
 	int startX = playerChunkCoord.x - (int)tilemap->ViewDistance.x;
-	int endX = playerChunkCoord.x + (int)tilemap->ViewDistance.x;
 	int startY = playerChunkCoord.y - (int)tilemap->ViewDistance.y;
+	int endX = playerChunkCoord.x + (int)tilemap->ViewDistance.x;
 	int endY = playerChunkCoord.y + (int)tilemap->ViewDistance.y;
 	for (int chunkY = startY; chunkY < endY; ++chunkY)
 	{
@@ -127,7 +110,7 @@ internal void FindChunksInViewDistance(ChunkedTileMap* tilemap, Game* game, Chun
 			if (!IsChunkInBounds(tilemap, chunkCoord)) continue;
 			if (IsChunkLoaded(tilemap, chunkCoord)) continue;
 
-			auto chunk = LoadChunk(tilemap, chunkCoord);
+			TileMapChunk* chunk = LoadChunk(tilemap, chunkCoord);
 			SLOG_INFO("[ Chunk ] Chunk loaded (x: %d, y: %d)", chunkX, chunkY);
 			if (!chunk->IsChunkGenerated)
 			{
@@ -138,32 +121,29 @@ internal void FindChunksInViewDistance(ChunkedTileMap* tilemap, Game* game, Chun
 	}
 }
 
-internal void UpdateChunks(ChunkedTileMap* tilemap, Game* game, ChunkCoord playerChunkCoord)
+internal void 
+UpdateChunks(ChunkedTileMap* tilemap, Game* game, ChunkCoord playerChunkCoord)
 {
-	Vector2 offset = Vector2Subtract(game->WorldCamera.target, game->WorldCamera.offset);
-	Rectangle screenRect
-	{
-		offset.x, offset.y,
-		(float)GetScreenWidth(), (float)GetScreenHeight()
-	};
 	for (uint16_t i = 0; i < tilemap->ChunksList.Count; ++i)
 	{
-		auto chunk = tilemap->ChunksList.PeekAt(i);
-		if (CheckCollisionRecs(screenRect, chunk->Bounds))
+		TileMapChunk* chunk = tilemap->ChunksList.PeekAt(i);
+		Vector2i difference = playerChunkCoord.Subtract(chunk->ChunkCoord);
+		if (labs(difference.x) > VIEW_DISTANCE.x || labs(difference.y) > VIEW_DISTANCE.y)
 		{
-			UpdateChunk(tilemap, chunk, game);
+			tilemap->ChunksToUnload.Push(&chunk->ChunkCoord);
+			SLOG_INFO("[ Chunk ] Chunk marked for removal (x: %d, y: %d)",
+				chunk->ChunkCoord.x, chunk->ChunkCoord.y);
 		}
 		else
 		{
-			constexpr float viewDistance = (float)(VIEW_DISTANCE.x * VIEW_DISTANCE.y);
-			float dist = chunk->ChunkCoord.Distance(playerChunkCoord);
-			if (dist > viewDistance)
-			{
-				tilemap->ChunksToUnload.Push(&chunk->ChunkCoord);
-				SLOG_INFO("[ Chunk ] Chunk marked for removal (x: %d, y: %d)",
-					chunk->ChunkCoord.x, chunk->ChunkCoord.y);
-			}
+			UpdateChunk(tilemap, chunk, game);
 		}
+	}
+
+	while (tilemap->ChunksToUnload.HasNext())
+	{
+		Vector2i chunkCoord = tilemap->ChunksToUnload.PopValue();
+		UnloadChunk(tilemap, chunkCoord);
 	}
 }
 
@@ -265,7 +245,7 @@ void UpdateChunk(ChunkedTileMap* tilemap,
 	// NOTE: it is move convenient to clear here. Needs
 	// to be reset somewhere, not sure if there is a 
 	// better solution
-	SMemClear(chunk->LastLightPos, sizeof(chunk->LastLightPos));
+	SMemClear(chunk->LastLightPos, CHUNK_SIZE);
 }
 
 TileMapChunk* LoadChunk(ChunkedTileMap* tilemap,
@@ -277,7 +257,7 @@ TileMapChunk* LoadChunk(ChunkedTileMap* tilemap,
 	chunk->Entities.Resize(10); // TODO
 	chunk->ChunkCoord = coord;
 
-	for (int i = 0; i < sizeof(chunk->TileColors); ++i)
+	for (int i = 0; i < CHUNK_SIZE; ++i)
 		chunk->TileColors[i] = { 1.0f, 1.0f, 1.0f, 1.0f };
 
 	float chunkOffSetX = (float)coord.x * (float)tilemap->TileSize.x
@@ -301,6 +281,7 @@ void UnloadChunk(ChunkedTileMap* tilemap, ChunkCoord coord)
 			//chunkPtr->Tiles.Free();
 			chunkPtr->Entities.Free();
 			tilemap->ChunksList.RemoveAtFast(i);
+			break;
 		}
 	}
 }
@@ -324,7 +305,7 @@ void GenerateChunk(ChunkedTileMap* tilemap,
 			const auto& tile = CreateTileId(
 				&GetGameApp()->Game->TileMgr,
 				tileId);
-			chunk->Tiles[x + y * CHUNK_SIZE] = tile;
+			chunk->Tiles[x + y * CHUNK_DIMENSIONS] = tile;
 			//chunk->Tiles.Push(&tile);
 		}
 	}
@@ -382,15 +363,15 @@ ChunkCoord TileToChunkCoord(ChunkedTileMap* tilemap,
 	TileCoord tilePos)
 {
 	ChunkCoord result;
-	result.x = tilePos.x / CHUNK_SIZE;
-	result.y = tilePos.y / CHUNK_SIZE;
+	result.x = tilePos.x / CHUNK_DIMENSIONS;
+	result.y = tilePos.y / CHUNK_DIMENSIONS;
 	return result;
 }
 
 uint64_t TileToIndex(ChunkedTileMap* tilemap, TileCoord tilePos)
 {
-	int tileChunkX = tilePos.x % CHUNK_SIZE;
-	int tileChunkY = tilePos.y % CHUNK_SIZE;
+	int tileChunkX = tilePos.x % CHUNK_DIMENSIONS;
+	int tileChunkY = tilePos.y % CHUNK_DIMENSIONS;
 	return static_cast<uint64_t>(tileChunkX + tileChunkY * tilemap->ChunkSize.x);
 }
 
@@ -458,7 +439,7 @@ void SetColor(ChunkedTileMap* tilemap, TileCoord tileCoord, Vector4 color)
 {
 	auto chunk = GetChunkByTile(tilemap, tileCoord);
 	
-	uint32_t i = tileCoord.x + tileCoord.y * CHUNK_SIZE;
+	uint32_t i = tileCoord.x + tileCoord.y * CHUNK_DIMENSIONS;
 	chunk->TileColors[i] = color;
 }
 
