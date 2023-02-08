@@ -71,18 +71,16 @@ void Free(ChunkedTileMap* tilemap)
 	tilemap->ChunksToUnload.Free();
 }
 
-void FindChunksInView(ChunkedTileMap* tilemap,
-	Game* game)
+void 
+FindChunksInView(ChunkedTileMap* tilemap, Game* game, Vector2i centerChunk)
 {
-	const Player* player = GetClientPlayer();
-	ChunkCoord chunkCoord = TileToChunkCoord(tilemap, player->Transform.TilePos);
-	int startX = chunkCoord.x - (int)tilemap->ViewDistance.x;
-	int endX = chunkCoord.x + (int)tilemap->ViewDistance.x;
-	int startY = chunkCoord.y - (int)tilemap->ViewDistance.y;
-	int endY = chunkCoord.y + (int)tilemap->ViewDistance.y;
-	for (int chunkY = startY; chunkY < endY; ++chunkY)
+	int startX = centerChunk.x - (int)tilemap->ViewDistance.x;
+	int startY = centerChunk.y - (int)tilemap->ViewDistance.y;
+	int endX = centerChunk.x + (int)tilemap->ViewDistance.x;
+	int endY = centerChunk.y + (int)tilemap->ViewDistance.y;
+	for (int chunkY = startY; chunkY <= endY; ++chunkY)
 	{
-		for (int chunkX = startX; chunkX < endX; ++chunkX)
+		for (int chunkX = startX; chunkX <= endX; ++chunkX)
 		{
 			ChunkCoord nextChunkCoord = { chunkX, chunkY };
 			if (!IsChunkInBounds(tilemap, nextChunkCoord)) continue;
@@ -96,31 +94,6 @@ void FindChunksInView(ChunkedTileMap* tilemap,
 	}
 }
 
-internal void FindChunksInViewDistance(ChunkedTileMap* tilemap, Game* game, ChunkCoord playerChunkCoord)
-{
-	int startX = playerChunkCoord.x - (int)tilemap->ViewDistance.x;
-	int startY = playerChunkCoord.y - (int)tilemap->ViewDistance.y;
-	int endX = playerChunkCoord.x + (int)tilemap->ViewDistance.x;
-	int endY = playerChunkCoord.y + (int)tilemap->ViewDistance.y;
-	for (int chunkY = startY; chunkY < endY; ++chunkY)
-	{
-		for (int chunkX = startX; chunkX < endX; ++chunkX)
-		{
-			ChunkCoord chunkCoord = { chunkX, chunkY };
-			if (!IsChunkInBounds(tilemap, chunkCoord)) continue;
-			if (IsChunkLoaded(tilemap, chunkCoord)) continue;
-
-			TileMapChunk* chunk = LoadChunk(tilemap, chunkCoord);
-			SLOG_INFO("[ Chunk ] Chunk loaded (x: %d, y: %d)", chunkX, chunkY);
-			if (!chunk->IsChunkGenerated)
-			{
-				GenerateChunk(tilemap, chunk);
-				SLOG_INFO("[ Chunk ] Chunk generated (x: %d, y: %d)", chunkX, chunkY);
-			}
-		}
-	}
-}
-
 internal void 
 UpdateChunks(ChunkedTileMap* tilemap, Game* game, ChunkCoord playerChunkCoord)
 {
@@ -128,7 +101,9 @@ UpdateChunks(ChunkedTileMap* tilemap, Game* game, ChunkCoord playerChunkCoord)
 	{
 		TileMapChunk* chunk = tilemap->ChunksList.PeekAt(i);
 		Vector2i difference = playerChunkCoord.Subtract(chunk->ChunkCoord);
-		if (labs(difference.x) > VIEW_DISTANCE.x || labs(difference.y) > VIEW_DISTANCE.y)
+		int chunkX = labs(difference.x);
+		int chunkY = labs(difference.y);
+		if (chunkX > VIEW_DISTANCE.x || chunkY > VIEW_DISTANCE.y)
 		{
 			tilemap->ChunksToUnload.Push(&chunk->ChunkCoord);
 			SLOG_INFO("[ Chunk ] Chunk marked for removal (x: %d, y: %d)",
@@ -147,36 +122,24 @@ UpdateChunks(ChunkedTileMap* tilemap, Game* game, ChunkCoord playerChunkCoord)
 	}
 }
 
-void Update(ChunkedTileMap* tilemap, Game* game)
+internal void 
+Draw(ChunkedTileMap* tilemap, Game* game)
 {
-	const Player* player = GetClientPlayer();
-	ChunkCoord pChunkCoord = player->Transform.ChunkPos;
-	if (player->HasMoved)
-	{
-		FindChunksInViewDistance(tilemap, game, pChunkCoord);
-	}
-
-	Draw(tilemap, game);
-	UpdateChunks(tilemap, game, pChunkCoord);
-}
-
-internal void Draw(ChunkedTileMap* tilemap, Game* game)
-{
-	Texture2D* texture = &game->Resources.Atlas.Texture;
+	const Texture2D* texture = &game->Resources.Atlas.Texture;
 	TileMgr* tileMgr = &game->TileMgr;
 
-	const int PADDING = 1;
-	const int WH_PADDING = 2;
+	const int LPADDING = 1;
+	const int RPADDING = 2;
 	Vector2i target = GetClientPlayer()->Transform.TilePos;
 	Vector2i screenDims
 	{
-		GetScreenWidth() / TILE_SIZE + PADDING + WH_PADDING,
-		GetScreenHeight() / TILE_SIZE + PADDING + WH_PADDING
+		(GetScreenWidth() / TILE_SIZE) + LPADDING + RPADDING,
+		(GetScreenHeight() / TILE_SIZE) + LPADDING + RPADDING
 	};
 	float offsetX = game->WorldCamera.offset.x / TILE_SIZE;
 	float offsetY = game->WorldCamera.offset.y / TILE_SIZE;
-	int tileOffsetX = (int)((float)target.x - offsetX - PADDING);
-	int tileOffsetY = (int)((float)target.y - offsetY - PADDING);
+	int tileOffsetX = (int)((float)target.x - offsetX - (float)LPADDING);
+	int tileOffsetY = (int)((float)target.y - offsetY - (float)LPADDING);
 	for (int y = 0; y < screenDims.y; ++y)
 	{
 		for (int x = 0; x < screenDims.x; ++x)
@@ -220,6 +183,19 @@ internal void Draw(ChunkedTileMap* tilemap, Game* game)
 				*color = Vector4{ 1.0f, 1.0f, 1.0f, 0.0f };
 		}
 	}
+}
+
+void Update(ChunkedTileMap* tilemap, Game* game)
+{
+	const Player* player = GetClientPlayer();
+	Vector2i playerChunkCoord = TileToChunkCoord(tilemap, player->Transform.TilePos);
+	if (player->HasMoved)
+	{
+		FindChunksInView(tilemap, game, playerChunkCoord);
+	}
+
+	Draw(tilemap, game);
+	UpdateChunks(tilemap, game, playerChunkCoord);
 }
 
 void LateUpdateChunk(ChunkedTileMap* tilemap, Game* game)
@@ -359,8 +335,8 @@ GetChunkByTile(ChunkedTileMap* tilemap, TileCoord tileCoord)
 	return nullptr;
 }
 
-ChunkCoord TileToChunkCoord(ChunkedTileMap* tilemap,
-	TileCoord tilePos)
+ChunkCoord 
+TileToChunkCoord(ChunkedTileMap* tilemap,TileCoord tilePos)
 {
 	ChunkCoord result;
 	result.x = tilePos.x / CHUNK_DIMENSIONS;
@@ -368,7 +344,8 @@ ChunkCoord TileToChunkCoord(ChunkedTileMap* tilemap,
 	return result;
 }
 
-uint64_t TileToIndex(ChunkedTileMap* tilemap, TileCoord tilePos)
+uint64_t 
+TileToIndex(ChunkedTileMap* tilemap, TileCoord tilePos)
 {
 	int tileChunkX = tilePos.x % CHUNK_DIMENSIONS;
 	int tileChunkY = tilePos.y % CHUNK_DIMENSIONS;

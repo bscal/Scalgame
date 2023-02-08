@@ -20,7 +20,9 @@ void WorldLoad(World* world, Game* game)
 	LightsInitialized(GetGameApp());
 
 	// Load chunks around players at start
-	CTileMap::FindChunksInView(&world->ChunkedTileMap, game);
+	Vector2i playerChunkCoord = TileToChunkCoord(&world->ChunkedTileMap,
+		GetClientPlayer()->Transform.TilePos);
+	CTileMap::FindChunksInView(&world->ChunkedTileMap, game, playerChunkCoord);
 
 	world->IsLoaded = true;
 	SLOG_INFO("[ WORLD ] World loaded!");

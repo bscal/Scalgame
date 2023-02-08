@@ -46,7 +46,6 @@ struct EntityTransform
 {
 	Vector2 Pos;
 	Vector2i TilePos;
-	Vector2i ChunkPos;
 	float Rotation; // Degrees
 };
 

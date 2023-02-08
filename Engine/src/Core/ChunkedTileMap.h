@@ -56,29 +56,26 @@ struct ChunkedTileMap
 void Initialize(ChunkedTileMap* tilemap, Game* game);
 void Free(ChunkedTileMap* tilemap);
 
-void FindChunksInView(ChunkedTileMap* tilemap, Game* game);
-void Update(ChunkedTileMap* tilemap, Game* game);
+void 
+FindChunksInView(ChunkedTileMap* tilemap, Game* game, Vector2i centerChunkCoord);
 
-internal void 
-Draw(ChunkedTileMap* tilemap, Game* game);
+void Update(ChunkedTileMap* tilemap, Game* game);
 
 TileMapChunk* 
 LoadChunk(ChunkedTileMap* tilemap, ChunkCoord coord);
 
-internal void 
-CreateChunk(ChunkedTileMap* tilemap, int loadWidth, int loadHeight);
-
 void GenerateChunk(ChunkedTileMap* tilemap,TileMapChunk* chunk);
-
 void UnloadChunk(ChunkedTileMap* tilemap, ChunkCoord coord);
 void UpdateChunk(ChunkedTileMap* tilmap, TileMapChunk* chunk, Game* game);
 void LateUpdateChunk(ChunkedTileMap* tilemap, Game* game);
 
-TileMapChunk*
-GetChunk(ChunkedTileMap* tilemap, ChunkCoord coord);
+TileMapChunk* GetChunk(ChunkedTileMap* tilemap, ChunkCoord coord);
 
 TileMapChunk*
 GetChunkByTile(ChunkedTileMap* tilemap, ChunkCoord coord);
+
+ChunkCoord
+TileToChunkCoord(ChunkedTileMap* tilemap, TileCoord tilePos);
 
 void 
 SetTile(ChunkedTileMap* tilemap, const Tile* tile, TileCoord tilePos);

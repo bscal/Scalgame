@@ -84,7 +84,9 @@ internal void GameLoadScreen(GameApplication* gameApp, int width, int height);
 internal bool GameInitialize(Game* game, GameApplication* gameApp);
 internal void GameStart(Game* game, GameApplication* gameApp);
 internal void GameFree(Game* game);
+
 internal void GameUpdate(Game* game, GameApplication* gameApp);
+internal void GameLateUpdate(Game* game);
 
 internal void GameInputUpdate(Game* game, GameApplication* gameApp);
 

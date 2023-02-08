@@ -315,8 +315,7 @@ SAPI void GameApplication::Run()
 
 		// Updates
 		GameUpdate(Game, this);
-		WorldUpdate(&Game->World, Game);
-		EntityMgrUpdate(&Game->EntityMgr, Game);
+		GameLateUpdate(Game);
 
 		EndMode2D();
 		EndTextureMode();
@@ -342,6 +341,8 @@ SAPI void GameApplication::Run()
 		rlPopMatrix();
 		EndMode2D();
 		EndShaderMode();
+
+
 
 		DrawUI(UIState);
 
@@ -393,6 +394,13 @@ internal void GameUpdate(Game* game, GameApplication* gameApp)
 			nearbyTiles[i],
 			{ 1.0f, 1.0f, 1.0f, 1.0f});
 	}
+
+	WorldUpdate(&game->World, game);
+	EntityMgrUpdate(&game->EntityMgr, game);
+}
+
+internal void GameLateUpdate(Game* game)
+{
 
 }
 
