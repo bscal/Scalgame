@@ -316,7 +316,7 @@ inline size_t STable<K, V>::MemUsed() const
 }
 
 #include "Core/Vector2i.h"
-inline void TestSTable()
+inline int TestSTable()
 {
 	// NOTE: somewhat of a bad test
 	// if default resize changes the capacity
@@ -383,4 +383,6 @@ inline void TestSTable()
 
 	char* getNull = table.Get(&k);
 	SASSERT(getNull == NULL);
+
+	return 1;
 }

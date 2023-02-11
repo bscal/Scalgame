@@ -139,7 +139,7 @@ struct SStringView
 	uint32_t Find(const char* cString) const;
 };
 
-inline void TestStringImpls()
+inline int TestStringImpls()
 {
 	SString string0 = {};
 	SASSERT(string0.Data());
@@ -202,4 +202,6 @@ inline void TestStringImpls()
 	SASSERT(testStrView.Length == 10);
 
 	SLOG_INFO("[ Test ] String test passed!");
+
+	return 1;
 }

@@ -23,6 +23,8 @@ typedef int bool32;
 
 constexpr global_var float TAO = (float)PI * 2.0f;
 
+#define SCAL_GAME_TESTS 1
+
 #ifdef SCAL_PLATFORM_WINDOWS
 #ifdef SCAL_BUILD_DLL
 #define SAPI __declspec(dllexport)

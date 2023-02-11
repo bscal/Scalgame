@@ -35,9 +35,14 @@ SMemInitialize(GameApplication* gameApp,
     SASSERT(gameApp->GameMemory.arena.mem);
     SASSERT(gameApp->TemporaryMemory.mem);
 
-    SLOG_INFO("[ Memory ] Initialized! Total Mem: %d.", TotalMemoryAllocated);
-    SLOG_INFO("[ Memory ] Game mem size: %d. At: 0x%p", GameMemSize, memory);
-    SLOG_INFO("[ Memory ] Temporary mem size: %d. At: 0x%p", TemporaryMemSize, memory + GameMemSize);
+    MemorySizeData gameFormatSize = FindMemSize(gameMemSize);
+    MemorySizeData tempFormatSize = FindMemSize(temporaryMemSize);
+
+    SLOG_INFO("[ Memory ] Initialized! Total Mem: %d bytes.", TotalMemoryAllocated);
+    SLOG_INFO("[ Memory ] Game mem size: %.2f%c. At: 0x%p", gameFormatSize.Size,
+        gameFormatSize.BytePrefix, memory);
+    SLOG_INFO("[ Memory ] Temporary mem size: %.2f%c. At: 0x%p", tempFormatSize.Size,
+        tempFormatSize.BytePrefix, memory + GameMemSize);
 }
 
 void* SMemAlloc(size_t size)

@@ -48,11 +48,22 @@ SAPI bool GameApplication::Start()
 	bool didUiInit = InitializeUI(UIState, this);
 	SASSERT(didUiInit);
 
-	TestListImpl();
-	TestSTable();
-	TestEntities();
-	TestStringImpls();
-	TestSHoodTable();
+	#ifdef SCAL_GAME_TESTS
+
+	#define GAME_TEST(function) ++totalTests; passingTests += function()
+	int passingTests = 0;
+	int totalTests = 0;
+
+	GAME_TEST(TestListImpl);
+	GAME_TEST(TestSTable);
+	GAME_TEST(TestEntities);
+	GAME_TEST(TestStringImpls);
+	GAME_TEST(TestSHoodTable);
+
+	SLOG_INFO("[ Tests ] %d/%d tests passed!", passingTests, totalTests);
+	#endif // SCAL_GAME_TESTS
+
+
 
 	IsInitialized = true;
 
@@ -342,8 +353,6 @@ SAPI void GameApplication::Run()
 		EndMode2D();
 		EndShaderMode();
 
-
-
 		DrawUI(UIState);
 
 		// Swap buffers
@@ -377,11 +386,7 @@ internal void GameUpdate(Game* game, GameApplication* gameApp)
 		SLOG_INFO("[ GAME ] Window Resizing!");
 	}
 
-	// TODO move
-	//CTileMap::SetVisible(
-	//	&game->World.ChunkedTileMap,
-	//	GetClientPlayer()->Transform.TilePos);
-
+	// Base LOS for player
 	SList<Vector2i> nearbyTiles = QueryTilesRadius(&game->World, GetClientPlayer()->Transform.TilePos, 4.0f);
 	for (int i = 0; i < nearbyTiles.Count; ++i)
 	{
@@ -401,7 +406,7 @@ internal void GameUpdate(Game* game, GameApplication* gameApp)
 
 internal void GameLateUpdate(Game* game)
 {
-
+	WorldLateUpdate(&game->World, game);
 }
 
 GameApplication* const GetGameApp()

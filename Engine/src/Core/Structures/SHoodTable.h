@@ -368,7 +368,7 @@ void SHoodTable<K, V, HashFunc, EqualsFunc>::Remove(const K* key)
 	}
 }
 
-inline void TestSHoodTable()
+inline int TestSHoodTable()
 {
 	SHoodTable<int, int> table = {};
 	SASSERT(!table.IsAllocated());
@@ -433,4 +433,5 @@ inline void TestSHoodTable()
 	SASSERT(!table.Buckets);
 	SASSERT(table.Capacity == 0);
 
+	return 1;
 }

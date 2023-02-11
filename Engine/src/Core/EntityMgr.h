@@ -177,7 +177,7 @@ void* FindEntity(EntityMgr* entMgr, EntityId ent);
 
 void RemoveEntity(EntityMgr* entMgr, EntityId ent);
 
-inline void TestEntities()
+inline int TestEntities()
 {
 	EntityId ent = 1005;
 	SetEntityType(&ent, CREATURE);
@@ -187,4 +187,6 @@ inline void TestEntities()
 
 	EntityType type = GetEntityType(ent);
 	SASSERT(type == CREATURE);
+
+	return 1;
 }

@@ -49,9 +49,13 @@ void WorldUpdate(World* world, Game* game)
 	LightsUpdate(game);
 
 	CTileMap::Update(&world->ChunkedTileMap, game);
-	CTileMap::LateUpdateChunk(&world->ChunkedTileMap, game);
 
 	GetGameApp()->NumOfLoadedChunks = (int)world->ChunkedTileMap.ChunksList.Count;
+}
+
+void WorldLateUpdate(World* world, Game* game)
+{
+	CTileMap::LateUpdateChunk(&world->ChunkedTileMap, game);
 }
 
 bool CanMoveToTile(World* world, Vector2i position)
