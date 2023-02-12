@@ -55,6 +55,8 @@ struct STable
 	// contains entries will trigger a rehash
 	void Reserve(uint32_t estimatedCapacity); 
 	void Free();
+	void Clear();
+
 	bool Put(const K* key, const V* value);
 	V* Get(const K* key) const;
 	bool Remove(const K* key);
@@ -183,13 +185,37 @@ void STable<K, V>::Free()
 		while (nextEntry)
 		{
 			nextEntry = entry->Next;
-			FreeEntry(entry);
+			FreeEntry(this, entry);
 			entry = nextEntry;
 		}
 	}
 
 	Allocator.Free(Entries);
 	*this = {};
+}
+
+template<typename K, typename V>
+void STable<K, V>::Clear()
+{
+	if (!IsTemporaryAllocator(&Allocator))
+	{
+		for (uint32_t i = 0; i < Capacity; ++i)
+		{
+			STableEntry<K, V>* entry = Entries[i];
+			if (!entry) continue;
+
+			auto nextEntry = entry->Next;
+			while (nextEntry)
+			{
+				nextEntry = entry->Next;
+				FreeEntry(this, entry);
+				entry = nextEntry;
+			}
+		}
+	}
+
+	SMemClear(Entries, MemUsed());
+	Size = 0;
 }
 
 template<typename K, typename V>

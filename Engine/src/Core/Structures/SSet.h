@@ -8,9 +8,10 @@ struct SSet
 {
 	STable<T, bool> Keys;
 
-	inline void Put(const T* key)
+	inline bool Put(const T* key)
 	{
-		Keys.Put(key, true);
+		const bool val = true;
+		return Keys.Put(key, &val);
 	}
 
 	inline void Remove(const T* key)

@@ -1,12 +1,14 @@
 #include "Lighting.h"
 
 #include "Game.h"
+#include "Structures/SSet.h"
 
 // Most of these implementations for lighting I have gotten
 // from http://www.adammil.net/blog/v125_roguelike_vision_algorithms.html
 
 // TODO mvoe
 global_var SList<Light> Lights;
+global_var SSet<Vector2i> VisitedTilePerLight;
 
 void LightsInitialized(GameApplication* gameApp)
 {
@@ -327,11 +329,20 @@ internal void ComputeLightShadowCast(CTileMap::ChunkedTileMap* tilemap,
 	}
 }
 
-internal void UpdateLights(Game* game)
+internal void 
+UpdateLights(Game* game)
 {
+	VisitedTilePerLight = {};
+	VisitedTilePerLight.Keys.Allocator = SMEM_TEMP_ALLOCATOR;
+	VisitedTilePerLight.Keys.KeyEqualsFunction = Vector2iEqualsFunc;
+	VisitedTilePerLight.Keys.KeyHashFunction = STableDefaultKeyHash;
+	VisitedTilePerLight.Keys.Reserve(CHUNK_SIZE);
+
 	for (int i = 0; i < Lights.Count; ++i)
 	{
 		const Light& light = Lights[i];
+
+		VisitedTilePerLight.Keys.Clear();
 
 		auto tilemap = &game->World.ChunkedTileMap;
 		Vector2i lightTilePos = Vec2fToVec2i(light.Pos);
@@ -344,18 +355,20 @@ internal void UpdateLights(Game* game)
 	}
 }
 
+
 void
 LightsUpdateTileColor(CTileMap::ChunkedTileMap* tilemap,
 	TileCoord tileCoord, float distance, const Light& light)
 {
 	if (!CTileMap::IsTileInBounds(tilemap, tileCoord)) return;
+	
+	if (!VisitedTilePerLight.Put(&tileCoord)) return;
 
 	auto chunk = CTileMap::GetChunkByTile(tilemap, tileCoord);
-	SASSERT(chunk);
 	uint64_t i = TileToIndex(tilemap, tileCoord);
 
-	if (chunk->LastLightPos[i].x == light.Pos.x) return;
-	chunk->LastLightPos[i] = light.Pos;
+	//if (chunk->LastLightPos[i].x == light.Pos.x) return;
+	//chunk->LastLightPos[i] = light.Pos;
 
 	float lightFactor = 1.0f - distance / light.Radius;
 	lightFactor *= light.Intensity;
@@ -365,6 +378,6 @@ LightsUpdateTileColor(CTileMap::ChunkedTileMap* tilemap,
 	tileColor.x += n.x * lightFactor;
 	tileColor.y += n.y * lightFactor;
 	tileColor.z += n.z * lightFactor;
-	tileColor.w += n.w * lightFactor;
+	tileColor.w = 1.0f;
 	chunk->TileColors[i] = tileColor;
 }

@@ -12,6 +12,7 @@ struct Light
     Color Color;
     float Intensity;
     float Radius;
+    int Id;
 };
 
 void LightsInitialized(GameApplication* gameApp);
