@@ -59,7 +59,6 @@ int GetNewCalls();
 const uint64_t* SMemGetTaggedUsages();
 uint64_t SMemGetUsage();
 uint64_t SMemGetAllocated();
-uint64_t SMemGetTempAllocated();
 
 MemPool* const GetGameMemory();
 BiStack* const GetTempMemory();
@@ -75,12 +74,14 @@ internal inline void
 SMemTempAllocatorFree(void* block)
 {
 };
+
 global_var const SMemAllocator SMEM_GAME_ALLOCATOR = { SMemAlloc, SMemFree };
 global_var const SMemAllocator SMEM_TEMP_ALLOCATOR = { SMemTempAlloc, SMemTempAllocatorFree };
 
 inline bool IsTemporaryAllocator(const SMemAllocator* allocator)
 {
-	return allocator && allocator->Alloc == SMemTempAlloc;
+	SASSERT(allocator);
+	return allocator->Alloc == SMemTempAlloc;
 };
 
 struct SMemAllocO

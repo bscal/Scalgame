@@ -63,7 +63,7 @@ struct STable
 	bool Contains(const K* key) const;
 
 	inline bool IsAllocated() const;
-	inline size_t MemUsed() const;
+	inline size_t MemAllocated() const;
 };
 
 template<typename K, typename V>
@@ -82,6 +82,7 @@ CreateEntry(const STable<K, V>* table, const K* key, const V* value)
 	size_t entrySize = sizeof(STableEntry<K, V>);
 	STableEntry<K, V>* entry = (STableEntry<K, V>*)
 		table->Allocator.Alloc(entrySize);
+	SASSERT(entry);
 	entry->Key = *key;
 	entry->Value = *value;
 	entry->Next = NULL;
@@ -125,14 +126,14 @@ void STable<K, V>::Reserve(uint32_t capacity)
 
 	if (!IsAllocated())
 	{
-		Entries = (STableEntry<K, V>**)Allocator.Alloc(MemUsed());
-		SMemClear(Entries, MemUsed());
+		Entries = (STableEntry<K, V>**)Allocator.Alloc(MemAllocated());
+		SMemClear(Entries, MemAllocated());
 	}
 	else if (Size == 0)
 	{
 		Allocator.Free(Entries);
-		Entries = (STableEntry<K, V>**)Allocator.Alloc(MemUsed());
-		SMemClear(Entries, MemUsed());
+		Entries = (STableEntry<K, V>**)Allocator.Alloc(MemAllocated());
+		SMemClear(Entries, MemAllocated());
 	}
 	else // Rehash
 	{
@@ -214,7 +215,7 @@ void STable<K, V>::Clear()
 		}
 	}
 
-	SMemClear(Entries, MemUsed());
+	SMemClear(Entries, MemAllocated());
 	Size = 0;
 }
 
@@ -225,7 +226,7 @@ bool STable<K, V>::Put(const K* key, const V* value)
 	SASSERT(value);
 	SASSERT(KeyEqualsFunction(key, key));
 
-	if (Size >= MaxSize)
+	if (Size == MaxSize)
 	{
 		Reserve(Capacity * STABLE_DEFAULT_RESIZE);
 	}
@@ -251,11 +252,11 @@ bool STable<K, V>::Put(const K* key, const V* value)
 		{
 			entry->Next = CreateEntry(this, key, value);
 			++Size;
-			break;
+			return true;
 		}
 		entry = entry->Next;
 	}
-	return true;
+	return false;
 }
 
 template<typename K, typename V>
@@ -336,7 +337,7 @@ inline bool STable<K, V>::IsAllocated() const
 }
 
 template<typename K, typename V>
-inline size_t STable<K, V>::MemUsed() const
+inline size_t STable<K, V>::MemAllocated() const
 {
 	return Capacity * sizeof(STableEntry<K, V>*);
 }

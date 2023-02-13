@@ -47,9 +47,10 @@ struct GameApplication
     Vector2 HalfWidthHeight;
     
     double RenderTime;
+    size_t LastFrameTempMemoryUsage;
     int NumOfLoadedChunks;
     int NumOfChunksUpdated;
-    
+
     float DeltaTime;
     float Scale;
     

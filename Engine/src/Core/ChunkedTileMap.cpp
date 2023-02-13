@@ -227,7 +227,7 @@ void UpdateChunk(ChunkedTileMap* tilemap,
 TileMapChunk* LoadChunk(ChunkedTileMap* tilemap,
 	ChunkCoord coord)
 {
-	TileMapChunk* chunk = tilemap->ChunksList.PushZero();
+	TileMapChunk* chunk = tilemap->ChunksList.PushNew();
 	//chunk.Tiles.InitializeCap(tilemap->ChunkTileCount);
 	chunk->Entities.Allocator = SMEM_GAME_ALLOCATOR;
 	chunk->Entities.Resize(10); // TODO

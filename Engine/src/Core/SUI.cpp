@@ -7,7 +7,7 @@
 #include "Vector2i.h"
 #include "CommandMgr.h"
 
-const global_var struct nk_color BG_COLOR = ColorToNuklear({ 17, 17, 17, 155 });
+global_var const struct nk_color BG_COLOR = ColorToNuklear({ 17, 17, 17, 155 });
 
 internal void DrawFPS(struct nk_context* ctx);
 
@@ -110,6 +110,8 @@ InitializeNuklear(nk_context* nkCtxToInit, UIState* state, Font* font, float fon
 	SLOG_INFO("[ UI ] Initialized Nuklear");
 }
 
+#include "Lighting.h"
+
 internal void DrawDebugPanel(UIState* state)
 {
 	const Player* p = GetClientPlayer();
@@ -131,6 +133,12 @@ internal void DrawDebugPanel(UIState* state)
 		nk_label(&state->Ctx, TextFormat("%d/%d",
 			GetGameApp()->NumOfLoadedChunks, GetGameApp()->NumOfChunksUpdated), NK_TEXT_LEFT);
 
+		nk_layout_row_dynamic(&state->Ctx, 16, 1);
+		const char* lightStr = TextFormat("Lights: %d", GetNumOfLights());
+		nk_label(&state->Ctx, lightStr, NK_TEXT_LEFT);
+
+		nk_layout_row_dynamic(&state->Ctx, 16, 2);
+
 		const char* xy = TextFormat("X: %.1f, Y: %.1f",
 			p->Transform.Pos.x, p->Transform.Pos.y);
 		nk_label(&state->Ctx, xy, NK_TEXT_LEFT);
@@ -149,12 +157,9 @@ internal void DrawDebugPanel(UIState* state)
 
 internal void AppendMemoryUsage(UIState* state)
 {
-	const size_t* memUsage = SMemGetTaggedUsages();
-
-
 	nk_layout_row_dynamic(&state->Ctx, 16, 1);
+
 	nk_label(&state->Ctx, "--- Memory Usage ---", NK_TEXT_LEFT);
-	nk_layout_row_dynamic(&state->Ctx, 16, 1);
 	MemorySizeData usage = FindMemSize(SMemGetUsage());
 	nk_label(&state->Ctx, TextFormat("Tagged: %.2f%cbs", usage.Size, usage.BytePrefix), NK_TEXT_LEFT);
 	size_t freeMem = GetMemPoolFreeMemory(GetGameApp()->GameMemory);
@@ -162,10 +167,9 @@ internal void AppendMemoryUsage(UIState* state)
 	nk_label(&state->Ctx, TextFormat("Allocated: %.2f%cbs", alloced.Size, alloced.BytePrefix), NK_TEXT_LEFT);
 	MemorySizeData game = FindMemSize(GetGameApp()->GameMemory.arena.size - freeMem);
 	nk_label(&state->Ctx, TextFormat("GameAlloc: %.2f%cbs", game.Size, game.BytePrefix), NK_TEXT_LEFT);
-	MemorySizeData temp = FindMemSize(SMemGetTempAllocated());
-	nk_label(&state->Ctx, TextFormat("TempAlloc: %.2f%cbs", temp.Size, temp.BytePrefix), NK_TEXT_LEFT);
+	MemorySizeData temp = FindMemSize(GetGameApp()->LastFrameTempMemoryUsage);
+	nk_label(&state->Ctx, TextFormat("LastFrameTemp: %.2f%cbs", temp.Size, temp.BytePrefix), NK_TEXT_LEFT);
 
-	nk_layout_row_dynamic(&state->Ctx, 16, 1);
 	nk_label(&state->Ctx, "--- UI Memory ---", NK_TEXT_LEFT);
 	const auto& uiMem = state->Ctx.memory;
 	MemorySizeData memSizeAlloc = FindMemSize(uiMem.allocated);
@@ -181,8 +185,7 @@ internal void AppendMemoryUsage(UIState* state)
 	for (int i = 1; i < (int)MemoryTag::MaxTags; ++i)
 	{
 		const char* name = MemoryTagStrings[i];
-		size_t size = memUsage[i];
-
+		size_t size = SMemGetTaggedUsages()[i];
 		MemorySizeData memSize = FindMemSize(size);
 
 		nk_layout_row_dynamic(&state->Ctx, 16, 2);
@@ -193,8 +196,6 @@ internal void AppendMemoryUsage(UIState* state)
 	}
 
 	nk_layout_row_dynamic(&state->Ctx, 16, 1);
-
-
 	nk_label(&state->Ctx, TextFormat("NewCalls: %d", GetNewCalls()), NK_TEXT_LEFT);
 }
 
@@ -268,7 +269,7 @@ internal void DrawConsole(UIState* state)
 					state->ConsoleEntries.RemoveAt(0);
 				}
 
-				SString* string = state->ConsoleEntries.PushZero();
+				SString* string = state->ConsoleEntries.PushNew();
 				string->Assign(cmdMgr->TextInputMemory, cmdMgr->Length);
 
 				cmdMgr->TryExecuteCommand(SStringView(cmdMgr->TextInputMemory, cmdMgr->Length));

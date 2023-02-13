@@ -13,7 +13,6 @@ global_var uint64_t TotalUsage;
 global_var uint64_t GameMemSize;
 global_var uint64_t TemporaryMemSize;
 global_var uint64_t TotalMemoryAllocated;
-global_var uint64_t TotalTempMemAllocated;
 
 void 
 SMemInitialize(GameApplication* gameApp,
@@ -66,13 +65,12 @@ void SMemFree(void* block)
 
 void* SMemTempAlloc(size_t size)
 {
-    TotalTempMemAllocated += size;
     return BiStackAllocFront(&GameAppPtr->TemporaryMemory, size);
 }
 
 void SMemTempReset()
 {
-    TotalTempMemAllocated = 0;
+    GameAppPtr->LastFrameTempMemoryUsage = GameAppPtr->TemporaryMemory.front - GameAppPtr->TemporaryMemory.mem;
     BiStackResetFront(&GameAppPtr->TemporaryMemory);
 }
 
@@ -160,11 +158,6 @@ size_t SMemGetUsage()
 uint64_t SMemGetAllocated()
 {
     return TotalMemoryAllocated;
-}
-
-uint64_t SMemGetTempAllocated()
-{
-    return TotalTempMemAllocated;
 }
 
 inline MemPool* const GetGameMemory()

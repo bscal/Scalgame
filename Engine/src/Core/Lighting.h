@@ -19,6 +19,7 @@ void LightsInitialized(GameApplication* gameApp);
 void LightsAdd(const Light& light);
 
 void LightsUpdate(Game* game);
+size_t GetNumOfLights();
 
 void
 LightsUpdateTileColor(CTileMap::ChunkedTileMap* tilemap,

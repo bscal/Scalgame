@@ -76,14 +76,14 @@ Player* CreatePlayer(EntityMgr* entMgr, World* world)
 {
 	EntityId ent = CreateEntityId(entMgr, PLAYER);
 
-	Player* player = entMgr->Players.PushZero();
+	Player* player = entMgr->Players.PushNew();
 	player->WorldRef = world;
 	player->Id = ent;
 	SMemSet(player->ComponentIndex, CREATURE_EMPTY_COMPONENT, sizeof(player->ComponentIndex));
 
 	uint32_t id = GetEntityId(ent);
 	entMgr->Entities.EnsureSize(id + 1);
-	entMgr->Entities[id] = entMgr->Players.End();
+	entMgr->Entities[id] = entMgr->Players.LastIndex();
 	SASSERT(player);
 	return player;
 }
@@ -92,14 +92,14 @@ SCreature* CreateCreature(EntityMgr* entMgr, World* world)
 {
 	EntityId ent = CreateEntityId(entMgr, CREATURE);
 
-	SCreature* creature = entMgr->Creatures.PushZero();
+	SCreature* creature = entMgr->Creatures.PushNew();
 	creature->WorldRef = world;
 	creature->Id = ent;
 	SMemSet(creature->ComponentIndex, CREATURE_EMPTY_COMPONENT, sizeof(creature->ComponentIndex));
 
 	uint32_t id = GetEntityId(ent);
 	entMgr->Entities.EnsureSize(id + 1);
-	entMgr->Entities[id] = entMgr->Creatures.End();
+	entMgr->Entities[id] = entMgr->Creatures.LastIndex();
 	SASSERT(creature);
 	return creature;
 }
@@ -128,7 +128,7 @@ internal void
 SwapPlayer(EntityMgr* entMgr, uint32_t index)
 {
 	bool isRemovingLast = (entMgr->Players.Count > 1 &&
-		index != entMgr->Players.End());
+		index != entMgr->Players.LastIndex());
 
 	entMgr->Players.RemoveAtFast(index);
 	if (isRemovingLast)
@@ -144,7 +144,7 @@ internal void
 SwapCreature(EntityMgr* entMgr, uint32_t index)
 {
 	bool isRemovingLast = (entMgr->Creatures.Count > 1 && 
-		index != entMgr->Creatures.End());
+		index != entMgr->Creatures.LastIndex());
 	
 	entMgr->Creatures.RemoveAtFast(index);
 	if (isRemovingLast)

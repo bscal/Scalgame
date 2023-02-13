@@ -21,6 +21,11 @@ void LightsAdd(const Light& light)
 	Lights.Push(&light);
 }
 
+size_t GetNumOfLights()
+{
+	return Lights.Count;
+}
+
 struct Slope
 {
 	int y;
@@ -378,6 +383,5 @@ LightsUpdateTileColor(CTileMap::ChunkedTileMap* tilemap,
 	tileColor.x += n.x * lightFactor;
 	tileColor.y += n.y * lightFactor;
 	tileColor.z += n.z * lightFactor;
-	tileColor.w = 1.0f;
 	chunk->TileColors[i] = tileColor;
 }
