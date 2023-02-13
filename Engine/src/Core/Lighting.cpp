@@ -379,9 +379,8 @@ LightsUpdateTileColor(CTileMap::ChunkedTileMap* tilemap,
 	lightFactor *= light.Intensity;
 
 	Vector4 n = ColorNormalize(light.Color);
-	Vector4 tileColor = chunk->TileColors[i];
-	tileColor.x += n.x * lightFactor;
-	tileColor.y += n.y * lightFactor;
-	tileColor.z += n.z * lightFactor;
-	chunk->TileColors[i] = tileColor;
+	chunk->TileColors[i].x += n.x * lightFactor;
+	chunk->TileColors[i].y += n.y * lightFactor;
+	chunk->TileColors[i].z += n.z * lightFactor;
+	chunk->TileColors[i].w += 1.0f;
 }

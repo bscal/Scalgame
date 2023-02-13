@@ -66,8 +66,6 @@ struct GameApplication
     SAPI void Run();
 };
 
-
-
 GameApplication* const GetGameApp();
 void SetCameraPosition(Game* game, Vector3 pos);
 void SetCameraDistance(GameApplication* gameApp, float zoom);
@@ -78,8 +76,8 @@ float GetDeltaTime();
 float GetScale();
 Rectangle GetScaledScreenRect();
 Vector2 VecToTileCenter(Vector2 vec);
-Vector2 ScaleWorldVec2(Vector2 vec);
-Vector2i ScaleWorldVec2i(Vector2i vec);
+Vector2 GetZoomedMousePos(const Camera2D& camera);
+Vector2i GetTileFromMouse(Game* game);
 
 internal void GameLoadScreen(GameApplication* gameApp, int width, int height);
 internal bool GameInitialize(Game* game, GameApplication* gameApp);

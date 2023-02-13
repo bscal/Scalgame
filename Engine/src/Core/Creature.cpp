@@ -52,6 +52,5 @@ void SCreature::Initialize(struct World* world)
 void SCreature::SetTilePos(Vector2i tilePos)
 {
 	Transform.TilePos = tilePos;
-	Vector2i tileSize = WorldTileScale(WorldRef);
-	Transform.Pos = tilePos.Multiply(tileSize).AsVec2();
+	Transform.Pos = tilePos.Multiply({ TILE_SIZE, TILE_SIZE }).AsVec2();
 }

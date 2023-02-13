@@ -163,24 +163,20 @@ Draw(ChunkedTileMap* tilemap, Game* game)
 				(float)TILE_SIZE,
 				(float)TILE_SIZE
 			};
-			Vector4* color = &chunk->TileColors[index];
+
 			if (tile.LOS == TileLOS::FullVision || game->DebugDisableFOV)
 			{
 				ScalDrawTextureProF(
 					texture,
 					tile.GetTileTexData(tileMgr)->TexCoord,
 					position,
-					*color);
+					chunk->TileColors[index]);
 			}
 			chunk->Tiles[index].LOS = TileLOS::NoVision;
+			chunk->TileColors[index] = { 1.0f, 1.0f, 1.0f, 0.0f };
 
 			if (game->DebugTileView)
 				DrawRectangleLinesEx(position, 1.0f, PINK);
-
-			if (game->DebugDisableDarkess)
-				*color = Vector4{ 1.0f, 1.0f, 1.0f, 1.0f };
-			else
-				*color = Vector4{ 1.0f, 1.0f, 1.0f, 0.0f };
 		}
 	}
 }
@@ -217,11 +213,14 @@ void UpdateChunk(ChunkedTileMap* tilemap,
 	TileMapChunk* chunk, Game* game)
 {
 	GetGameApp()->NumOfChunksUpdated++;
-
-	// NOTE: it is move convenient to clear here. Needs
-	// to be reset somewhere, not sure if there is a 
-	// better solution
-	SMemClear(chunk->LastLightPos, CHUNK_SIZE);
+	
+	// Note: Reset tile colors, not sure if better
+	// way, but doing it inside the draw loop I believe
+	// causes an artifact 
+	//for (size_t i = 0; i < CHUNK_SIZE; ++i)
+	//{
+	//	chunk->TileColors[i] = { 1.0f, 1.0f, 1.0f };
+	//}
 }
 
 TileMapChunk* LoadChunk(ChunkedTileMap* tilemap,
@@ -234,7 +233,7 @@ TileMapChunk* LoadChunk(ChunkedTileMap* tilemap,
 	chunk->ChunkCoord = coord;
 
 	for (int i = 0; i < CHUNK_SIZE; ++i)
-		chunk->TileColors[i] = { 1.0f, 1.0f, 1.0f, 1.0f };
+		chunk->TileColors[i] = { 1.0f, 1.0f, 1.0f };
 
 	float chunkOffSetX = (float)coord.x * (float)tilemap->TileSize.x
 		* (float)tilemap->ChunkSize.x;
@@ -407,8 +406,8 @@ const Tile& GetTileRef(ChunkedTileMap* tilemap,
 TileCoord WorldToTile(ChunkedTileMap* tilemap, Vector2 pos)
 {
 	Vector2i v;
-	v.x = (int)pos.x / tilemap->TileSize.x;
-	v.y = (int)pos.y / tilemap->TileSize.y;
+	v.x = (int)(pos.x) / TILE_SIZE;
+	v.y = (int)(pos.y) / TILE_SIZE;
 	return v;
 }
 

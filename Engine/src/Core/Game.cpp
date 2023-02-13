@@ -27,7 +27,7 @@ SAPI bool GameApplication::Start()
 	}
 
 	size_t gameMemorySize = Megabytes(32);
-	size_t tempMemorySize = Megabytes(1);
+	size_t tempMemorySize = Megabytes(4);
 	SMemInitialize(this, gameMemorySize, tempMemorySize);
 
 	const int screenWidth = 1600;
@@ -229,29 +229,23 @@ SAPI void GameApplication::Run()
 			// Debug place tiles
 			if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
 			{
-				Vector2 mouseWorld = GetScreenToWorld2D(GetMousePosition(), Game->ViewCamera);
-				Vector2i clickedTileCoord = WorldToTileCoord(&Game->World, mouseWorld);
-				Vector2i vec = ScaleWorldVec2i(clickedTileCoord);;
-
+				Vector2i clickedTilePos = GetTileFromMouse(Game);
 				auto tilemap = &Game->World.ChunkedTileMap;
-				if (CTileMap::IsTileInBounds(tilemap, vec))
+				if (CTileMap::IsTileInBounds(tilemap, clickedTilePos))
 				{
-					Tile* tile = CTileMap::GetTile(tilemap, vec);
+					Tile* tile = CTileMap::GetTile(tilemap, clickedTilePos);
 					Tile newTile = CreateTileId(&Game->TileMgr, 5);
-					CTileMap::SetTile(&Game->World.ChunkedTileMap, &newTile, vec);
-					SLOG_INFO("Clicked Tile[%d, %d] Id: %d", vec.x, vec.y, tile->TileId);
+					CTileMap::SetTile(&Game->World.ChunkedTileMap, &newTile, clickedTilePos);
+					SLOG_INFO("Clicked Tile[%d, %d] Id: %d", clickedTilePos.x, clickedTilePos.y, tile->TileId);
 				}
 			}
 			if (IsMouseButtonPressed(MOUSE_BUTTON_RIGHT))
 			{
-				Vector2 mouseWorld = GetScreenToWorld2D(GetMousePosition(), Game->ViewCamera);
-				Vector2i clickedTileCoord = WorldToTileCoord(&Game->World, mouseWorld);
-				Vector2i vec = ScaleWorldVec2i(clickedTileCoord);
-
-				if (CTileMap::IsTileInBounds(&Game->World.ChunkedTileMap, vec))
+				Vector2i clickedTilePos = GetTileFromMouse(Game);
+				if (CTileMap::IsTileInBounds(&Game->World.ChunkedTileMap, clickedTilePos))
 				{
 					Light light = {};
-					light.Pos = vec.AsVec2();
+					light.Pos = clickedTilePos.AsVec2();
 					light.Radius = 16.0f;
 					light.Intensity = 1.0f;
 
@@ -397,7 +391,7 @@ internal void GameUpdate(Game* game, GameApplication* gameApp)
 		CTileMap::SetColor(
 			&game->World.ChunkedTileMap,
 			nearbyTiles[i],
-			{ 1.0f, 1.0f, 1.0f, 1.0f});
+			{ 1.0f, 1.0f, 1.0f });
 	}
 
 	WorldUpdate(&game->World, game);
@@ -457,14 +451,16 @@ Vector2 VecToTileCenter(Vector2 vec)
 	return { vec.x + HALF_TILE_SIZE, vec.y + HALF_TILE_SIZE };
 }
 
-Vector2 ScaleWorldVec2(Vector2 vec)
+Vector2 GetZoomedMousePos(const Camera2D& camera)
 {
-	return Vector2Divide(vec, { GetScale(), GetScale() });
+	Vector2 mouseWorld = GetScreenToWorld2D(GetMousePosition(), camera);
+	return Vector2Divide(mouseWorld, { GetScale(), GetScale() });
 }
 
-Vector2i ScaleWorldVec2i(Vector2i vec)
+Vector2i GetTileFromMouse(Game* game)
 {
-	return vec.Divide({ (int)GetScale(), (int)GetScale() });
+	Vector2 mousePos = GetZoomedMousePos(game->ViewCamera);
+	return WorldToTileCoord(&game->World, mousePos);
 }
 
 void SetCameraPosition(Game* game, Vector3 pos)

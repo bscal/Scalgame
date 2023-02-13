@@ -53,5 +53,5 @@ bool WorldIsInBounds(World* world, Vector2i pos);
 void TurnEnd(World* world, Game* game, int timeChange);
 void AddAction(World* world, Action* action);
 void ProcessActions(World* world);
-Vector2i WorldTileScale(World* world);
+
 Vector2i WorldToTileCoord(World* world, Vector2 tile);

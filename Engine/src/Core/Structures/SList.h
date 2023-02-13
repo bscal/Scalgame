@@ -131,7 +131,7 @@ T* SList<T>::PushNew()
 	
 	uint32_t index = Count;
 	++Count;
-	Memory[index] = {};
+	Memory[index] = (T){};
 	return &Memory[index];
 }
 

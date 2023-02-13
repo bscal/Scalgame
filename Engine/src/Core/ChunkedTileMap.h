@@ -30,7 +30,6 @@ struct TileMapChunk
 	bool IsChunkGenerated;
 	Tile Tiles[CHUNK_SIZE];
 	Vector4 TileColors[CHUNK_SIZE];
-	Vector2 LastLightPos[CHUNK_SIZE];
 };
 
 struct ChunkedTileMap
