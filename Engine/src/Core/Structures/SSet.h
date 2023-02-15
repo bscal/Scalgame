@@ -1,7 +1,6 @@
 #pragma once
 
-#include "STable.h"
-#include "Core/Core.h"
+#include "Core/Structures/STable.h"
 
 template<typename T>
 struct SSet

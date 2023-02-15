@@ -95,6 +95,15 @@ bool SRandNextBool(SRandom* state)
 	return (BitGet(randomValue, 63) == 1);
 }
 
+float SRandNextFloatRange(SRandom* state, float lower, float upper)
+{
+	SASSERT(lower < upper);
+	float randomValue = SRandNextFloat(state);
+	float random = (randomValue) / 1.0f;
+	float range = lower - upper;
+	return (random * range) + lower;
+}
+
 uint64_t SRandNextRange(SRandom* state, uint64_t lower, uint64_t upper)
 {
 	if (lower > upper)
@@ -104,6 +113,7 @@ uint64_t SRandNextRange(SRandom* state, uint64_t lower, uint64_t upper)
 		return 0;
 	}
 	uint64_t randomValue = SRandNext(state);
+
 	return randomValue % (upper - lower + 1) + lower;
 }
 

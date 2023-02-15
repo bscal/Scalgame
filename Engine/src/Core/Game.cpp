@@ -36,6 +36,8 @@ SAPI bool GameApplication::Start()
 	SetTargetFPS(144);
 	SetTraceLogLevel(LOG_ALL);
 
+	SRandomInitialize(&GlobalRandom, 0);
+
 	GameAppPtr = this;
 
 	Game = (struct Game*)SMemAllocTag(sizeof(struct Game), MemoryTag::Game);
@@ -244,28 +246,40 @@ SAPI void GameApplication::Run()
 				Vector2i clickedTilePos = GetTileFromMouse(Game);
 				if (CTileMap::IsTileInBounds(&Game->World.ChunkedTileMap, clickedTilePos))
 				{
-					Light light = {};
+					UpdatingLight light = {};
 					light.Pos = clickedTilePos.AsVec2();
-					light.Radius = 16.0f;
 					light.Intensity = 1.0f;
+					//light.Radius = 16.0f;
 
-					local_var int next = 0;
-					Color c;
-					++next;
-					if (next == 1)
-						c = RED;
-					else if (next == 2)
-						c = GREEN;
-					else if (next == 3)
-						c = BLUE;
-					else
-					{
-						c = WHITE;
-						next = 0;
-					}
+					light.MinIntensity = 14.0f;
+					light.MaxIntensity = 16.0f;
+					light.Colors[0] = { 0xfb, 0xbe, 0x46, 255 };
+					light.Colors[1] = { 0xc7, 0x46, 0x07, 255 };
+					light.Colors[2] = { 0x6e, 0x15, 0x05, 255 };
+					light.Colors[3] = { 0xf9, 0x92, 0x20, 255 };
+					LightsAddUpdating(light);
+					
+					//light.Intensity = 0.3f;
+					//light.MinIntensity = 6.0f;
+					//light.MaxIntensity = 7.0f;
+					//LightsAddUpdating(light);
 
-					light.Color = c;
-					LightsAdd(light);
+					//local_var int next = 0;
+					//Color c;
+					//++next;
+					//if (next == 1)
+					//	c = RED;
+					//else if (next == 2)
+					//	c = GREEN;
+					//else if (next == 3)
+					//	c = BLUE;
+					//else
+					//{
+					//	c = WHITE;
+					//	next = 0;
+					//}
+					//light.Color = c;
+					//LightsAdd(light);
 				}
 			}
 
@@ -343,10 +357,12 @@ SAPI void GameApplication::Run()
 		DrawTexturePro(Game->WorldTexture.texture, srcRect,
 			dstRect, {}, 0.0f, WHITE);
 
+		
+
 		rlPopMatrix();
 		EndMode2D();
 		EndShaderMode();
-
+		DrawRectangle(screenW / 2 - 4, screenH / 2 - 4, 8, 8, RED);
 		DrawUI(UIState);
 
 		// Swap buffers
@@ -424,6 +440,11 @@ EntityMgr* GetEntityMgr()
 Game* const GetGame()
 {
 	return GetGameApp()->Game;
+}
+
+SRandom* GetGlobalRandom()
+{
+	return &GetGameApp()->GlobalRandom;
 }
 
 float GetDeltaTime()

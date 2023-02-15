@@ -17,6 +17,25 @@ inline Rectangle RectangleExpand(const Rectangle& rect, float width, float heigh
 	return r;
 }
 
+template<typename T>
+struct DefaultHasher
+{
+	[[nodiscard]] constexpr uint64_t operator()(const T* key) const noexcept
+	{
+		const uint8_t* const data = (const uint8_t* const)(key);
+		return FNVHash64(data, sizeof(T));
+	}
+};
+
+template<typename T>
+struct DefaultEquals
+{
+	[[nodiscard]] constexpr bool operator()(const T* k1, const T* k2) const noexcept
+	{
+		return *k1 == *k2;
+	}
+};
+
 inline constexpr uint64_t
 SStringHash(const SString* key)
 {

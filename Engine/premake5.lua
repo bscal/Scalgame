@@ -47,7 +47,7 @@ project "Engine"
     filter "system:Windows"
         defines "SCAL_PLATFORM_WINDOWS"
         systemversion "latest"
-        buildoptions "-Wc++17-compat"
+        buildoptions { "-std=c++17", "-Wc++17-compat", "-Weverything", "-Wno-c++98-compat-pedantic" }
 
     filter "system:Unix"
         defines "SCAL_PLATFORM_LINUX"

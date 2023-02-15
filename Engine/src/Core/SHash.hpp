@@ -79,9 +79,9 @@ static constexpr unsigned int crc_table[256] = {
     0xb40bbe37, 0xc30c8ea1, 0x5a05df1b, 0x2d02ef8d
 };
 
-constexpr uint32_t CrcHash(const char* str)
+constexpr int CrcHash(const char* str)
 {
-    uint32_t crc = 0xffffffff;
+    int crc = 0xffffffff;
     for (char c = *str; c != '\0'; c = *(++str))
     {
         crc = (crc >> 8) ^ crc_table[(crc ^ c) & 0xff];

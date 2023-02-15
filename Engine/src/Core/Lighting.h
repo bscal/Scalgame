@@ -2,9 +2,21 @@
 
 #include "Core.h"
 #include "ChunkedTileMap.h"
+#include "Structures/SList.h"
+#include "Structures/SSet.h"
 
 struct GameApplication;
 struct Game;
+
+struct Light;
+struct UpdatingLight;
+
+struct LightingState
+{
+    SList<Light> Lights;
+    SList<UpdatingLight> UpdatingLights;
+    SSet<Vector2i> VisitedTilePerLight;
+};
 
 struct Light
 {
@@ -12,11 +24,24 @@ struct Light
     Color Color;
     float Intensity;
     float Radius;
-    int Id;
+};
+
+struct UpdatingLight : public Light
+{
+    static constexpr float UPDATE_RATE = 0.2f;
+
+    struct Color Colors[4];
+    float MinIntensity;
+    float MaxIntensity;
+    float LastUpdate;
+    bool ClampAt1;
+
+    void Update(Game* game);
 };
 
 void LightsInitialized(GameApplication* gameApp);
 void LightsAdd(const Light& light);
+void LightsAddUpdating(const UpdatingLight& light);
 
 void LightsUpdate(Game* game);
 size_t GetNumOfLights();

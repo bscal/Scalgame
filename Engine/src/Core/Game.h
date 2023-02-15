@@ -8,6 +8,7 @@
 #include "ResourceManager.h"
 #include "CommandMgr.h"
 #include "SMemory.h"
+#include "SRandom.h"
 
 struct UIState;
 
@@ -21,7 +22,7 @@ struct Game
     
     TileMgr TileMgr;
     CommandMgr CommandMgr;
-    EntityMgr EntityMgr;
+    struct EntityMgr EntityMgr;
     
     World World;
     
@@ -42,6 +43,8 @@ struct GameApplication
     MemPool GameMemory;
     BiStack TemporaryMemory;
     
+    SRandom GlobalRandom;
+
     Vector2 ScreenXY; // Camera top left corner
     Vector2 ScaledScreenXY;
     Vector2 HalfWidthHeight;
@@ -72,6 +75,7 @@ void SetCameraDistance(GameApplication* gameApp, float zoom);
 Player* const GetClientPlayer();
 Game* const GetGame();
 
+SRandom* GetGlobalRandom();
 float GetDeltaTime();
 float GetScale();
 Rectangle GetScaledScreenRect();

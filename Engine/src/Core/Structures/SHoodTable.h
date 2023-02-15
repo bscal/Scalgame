@@ -8,26 +8,6 @@
 global_var constexpr float SHOOD_LOAD_FACTOR = 0.75f;
 global_var constexpr uint32_t SHOOD_RESIZE = 2;
 
-template<typename K>
-struct SHoodDefaultHash
-{
-	[[nodiscard]] inline uint64_t operator()(const K* key) const
-	{
-		const uint8_t* const data = (const uint8_t * const)key;
-		return FNVHash64(data, sizeof(K));
-	}
-};
-
-template<typename K>
-struct SHoodDefaultEquals
-{
-	[[nodiscard]] inline bool operator()(const K* k1, const K* k2) const
-	{
-		return *k1 == *k2;
-	}
-};
-
-
 template<typename K, typename V>
 struct SHoodBucket
 {
@@ -39,8 +19,8 @@ struct SHoodBucket
 template<
 	typename K,
 	typename V,
-	typename HashFunc = SHoodDefaultHash<K>,
-	typename EqualsFunc = SHoodDefaultEquals<K>>
+	typename HashFunc = DefaultHasher<K>,
+	typename EqualsFunc = DefaultEquals<K>>
 struct SHoodTable
 {
 	SMemAllocator Allocator = SMEM_GAME_ALLOCATOR;

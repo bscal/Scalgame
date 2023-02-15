@@ -37,6 +37,8 @@ float SRandNextFloat(SRandom* state);
 
 bool SRandNextBool(SRandom* state);
 
+float SRandNextFloatRange(SRandom* state, float lower, float upper);
+
 /// <summary>
 ///  lower and upper are inclusive
 /// </summary>

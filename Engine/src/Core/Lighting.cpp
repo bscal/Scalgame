@@ -1,29 +1,49 @@
 #include "Lighting.h"
 
 #include "Game.h"
-#include "Structures/SSet.h"
+
+#include <math.h>
 
 // Most of these implementations for lighting I have gotten
 // from http://www.adammil.net/blog/v125_roguelike_vision_algorithms.html
 
-// TODO mvoe
-global_var SList<Light> Lights;
-global_var SSet<Vector2i> VisitedTilePerLight;
+LightingState State;
 
 void LightsInitialized(GameApplication* gameApp)
 {
-	Lights.Resize(32);
+	State.Lights.Resize(32);
+	State.UpdatingLights.Resize(32);
 }
 
 void LightsAdd(const Light& light)
 {
-	assert(Lights.IsAllocated());
-	Lights.Push(&light);
+	State.Lights.Push(&light);
+}
+
+void LightsAddUpdating(const UpdatingLight& light)
+{
+	State.UpdatingLights.Push(&light);
 }
 
 size_t GetNumOfLights()
 {
-	return Lights.Count;
+	return State.Lights.Count + State.UpdatingLights.Count;
+}
+
+void UpdatingLight::Update(Game* game)
+{
+	LastUpdate -= GetDeltaTime();
+	if (LastUpdate < 0)
+	{
+		LastUpdate = UpdatingLight::UPDATE_RATE;
+		float rand = SRandNextFloat(GetGlobalRandom());
+		if (rand < 0.35f)
+		{
+			uint64_t index = SRandNextRange(GetGlobalRandom(), 0, 3);
+			Color = Colors[index];
+		}
+		Radius = SRandNextFloatRange(GetGlobalRandom(), MinIntensity, MaxIntensity);
+	}
 }
 
 struct Slope
@@ -275,6 +295,7 @@ internal void ComputeLightShadowCast(CTileMap::ChunkedTileMap* tilemap,
 	const Light& light, uint8_t octant, Vector2i origin,
 	int rangeLimit, int x, Slope top, Slope bottom)
 {
+	int rangeLimitSqr = rangeLimit * rangeLimit;
 	for (; x <= rangeLimit; x++) // rangeLimit < 0 || x <= rangeLimit
 	{
 		// compute the Y coordinates where the top vector leaves the column (on the right) and where the bottom vector
@@ -299,7 +320,8 @@ internal void ComputeLightShadowCast(CTileMap::ChunkedTileMap* tilemap,
 				case 6: tx += y; ty += x; break;
 				case 7: tx += x; ty += y; break;
 			}
-
+			//manhat dist
+			//abs(tilemap->Origin.x - x) + abs(tilemap->Origin.y - y)
 			float distance = 0;
 			bool inRange = rangeLimit < 0 || (distance = Vector2i{ x, y }.Distance(tilemap->Origin)) <= rangeLimit;
 			if (inRange)
@@ -337,20 +359,40 @@ internal void ComputeLightShadowCast(CTileMap::ChunkedTileMap* tilemap,
 internal void 
 UpdateLights(Game* game)
 {
-	VisitedTilePerLight = {};
-	VisitedTilePerLight.Keys.Allocator = SMEM_TEMP_ALLOCATOR;
-	VisitedTilePerLight.Keys.KeyEqualsFunction = Vector2iEqualsFunc;
-	VisitedTilePerLight.Keys.KeyHashFunction = STableDefaultKeyHash;
-	VisitedTilePerLight.Keys.Reserve(CHUNK_SIZE);
+	State.VisitedTilePerLight = {};
+	State.VisitedTilePerLight.Keys.Allocator = SMEM_TEMP_ALLOCATOR;
+	State.VisitedTilePerLight.Keys.KeyEqualsFunction = Vector2iEqualsFunc;
+	State.VisitedTilePerLight.Keys.KeyHashFunction = STableDefaultKeyHash;
+	State.VisitedTilePerLight.Keys.Reserve(CHUNK_SIZE);
 
-	for (int i = 0; i < Lights.Count; ++i)
+	for (int i = 0; i < State.Lights.Count; ++i)
 	{
-		const Light& light = Lights[i];
+		const Light& light = State.Lights[i];
 
-		VisitedTilePerLight.Keys.Clear();
+		State.VisitedTilePerLight.Keys.Clear();
 
 		auto tilemap = &game->World.ChunkedTileMap;
 		Vector2i lightTilePos = Vec2fToVec2i(light.Pos);
+		LightsUpdateTileColor(tilemap, { lightTilePos.x, lightTilePos.y }, 0.0f, light);
+		
+		
+		for (uint8_t octant = 0; octant < 8; octant++)
+		{
+			ComputeLightShadowCast(tilemap, light, octant, lightTilePos,
+				(int)light.Radius, 1, {1, 1}, {0, 1});
+		}
+	}
+
+	for (int i = 0; i < State.UpdatingLights.Count; ++i)
+	{
+		State.UpdatingLights[i].Update(game);
+		const UpdatingLight& light = State.UpdatingLights[i];
+
+		State.VisitedTilePerLight.Keys.Clear();
+
+		auto tilemap = &game->World.ChunkedTileMap;
+		Vector2i lightTilePos = Vec2fToVec2i(light.Pos);
+
 		LightsUpdateTileColor(tilemap, { lightTilePos.x, lightTilePos.y }, 0.0f, light);
 		for (uint8_t octant = 0; octant < 8; octant++)
 		{
@@ -367,20 +409,26 @@ LightsUpdateTileColor(CTileMap::ChunkedTileMap* tilemap,
 {
 	if (!CTileMap::IsTileInBounds(tilemap, tileCoord)) return;
 	
-	if (!VisitedTilePerLight.Put(&tileCoord)) return;
+	if (!State.VisitedTilePerLight.Put(&tileCoord)) return;
 
 	auto chunk = CTileMap::GetChunkByTile(tilemap, tileCoord);
+	if (!chunk) return;
 	uint64_t i = TileToIndex(tilemap, tileCoord);
 
-	//if (chunk->LastLightPos[i].x == light.Pos.x) return;
-	//chunk->LastLightPos[i] = light.Pos;
-
-	float lightFactor = 1.0f - distance / light.Radius;
+	float demoninator = distance / light.Radius;
+	float lightFactor = 1.0f - demoninator * demoninator;
 	lightFactor *= light.Intensity;
 
 	Vector4 n = ColorNormalize(light.Color);
-	chunk->TileColors[i].x += n.x * lightFactor;
-	chunk->TileColors[i].y += n.y * lightFactor;
-	chunk->TileColors[i].z += n.z * lightFactor;
-	chunk->TileColors[i].w += 1.0f;
+
+	float x = chunk->TileColors[i].x + (n.x * lightFactor);
+	chunk->TileColors[i].x = (x > 1.0f) ? 1.0f : x;
+
+	float y = chunk->TileColors[i].y + (n.y * lightFactor);
+	chunk->TileColors[i].y = (y > 1.0f) ? 1.0f : y;
+
+	float z = chunk->TileColors[i].z + (n.z * lightFactor);
+	chunk->TileColors[i].z = (z > 1.0f) ? 1.0f : z;
+
+	chunk->TileColors[i].w = 1.0f;
 }
