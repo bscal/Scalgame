@@ -9,6 +9,7 @@
 #include "CommandMgr.h"
 #include "SMemory.h"
 #include "SRandom.h"
+#include "LightMap.h"
 
 struct UIState;
 
@@ -23,6 +24,7 @@ struct Game
     TileMgr TileMgr;
     CommandMgr CommandMgr;
     struct EntityMgr EntityMgr;
+    LightData LightMap;
     
     World World;
     

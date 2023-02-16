@@ -12,36 +12,6 @@ Vector2i Vec2iUnpackInt64(int64_t packedVector)
     return { x, y };
 }
 
-Vector2i Vec2iOne()
-{
-    return { 1, 1 };
-}
-
-Vector2i Vec2iZero()
-{
-    return { 0, 0 };
-}
-
-Vector2i Vec2iUp()
-{
-    return { 0, -1 };
-}
-
-Vector2i Vec2iDown()
-{
-    return { 0, 1 };
-}
-
-Vector2i Vec2iLeft()
-{
-    return { 1, 0 };
-}
-
-Vector2i Vec2iRight()
-{
-    return { -1, 0 };
-}
-
 Vector2i Vec2fToVec2i(Vector2 v)
 {
     return { (int)v.x, (int)v.y };

@@ -1,8 +1,7 @@
 #include "Lighting.h"
 
 #include "Game.h"
-
-#include <math.h>
+#include "LightMap.h"
 
 // Most of these implementations for lighting I have gotten
 // from http://www.adammil.net/blog/v125_roguelike_vision_algorithms.html
@@ -402,33 +401,27 @@ UpdateLights(Game* game)
 	}
 }
 
-
 void
 LightsUpdateTileColor(CTileMap::ChunkedTileMap* tilemap,
 	TileCoord tileCoord, float distance, const Light& light)
 {
 	if (!CTileMap::IsTileInBounds(tilemap, tileCoord)) return;
-	
+	if (tileCoord.x < GetGame()->LightMap.LightMapOffset.x ||
+		tileCoord.y < GetGame()->LightMap.LightMapOffset.y ||
+		tileCoord.x >= GetGame()->LightMap.LightMapOffset.x + SCREEN_WIDTH_TILES ||
+		tileCoord.y >= GetGame()->LightMap.LightMapOffset.y + SCREEN_HEIGHT_TILES) return;
 	if (!State.VisitedTilePerLight.Put(&tileCoord)) return;
 
-	auto chunk = CTileMap::GetChunkByTile(tilemap, tileCoord);
-	if (!chunk) return;
-	uint64_t i = TileToIndex(tilemap, tileCoord);
+	// https://www.desmos.com/calculator/nmnaud1hrw
 
-	float demoninator = distance / light.Radius;
-	float lightFactor = 1.0f - demoninator * demoninator;
-	lightFactor *= light.Intensity;
+	const float a = 0.1f;
+	const float b = 0.05f;
+	float attenuation = 1.0 / (1.0 + a * distance + b * distance * distance);
 
-	Vector4 n = ColorNormalize(light.Color);
-
-	float x = chunk->TileColors[i].x + (n.x * lightFactor);
-	chunk->TileColors[i].x = (x > 1.0f) ? 1.0f : x;
-
-	float y = chunk->TileColors[i].y + (n.y * lightFactor);
-	chunk->TileColors[i].y = (y > 1.0f) ? 1.0f : y;
-
-	float z = chunk->TileColors[i].z + (n.z * lightFactor);
-	chunk->TileColors[i].z = (z > 1.0f) ? 1.0f : z;
-
-	chunk->TileColors[i].w = 1.0f;
+	Vector4 color;
+	color.x = ((float)light.Color.r / 255.0f);
+	color.y = ((float)light.Color.g / 255.0f);
+	color.z = ((float)light.Color.b / 255.0f);
+	color.w = attenuation;
+	LightMapAddColor(&GetGame()->LightMap, tileCoord, color);
 }

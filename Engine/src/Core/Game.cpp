@@ -32,8 +32,9 @@ SAPI bool GameApplication::Start()
 
 	const int screenWidth = 1600;
 	const int screenHeight = 900;
+	SetConfigFlags(FLAG_WINDOW_RESIZABLE);
 	InitWindow(screenWidth, screenHeight, "Some roguelike game");
-	SetTargetFPS(144);
+	SetTargetFPS(60);
 	SetTraceLogLevel(LOG_ALL);
 
 	SRandomInitialize(&GlobalRandom, 0);
@@ -64,8 +65,6 @@ SAPI bool GameApplication::Start()
 
 	SLOG_INFO("[ Tests ] %d/%d tests passed!", passingTests, totalTests);
 	#endif // SCAL_GAME_TESTS
-
-
 
 	IsInitialized = true;
 
@@ -106,6 +105,8 @@ internal bool GameInitialize(Game* game, GameApplication* gameApp)
 	SASSERT(didResInit);
 
 	GameLoadScreen(gameApp, GetScreenWidth(), GetScreenHeight());
+
+	LightMapInitialize(&game->LightMap);
 
 	TileMgrInitialize(&game->TileMgr, &game->Resources.Atlas);
 	EntityMgrInitialize(game);
@@ -171,6 +172,7 @@ internal void GameFree(Game* game)
 	UnloadShader(game->Resources.UnlitShader);
 	game->Resources.Atlas.Unload();
 	UnloadRenderTexture(game->WorldTexture);
+	UnloadRenderTexture(game->LightMap.LightMap);
 	WorldFree(&game->World);
 }
 
@@ -248,7 +250,7 @@ SAPI void GameApplication::Run()
 				{
 					UpdatingLight light = {};
 					light.Pos = clickedTilePos.AsVec2();
-					light.Intensity = 1.0f;
+					light.Intensity = 0.8f;
 					//light.Radius = 16.0f;
 
 					light.MinIntensity = 14.0f;
@@ -328,6 +330,7 @@ SAPI void GameApplication::Run()
 		// Update/Draw World
 		// *****************
 		BeginShaderMode(Game->Resources.UnlitShader);
+
 		BeginTextureMode(Game->WorldTexture);
 		BeginMode2D(Game->WorldCamera);
 		ClearBackground(BLACK);
@@ -340,6 +343,8 @@ SAPI void GameApplication::Run()
 		EndTextureMode();
 		EndShaderMode();
 
+		LightMapUpdate(&Game->LightMap, Game);
+
 		// ***************
 		// Draws to buffer
 		// ***************
@@ -347,6 +352,7 @@ SAPI void GameApplication::Run()
 
 		BeginShaderMode(Game->Resources.UnlitShader);
 		BeginMode2D(Game->ViewCamera);
+
 		rlPushMatrix();
 		rlScalef(GetScale(), GetScale(), 1.0f);
 
@@ -354,15 +360,24 @@ SAPI void GameApplication::Run()
 		float screenH = (float)GetScreenHeight();
 		Rectangle srcRect = { 0.0f, 0.0f, screenW, -screenH };
 		Rectangle dstRect = { ScreenXY.x, ScreenXY.y, screenW, screenH };
+
 		DrawTexturePro(Game->WorldTexture.texture, srcRect,
 			dstRect, {}, 0.0f, WHITE);
-
 		
+		BeginBlendMode(BLEND_ADDITIVE);
+
+		Rectangle srcRect2 = { 0.0f, 0.0f, (float)(SCREEN_WIDTH_TILES), (float)(-SCREEN_HEIGHT_TILES)};
+		Rectangle dstRect2 = { (float)(Game->LightMap.LightMapOffset.x * TILE_SIZE), (float)(Game->LightMap.LightMapOffset.y * TILE_SIZE), (float)(SCREEN_WIDTH_TILES * TILE_SIZE), (float)(SCREEN_HEIGHT_TILES * TILE_SIZE)};
+		DrawTexturePro(Game->LightMap.LightMap.texture, srcRect2,
+			dstRect2, { 0 }, 0.0f, WHITE);
+
+		EndBlendMode();
 
 		rlPopMatrix();
+
 		EndMode2D();
 		EndShaderMode();
-		DrawRectangle(screenW / 2 - 4, screenH / 2 - 4, 8, 8, RED);
+
 		DrawUI(UIState);
 
 		// Swap buffers
@@ -396,18 +411,13 @@ internal void GameUpdate(Game* game, GameApplication* gameApp)
 		SLOG_INFO("[ GAME ] Window Resizing!");
 	}
 
-	// Base LOS for player
-	SList<Vector2i> nearbyTiles = QueryTilesRadius(&game->World, GetClientPlayer()->Transform.TilePos, 4.0f);
-	for (int i = 0; i < nearbyTiles.Count; ++i)
+	
+	Vector2i playerPos = GetClientPlayer()->Transform.TilePos;
+	CTileMap::SetVisible(&game->World.ChunkedTileMap, playerPos);
+	for (int i = 0; i < sizeof(Vec2i_NEIGHTBORS); ++i)
 	{
-		CTileMap::SetVisible(
-			&game->World.ChunkedTileMap,
-			nearbyTiles[i]);
-
-		CTileMap::SetColor(
-			&game->World.ChunkedTileMap,
-			nearbyTiles[i],
-			{ 1.0f, 1.0f, 1.0f });
+		Vector2i pos = Vec2i_NEIGHTBORS[i].Add(playerPos);
+		CTileMap::SetVisible(&game->World.ChunkedTileMap, pos);
 	}
 
 	WorldUpdate(&game->World, game);

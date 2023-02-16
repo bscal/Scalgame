@@ -34,7 +34,6 @@ struct UpdatingLight : public Light
     float MinIntensity;
     float MaxIntensity;
     float LastUpdate;
-    bool ClampAt1;
 
     void Update(Game* game);
 };

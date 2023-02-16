@@ -9,7 +9,7 @@
 
 void WorldInitialize(World* world, GameApplication* gameApp)
 {
-	CTileMap::Initialize(&world->ChunkedTileMap, gameApp->Game);
+	CTileMap::Initialize(&world->ChunkedTileMap);
 
 	world->IsAllocated = true;
 	SLOG_INFO("[ WORLD ] Successfully initialized world!");

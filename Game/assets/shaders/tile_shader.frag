@@ -12,7 +12,6 @@ void main()
 {
 	vec4 texColor = texture(texture0, FragTexCoord);
 	vec4 col = texColor * colDiffuse * FragColor;
-	col.w = normalize(col.w);
 	//FinalColor = texColor * colDiffuse * vec4(FragColor.xyz, min(1.0, FragColor.a));
 	FinalColor = col;
 }

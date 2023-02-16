@@ -18,7 +18,7 @@ namespace CTileMap
 // TODO
 static SRandom Random;
 
-void Initialize(ChunkedTileMap* tilemap, Game* game)
+void Initialize(ChunkedTileMap* tilemap)
 {
 	SASSERT(tilemap);
 	SASSERT(!tilemap->ChunksList.IsAllocated());
@@ -58,7 +58,7 @@ void Initialize(ChunkedTileMap* tilemap, Game* game)
 	tilemap->ChunkBounds.height = (float)(tilemap->ChunkSize.y
 		* tilemap->TileSize.y);
 
-	size_t capacity = (size_t)(tilemap->ViewDistance.x * tilemap->ViewDistance.y);
+	uint32_t capacity = (uint32_t)labs(tilemap->ViewDistance.x * tilemap->ViewDistance.y);
 	tilemap->ChunksList.Resize(capacity);
 
 	SASSERT_MSG(tilemap->Origin.x >= 0 && tilemap->Origin.y >= 0, "Non 0, 0 world origin is current not supported");
@@ -128,18 +128,16 @@ Draw(ChunkedTileMap* tilemap, Game* game)
 	const Texture2D* texture = &game->Resources.Atlas.Texture;
 	TileMgr* tileMgr = &game->TileMgr;
 
-	const int LPADDING = 1;
-	const int RPADDING = 2;
 	Vector2i target = GetClientPlayer()->Transform.TilePos;
 	Vector2i screenDims
 	{
-		(GetScreenWidth() / TILE_SIZE) + LPADDING + RPADDING,
-		(GetScreenHeight() / TILE_SIZE) + LPADDING + RPADDING
+		(GetScreenWidth() / TILE_SIZE) + 2,
+		(GetScreenHeight() / TILE_SIZE) + 2
 	};
-	float offsetX = game->WorldCamera.offset.x / TILE_SIZE;
-	float offsetY = game->WorldCamera.offset.y / TILE_SIZE;
-	int tileOffsetX = (int)((float)target.x - offsetX - (float)LPADDING);
-	int tileOffsetY = (int)((float)target.y - offsetY - (float)LPADDING);
+	float offsetX = game->WorldCamera.offset.x / TILE_SIZE + 1.0f;
+	float offsetY = game->WorldCamera.offset.y / TILE_SIZE + 1.0f;
+	int tileOffsetX = (target.x - (int)offsetX);
+	int tileOffsetY = (target.y - (int)offsetY);
 	for (int y = 0; y < screenDims.y; ++y)
 	{
 		for (int x = 0; x < screenDims.x; ++x)
@@ -154,8 +152,8 @@ Draw(ChunkedTileMap* tilemap, Game* game)
 			SASSERT(chunk);
 			SASSERT(chunk->IsChunkGenerated);
 
-			uint32_t index = TileToIndex(tilemap, coord);
-			Tile tile = chunk->Tiles[index];
+			uint64_t index = TileToIndex(tilemap, coord);
+			Tile* tile = &chunk->Tiles[index];
 			Rectangle position
 			{
 				(float)(coord.x * TILE_SIZE),
@@ -164,16 +162,20 @@ Draw(ChunkedTileMap* tilemap, Game* game)
 				(float)TILE_SIZE
 			};
 
-			if (tile.LOS == TileLOS::FullVision || game->DebugDisableFOV)
-			{
-				ScalDrawTextureProF(
-					texture,
-					tile.GetTileTexData(tileMgr)->TexCoord,
-					position,
-					chunk->TileColors[index]);
-			}
-			chunk->Tiles[index].LOS = TileLOS::NoVision;
-			chunk->TileColors[index] = { 1.0f, 1.0f, 1.0f, 0.0f };
+			//game->DebugDisableFOV
+
+			Vector4 color;
+			if (tile->LOS == TileLOS::FullVision)
+				color = { 1.0f, 1.0f, 1.0f, 1.0f };
+			else
+				color = { 1.0f, 1.0f, 1.0f, 0.6f };
+			tile->LOS = TileLOS::NoVision;
+
+			ScalDrawTextureProF(
+				texture,
+				tile->GetTileTexData(tileMgr)->TexCoord,
+				position,
+				color);
 
 			if (game->DebugTileView)
 				DrawRectangleLinesEx(position, 1.0f, PINK);
@@ -199,9 +201,9 @@ void LateUpdateChunk(ChunkedTileMap* tilemap, Game* game)
 	if (!game->DebugTileView) return; 
 	const auto& screenRect = GetScaledScreenRect();
 
-	for (uint64_t i = 0; i < tilemap->ChunksList.Count; ++i)
+	for (uint32_t i = 0; i < tilemap->ChunksList.Count; ++i)
 	{
-		auto chunk = tilemap->ChunksList.PeekAt(i);
+		CTileMap::TileMapChunk* chunk = tilemap->ChunksList.PeekAt(i);
 		if (CheckCollisionRecs(screenRect, chunk->Bounds))
 		{
 			DrawRectangleLinesEx(chunk->Bounds, 4, GREEN);
@@ -213,27 +215,15 @@ void UpdateChunk(ChunkedTileMap* tilemap,
 	TileMapChunk* chunk, Game* game)
 {
 	GetGameApp()->NumOfChunksUpdated++;
-	
-	// Note: Reset tile colors, not sure if better
-	// way, but doing it inside the draw loop I believe
-	// causes an artifact 
-	//for (size_t i = 0; i < CHUNK_SIZE; ++i)
-	//{
-	//	chunk->TileColors[i] = { 1.0f, 1.0f, 1.0f };
-	//}
 }
 
 TileMapChunk* LoadChunk(ChunkedTileMap* tilemap,
 	ChunkCoord coord)
 {
 	TileMapChunk* chunk = tilemap->ChunksList.PushNew();
-	//chunk.Tiles.InitializeCap(tilemap->ChunkTileCount);
 	chunk->Entities.Allocator = SMEM_GAME_ALLOCATOR;
 	chunk->Entities.Resize(10); // TODO
 	chunk->ChunkCoord = coord;
-
-	for (int i = 0; i < CHUNK_SIZE; ++i)
-		chunk->TileColors[i] = { 1.0f, 1.0f, 1.0f };
 
 	float chunkOffSetX = (float)coord.x * (float)tilemap->TileSize.x
 		* (float)tilemap->ChunkSize.x;
@@ -248,12 +238,11 @@ TileMapChunk* LoadChunk(ChunkedTileMap* tilemap,
 
 void UnloadChunk(ChunkedTileMap* tilemap, ChunkCoord coord)
 {
-	for (size_t i = 0; i < tilemap->ChunksList.Count; ++i)
+	for (uint32_t i = 0; i < tilemap->ChunksList.Count; ++i)
 	{
 		auto chunkPtr = tilemap->ChunksList.PeekAt(i);
 		if (chunkPtr->ChunkCoord.Equals(coord))
 		{
-			//chunkPtr->Tiles.Free();
 			chunkPtr->Entities.Free();
 			tilemap->ChunksList.RemoveAtFast(i);
 			break;
@@ -281,7 +270,6 @@ void GenerateChunk(ChunkedTileMap* tilemap,
 				&GetGameApp()->Game->TileMgr,
 				tileId);
 			chunk->Tiles[x + y * CHUNK_DIMENSIONS] = tile;
-			//chunk->Tiles.Push(&tile);
 		}
 	}
 }
@@ -305,12 +293,12 @@ bool IsChunkInBounds(ChunkedTileMap* tilemap, ChunkCoord chunkPos)
 {
 	return (chunkPos.x >= tilemap->Origin.x &&
 		chunkPos.y >= tilemap->Origin.y &&
-		chunkPos.x < tilemap->WorldDimChunks.x&&
+		chunkPos.x < tilemap->WorldDimChunks.x &&
 		chunkPos.y < tilemap->WorldDimChunks.y);
 }
 
-TileMapChunk* GetChunk(
-	ChunkedTileMap* tilemap, ChunkCoord coord)
+TileMapChunk* 
+GetChunk(ChunkedTileMap* tilemap, ChunkCoord coord)
 {
 	for (size_t i = 0; i < tilemap->ChunksList.Count; ++i)
 	{
@@ -348,7 +336,7 @@ TileToIndex(ChunkedTileMap* tilemap, TileCoord tilePos)
 {
 	int tileChunkX = tilePos.x % CHUNK_DIMENSIONS;
 	int tileChunkY = tilePos.y % CHUNK_DIMENSIONS;
-	return static_cast<uint64_t>(tileChunkX + tileChunkY * tilemap->ChunkSize.x);
+	return static_cast<uint64_t>(tileChunkX + tileChunkY * CHUNK_DIMENSIONS);
 }
 
 void SetTile(ChunkedTileMap* tilemap,
@@ -416,7 +404,7 @@ void SetColor(ChunkedTileMap* tilemap, TileCoord tileCoord, Vector4 color)
 	if (!IsTileInBounds(tilemap, tileCoord)) return;
 	TileMapChunk* chunk = GetChunkByTile(tilemap, tileCoord);
 	uint32_t index = TileToIndex(tilemap, tileCoord);
-	chunk->TileColors[index] = color;
+	//chunk->TileColors[index] = color;
 }
 
 void SetVisible(ChunkedTileMap* tilemap, TileCoord coord)

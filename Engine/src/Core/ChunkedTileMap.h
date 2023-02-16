@@ -29,7 +29,6 @@ struct TileMapChunk
 	SList<EntityId> Entities;
 	bool IsChunkGenerated;
 	Tile Tiles[CHUNK_SIZE];
-	Vector4 TileColors[CHUNK_SIZE];
 };
 
 struct ChunkedTileMap
@@ -52,7 +51,7 @@ struct ChunkedTileMap
 	size_t ChunkTileCount;
 };
 
-void Initialize(ChunkedTileMap* tilemap, Game* game);
+void Initialize(ChunkedTileMap* tilemap);
 void Free(ChunkedTileMap* tilemap);
 
 void 
