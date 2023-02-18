@@ -129,6 +129,9 @@ internal void DrawDebugPanel(UIState* state)
 		nk_label(&state->Ctx, "RenderTime:", NK_TEXT_LEFT);
 		nk_label(&state->Ctx, TextFormat("% .2f", GetGameApp()->RenderTime * 1000), NK_TEXT_LEFT);
 
+		nk_label(&state->Ctx, "WorldUpdateTime:", NK_TEXT_LEFT);
+		nk_label(&state->Ctx, TextFormat("% .2f", GetGameApp()->UpdateWorldTime * 1000), NK_TEXT_LEFT);
+
 		nk_label(&state->Ctx, "Chunks(Load/Up):", NK_TEXT_LEFT);
 		nk_label(&state->Ctx, TextFormat("%d/%d",
 			GetGameApp()->NumOfLoadedChunks, GetGameApp()->NumOfChunksUpdated), NK_TEXT_LEFT);

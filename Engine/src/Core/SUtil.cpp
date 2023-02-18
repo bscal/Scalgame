@@ -2,6 +2,16 @@
 
 #include "World.h"
 
+Vector4 Vec4Add(const Vector4& v0, const Vector4& v1)
+{
+	Vector4 v;
+	v.x = v0.x + v1.x;
+	v.y = v0.y + v1.y;
+	v.z = v0.z + v1.z;
+	v.w = v0.w + v1.w;
+	return v;
+}
+
 // Temporary list of tile coordinates
 SList<Vector2i>
 QueryTilesRect(World* world, Vector2i start, Vector2i end)

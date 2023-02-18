@@ -28,10 +28,13 @@ struct LightData
 {
 	Vector2i LightMapOffset;
 	LightInfo LightColors[TILES_IN_VIEW];
+	// TODO maybe more to renderer?
 	RenderTexture2D LightMap;
+	RenderTexture2D EmissiveMap;
 };
 
 void LightMapInitialize(LightData* lightData);
+void LightMapFree(LightData* lightData);
 
 void LightMapUpdate(LightData* lightData, Game* game);
 

@@ -10,7 +10,7 @@ LightingState State;
 
 void LightsInitialized(GameApplication* gameApp)
 {
-	State.Lights.Resize(32);
+	State.Lights.Resize(16);
 	State.UpdatingLights.Resize(32);
 }
 
@@ -58,13 +58,16 @@ struct Slope
 internal void ComputeOctant(CTileMap::ChunkedTileMap* tilemap, uint8_t octant,
 	Vector2i origin, int rangeLimit, int x, Slope top, Slope bottom);
 
-internal void UpdateLights(Game* game);
+
+internal void ComputeLightShadowCast(CTileMap::ChunkedTileMap* tilemap,
+	const Light& light, uint8_t octant, Vector2i origin,
+	int rangeLimit, int x, Slope top, Slope bottom);
 
 void LightsUpdate(Game* game)
 {
-	auto originTile = GetClientPlayer()->Transform.TilePos;
-
+	Vector2i originTile = GetClientPlayer()->Transform.TilePos;
 	CTileMap::ChunkedTileMap* tilemap = &game->World.ChunkedTileMap;
+
 	if (CTileMap::IsTileInBounds(tilemap, originTile))
 	{
 		CTileMap::SetVisible(tilemap, originTile);
@@ -75,7 +78,41 @@ void LightsUpdate(Game* game)
 		}
 	}
 
-	UpdateLights(game);
+	State.VisitedTilePerLight.Keys = STable<Vector2i, bool>(Vector2iEqualsFunc, STableDefaultKeyHash);
+	State.VisitedTilePerLight.Keys.Allocator = SMEM_TEMP_ALLOCATOR;
+	State.VisitedTilePerLight.Keys.ReserveWithLoadFactor(24 * 24, 1.2f);
+
+	for (int i = 0; i < State.Lights.Count; ++i)
+	{
+		const Light& light = State.Lights[i];
+
+		State.VisitedTilePerLight.Keys.Clear();
+
+		Vector2i lightTilePos = Vec2fToVec2i(light.Pos);
+		LightsUpdateTileColor(tilemap, { lightTilePos.x, lightTilePos.y }, 0.0f, light);
+		for (uint8_t octant = 0; octant < 8; octant++)
+		{
+			ComputeLightShadowCast(tilemap, light, octant, lightTilePos,
+				(int)light.Radius, 1, { 1, 1 }, { 0, 1 });
+		}
+	}
+
+	for (int i = 0; i < State.UpdatingLights.Count; ++i)
+	{
+		State.UpdatingLights[i].Update(game);
+		const UpdatingLight& light = State.UpdatingLights[i];
+
+		State.VisitedTilePerLight.Keys.Clear();
+
+		Vector2i lightTilePos = Vec2fToVec2i(light.Pos);
+
+		LightsUpdateTileColor(tilemap, { lightTilePos.x, lightTilePos.y }, 0.0f, light);
+		for (uint8_t octant = 0; octant < 8; octant++)
+		{
+			ComputeLightShadowCast(tilemap, light, octant, lightTilePos,
+				(int)light.Radius, 1, { 1, 1 }, { 0, 1 });
+		}
+	}
 }
 
 internal bool BlocksLight(CTileMap::ChunkedTileMap* tilemap, int x, int y, Vector2i origin, uint8_t octant)
@@ -290,11 +327,22 @@ internal void ComputeOctant(CTileMap::ChunkedTileMap* tilemap, uint8_t octant,
 	}
 }
 
+internal inline bool
+IsTileValid(Vector2i pos)
+{
+	if (!CTileMap::IsTileInBounds(&GetGame()->World.ChunkedTileMap, pos)) return false;
+	if (pos.x < GetGame()->LightMap.LightMapOffset.x ||
+		pos.y < GetGame()->LightMap.LightMapOffset.y ||
+		pos.x >= GetGame()->LightMap.LightMapOffset.x + SCREEN_WIDTH_TILES ||
+		pos.y >= GetGame()->LightMap.LightMapOffset.y + SCREEN_HEIGHT_TILES) return false;
+	if (!State.VisitedTilePerLight.Put(&pos)) return false;
+	return true;
+}
+
 internal void ComputeLightShadowCast(CTileMap::ChunkedTileMap* tilemap,
 	const Light& light, uint8_t octant, Vector2i origin,
 	int rangeLimit, int x, Slope top, Slope bottom)
 {
-	int rangeLimitSqr = rangeLimit * rangeLimit;
 	for (; x <= rangeLimit; x++) // rangeLimit < 0 || x <= rangeLimit
 	{
 		// compute the Y coordinates where the top vector leaves the column (on the right) and where the bottom vector
@@ -355,73 +403,23 @@ internal void ComputeLightShadowCast(CTileMap::ChunkedTileMap* tilemap,
 	}
 }
 
-internal void 
-UpdateLights(Game* game)
-{
-	State.VisitedTilePerLight = {};
-	State.VisitedTilePerLight.Keys.Allocator = SMEM_TEMP_ALLOCATOR;
-	State.VisitedTilePerLight.Keys.KeyEqualsFunction = Vector2iEqualsFunc;
-	State.VisitedTilePerLight.Keys.KeyHashFunction = STableDefaultKeyHash;
-	State.VisitedTilePerLight.Keys.Reserve(CHUNK_SIZE);
-
-	for (int i = 0; i < State.Lights.Count; ++i)
-	{
-		const Light& light = State.Lights[i];
-
-		State.VisitedTilePerLight.Keys.Clear();
-
-		auto tilemap = &game->World.ChunkedTileMap;
-		Vector2i lightTilePos = Vec2fToVec2i(light.Pos);
-		LightsUpdateTileColor(tilemap, { lightTilePos.x, lightTilePos.y }, 0.0f, light);
-		
-		
-		for (uint8_t octant = 0; octant < 8; octant++)
-		{
-			ComputeLightShadowCast(tilemap, light, octant, lightTilePos,
-				(int)light.Radius, 1, {1, 1}, {0, 1});
-		}
-	}
-
-	for (int i = 0; i < State.UpdatingLights.Count; ++i)
-	{
-		State.UpdatingLights[i].Update(game);
-		const UpdatingLight& light = State.UpdatingLights[i];
-
-		State.VisitedTilePerLight.Keys.Clear();
-
-		auto tilemap = &game->World.ChunkedTileMap;
-		Vector2i lightTilePos = Vec2fToVec2i(light.Pos);
-
-		LightsUpdateTileColor(tilemap, { lightTilePos.x, lightTilePos.y }, 0.0f, light);
-		for (uint8_t octant = 0; octant < 8; octant++)
-		{
-			ComputeLightShadowCast(tilemap, light, octant, lightTilePos,
-				(int)light.Radius, 1, { 1, 1 }, { 0, 1 });
-		}
-	}
-}
-
 void
 LightsUpdateTileColor(CTileMap::ChunkedTileMap* tilemap,
 	TileCoord tileCoord, float distance, const Light& light)
 {
-	if (!CTileMap::IsTileInBounds(tilemap, tileCoord)) return;
-	if (tileCoord.x < GetGame()->LightMap.LightMapOffset.x ||
-		tileCoord.y < GetGame()->LightMap.LightMapOffset.y ||
-		tileCoord.x >= GetGame()->LightMap.LightMapOffset.x + SCREEN_WIDTH_TILES ||
-		tileCoord.y >= GetGame()->LightMap.LightMapOffset.y + SCREEN_HEIGHT_TILES) return;
-	if (!State.VisitedTilePerLight.Put(&tileCoord)) return;
-
+	if (!IsTileValid(tileCoord)) return;
 	// https://www.desmos.com/calculator/nmnaud1hrw
 
-	const float a = 0.1f;
-	const float b = 0.05f;
-	float attenuation = 1.0 / (1.0 + a * distance + b * distance * distance);
+	float dist = distance / light.Radius;
+	const float a = 0.0f;
+	const float b = .1f;
+	float attenuation = 1.0f / (1.0f + a * distance + b * distance * distance);
+	//float ambient = 1.0;
 
 	Vector4 color;
-	color.x = ((float)light.Color.r / 255.0f);
-	color.y = ((float)light.Color.g / 255.0f);
-	color.z = ((float)light.Color.b / 255.0f);
-	color.w = attenuation;
+	color.x = ((float)light.Color.r / 255.0f) * attenuation * light.Intensity;
+	color.y = ((float)light.Color.g / 255.0f) * attenuation * light.Intensity;
+	color.z = ((float)light.Color.b / 255.0f) * attenuation * light.Intensity;   
+	color.w = attenuation * light.Intensity;
 	LightMapAddColor(&GetGame()->LightMap, tileCoord, color);
 }

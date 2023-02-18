@@ -53,7 +53,8 @@ struct STable
 
 	// Sets Capacity capacity * loadFactor, if the table
 	// contains entries will trigger a rehash
-	void Reserve(uint32_t estimatedCapacity); 
+	void Reserve(uint32_t estimatedCapacity);
+	void ReserveWithLoadFactor(uint32_t estimatedCapacity, float loadFactor);
 	void Free();
 	void Clear();
 
@@ -107,6 +108,14 @@ HashKey(const STable<K, V>* sTable, const K* key)
 	uint64_t hash = sTable->KeyHashFunction(key);
 	hash &= ((uint64_t)(sTable->Capacity - 1));
 	return hash;
+}
+
+template<typename K, typename V>
+void STable<K, V>::ReserveWithLoadFactor(uint32_t estimatedCapacity, float loadFactor)
+{
+	uint32_t newCap = (uint32_t)((float)estimatedCapacity * loadFactor);
+	if (!IsPowerOf2_32(newCap)) newCap = AlignPowTwo32Ceil(newCap);
+	Reserve(newCap);
 }
 
 template<typename K, typename V>

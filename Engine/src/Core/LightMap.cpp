@@ -7,7 +7,14 @@
 
 void LightMapInitialize(LightData* lightData)
 {
-	lightData->LightMap = SLoadRenderTexture(SCREEN_WIDTH_TILES, SCREEN_HEIGHT_TILES, PIXELFORMAT_UNCOMPRESSED_R32G32B32A32);
+	lightData->LightMap = SLoadRenderTexture(SCREEN_WIDTH_TILES, SCREEN_HEIGHT_TILES, PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
+	lightData->EmissiveMap = SLoadRenderTexture(SCREEN_WIDTH_TILES, SCREEN_HEIGHT_TILES, PIXELFORMAT_UNCOMPRESSED_R32G32B32A32);
+}
+
+void LightMapFree(LightData* lightData)
+{
+	UnloadRenderTexture(lightData->LightMap);
+	UnloadRenderTexture(lightData->EmissiveMap);
 }
 
 void LightMapUpdate(LightData* lightData, Game* game)
@@ -19,27 +26,25 @@ void LightMapUpdate(LightData* lightData, Game* game)
 	lightData->LightMapOffset.y = (target.y - (int)offsetY);
 
 	BeginTextureMode(lightData->LightMap);
-	//BeginMode2D(game->WorldCamera);
-	ClearBackground({ 0 });
+	ClearBackground(ColorFromNormalized({ 0.9, 0.9, 0.9, 1.0 }));
 
+	BeginBlendMode(BLEND_ADDITIVE);
 	for (int y = 0; y < SCREEN_HEIGHT_TILES; ++y)
 	{
 		for (int x = 0; x < SCREEN_WIDTH_TILES; ++x)
 		{
 			int index = x + y * SCREEN_WIDTH_TILES;
 			Rectangle rec = { (float)x, (float)y, 1.0f, 1.0f };
-			if (lightData->LightColors[index].Count != 0)
+			if (lightData->LightColors[index].Count > 0)
 			{
-				lightData->LightColors[index].x /= lightData->LightColors[index].Count;
-				lightData->LightColors[index].y /= lightData->LightColors[index].Count;
-				lightData->LightColors[index].z /= lightData->LightColors[index].Count;
+				Vector4 color = lightData->LightColors[index].AsVec4();
+				SDrawRectangleProF(rec, { 0 }, 0.0f, color);
+				lightData->LightColors[index] = { 0.0f, 0.0f, 0.0f, 0.0f, 0 };
 			}
-			SDrawRectangleProF(rec, { 0 }, 0.0f, lightData->LightColors[index].AsVec4());
-			lightData->LightColors[index] = { 0.f, 0.f, 0.f, 0.f, 0 };
 		}
 	}
+	EndBlendMode();
 
-	//EndMode2D();
 	EndTextureMode();
 }
 

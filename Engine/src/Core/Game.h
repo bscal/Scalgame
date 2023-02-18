@@ -52,6 +52,7 @@ struct GameApplication
     Vector2 HalfWidthHeight;
     
     double RenderTime;
+    double UpdateWorldTime;
     size_t LastFrameTempMemoryUsage;
     int NumOfLoadedChunks;
     int NumOfChunksUpdated;

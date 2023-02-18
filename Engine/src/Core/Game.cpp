@@ -26,6 +26,8 @@ SAPI bool GameApplication::Start()
 		return false;
 	}
 
+	double initStart = GetTime();
+
 	size_t gameMemorySize = Megabytes(32);
 	size_t tempMemorySize = Megabytes(4);
 	SMemInitialize(this, gameMemorySize, tempMemorySize);
@@ -70,6 +72,8 @@ SAPI bool GameApplication::Start()
 
 	GameStart(Game, this);
 
+	double initEnd = GetTime() - initStart;
+	SLOG_INFO("[ Init ] Initialized Success. Took %f second", initEnd);
 	return IsInitialized;
 }
 
@@ -172,7 +176,7 @@ internal void GameFree(Game* game)
 	UnloadShader(game->Resources.UnlitShader);
 	game->Resources.Atlas.Unload();
 	UnloadRenderTexture(game->WorldTexture);
-	UnloadRenderTexture(game->LightMap.LightMap);
+	LightMapFree(&game->LightMap);
 	WorldFree(&game->World);
 }
 
@@ -250,15 +254,25 @@ SAPI void GameApplication::Run()
 				{
 					UpdatingLight light = {};
 					light.Pos = clickedTilePos.AsVec2();
-					light.Intensity = 0.8f;
+					light.Intensity = 1.0f;
 					//light.Radius = 16.0f;
-
+					
 					light.MinIntensity = 14.0f;
 					light.MaxIntensity = 16.0f;
-					light.Colors[0] = { 0xfb, 0xbe, 0x46, 255 };
-					light.Colors[1] = { 0xc7, 0x46, 0x07, 255 };
-					light.Colors[2] = { 0x6e, 0x15, 0x05, 255 };
-					light.Colors[3] = { 0xf9, 0x92, 0x20, 255 };
+					//light.Colors[0] = { 0xfb, 0xbe, 0x46, 255 };
+					//light.Colors[1] = { 0xc7, 0x46, 0x07, 255 };
+					//light.Colors[2] = { 0x6e, 0x15, 0x05, 255 };
+					//light.Colors[3] = { 0xf9, 0x92, 0x20, 255 };
+					//light.Colors[0] = { 0xab, 0x16, 0x0a, 255 };
+					//light.Colors[1] = { 0x89, 0x12, 0x08, 255 };
+					//light.Colors[2] = { 0xd6, 0x1b, 0x0c, 255 };
+					//light.Colors[3] = { 0xbf, 0x05, 0x00, 255 };
+					Color c = { 186, 125, 45, 255 };
+					light.Colors[0] = c;
+					light.Colors[1] = c;
+					light.Colors[2] = c;
+					light.Colors[3] = c;
+					light.Color = light.Colors[0];
 					LightsAddUpdating(light);
 					
 					//light.Intensity = 0.3f;
@@ -326,6 +340,8 @@ SAPI void GameApplication::Run()
 		// **************************
 		UpdateUI(UIState);
 
+		double updateWorldStart = GetTime();
+
 		// *****************
 		// Update/Draw World
 		// *****************
@@ -341,9 +357,11 @@ SAPI void GameApplication::Run()
 
 		EndMode2D();
 		EndTextureMode();
-		EndShaderMode();
-
+		
 		LightMapUpdate(&Game->LightMap, Game);
+		UpdateWorldTime = GetTime() - updateWorldStart;
+
+		EndShaderMode();
 
 		// ***************
 		// Draws to buffer
@@ -360,18 +378,21 @@ SAPI void GameApplication::Run()
 		float screenH = (float)GetScreenHeight();
 		Rectangle srcRect = { 0.0f, 0.0f, screenW, -screenH };
 		Rectangle dstRect = { ScreenXY.x, ScreenXY.y, screenW, screenH };
-
+		
 		DrawTexturePro(Game->WorldTexture.texture, srcRect,
 			dstRect, {}, 0.0f, WHITE);
-		
-		BeginBlendMode(BLEND_ADDITIVE);
 
-		Rectangle srcRect2 = { 0.0f, 0.0f, (float)(SCREEN_WIDTH_TILES), (float)(-SCREEN_HEIGHT_TILES)};
-		Rectangle dstRect2 = { (float)(Game->LightMap.LightMapOffset.x * TILE_SIZE), (float)(Game->LightMap.LightMapOffset.y * TILE_SIZE), (float)(SCREEN_WIDTH_TILES * TILE_SIZE), (float)(SCREEN_HEIGHT_TILES * TILE_SIZE)};
+		Rectangle dstRect2 = { (float)(Game->LightMap.LightMapOffset.x * TILE_SIZE), (float)(Game->LightMap.LightMapOffset.y * TILE_SIZE), (float)(SCREEN_WIDTH_TILES * TILE_SIZE), (float)(SCREEN_HEIGHT_TILES * TILE_SIZE) };
+		Rectangle srcRect2 = { 0.0f, 0.0f, (float)(SCREEN_WIDTH_TILES), (float)(-SCREEN_HEIGHT_TILES) };
+
+		BeginBlendMode(BLEND_MULTIPLIED);
+
 		DrawTexturePro(Game->LightMap.LightMap.texture, srcRect2,
 			dstRect2, { 0 }, 0.0f, WHITE);
 
 		EndBlendMode();
+
+
 
 		rlPopMatrix();
 
