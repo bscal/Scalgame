@@ -2,14 +2,23 @@
 #include "SUI.h"
 
 #include "Game.h"
-#include "ResourceManager.h"
-#include "SMemory.h"
 #include "Vector2i.h"
+#include "ResourceManager.h"
 #include "CommandMgr.h"
+#include "Lighting.h"
+#include "SMemory.h"
 
+global_var const int CONSOLE_MAX_LENGTH = 128;
 global_var const struct nk_color BG_COLOR = ColorToNuklear({ 17, 17, 17, 155 });
 
 internal void DrawFPS(struct nk_context* ctx);
+internal float
+CalculateTextWidth(nk_handle handle, float height, const char* text, int len);
+internal void
+InitializeNuklear(nk_context* nkCtxToInit, UIState* state, Font* font, float fontSize);
+internal void DrawDebugPanel(UIState* state);
+internal void DrawConsole(UIState* state);
+internal void AppendMemoryUsage(UIState* state);
 
 bool InitializeUI(UIState* state, GameApplication* gameApp)
 {
@@ -32,7 +41,7 @@ void UpdateUI(UIState* state)
 
 	UpdateNuklear(&state->Ctx);
 
-	state->IsMouseHoveringUI = IsMouseHoveringUI(&state->Ctx);
+	state->IsMouseHoveringUI = (nk_window_is_any_hovered(&state->Ctx) != 0);
 
 	if (state->IsDrawingFPS)
 		DrawFPS(&state->Ctx);
@@ -48,18 +57,6 @@ void DrawUI(UIState* state)
 	DrawNuklear(&state->Ctx);
 }
 
-internal void*
-MemAlloc(nk_handle handle, void* old, nk_size size)
-{
-	return SMemAlloc(size);
-}
-
-internal void 
-MemFree(nk_handle handle, void* old)
-{
-	SMemFree(old);
-}
-
 internal float 
 CalculateTextWidth(nk_handle handle, float height, const char* text, int len)
 {
@@ -68,12 +65,6 @@ CalculateTextWidth(nk_handle handle, float height, const char* text, int len)
 	const char* subtext = TextSubtext(text, 0, len);
 	// Spacing is determined by the font size divided by 10.
 	return MeasureTextEx(*(Font*)handle.ptr, subtext, height, height / 10.0f).x;
-}
-
-internal bool 
-IsMouseHoveringUI(nk_context* ctx)
-{
-	return false;// nk_window_is_any_hovered(ctx) != 0;
 }
 
 internal void 
@@ -86,9 +77,6 @@ InitializeNuklear(nk_context* nkCtxToInit, UIState* state, Font* font, float fon
 	nkCtxToInit->clip.copy = nk_raylib_clipboard_copy;
 	nkCtxToInit->clip.paste = nk_raylib_clipboard_paste;
 	nkCtxToInit->clip.userdata = nk_handle_ptr(0);
-
-	state->Allocator.alloc = MemAlloc;
-	state->Allocator.free = MemFree;
 
 	state->UIMemorySize = Megabytes(4);
 	state->UIMemory = SMemAllocTag(state->UIMemorySize, MemoryTag::UI);
@@ -110,9 +98,8 @@ InitializeNuklear(nk_context* nkCtxToInit, UIState* state, Font* font, float fon
 	SLOG_INFO("[ UI ] Initialized Nuklear");
 }
 
-#include "Lighting.h"
-
-internal void DrawDebugPanel(UIState* state)
+internal void 
+DrawDebugPanel(UIState* state)
 {
 	const Player* p = GetClientPlayer();
 
@@ -124,13 +111,13 @@ internal void DrawDebugPanel(UIState* state)
 		nk_layout_row_dynamic(&state->Ctx, 16, 2);
 
 		nk_label(&state->Ctx, "FrameTime:", NK_TEXT_LEFT);
-		nk_label(&state->Ctx, TextFormat("% .2f", GetGameApp()->DeltaTime * 1000), NK_TEXT_LEFT);
+		nk_label(&state->Ctx, TextFormat("% .2f", GetDeltaTime() * 1000.f), NK_TEXT_LEFT);
 
 		nk_label(&state->Ctx, "RenderTime:", NK_TEXT_LEFT);
-		nk_label(&state->Ctx, TextFormat("% .2f", GetGameApp()->RenderTime * 1000), NK_TEXT_LEFT);
+		nk_label(&state->Ctx, TextFormat("% .2f", GetGameApp()->RenderTime * 1000.f), NK_TEXT_LEFT);
 
 		nk_label(&state->Ctx, "WorldUpdateTime:", NK_TEXT_LEFT);
-		nk_label(&state->Ctx, TextFormat("% .2f", GetGameApp()->UpdateWorldTime * 1000), NK_TEXT_LEFT);
+		nk_label(&state->Ctx, TextFormat("% .2f", GetGameApp()->UpdateWorldTime * 1000.f), NK_TEXT_LEFT);
 
 		nk_label(&state->Ctx, "Chunks(Load/Up):", NK_TEXT_LEFT);
 		nk_label(&state->Ctx, TextFormat("%d/%d",
@@ -158,7 +145,8 @@ internal void DrawDebugPanel(UIState* state)
 	nk_end(&state->Ctx);
 }
 
-internal void AppendMemoryUsage(UIState* state)
+internal void 
+AppendMemoryUsage(UIState* state)
 {
 	nk_layout_row_dynamic(&state->Ctx, 16, 1);
 
@@ -202,7 +190,8 @@ internal void AppendMemoryUsage(UIState* state)
 	nk_label(&state->Ctx, TextFormat("NewCalls: %d", GetNewCalls()), NK_TEXT_LEFT);
 }
 
-internal void DrawConsole(UIState* state)
+internal void 
+DrawConsole(UIState* state)
 {
 	local_var int heightAnimValue;
 	local_var float SuggestionPanelSize;
@@ -308,7 +297,8 @@ internal void DrawConsole(UIState* state)
 		heightAnimValue = 0;
 }
 
-internal void DrawFPS(struct nk_context* ctx)
+internal void 
+DrawFPS(struct nk_context* ctx)
 {
 	float w = (float)GetScreenWidth();
 	struct nk_rect bounds = { w - 96.0f, 0.0f, w, 24.0f };

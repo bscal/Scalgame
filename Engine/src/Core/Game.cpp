@@ -7,6 +7,7 @@
 #include "SUI.h"
 #include "SUtil.h"
 #include "SString.h"
+#include "RenderExtensions.h"
 
 #include "Structures/SArray.h"
 #include "Structures/SList.h"
@@ -17,6 +18,14 @@
 #include "rlgl.h"
 
 global_var GameApplication* GameAppPtr;
+
+internal void GameLoadScreen(GameApplication* gameApp, int width, int height);
+internal bool GameInitialize(Game* game, GameApplication* gameApp);
+internal void GameStart(Game* game, GameApplication* gameApp);
+internal void GameFree(Game* game);
+internal void GameUpdate(Game* game, GameApplication* gameApp);
+internal void GameLateUpdate(Game* game);
+internal void GameInputUpdate(Game* game, GameApplication* gameApp);
 
 SAPI bool GameApplication::Start()
 {
@@ -94,8 +103,9 @@ internal void GameLoadScreen(GameApplication* gameApp, int width, int height)
 	game->ViewCamera.offset = gameApp->HalfWidthHeight;
 
 	UnloadRenderTexture(game->WorldTexture);
-
-	game->WorldTexture = LoadRenderTexture(width, height);
+	game->WorldTexture = SLoadRenderTexture(width, height, PIXELFORMAT_UNCOMPRESSED_R32G32B32A32);
+	UnloadRenderTexture(game->ScreenTexture);
+	game->ScreenTexture = SLoadRenderTexture(width, height, PIXELFORMAT_UNCOMPRESSED_R32G32B32A32);
 }
 
 internal bool GameInitialize(Game* game, GameApplication* gameApp)
@@ -170,13 +180,9 @@ internal void GameStart(Game* game, GameApplication* gameApp)
 
 internal void GameFree(Game* game)
 {
-	UnloadFont(game->Resources.FontSilver);
-	UnloadFont(game->Resources.MainFontM);
-	UnloadTexture(game->Resources.EntitySpriteSheet);
-	UnloadShader(game->Resources.UnlitShader);
-	game->Resources.Atlas.Unload();
+	FreeResouces(&game->Resources);
 	UnloadRenderTexture(game->WorldTexture);
-	LightMapFree(&game->LightMap);
+	UnloadRenderTexture(game->ScreenTexture);
 	WorldFree(&game->World);
 }
 
@@ -193,15 +199,16 @@ SAPI void GameApplication::Run()
 
 	while (!WindowShouldClose())
 	{
-		DeltaTime = GetFrameTime();
-
 		if (IsSuspended) continue;
+
+		// ***************
+		// Frame Setup
+		// ***************
+		SMemTempReset();
 
 		// ***************
 		// Update
 		// ***************
-
-		SMemTempReset();
 
 		// Don't want game input when over UI
 		if (!UIState->IsMouseHoveringUI)
@@ -215,16 +222,16 @@ SAPI void GameApplication::Run()
 			{
 				if (IsKeyDown(KEY_L))
 					SetCameraPosition(Game,
-						{ 512.0f * DeltaTime, 0, 0 });
+						{ 512.0f * GetDeltaTime(), 0, 0 });
 				else if (IsKeyDown(KEY_J))
 					SetCameraPosition(Game,
-						{ -512.0f * DeltaTime, 0, 0 });
+						{ -512.0f * GetDeltaTime(), 0, 0 });
 				if (IsKeyDown(KEY_K))
 					SetCameraPosition(Game,
-						{ 0, 512.0f * DeltaTime, 0 });
+						{ 0, 512.0f * GetDeltaTime(), 0 });
 				else if (IsKeyDown(KEY_I))
 					SetCameraPosition(Game,
-						{ 0, -512.0f * DeltaTime, 0 });
+						{ 0, -512.0f * GetDeltaTime(), 0 });
 			}
 
 			// Camera zoom controls
@@ -256,7 +263,7 @@ SAPI void GameApplication::Run()
 					light.Pos = clickedTilePos.AsVec2();
 					light.Intensity = 1.0f;
 					//light.Radius = 16.0f;
-					
+
 					light.MinIntensity = 14.0f;
 					light.MaxIntensity = 16.0f;
 					//light.Colors[0] = { 0xfb, 0xbe, 0x46, 255 };
@@ -267,14 +274,14 @@ SAPI void GameApplication::Run()
 					//light.Colors[1] = { 0x89, 0x12, 0x08, 255 };
 					//light.Colors[2] = { 0xd6, 0x1b, 0x0c, 255 };
 					//light.Colors[3] = { 0xbf, 0x05, 0x00, 255 };
-					Color c = { 186, 125, 45, 255 };
+					Color c = ColorFromNormalized({ 1.0, 0.8, 0.2, 1.0f });
 					light.Colors[0] = c;
 					light.Colors[1] = c;
 					light.Colors[2] = c;
 					light.Colors[3] = c;
 					light.Color = light.Colors[0];
 					LightsAddUpdating(light);
-					
+
 					//light.Intensity = 0.3f;
 					//light.MinIntensity = 6.0f;
 					//light.MaxIntensity = 7.0f;
@@ -305,6 +312,11 @@ SAPI void GameApplication::Run()
 				testAction.Cost = 100;
 				testAction.ActionFunction = TestActionFunc;
 				AddAction(&Game->World, &testAction);
+			}
+
+			if (IsKeyPressed(KEY_TWO))
+			{
+				Game->DebugTest = !Game->DebugTest;
 			}
 
 			if (IsKeyPressed(KEY_F1))
@@ -339,29 +351,46 @@ SAPI void GameApplication::Run()
 		// screen later in frame
 		// **************************
 		UpdateUI(UIState);
-
-		double updateWorldStart = GetTime();
+		// TODO maybe add a non drawing preupdate?
 
 		// *****************
-		// Update/Draw World
+		// Drawing
 		// *****************
+
+		float screenW = (float)GetScreenWidth();
+		float screenH = (float)GetScreenHeight();
+		Rectangle srcRect = { 0.0f, 0.0f, screenW, -screenH };
+		Rectangle dstRect = { ScreenXY.x, ScreenXY.y, screenW, screenH };
+		Rectangle screenRect = { 0.0f, 0.0f, screenW, screenH };
+
+		// Update and draw world
 		BeginShaderMode(Game->Resources.UnlitShader);
-
 		BeginTextureMode(Game->WorldTexture);
 		BeginMode2D(Game->WorldCamera);
 		ClearBackground(BLACK);
+		double updateWorldStart = GetTime();
 
-		// Updates
 		GameUpdate(Game, this);
+
+		LightMapUpdate(&Game->LightMap, Game);
+		
 		GameLateUpdate(Game);
 
+		UpdateWorldTime = GetTime() - updateWorldStart;
 		EndMode2D();
 		EndTextureMode();
-		
-		LightMapUpdate(&Game->LightMap, Game);
-		UpdateWorldTime = GetTime() - updateWorldStart;
-
 		EndShaderMode();
+
+		// Brightness pass
+		BeginShaderMode(Game->Resources.BrightnessShader);
+		BeginTextureMode(Game->ScreenTexture);
+		ClearBackground(BLACK);
+		DrawTexturePro(Game->WorldTexture.texture, srcRect, screenRect, { 0 }, 0.f, WHITE);
+		EndTextureMode();
+		EndShaderMode();
+		
+		// Blur pass
+		Game->Resources.Blur.Draw(Game->ScreenTexture.texture);
 
 		// ***************
 		// Draws to buffer
@@ -370,29 +399,25 @@ SAPI void GameApplication::Run()
 
 		BeginShaderMode(Game->Resources.UnlitShader);
 		BeginMode2D(Game->ViewCamera);
+		ClearBackground(BLACK);
 
 		rlPushMatrix();
 		rlScalef(GetScale(), GetScale(), 1.0f);
 
-		float screenW = (float)GetScreenWidth();
-		float screenH = (float)GetScreenHeight();
-		Rectangle srcRect = { 0.0f, 0.0f, screenW, -screenH };
-		Rectangle dstRect = { ScreenXY.x, ScreenXY.y, screenW, screenH };
-		
-		DrawTexturePro(Game->WorldTexture.texture, srcRect,
-			dstRect, {}, 0.0f, WHITE);
+		DrawTexturePro(Game->WorldTexture.texture, srcRect, dstRect, { 0 }, 0.0f, WHITE);
 
-		Rectangle dstRect2 = { (float)(Game->LightMap.LightMapOffset.x * TILE_SIZE), (float)(Game->LightMap.LightMapOffset.y * TILE_SIZE), (float)(SCREEN_WIDTH_TILES * TILE_SIZE), (float)(SCREEN_HEIGHT_TILES * TILE_SIZE) };
-		Rectangle srcRect2 = { 0.0f, 0.0f, (float)(SCREEN_WIDTH_TILES), (float)(-SCREEN_HEIGHT_TILES) };
+		// Enable brighter bright
+		if (Game->DebugTest)
+		{
+			BeginBlendMode(BLEND_ADDITIVE);
+			DrawTexturePro(Game->ScreenTexture.texture, srcRect, dstRect, { 0 }, 0.0f, WHITE);
+			EndBlendMode();
+		}
 
-		BeginBlendMode(BLEND_MULTIPLIED);
-
-		DrawTexturePro(Game->LightMap.LightMap.texture, srcRect2,
-			dstRect2, { 0 }, 0.0f, WHITE);
-
+		BeginBlendMode(BLEND_ADDITIVE);
+		Rectangle r = { 0.f, 0.f, (float)Game->Resources.Blur.TextureVert.texture.width, -(float)Game->Resources.Blur.TextureVert.texture.height };
+		DrawTexturePro(Game->Resources.Blur.TextureVert.texture, r, dstRect, { 0 }, 0.0f, WHITE);
 		EndBlendMode();
-
-
 
 		rlPopMatrix();
 
@@ -432,7 +457,7 @@ internal void GameUpdate(Game* game, GameApplication* gameApp)
 		SLOG_INFO("[ GAME ] Window Resizing!");
 	}
 
-	
+
 	Vector2i playerPos = GetClientPlayer()->Transform.TilePos;
 	CTileMap::SetVisible(&game->World.ChunkedTileMap, playerPos);
 	for (int i = 0; i < sizeof(Vec2i_NEIGHTBORS); ++i)
@@ -452,24 +477,26 @@ internal void GameLateUpdate(Game* game)
 
 GameApplication* const GetGameApp()
 {
-	assert(GameAppPtr->IsInitialized);
+	SASSERT(GameAppPtr);
+	SASSERT(GameAppPtr->IsInitialized);
 	return GameAppPtr;
 }
 
 Player* const GetClientPlayer()
 {
-	assert(GetGameApp()->Game->EntityMgr.Players.Count > 0);
-	return GetGameApp()->Game->EntityMgr.Players.PeekAt(0);
+	SASSERT(GetGame()->EntityMgr.Players.Count > 0);
+	return GetGame()->EntityMgr.Players.PeekAt(0);
 }
 
 EntityMgr* GetEntityMgr()
 {
-	assert(GetGameApp()->Game->World.IsAllocated);
-	return &GetGameApp()->Game->EntityMgr;
+	SASSERT(GetGame()->World.IsAllocated);
+	return &GetGame()->EntityMgr;
 }
 
 Game* const GetGame()
 {
+	SASSERT(GetGameApp()->Game);
 	return GetGameApp()->Game;
 }
 
@@ -485,7 +512,7 @@ float GetDeltaTime()
 
 float GetScale()
 {
-	assert(GetGameApp()->Scale > 0.0f);
+	SASSERT(GetGameApp()->Scale > 0.0f);
 	return GetGameApp()->Scale;
 }
 

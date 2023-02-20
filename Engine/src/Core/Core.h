@@ -21,7 +21,7 @@ static_assert(sizeof(size_t) == sizeof(uint64_t),
 
 typedef int bool32;
 
-constexpr global_var float TAO = (float)PI * 2.0f;
+global_var constexpr float TAO = (float)PI * 2.0f;
 
 #define SCAL_GAME_TESTS 1
 
@@ -45,13 +45,8 @@ constexpr global_var float TAO = (float)PI * 2.0f;
 #define BitToggle(state, bit) (state ^ 1U << bit)
 #define BitMask(state, mask) ((state & mask) == mask)
 
-inline void
-ReportAssertFailure(const char* expression, const char* msg, const char* file, int line)
-{
-	TraceLog(LOG_ERROR, "Assertion Failure: %s\n"
-		"  Message: % s\n  File : % s, Line : % d\n",
-		expression, msg, file, line);
-}
+void
+ReportAssertFailure(const char* expression, const char* msg, const char* file, int line);
 
 #if SCAL_DEBUG
 
@@ -62,14 +57,12 @@ ReportAssertFailure(const char* expression, const char* msg, const char* file, i
 #endif
 
 #define SLOG_DEBUG(msg, ...) TraceLog(LOG_DEBUG, msg, __VA_ARGS__)
-#define SLOG_WARN(msg, ...) TraceLog(LOG_WARNING, msg, __VA_ARGS__)
 #define SASSERT(expr) if (!(expr)) { ReportAssertFailure(#expr, "", __FILE__, __LINE__); DEBUG_BREAK(); }
 #define SASSERT_MSG(expr, msg) if (!(expr)) { ReportAssertFailure(#expr, msg, __FILE__, __LINE__); DEBUG_BREAK(); }
 
 #else
 
 #define SLOG_DEBUG(msg, ...)
-#define SLOG_WARN(msg, ...)
 #define SASSERT(expr)
 #define SASSERT_MSG(expr, msg)
 #define DEBUG_BREAK(void)
@@ -77,9 +70,10 @@ ReportAssertFailure(const char* expression, const char* msg, const char* file, i
 #endif
 
 #define SLOG_INFO(msg, ...) TraceLog(LOG_INFO, msg, __VA_ARGS__)
+#define SLOG_WARN(msg, ...) TraceLog(LOG_WARNING, msg, __VA_ARGS__)
 #define SLOG_ERR(msg, ...) TraceLog(LOG_ERROR, msg, __VA_ARGS__)
 
-#define SFATAL_CRASH(msg, ...) \
+#define SFATAL(msg, ...) \
 	TraceLog(LOG_ERROR, msg, __VA_ARGS__); \
 	TraceLog(LOG_FATAL, "Fatal error detected, program crashed! File: %s, Line: %s", __FILE__, __LINE__) \
 

@@ -1,13 +1,12 @@
 #pragma once
 
 #include "Core.h"
-#include "ChunkedTileMap.h"
 #include "Structures/SList.h"
 #include "Structures/SSet.h"
 
 struct GameApplication;
 struct Game;
-
+namespace CTileMap { struct ChunkedTileMap; }
 struct Light;
 struct UpdatingLight;
 

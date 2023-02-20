@@ -420,6 +420,6 @@ LightsUpdateTileColor(CTileMap::ChunkedTileMap* tilemap,
 	color.x = ((float)light.Color.r / 255.0f) * attenuation * light.Intensity;
 	color.y = ((float)light.Color.g / 255.0f) * attenuation * light.Intensity;
 	color.z = ((float)light.Color.b / 255.0f) * attenuation * light.Intensity;   
-	color.w = attenuation * light.Intensity;
+	//color.w = ((float)light.Color.a / 255.0f) * attenuation * light.Intensity;
 	LightMapAddColor(&GetGame()->LightMap, tileCoord, color);
 }

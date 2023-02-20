@@ -1,5 +1,13 @@
 #include "Core.h"
 
+void
+ReportAssertFailure(const char* expression, const char* msg, const char* file, int line)
+{
+	TraceLog(LOG_ERROR, "Assertion Failure: %s\n"
+		"  Message: % s\n  File : % s, Line : % d\n",
+		expression, msg, file, line);
+}
+
 MemorySizeData FindMemSize(uint64_t size)
 {
 	const uint64_t gb = 1024 * 1024 * 1024;

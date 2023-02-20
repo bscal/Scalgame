@@ -7,45 +7,43 @@
 
 void LightMapInitialize(LightData* lightData)
 {
-	lightData->LightMap = SLoadRenderTexture(SCREEN_WIDTH_TILES, SCREEN_HEIGHT_TILES, PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
-	lightData->EmissiveMap = SLoadRenderTexture(SCREEN_WIDTH_TILES, SCREEN_HEIGHT_TILES, PIXELFORMAT_UNCOMPRESSED_R32G32B32A32);
-}
-
-void LightMapFree(LightData* lightData)
-{
-	UnloadRenderTexture(lightData->LightMap);
-	UnloadRenderTexture(lightData->EmissiveMap);
+	for (int i = 0; i < TILES_IN_VIEW; ++i)
+	{
+		lightData->LightColors[i] = { 1.0f, 1.0f, 1.0f, 0 };
+	}
 }
 
 void LightMapUpdate(LightData* lightData, Game* game)
 {
 	Vector2i target = GetClientPlayer()->Transform.TilePos;
-	float offsetX = game->WorldCamera.offset.x / TILE_SIZE + 1.0f;
-	float offsetY = game->WorldCamera.offset.y / TILE_SIZE + 1.0f;
+	const float lPadding = 1.0f;
+	float offsetX = game->WorldCamera.offset.x / TILE_SIZE_F - lPadding;
+	float offsetY = game->WorldCamera.offset.y / TILE_SIZE_F - lPadding;
 	lightData->LightMapOffset.x = (target.x - (int)offsetX);
 	lightData->LightMapOffset.y = (target.y - (int)offsetY);
 
-	BeginTextureMode(lightData->LightMap);
-	ClearBackground(ColorFromNormalized({ 0.9, 0.9, 0.9, 1.0 }));
-
-	BeginBlendMode(BLEND_ADDITIVE);
+	BeginBlendMode(BLEND_MULTIPLIED);
 	for (int y = 0; y < SCREEN_HEIGHT_TILES; ++y)
 	{
 		for (int x = 0; x < SCREEN_WIDTH_TILES; ++x)
 		{
 			int index = x + y * SCREEN_WIDTH_TILES;
-			Rectangle rec = { (float)x, (float)y, 1.0f, 1.0f };
 			if (lightData->LightColors[index].Count > 0)
 			{
 				Vector4 color = lightData->LightColors[index].AsVec4();
+				Rectangle rec =
+				{
+					((float)x + (float)lightData->LightMapOffset.x) * TILE_SIZE_F,
+					((float)y + (float)lightData->LightMapOffset.y) * TILE_SIZE_F,
+					TILE_SIZE_F,
+					TILE_SIZE_F
+				};
 				SDrawRectangleProF(rec, { 0 }, 0.0f, color);
-				lightData->LightColors[index] = { 0.0f, 0.0f, 0.0f, 0.0f, 0 };
+				lightData->LightColors[index] = LightInfo{ 1.0f, 1.0f, 1.0f, 0 }; // resets dynamic lights
 			}
 		}
 	}
 	EndBlendMode();
-
-	EndTextureMode();
 }
 
 void LightMapSetColor(LightData* lightData, TileCoord tileCoord, const Vector4& colors)
@@ -74,7 +72,5 @@ void LightMapAddColor(LightData* lightData, TileCoord tileCoord, const Vector4& 
 	lightData->LightColors[index].x += colors.x;
 	lightData->LightColors[index].y += colors.y;
 	lightData->LightColors[index].z += colors.z;
-	lightData->LightColors[index].w += colors.w;
-
 	++lightData->LightColors[index].Count;
 }

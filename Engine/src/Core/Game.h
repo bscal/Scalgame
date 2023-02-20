@@ -1,12 +1,10 @@
 #pragma once
 
 #include "Core.h"
-#include "Tile.h"
-#include "Player.h"
-#include "World.h"
-#include "SpriteAtlas.h"
 #include "ResourceManager.h"
+#include "EntityMgr.h"
 #include "CommandMgr.h"
+#include "World.h"
 #include "SMemory.h"
 #include "SRandom.h"
 #include "LightMap.h"
@@ -20,6 +18,7 @@ struct Game
     
     Resources Resources;
     RenderTexture2D WorldTexture;
+    RenderTexture2D ScreenTexture;
     
     TileMgr TileMgr;
     CommandMgr CommandMgr;
@@ -35,6 +34,7 @@ struct Game
     bool DebugDisableDarkess;
     bool DebugDisableFOV;
     bool DebugTileView;
+    bool DebugTest;
 };
 
 struct GameApplication
@@ -57,7 +57,6 @@ struct GameApplication
     int NumOfLoadedChunks;
     int NumOfChunksUpdated;
 
-    float DeltaTime;
     float Scale;
     
     bool IsGameInputDisabled;
@@ -85,14 +84,3 @@ Rectangle GetScaledScreenRect();
 Vector2 VecToTileCenter(Vector2 vec);
 Vector2 GetZoomedMousePos(const Camera2D& camera);
 Vector2i GetTileFromMouse(Game* game);
-
-internal void GameLoadScreen(GameApplication* gameApp, int width, int height);
-internal bool GameInitialize(Game* game, GameApplication* gameApp);
-internal void GameStart(Game* game, GameApplication* gameApp);
-internal void GameFree(Game* game);
-
-internal void GameUpdate(Game* game, GameApplication* gameApp);
-internal void GameLateUpdate(Game* game);
-
-internal void GameInputUpdate(Game* game, GameApplication* gameApp);
-

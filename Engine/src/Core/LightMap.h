@@ -17,24 +17,20 @@ struct LightInfo
 	float x;
 	float y;
 	float z;
-	float w;
+	//float w;
 	int Count;
 
-	inline void AssignFromVec4(const Vector4& vec) noexcept { x = vec.x; y = vec.y; z = vec.z; w = vec.w; }
-	inline Vector4 AsVec4() const noexcept { return { x, y, z, w }; }
+	inline void AssignFromVec4(const Vector4& vec) noexcept { x = vec.x; y = vec.y; z = vec.z; }
+	inline Vector4 AsVec4() const noexcept { return { x, y, z, 1.0f }; }
 };
 
 struct LightData
 {
 	Vector2i LightMapOffset;
 	LightInfo LightColors[TILES_IN_VIEW];
-	// TODO maybe more to renderer?
-	RenderTexture2D LightMap;
-	RenderTexture2D EmissiveMap;
 };
 
 void LightMapInitialize(LightData* lightData);
-void LightMapFree(LightData* lightData);
 
 void LightMapUpdate(LightData* lightData, Game* game);
 

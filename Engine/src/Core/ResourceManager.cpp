@@ -1,5 +1,7 @@
 #include "ResourceManager.h"
 
+#include "RenderExtensions.h"
+
 #define NUM_OF_FONT_GLYPHS 95
 
 #define ENTITY_SHEET_PATH "assets/textures/SpriteSheet.png"
@@ -24,8 +26,95 @@ bool InitializeResources(Resources* resources)
         "assets/shaders/tile_shader.vert",
         "assets/shaders/tile_shader.frag");
 
+    resources->BrightnessShader = LoadShader(
+        "assets/shaders/tile_shader.vert",
+        "assets/shaders/brightness_filter.frag");
+
+    resources->Blur.Initialize(GetScreenWidth() / 4, GetScreenHeight() / 4);
+
 	SLOG_INFO("[ RESOURCES ] Successfully initialized resources!");
 	return resources->IsAllocated = true;
+}
+
+void FreeResouces(Resources* resources)
+{
+    UnloadFont(resources->FontSilver);
+    UnloadFont(resources->MainFontM);
+    UnloadTexture(resources->EntitySpriteSheet);
+    UnloadShader(resources->UnlitShader);
+    resources->Atlas.Unload();
+    resources->Blur.Free();
+}
+
+void BlurShader::Initialize(int width, int height)
+{
+    BlurShader = LoadShader(
+        "assets/shaders/blur.vert",
+        "assets/shaders/blur.frag");
+
+    TextureHorizontal = SLoadRenderTexture(width, height, PIXELFORMAT_UNCOMPRESSED_R32G32B32A32);
+    TextureVert = SLoadRenderTexture(width, height, PIXELFORMAT_UNCOMPRESSED_R32G32B32A32);
+
+    UniformIsHorizontalLocation = GetShaderLocation(BlurShader, "IsHorizontal");
+
+    int targetWidthLoc = GetShaderLocation(BlurShader, "TargetWidth");
+    SetShaderValue(BlurShader, targetWidthLoc, &width, SHADER_UNIFORM_FLOAT);
+}
+
+void BlurShader::Draw(const Texture2D& worldTexture) const
+{
+    Rectangle srcRect =
+    {
+        0.0f,
+        0.0f,
+        (float)worldTexture.width,
+        -(float)worldTexture.height,
+    };
+
+    Rectangle blurRectSrc =
+    {
+        0.0f,
+        0.0f,
+        (float)TextureHorizontal.texture.width,
+        -(float)TextureHorizontal.texture.height,
+    };
+
+    Rectangle blurRectDest =
+    {
+        0.0f,
+        0.0f,
+        (float)TextureHorizontal.texture.width,
+        (float)TextureHorizontal.texture.height,
+    };
+
+    Vector4 colorWhite = { 1.0f, 1.0f, 1.0f, 1.0f };
+
+    BeginShaderMode(BlurShader);
+
+    int isHorizontalTrue = 1;
+    SetShaderValue(BlurShader, UniformIsHorizontalLocation, &isHorizontalTrue, SHADER_UNIFORM_INT);
+
+    BeginTextureMode(TextureHorizontal);
+    ClearBackground(BLACK);
+    DrawTextureProF(worldTexture, srcRect, blurRectDest, { 0 }, 0.0f, colorWhite);
+    EndTextureMode();
+
+    int isHorizontalFalse = 0;
+    SetShaderValue(BlurShader, UniformIsHorizontalLocation, &isHorizontalFalse, SHADER_UNIFORM_INT);
+
+    BeginTextureMode(TextureVert);
+    ClearBackground(BLACK);
+    DrawTextureProF(TextureHorizontal.texture, blurRectSrc, blurRectDest, { 0 }, 0.0f, colorWhite);
+    EndTextureMode();
+
+    EndShaderMode();
+}
+
+void BlurShader::Free()
+{
+    UnloadRenderTexture(TextureHorizontal);
+    UnloadRenderTexture(TextureVert);
+    UnloadShader(BlurShader);
 }
 
 internal SDFFont LoadSDFFont()

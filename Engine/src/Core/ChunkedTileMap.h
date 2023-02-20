@@ -3,7 +3,6 @@
 #include "Core.h"
 #include "Vector2i.h"
 #include "Tile.h"
-#include "EntityMgr.h"
 
 #include "Structures/SArray.h"
 #include "Structures/SList.h"
@@ -16,6 +15,7 @@ struct Game;
 global_var constexpr int CHUNK_DIMENSIONS = 64;
 global_var constexpr int CHUNK_SIZE = CHUNK_DIMENSIONS * CHUNK_DIMENSIONS;
 global_var constexpr int TILE_SIZE = 16;
+global_var constexpr float TILE_SIZE_F = (float)TILE_SIZE;
 global_var constexpr float HALF_TILE_SIZE = ((float)TILE_SIZE) / 2.0f;
 global_var constexpr Vector2i VIEW_DISTANCE = { 1, 1 };
 
@@ -26,7 +26,7 @@ struct TileMapChunk
 {
 	Rectangle Bounds;
 	ChunkCoord ChunkCoord;
-	SList<EntityId> Entities;
+	SList<uint64_t> Entities;
 	bool IsChunkGenerated;
 	Tile Tiles[CHUNK_SIZE];
 };

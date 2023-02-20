@@ -10,8 +10,6 @@
 
 #include "raymath.h"
 
-#include <cassert>
-
 namespace CTileMap
 {
 
@@ -134,8 +132,8 @@ Draw(ChunkedTileMap* tilemap, Game* game)
 		(GetScreenWidth() / TILE_SIZE) + 2,
 		(GetScreenHeight() / TILE_SIZE) + 2
 	};
-	float offsetX = game->WorldCamera.offset.x / TILE_SIZE + 1.0f;
-	float offsetY = game->WorldCamera.offset.y / TILE_SIZE + 1.0f;
+	float offsetX = game->WorldCamera.offset.x / TILE_SIZE - 1.0f;
+	float offsetY = game->WorldCamera.offset.y / TILE_SIZE - 1.0f;
 	int tileOffsetX = (target.x - (int)offsetX);
 	int tileOffsetY = (target.y - (int)offsetY);
 	for (int y = 0; y < screenDims.y; ++y)
@@ -253,7 +251,7 @@ void UnloadChunk(ChunkedTileMap* tilemap, ChunkCoord coord)
 void GenerateChunk(ChunkedTileMap* tilemap,
 	TileMapChunk* chunk)
 {
-	assert(chunk);
+	SASSERT(chunk);
 	if (chunk->IsChunkGenerated)
 	{
 		SLOG_WARN("Trying to generate an already generated chunk!");
@@ -342,8 +340,8 @@ TileToIndex(ChunkedTileMap* tilemap, TileCoord tilePos)
 void SetTile(ChunkedTileMap* tilemap,
 	const Tile* tile, TileCoord tilePos)
 {
-	assert(tilemap->ChunksList.IsAllocated());
-	assert(IsTileInBounds(tilemap, tilePos));
+	SASSERT(tilemap->ChunksList.IsAllocated());
+	SASSERT(IsTileInBounds(tilemap, tilePos));
 	ChunkCoord chunkCoord = TileToChunkCoord(tilemap, tilePos);
 	TileMapChunk* chunk = GetChunk(tilemap, chunkCoord);
 	if (!chunk)
@@ -353,7 +351,7 @@ void SetTile(ChunkedTileMap* tilemap,
 			tilePos.x, tilePos.y, chunkCoord.x, chunkCoord.y);
 		return;
 	}
-	assert(chunk->IsChunkGenerated);
+	SASSERT(chunk->IsChunkGenerated);
 	uint64_t index = TileToIndex(tilemap, tilePos);
 	chunk->Tiles[index] = *tile;
 	//chunk->Tiles.Set(index, tile);
@@ -361,8 +359,8 @@ void SetTile(ChunkedTileMap* tilemap,
 
 Tile* GetTile(ChunkedTileMap* tilemap, TileCoord tilePos)
 {
-	assert(tilemap->ChunksList.IsAllocated());
-	assert(IsTileInBounds(tilemap, tilePos));
+	SASSERT(tilemap->ChunksList.IsAllocated());
+	SASSERT(IsTileInBounds(tilemap, tilePos));
 	ChunkCoord chunkCoord = TileToChunkCoord(tilemap, tilePos);
 	TileMapChunk* chunk = GetChunk(tilemap, chunkCoord);
 	if (!chunk)
@@ -372,7 +370,7 @@ Tile* GetTile(ChunkedTileMap* tilemap, TileCoord tilePos)
 			tilePos.x, tilePos.y, chunkCoord.x, chunkCoord.y);
 		return nullptr;
 	}
-	assert(chunk->IsChunkGenerated);
+	SASSERT(chunk->IsChunkGenerated);
 	uint64_t index = TileToIndex(tilemap, tilePos);
 	return &chunk->Tiles[index];
 	//return chunk->Tiles.PeekAtPtr(index);
@@ -383,11 +381,11 @@ const Tile& GetTileRef(ChunkedTileMap* tilemap,
 {
 	ChunkCoord chunkCoord = TileToChunkCoord(tilemap, tilePos);
 	TileMapChunk* chunk = GetChunk(tilemap, chunkCoord);
-	assert(chunk);
-	assert(chunk->IsChunkGenerated);
-	// TODO should be always assert if chunk doesnt exist/not generated
+	SASSERT(chunk);
+	SASSERT(chunk->IsChunkGenerated);
+	// TODO should be always SASSERT if chunk doesnt exist/not generated
 	uint64_t index = TileToIndex(tilemap, tilePos);
-	assert(index < tilemap->ChunkTileCount);
+	SASSERT(index < tilemap->ChunkTileCount);
 	return chunk->Tiles[index];
 }
 
@@ -418,7 +416,7 @@ bool BlocksLight(ChunkedTileMap* tilemap, TileCoord coord)
 	if (!IsTileInBounds(tilemap, coord)) return true;
 
 	Tile* tile = GetTile(tilemap, coord);
-	assert(tile);
+	SASSERT(tile);
 	return tile->GetTileData(&GetGameApp()->Game->TileMgr)->Type == TileType::Solid;
 }
 
