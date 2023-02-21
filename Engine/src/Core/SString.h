@@ -3,6 +3,7 @@
 #include "SMemory.h"
 
 #include <stdint.h>
+#include <string.h>
 
 global_var constexpr uint32_t SSTR_SSO_ARRAY_SIZE = 16;
 global_var constexpr uint32_t SSTR_SSO_LENGTH = SSTR_SSO_ARRAY_SIZE - 1;
@@ -46,6 +47,12 @@ struct SString
 	void Assign(const char* cStr);
 	void Assign(const char* cStr, uint32_t length);
 
+	void Append(const char* str);
+	void Append(const char* str, uint32_t length);
+
+	uint32_t FindChar(char c) const;
+	uint32_t Find(const char* cString) const;
+
 	SString& operator=(const SString& other);
 	SString& operator=(const char* cString);
 
@@ -55,6 +62,22 @@ struct SString
 	bool operator!=(const STempString& other) const;
 	inline bool operator==(const char* other) const { return SStrEquals(Data(), other); }
 	inline bool operator!=(const char* other) const { return !SStrEquals(Data(), other); }
+
+	friend SString operator+(const SString& lhs, const SString& rhs)
+	{
+		SString str(lhs);
+		str.Append(rhs.Data(), rhs.Length);
+		return str;
+	}
+
+	friend SString operator+(const SString& lhs, const char* rhs)
+	{
+		SString str(lhs);
+		size_t length = strlen(rhs) - 1;
+		SASSERT(length > 0);
+		str.Append(rhs, length);
+		return str;
+	}
 
 	inline const char* Data() const
 	{
@@ -68,12 +91,6 @@ struct SString
 
 	inline bool Empty() const { return Length == 0; }
 	inline uint32_t End() const { return Length - 1; }
-
-	void Append(const char* str);
-	void Append(const char* str, uint32_t length);
-
-	uint32_t FindChar(char c) const;
-	uint32_t Find(const char* cString) const;
 
 private:
 	// NOTE: Not sure if I want to

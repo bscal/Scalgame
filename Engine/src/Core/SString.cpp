@@ -99,7 +99,8 @@ SString SString::CreateFake(const SStringView* tempStr)
 
 void SString::SetCapacity(uint32_t capacity)
 {
-	if (capacity > Capacity && capacity > SSTR_SSO_LENGTH)
+	if (capacity < Capacity) return;
+	if (capacity > SSTR_SSO_LENGTH)
 	{
 		if (Capacity > SSTR_SSO_LENGTH)
 		{
@@ -206,7 +207,7 @@ void SString::Append(const char* str, uint32_t length)
 		SetCapacity(Length + length);
 	}
 	uint32_t offset = (Length == 0) ? 0 : Length - 1;
-	SMemCopy(Data() + offset, str, length);
+	SMemMove(Data() + offset, str, length);
 	Length = offset + length;
 }
 
