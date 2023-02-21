@@ -21,7 +21,8 @@ global_var GameApplication* GameAppPtr;
 
 internal void GameLoadScreen(GameApplication* gameApp, int width, int height);
 internal bool GameInitialize(Game* game, GameApplication* gameApp);
-internal void GameStart(Game* game, GameApplication* gameApp);
+internal void GameStart(Game* game);
+internal void GameLoad(Game* game, GameApplication* gameApp);
 internal void GameFree(Game* game);
 internal void GameUpdate(Game* game, GameApplication* gameApp);
 internal void GameLateUpdate(Game* game);
@@ -79,7 +80,8 @@ SAPI bool GameApplication::Start()
 
 	IsInitialized = true;
 
-	GameStart(Game, this);
+	GameStart(Game);
+	GameLoad(Game, this);
 
 	double initEnd = GetTime() - initStart;
 	SLOG_INFO("[ Init ] Initialized Success. Took %f second", initEnd);
@@ -104,8 +106,10 @@ internal void GameLoadScreen(GameApplication* gameApp, int width, int height)
 
 	UnloadRenderTexture(game->WorldTexture);
 	game->WorldTexture = SLoadRenderTexture(width, height, PIXELFORMAT_UNCOMPRESSED_R32G32B32A32);
-	UnloadRenderTexture(game->ScreenTexture);
-	game->ScreenTexture = SLoadRenderTexture(width, height, PIXELFORMAT_UNCOMPRESSED_R32G32B32A32);
+	UnloadRenderTexture(game->EffectTextureOne);
+	game->EffectTextureOne = SLoadRenderTexture(width, height, PIXELFORMAT_UNCOMPRESSED_R32G32B32A32);
+	UnloadRenderTexture(game->EffectTextureTwo);
+	game->EffectTextureTwo = SLoadRenderTexture(width, height, PIXELFORMAT_UNCOMPRESSED_R32G32B32A32);
 }
 
 internal bool GameInitialize(Game* game, GameApplication* gameApp)
@@ -120,8 +124,6 @@ internal bool GameInitialize(Game* game, GameApplication* gameApp)
 
 	GameLoadScreen(gameApp, GetScreenWidth(), GetScreenHeight());
 
-	LightMapInitialize(&game->LightMap);
-
 	TileMgrInitialize(&game->TileMgr, &game->Resources.Atlas);
 	EntityMgrInitialize(game);
 
@@ -133,7 +135,13 @@ internal bool GameInitialize(Game* game, GameApplication* gameApp)
 	return true;
 }
 
-internal void GameStart(Game* game, GameApplication* gameApp)
+internal void GameStart(Game* game)
+{
+	game->Renderer.Initialize(&game->Resources, &game->EffectTextureOne.texture);
+	LightMapInitialize(&game->LightMap);
+}
+
+internal void GameLoad(Game* game, GameApplication* gameApp)
 {
 	// TODO world loading / world settings
 	WorldInitialize(&game->World, gameApp);
@@ -182,7 +190,8 @@ internal void GameFree(Game* game)
 {
 	FreeResouces(&game->Resources);
 	UnloadRenderTexture(game->WorldTexture);
-	UnloadRenderTexture(game->ScreenTexture);
+	UnloadRenderTexture(game->EffectTextureOne);
+	UnloadRenderTexture(game->EffectTextureTwo);
 	WorldFree(&game->World);
 }
 
@@ -372,7 +381,7 @@ SAPI void GameApplication::Run()
 
 		GameUpdate(Game, this);
 
-		LightMapUpdate(&Game->LightMap, Game);
+		//LightMapUpdate(&Game->LightMap, Game);
 		
 		GameLateUpdate(Game);
 
@@ -381,43 +390,52 @@ SAPI void GameApplication::Run()
 		EndTextureMode();
 		EndShaderMode();
 
+		BeginShaderMode(Game->Resources.LightingShader);
+		BeginTextureMode(Game->EffectTextureOne);
+		BeginMode2D(Game->WorldCamera);
+		ClearBackground(BLACK);
+		LightMapUpdate(&Game->LightMap, Game);
+		EndMode2D();
+		EndTextureMode();
+		EndShaderMode();
+
 		// Brightness pass
 		BeginShaderMode(Game->Resources.BrightnessShader);
-		BeginTextureMode(Game->ScreenTexture);
+		BeginTextureMode(Game->EffectTextureTwo);
 		ClearBackground(BLACK);
-		DrawTexturePro(Game->WorldTexture.texture, srcRect, screenRect, { 0 }, 0.f, WHITE);
+		DrawTexturePro(Game->EffectTextureOne.texture, srcRect, screenRect, { 0 }, 0.f, WHITE);
 		EndTextureMode();
 		EndShaderMode();
 		
 		// Blur pass
-		Game->Resources.Blur.Draw(Game->ScreenTexture.texture);
+		Game->Resources.Blur.Draw(Game->EffectTextureTwo.texture);
 
 		// ***************
 		// Draws to buffer
 		// ***************
 		BeginDrawing();
 
-		BeginShaderMode(Game->Resources.UnlitShader);
+		BeginShaderMode(Game->Resources.LitShader);
 		BeginMode2D(Game->ViewCamera);
-		ClearBackground(BLACK);
 
 		rlPushMatrix();
 		rlScalef(GetScale(), GetScale(), 1.0f);
 
+		SetShaderValueTexture(Game->Resources.LitShader, Game->Renderer.UniformLightMapLoc, Game->EffectTextureOne.texture);
 		DrawTexturePro(Game->WorldTexture.texture, srcRect, dstRect, { 0 }, 0.0f, WHITE);
-
+		
 		// Enable brighter bright
 		if (Game->DebugTest)
 		{
 			BeginBlendMode(BLEND_ADDITIVE);
-			DrawTexturePro(Game->ScreenTexture.texture, srcRect, dstRect, { 0 }, 0.0f, WHITE);
+			DrawTexturePro(Game->EffectTextureTwo.texture, srcRect, dstRect, { 0 }, 0.0f, WHITE);
 			EndBlendMode();
 		}
 
-		BeginBlendMode(BLEND_ADDITIVE);
-		Rectangle r = { 0.f, 0.f, (float)Game->Resources.Blur.TextureVert.texture.width, -(float)Game->Resources.Blur.TextureVert.texture.height };
-		DrawTexturePro(Game->Resources.Blur.TextureVert.texture, r, dstRect, { 0 }, 0.0f, WHITE);
-		EndBlendMode();
+		//BeginBlendMode(BLEND_ADDITIVE);
+		//Rectangle r = { 0.f, 0.f, (float)Game->Resources.Blur.TextureVert.texture.width, -(float)Game->Resources.Blur.TextureVert.texture.height };
+		//DrawTexturePro(Game->Resources.Blur.TextureVert.texture, r, dstRect, { 0 }, 0.0f, WHITE);
+		//EndBlendMode();
 
 		rlPopMatrix();
 

@@ -3,6 +3,8 @@
 #include "Core.h"
 #include "SpriteAtlas.h"
 
+struct Resources;
+
 struct SDFFont
 {
 	Font Font;
@@ -21,6 +23,20 @@ struct BlurShader
 	void Free();
 };
 
+struct Renderer
+{
+	int UniformAmbientLightLoc;
+	int UniformLightIntensityLoc;
+	int UniformSunLightColorLoc;
+	int UniformLightMapLoc;
+
+	Vector4 AmbientLight;
+	Vector4 SunLight;
+	float LightIntensity;
+
+	void Initialize(Resources* gameApp, Texture2D* lightMapTexture);
+};
+
 struct Resources
 {
 	Texture2D EntitySpriteSheet;
@@ -31,6 +47,8 @@ struct Resources
 	Font MainFontS;
 	Font FontSilver;
 	Shader UnlitShader;
+	Shader LitShader;
+	Shader LightingShader;
 	Shader BrightnessShader;
 	bool IsAllocated;
 };

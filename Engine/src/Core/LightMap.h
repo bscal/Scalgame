@@ -17,11 +17,11 @@ struct LightInfo
 	float x;
 	float y;
 	float z;
-	//float w;
+	float w;
 	int Count;
 
-	inline void AssignFromVec4(const Vector4& vec) noexcept { x = vec.x; y = vec.y; z = vec.z; }
-	inline Vector4 AsVec4() const noexcept { return { x, y, z, 1.0f }; }
+	inline void AssignFromVec4(const Vector4& vec) noexcept { x = vec.x; y = vec.y; z = vec.z; w = vec.w; }
+	inline Vector4 AsVec4() const noexcept { return { x, y, z, w }; }
 };
 
 struct LightData

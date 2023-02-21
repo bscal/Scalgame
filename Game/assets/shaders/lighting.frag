@@ -1,23 +1,15 @@
-#version 460
+#version 460 core
 
-in vec2 FragTexCoord;
-in vec4 FragColor;
+in vec4 fragColor;
 
-uniform sampler2D texture0;
+uniform float lightIntensity = 1.0;
+uniform vec4 sunLightColor = vec4(0.0);
 
-uniform float BrightPassThreshold = 0.8;
-
-out vec4 FinalColor;
+out vec4 finalColor;
 
 void main()
 {
-	vec3 luminanceVector = vec3(0.2125, 0.7154, 0.0721);
-    vec4 c = texture2D(texture0, FragTexCoord.st) * FragColor;
-
-    float luminance = dot(luminanceVector, c.xyz);
-    luminance = max(0.0, luminance - BrightPassThreshold);
-    c.xyz *= sign(luminance);
-    c.a = 1.0;
-
-    FinalColor = c;
+	// TODO maybe use light alpha to add sunlight, //indoor, outdoor,
+	vec4 color = (fragColor * lightIntensity) + sunLightColor;
+	finalColor = color;
 }

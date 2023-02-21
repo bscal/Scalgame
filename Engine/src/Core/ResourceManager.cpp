@@ -1,6 +1,7 @@
 #include "ResourceManager.h"
 
 #include "RenderExtensions.h"
+#include "SString.h"
 
 #define NUM_OF_FONT_GLYPHS 95
 
@@ -9,6 +10,9 @@
 
 #define FONT_PATH "assets/textures/fonts/Pixuf.ttf"
 #define SDF_FONT_PATH "assets/textures/fonts/UbuntuMono/UbuntuMono-Regular.ttf"
+
+global_var const SString ASSET_PATH = "assets/";
+global_var const SString SHADERS_PATH = ASSET_PATH + "shaders/";
 
 internal SDFFont LoadSDFFont();
 
@@ -26,6 +30,14 @@ bool InitializeResources(Resources* resources)
         "assets/shaders/tile_shader.vert",
         "assets/shaders/tile_shader.frag");
 
+    resources->LitShader = LoadShader(
+        "assets/shaders/tile_lit.vert",
+        "assets/shaders/tile_lit.frag");
+
+    resources->LightingShader = LoadShader(
+        "assets/shaders/lighting.vert",
+        "assets/shaders/lighting.frag");
+
     resources->BrightnessShader = LoadShader(
         "assets/shaders/tile_shader.vert",
         "assets/shaders/brightness_filter.frag");
@@ -42,6 +54,9 @@ void FreeResouces(Resources* resources)
     UnloadFont(resources->MainFontM);
     UnloadTexture(resources->EntitySpriteSheet);
     UnloadShader(resources->UnlitShader);
+    UnloadShader(resources->LitShader);
+    UnloadShader(resources->LightingShader);
+    UnloadShader(resources->BrightnessShader);
     resources->Atlas.Unload();
     resources->Blur.Free();
 }
@@ -115,6 +130,25 @@ void BlurShader::Free()
     UnloadRenderTexture(TextureHorizontal);
     UnloadRenderTexture(TextureVert);
     UnloadShader(BlurShader);
+}
+
+void Renderer::Initialize(Resources* resources, Texture2D* lightMapTexture)
+{
+    SASSERT(resources->LitShader.id > 0);
+    SASSERT(resources->LightingShader.id > 0);
+    SASSERT(lightMapTexture->id > 0);
+
+    UniformAmbientLightLoc = GetShaderLocation(resources->LitShader, "ambientLightColor");
+    UniformLightMapLoc = GetShaderLocation(resources->LitShader, "texture1");
+    UniformLightIntensityLoc = GetShaderLocation(resources->LightingShader, "lightIntensity");
+    UniformSunLightColorLoc = GetShaderLocation(resources->LightingShader, "sunLightColor");
+
+    AmbientLight = { 0.1f, 0.1f, 0.2f, 1.0f } ;
+    SunLight = { 0.0f, 0.0f, 0.0f, 0.0f };
+    LightIntensity = 1.0f;
+
+    SetShaderValue(resources->LitShader, UniformAmbientLightLoc, &AmbientLight, SHADER_UNIFORM_VEC4);
+    SetShaderValue(resources->LightingShader, UniformLightIntensityLoc, &LightIntensity, SHADER_UNIFORM_FLOAT);
 }
 
 internal SDFFont LoadSDFFont()

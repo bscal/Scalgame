@@ -5,11 +5,13 @@
 #include "ChunkedTileMap.h"
 #include "RenderExtensions.h"
 
+#define LIGHTINFO_DEFAULT LightInfo{  0.0f, 0.0f, 0.0f, 0.0f, 0 }
+
 void LightMapInitialize(LightData* lightData)
 {
 	for (int i = 0; i < TILES_IN_VIEW; ++i)
 	{
-		lightData->LightColors[i] = { 1.0f, 1.0f, 1.0f, 0 };
+		lightData->LightColors[i] = LIGHTINFO_DEFAULT;
 	}
 }
 
@@ -22,7 +24,7 @@ void LightMapUpdate(LightData* lightData, Game* game)
 	lightData->LightMapOffset.x = (target.x - (int)offsetX);
 	lightData->LightMapOffset.y = (target.y - (int)offsetY);
 
-	BeginBlendMode(BLEND_MULTIPLIED);
+	BeginBlendMode(BLEND_ADDITIVE);
 	for (int y = 0; y < SCREEN_HEIGHT_TILES; ++y)
 	{
 		for (int x = 0; x < SCREEN_WIDTH_TILES; ++x)
@@ -39,7 +41,7 @@ void LightMapUpdate(LightData* lightData, Game* game)
 					TILE_SIZE_F
 				};
 				SDrawRectangleProF(rec, { 0 }, 0.0f, color);
-				lightData->LightColors[index] = LightInfo{ 1.0f, 1.0f, 1.0f, 0 }; // resets dynamic lights
+				lightData->LightColors[index] = LIGHTINFO_DEFAULT; // resets dynamic lights
 			}
 		}
 	}
@@ -72,5 +74,6 @@ void LightMapAddColor(LightData* lightData, TileCoord tileCoord, const Vector4& 
 	lightData->LightColors[index].x += colors.x;
 	lightData->LightColors[index].y += colors.y;
 	lightData->LightColors[index].z += colors.z;
+	lightData->LightColors[index].w += colors.w;
 	++lightData->LightColors[index].Count;
 }

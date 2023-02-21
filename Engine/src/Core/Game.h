@@ -17,8 +17,11 @@ struct Game
     Camera2D ViewCamera;  // Camera for viewport and scaled
     
     Resources Resources;
+    Renderer Renderer;
+
     RenderTexture2D WorldTexture;
-    RenderTexture2D ScreenTexture;
+    RenderTexture2D EffectTextureOne;
+    RenderTexture2D EffectTextureTwo;
     
     TileMgr TileMgr;
     CommandMgr CommandMgr;
