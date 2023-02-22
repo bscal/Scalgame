@@ -2,12 +2,11 @@
 
 #include "Creature.h"
 #include "ResourceManager.h"
-#include "SpriteAtlas.h"
 #include "Lighting.h"
+#include "SpriteAtlas.h"
 #include "SUI.h"
 #include "SUtil.h"
 #include "SString.h"
-#include "RenderExtensions.h"
 
 #include "Structures/SArray.h"
 #include "Structures/SList.h"
@@ -21,9 +20,8 @@ global_var GameApplication* GameAppPtr;
 
 internal void GameLoadScreen(GameApplication* gameApp, int width, int height);
 internal bool GameInitialize(Game* game, GameApplication* gameApp);
-internal void GameStart(Game* game);
 internal void GameLoad(Game* game, GameApplication* gameApp);
-internal void GameFree(Game* game);
+internal void GameUnload(Game* game);
 internal void GameUpdate(Game* game, GameApplication* gameApp);
 internal void GameLateUpdate(Game* game);
 internal void GameInputUpdate(Game* game, GameApplication* gameApp);
@@ -80,7 +78,6 @@ SAPI bool GameApplication::Start()
 
 	IsInitialized = true;
 
-	GameStart(Game);
 	GameLoad(Game, this);
 
 	double initEnd = GetTime() - initStart;
@@ -91,7 +88,8 @@ SAPI bool GameApplication::Start()
 SAPI void GameApplication::Shutdown()
 {
 	GameAppPtr = nullptr;
-	GameFree(Game);
+	FreeResouces(&Game->Resources);
+	Game->Renderer.Free();
 	CloseWindow();
 }
 
@@ -103,13 +101,6 @@ internal void GameLoadScreen(GameApplication* gameApp, int width, int height)
 	gameApp->HalfWidthHeight.y = (float)height / 2.0f;
 	game->WorldCamera.offset = gameApp->HalfWidthHeight;
 	game->ViewCamera.offset = gameApp->HalfWidthHeight;
-
-	UnloadRenderTexture(game->WorldTexture);
-	game->WorldTexture = SLoadRenderTexture(width, height, PIXELFORMAT_UNCOMPRESSED_R32G32B32A32);
-	UnloadRenderTexture(game->EffectTextureOne);
-	game->EffectTextureOne = SLoadRenderTexture(width, height, PIXELFORMAT_UNCOMPRESSED_R32G32B32A32);
-	UnloadRenderTexture(game->EffectTextureTwo);
-	game->EffectTextureTwo = SLoadRenderTexture(width, height, PIXELFORMAT_UNCOMPRESSED_R32G32B32A32);
 }
 
 internal bool GameInitialize(Game* game, GameApplication* gameApp)
@@ -119,11 +110,14 @@ internal bool GameInitialize(Game* game, GameApplication* gameApp)
 	// but seems to work.
 	CALL_CONSTRUCTOR(game) Game();
 
+	game->Renderer.Initialize();
+
 	bool didResInit = InitializeResources(&game->Resources);
 	SASSERT(didResInit);
 
 	GameLoadScreen(gameApp, GetScreenWidth(), GetScreenHeight());
 
+	LightMapInitialize(&game->LightMap);
 	TileMgrInitialize(&game->TileMgr, &game->Resources.Atlas);
 	EntityMgrInitialize(game);
 
@@ -133,12 +127,6 @@ internal bool GameInitialize(Game* game, GameApplication* gameApp)
 
 	SLOG_INFO("[ GAME ] Successfully initialized game!");
 	return true;
-}
-
-internal void GameStart(Game* game)
-{
-	game->Renderer.Initialize(&game->Resources, &game->EffectTextureOne.texture);
-	LightMapInitialize(&game->LightMap);
 }
 
 internal void GameLoad(Game* game, GameApplication* gameApp)
@@ -186,12 +174,8 @@ internal void GameLoad(Game* game, GameApplication* gameApp)
 	WorldLoad(&game->World, game);
 }
 
-internal void GameFree(Game* game)
+internal void GameUnload(Game* game)
 {
-	FreeResouces(&game->Resources);
-	UnloadRenderTexture(game->WorldTexture);
-	UnloadRenderTexture(game->EffectTextureOne);
-	UnloadRenderTexture(game->EffectTextureTwo);
 	WorldFree(&game->World);
 }
 
@@ -271,7 +255,7 @@ SAPI void GameApplication::Run()
 					UpdatingLight light = {};
 					light.Pos = clickedTilePos.AsVec2();
 					light.Intensity = 1.0f;
-					//light.Radius = 16.0f;
+					light.Radius = 16.0f;
 
 					light.MinIntensity = 14.0f;
 					light.MaxIntensity = 16.0f;
@@ -279,39 +263,17 @@ SAPI void GameApplication::Run()
 					//light.Colors[1] = { 0xc7, 0x46, 0x07, 255 };
 					//light.Colors[2] = { 0x6e, 0x15, 0x05, 255 };
 					//light.Colors[3] = { 0xf9, 0x92, 0x20, 255 };
-					//light.Colors[0] = { 0xab, 0x16, 0x0a, 255 };
-					//light.Colors[1] = { 0x89, 0x12, 0x08, 255 };
-					//light.Colors[2] = { 0xd6, 0x1b, 0x0c, 255 };
-					//light.Colors[3] = { 0xbf, 0x05, 0x00, 255 };
+					light.Colors[0] = { 0xab, 0x16, 0x0a, 255 };
+					light.Colors[1] = { 0x89, 0x12, 0x08, 255 };
+					light.Colors[2] = { 0xd6, 0x1b, 0x0c, 255 };
+					light.Colors[3] = { 0xbf, 0x05, 0x00, 255 };
 					Color c = ColorFromNormalized({ 1.0, 0.8, 0.2, 1.0f });
-					light.Colors[0] = c;
+					/*light.Colors[0] = c;
 					light.Colors[1] = c;
 					light.Colors[2] = c;
-					light.Colors[3] = c;
+					light.Colors[3] = c;*/
 					light.Color = light.Colors[0];
 					LightsAddUpdating(light);
-
-					//light.Intensity = 0.3f;
-					//light.MinIntensity = 6.0f;
-					//light.MaxIntensity = 7.0f;
-					//LightsAddUpdating(light);
-
-					//local_var int next = 0;
-					//Color c;
-					//++next;
-					//if (next == 1)
-					//	c = RED;
-					//else if (next == 2)
-					//	c = GREEN;
-					//else if (next == 3)
-					//	c = BLUE;
-					//else
-					//{
-					//	c = WHITE;
-					//	next = 0;
-					//}
-					//light.Color = c;
-					//LightsAdd(light);
 				}
 			}
 
@@ -373,16 +335,13 @@ SAPI void GameApplication::Run()
 		Rectangle screenRect = { 0.0f, 0.0f, screenW, screenH };
 
 		// Update and draw world
-		BeginShaderMode(Game->Resources.UnlitShader);
-		BeginTextureMode(Game->WorldTexture);
+		BeginShaderMode(Game->Renderer.UnlitShader);
+		BeginTextureMode(Game->Renderer.WorldTexture);
 		BeginMode2D(Game->WorldCamera);
 		ClearBackground(BLACK);
 		double updateWorldStart = GetTime();
 
 		GameUpdate(Game, this);
-
-		//LightMapUpdate(&Game->LightMap, Game);
-		
 		GameLateUpdate(Game);
 
 		UpdateWorldTime = GetTime() - updateWorldStart;
@@ -390,8 +349,8 @@ SAPI void GameApplication::Run()
 		EndTextureMode();
 		EndShaderMode();
 
-		BeginShaderMode(Game->Resources.LightingShader);
-		BeginTextureMode(Game->EffectTextureOne);
+		BeginShaderMode(Game->Renderer.LightingShader);
+		BeginTextureMode(Game->Renderer.EffectTextureOne);
 		BeginMode2D(Game->WorldCamera);
 		ClearBackground(BLACK);
 		LightMapUpdate(&Game->LightMap, Game);
@@ -400,35 +359,35 @@ SAPI void GameApplication::Run()
 		EndShaderMode();
 
 		// Brightness pass
-		BeginShaderMode(Game->Resources.BrightnessShader);
-		BeginTextureMode(Game->EffectTextureTwo);
+		BeginShaderMode(Game->Renderer.BrightnessShader);
+		BeginTextureMode(Game->Renderer.EffectTextureTwo);
 		ClearBackground(BLACK);
-		DrawTexturePro(Game->EffectTextureOne.texture, srcRect, screenRect, { 0 }, 0.f, WHITE);
+		DrawTexturePro(Game->Renderer.EffectTextureOne.texture, srcRect, screenRect, { 0 }, 0.f, WHITE);
 		EndTextureMode();
 		EndShaderMode();
 		
 		// Blur pass
-		Game->Resources.Blur.Draw(Game->EffectTextureTwo.texture);
+		Game->Renderer.BlurShader.Draw(Game->Renderer.EffectTextureTwo.texture);
 
 		// ***************
 		// Draws to buffer
 		// ***************
 		BeginDrawing();
 
-		BeginShaderMode(Game->Resources.LitShader);
+		BeginShaderMode(Game->Renderer.LitShader);
 		BeginMode2D(Game->ViewCamera);
 
 		rlPushMatrix();
 		rlScalef(GetScale(), GetScale(), 1.0f);
 
-		SetShaderValueTexture(Game->Resources.LitShader, Game->Renderer.UniformLightMapLoc, Game->EffectTextureOne.texture);
-		DrawTexturePro(Game->WorldTexture.texture, srcRect, dstRect, { 0 }, 0.0f, WHITE);
+		SetShaderValueTexture(Game->Renderer.LitShader, Game->Renderer.UniformLightMapLoc, Game->Renderer.EffectTextureOne.texture);
+		DrawTexturePro(Game->Renderer.WorldTexture.texture, srcRect, dstRect, { 0 }, 0.0f, WHITE);
 		
 		// Enable brighter bright
 		if (Game->DebugTest)
 		{
 			BeginBlendMode(BLEND_ADDITIVE);
-			DrawTexturePro(Game->EffectTextureTwo.texture, srcRect, dstRect, { 0 }, 0.0f, WHITE);
+			DrawTexturePro(Game->Renderer.EffectTextureTwo.texture, srcRect, dstRect, { 0 }, 0.0f, WHITE);
 			EndBlendMode();
 		}
 

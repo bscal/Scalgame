@@ -4,7 +4,7 @@
 #include "SRandom.h"
 #include "SUtil.h"
 #include "Vector2i.h"
-#include "RenderExtensions.h"
+#include "Renderer.h"
 
 #include "Structures/SLinkedList.h"
 

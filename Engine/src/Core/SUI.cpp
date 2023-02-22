@@ -12,10 +12,11 @@ global_var const int CONSOLE_MAX_LENGTH = 128;
 global_var const struct nk_color BG_COLOR = ColorToNuklear({ 17, 17, 17, 155 });
 
 internal void DrawFPS(struct nk_context* ctx);
-internal float
-CalculateTextWidth(nk_handle handle, float height, const char* text, int len);
-internal void
-InitializeNuklear(nk_context* nkCtxToInit, UIState* state, Font* font, float fontSize);
+internal struct nk_colorf Vec4ToColorf(Vector4 color);
+internal Vector4 ColorFToVec4(struct nk_colorf color);
+internal bool ColorFEqual(const struct nk_colorf& v0, const struct nk_colorf& v1);
+internal float CalculateTextWidth(nk_handle handle, float height, const char* text, int len);
+internal void InitializeNuklear(nk_context* nkCtxToInit, UIState* state, Font* font, float fontSize);
 internal void DrawDebugPanel(UIState* state);
 internal void DrawConsole(UIState* state);
 internal void AppendMemoryUsage(UIState* state);
@@ -55,6 +56,23 @@ void UpdateUI(UIState* state)
 void DrawUI(UIState* state)
 {
 	DrawNuklear(&state->Ctx);
+}
+
+internal nk_colorf 
+Vec4ToColorF(const Vector4 color)
+{
+	return { color.x, color.y, color.z, color.w };
+}
+
+internal Vector4 
+ColorFToVec4(struct nk_colorf color)
+{
+	return { color.r, color.g, color.b, color.a };
+}
+
+internal bool ColorFEqual(const struct nk_colorf& v0, const struct nk_colorf& v1)
+{
+	return (v0.r == v1.r && v0.g == v1.g && v0.b == v1.b && v0.a == v1.a);
 }
 
 internal float 
@@ -101,46 +119,70 @@ InitializeNuklear(nk_context* nkCtxToInit, UIState* state, Font* font, float fon
 internal void 
 DrawDebugPanel(UIState* state)
 {
+	struct nk_context* ctx = &state->Ctx;
 	const Player* p = GetClientPlayer();
-
-	state->Ctx.style.window.fixed_background.data.color = BG_COLOR;
-
-	if (nk_begin(&state->Ctx, "Debug", { 5, 5, 380, 420 },
+	
+	ctx->style.window.fixed_background.data.color = BG_COLOR;
+	
+	if (nk_begin(ctx, "Debug", { 4, 4, 450, (float)GetScreenHeight()},
 		NK_WINDOW_NO_SCROLLBAR))
 	{
-		nk_layout_row_dynamic(&state->Ctx, 16, 2);
+		nk_layout_row_dynamic(ctx, 16, 2);
 
-		nk_label(&state->Ctx, "FrameTime:", NK_TEXT_LEFT);
-		nk_label(&state->Ctx, TextFormat("% .2f", GetDeltaTime() * 1000.f), NK_TEXT_LEFT);
+		nk_label(ctx, "FrameTime:", NK_TEXT_LEFT);
+		nk_label(ctx, TextFormat("% .2f", GetDeltaTime() * 1000.f), NK_TEXT_LEFT);
 
-		nk_label(&state->Ctx, "RenderTime:", NK_TEXT_LEFT);
-		nk_label(&state->Ctx, TextFormat("% .2f", GetGameApp()->RenderTime * 1000.f), NK_TEXT_LEFT);
+		nk_label(ctx, "RenderTime:", NK_TEXT_LEFT);
+		nk_label(ctx, TextFormat("% .2f", GetGameApp()->RenderTime * 1000.f), NK_TEXT_LEFT);
 
-		nk_label(&state->Ctx, "WorldUpdateTime:", NK_TEXT_LEFT);
-		nk_label(&state->Ctx, TextFormat("% .2f", GetGameApp()->UpdateWorldTime * 1000.f), NK_TEXT_LEFT);
+		nk_label(ctx, "WorldUpdateTime:", NK_TEXT_LEFT);
+		nk_label(ctx, TextFormat("% .2f", GetGameApp()->UpdateWorldTime * 1000.f), NK_TEXT_LEFT);
 
-		nk_label(&state->Ctx, "Chunks(Load/Up):", NK_TEXT_LEFT);
-		nk_label(&state->Ctx, TextFormat("%d/%d",
+		nk_label(ctx, "Chunks(Load/Up):", NK_TEXT_LEFT);
+		nk_label(ctx, TextFormat("%d/%d",
 			GetGameApp()->NumOfLoadedChunks, GetGameApp()->NumOfChunksUpdated), NK_TEXT_LEFT);
 
-		nk_layout_row_dynamic(&state->Ctx, 16, 1);
+		nk_layout_row_dynamic(ctx, 16, 1);
 		const char* lightStr = TextFormat("Lights: %d", GetNumOfLights());
-		nk_label(&state->Ctx, lightStr, NK_TEXT_LEFT);
+		nk_label(ctx, lightStr, NK_TEXT_LEFT);
 
-		nk_layout_row_dynamic(&state->Ctx, 16, 2);
+		nk_layout_row_dynamic(ctx, 16, 2);
 
 		const char* xy = TextFormat("X: %.1f, Y: %.1f",
 			p->Transform.Pos.x, p->Transform.Pos.y);
-		nk_label(&state->Ctx, xy, NK_TEXT_LEFT);
+		nk_label(ctx, xy, NK_TEXT_LEFT);
 
 		const char* tileXY = TextFormat("TX: %d, TY: %d",
 			p->Transform.TilePos.x, p->Transform.TilePos.y);
-		nk_label(&state->Ctx, tileXY, NK_TEXT_LEFT);
+		nk_label(ctx, tileXY, NK_TEXT_LEFT);
 
-		nk_label(&state->Ctx, "Zoom: ", NK_TEXT_LEFT);
-		nk_label(&state->Ctx, TextFormat("%.3f", GetGameApp()->Scale), NK_TEXT_LEFT);
+		nk_label(ctx, "Zoom: ", NK_TEXT_LEFT);
+		nk_label(ctx, TextFormat("%.3f", GetGameApp()->Scale), NK_TEXT_LEFT);
 
 		AppendMemoryUsage(state);
+
+		// Lighting
+		nk_label(ctx, "--- Lighting ---", NK_TEXT_LEFT);
+		{
+			nk_layout_row_begin(ctx, NK_DYNAMIC, 16, 2);
+			{
+				nk_layout_row_push(ctx, .25f);
+				float val = GetGame()->Renderer.LightIntensity;
+				nk_label(ctx, TextFormat("%.2f", val), NK_TEXT_LEFT);
+				nk_layout_row_push(ctx, .75f);
+				if (nk_slider_float(ctx, 0.0f, &val, 1.0f, 0.02f))
+					GetGame()->Renderer.SetValueAndUniformLightIntensity(val);
+			}
+			nk_layout_row_end(ctx);
+
+			nk_layout_row_dynamic(ctx, 150, 1);
+			struct nk_colorf color = Vec4ToColorF(GetGame()->Renderer.AmbientLight);
+			struct nk_colorf newColor = nk_color_picker(ctx, color, NK_RGBA);
+			if (!ColorFEqual(color, newColor))
+				GetGame()->Renderer.SetValueAndUniformAmbientLight(ColorFToVec4(newColor));
+		}
+
+		
 	}
 	nk_end(&state->Ctx);
 }
@@ -166,7 +208,7 @@ AppendMemoryUsage(UIState* state)
 	MemorySizeData memSizeAlloc = FindMemSize(uiMem.allocated);
 	MemorySizeData memSizeNeed = FindMemSize(uiMem.needed);
 	MemorySizeData memSizeSize = FindMemSize(uiMem.size);
-	const char* str = TextFormat("A%.2f%cbs/N%.2f%cbs/S%.2f%cbs",
+	const char* str = TextFormat("Alloc:%.2f%cbs/Need:%.2f%cbs/Sise:%.2f%cbs",
 		memSizeAlloc.Size, memSizeAlloc.BytePrefix,
 		memSizeNeed.Size, memSizeNeed.BytePrefix,
 		memSizeSize.Size, memSizeSize.BytePrefix);

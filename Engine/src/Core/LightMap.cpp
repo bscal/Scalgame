@@ -3,7 +3,7 @@
 #include "Game.h"
 #include "Lighting.h"
 #include "ChunkedTileMap.h"
-#include "RenderExtensions.h"
+#include "Renderer.h"
 
 #define LIGHTINFO_DEFAULT LightInfo{  0.0f, 0.0f, 0.0f, 0.0f, 0 }
 

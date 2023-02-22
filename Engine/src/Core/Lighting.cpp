@@ -410,11 +410,9 @@ LightsUpdateTileColor(CTileMap::ChunkedTileMap* tilemap,
 	if (!IsTileValid(tileCoord)) return;
 	// https://www.desmos.com/calculator/nmnaud1hrw
 
-	float dist = distance / light.Radius;
 	const float a = 0.0f;
 	const float b = .1f;
 	float attenuation = 1.0f / (1.0f + a * distance + b * distance * distance);
-	//float ambient = 1.0;
 
 	Vector4 color;
 	color.x = ((float)light.Color.r / 255.0f) * attenuation * light.Intensity;

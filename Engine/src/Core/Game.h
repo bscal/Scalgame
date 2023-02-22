@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core.h"
+#include "Renderer.h"
 #include "ResourceManager.h"
 #include "EntityMgr.h"
 #include "CommandMgr.h"
@@ -18,10 +19,6 @@ struct Game
     
     Resources Resources;
     Renderer Renderer;
-
-    RenderTexture2D WorldTexture;
-    RenderTexture2D EffectTextureOne;
-    RenderTexture2D EffectTextureTwo;
     
     TileMgr TileMgr;
     CommandMgr CommandMgr;
@@ -30,10 +27,13 @@ struct Game
     
     World World;
     
+    uint64_t Time;
+    uint64_t CurrentDayProgress;
+
     float CameraLerpTime;
-    uint32_t Time;
+
     bool IsFreeCam;
-    
+ 
     bool DebugDisableDarkess;
     bool DebugDisableFOV;
     bool DebugTileView;
