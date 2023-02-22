@@ -1,6 +1,153 @@
-#include "RenderExtensions.h"
+#include "Renderer.h"
 
-#include "raymath.h"
+#include "ResourceManager.h"
+
+#include "raylib/src/rlgl.h"
+#include "raylib/src/raymath.h"
+
+void Renderer::Initialize()
+{
+    int width = GetScreenWidth();
+    int height = GetScreenHeight();
+    int blurWidth = width / 4;
+    int blurHeight = height / 4;
+    BlurShader.Initialize(blurWidth, blurHeight);
+
+    WorldTexture = SLoadRenderTexture(width, height, PIXELFORMAT_UNCOMPRESSED_R32G32B32A32);
+    EffectTextureOne = SLoadRenderTexture(width, height, PIXELFORMAT_UNCOMPRESSED_R32G32B32A32);
+    EffectTextureTwo = SLoadRenderTexture(width, height, PIXELFORMAT_UNCOMPRESSED_R32G32B32A32);
+
+    UnlitShader = LoadShader(
+        "assets/shaders/tile_shader.vert",
+        "assets/shaders/tile_shader.frag");
+
+    LitShader = LoadShader(
+        "assets/shaders/tile_lit.vert",
+        "assets/shaders/tile_lit.frag");
+
+    LightingShader = LoadShader(
+        "assets/shaders/lighting.vert",
+        "assets/shaders/lighting.frag");
+
+    BrightnessShader = LoadShader(
+        "assets/shaders/tile_shader.vert",
+        "assets/shaders/brightness_filter.frag");
+
+    UniformAmbientLightLoc = GetShaderLocation(LitShader, "ambientLightColor");
+    UniformLightMapLoc = GetShaderLocation(LitShader, "texture1");
+    UniformLightIntensityLoc = GetShaderLocation(LightingShader, "lightIntensity");
+    UniformSunLightColorLoc = GetShaderLocation(LightingShader, "sunLightColor");
+
+    AmbientLight = { 0.1f, 0.1f, 0.2f, 1.0f };
+    SunLight = { 0.0f, 0.0f, 0.0f, 0.0f };
+    LightIntensity = 1.0f;
+
+    SetShaderValue(LitShader, UniformAmbientLightLoc, &AmbientLight, SHADER_UNIFORM_VEC4);
+    SetShaderValue(LightingShader, UniformLightIntensityLoc, &LightIntensity, SHADER_UNIFORM_FLOAT);
+
+    SLOG_INFO("[ Renderer ] Initialized!");
+}
+
+void Renderer::Free()
+{
+    BlurShader.Free();
+    UnloadRenderTexture(WorldTexture);
+    UnloadRenderTexture(EffectTextureOne);
+    UnloadRenderTexture(EffectTextureTwo);
+    UnloadShader(UnlitShader);
+    UnloadShader(LitShader);
+    UnloadShader(LightingShader);
+    UnloadShader(BrightnessShader);
+}
+
+void Renderer::SetValueAndUniformAmbientLight(Vector4 ambientLight)
+{
+    AmbientLight = ambientLight;
+    SetShaderValue(LitShader, UniformAmbientLightLoc, &AmbientLight, SHADER_UNIFORM_VEC4);
+}
+
+void Renderer::SetValueAndUniformSunLight(Vector4 sunLight)
+{
+    SunLight = sunLight;
+    SetShaderValue(LightingShader, UniformSunLightColorLoc, &SunLight, SHADER_UNIFORM_VEC4);
+}
+
+void Renderer::SetValueAndUniformLightIntensity(float intensity)
+{
+    LightIntensity = intensity;
+    SetShaderValue(LightingShader, UniformLightIntensityLoc, &LightIntensity, SHADER_UNIFORM_FLOAT);
+}
+
+void BlurShader::Initialize(int width, int height)
+{
+    BlurShader = LoadShader(
+        "assets/shaders/blur.vert",
+        "assets/shaders/blur.frag");
+
+    TextureHorizontal = SLoadRenderTexture(width, height, PIXELFORMAT_UNCOMPRESSED_R32G32B32A32);
+    TextureVert = SLoadRenderTexture(width, height, PIXELFORMAT_UNCOMPRESSED_R32G32B32A32);
+
+    UniformIsHorizontalLocation = GetShaderLocation(BlurShader, "IsHorizontal");
+
+    int targetWidthLoc = GetShaderLocation(BlurShader, "TargetWidth");
+    SetShaderValue(BlurShader, targetWidthLoc, &width, SHADER_UNIFORM_FLOAT);
+}
+
+void BlurShader::Draw(const Texture2D& worldTexture) const
+{
+    Rectangle srcRect =
+    {
+        0.0f,
+        0.0f,
+        (float)worldTexture.width,
+        -(float)worldTexture.height,
+    };
+
+    Rectangle blurRectSrc =
+    {
+        0.0f,
+        0.0f,
+        (float)TextureHorizontal.texture.width,
+        -(float)TextureHorizontal.texture.height,
+    };
+
+    Rectangle blurRectDest =
+    {
+        0.0f,
+        0.0f,
+        (float)TextureHorizontal.texture.width,
+        (float)TextureHorizontal.texture.height,
+    };
+
+    Vector4 colorWhite = { 1.0f, 1.0f, 1.0f, 1.0f };
+
+    BeginShaderMode(BlurShader);
+
+    int isHorizontalTrue = 1;
+    SetShaderValue(BlurShader, UniformIsHorizontalLocation, &isHorizontalTrue, SHADER_UNIFORM_INT);
+
+    BeginTextureMode(TextureHorizontal);
+    ClearBackground(BLACK);
+    DrawTextureProF(worldTexture, srcRect, blurRectDest, { 0 }, 0.0f, colorWhite);
+    EndTextureMode();
+
+    int isHorizontalFalse = 0;
+    SetShaderValue(BlurShader, UniformIsHorizontalLocation, &isHorizontalFalse, SHADER_UNIFORM_INT);
+
+    BeginTextureMode(TextureVert);
+    ClearBackground(BLACK);
+    DrawTextureProF(TextureHorizontal.texture, blurRectSrc, blurRectDest, { 0 }, 0.0f, colorWhite);
+    EndTextureMode();
+
+    EndShaderMode();
+}
+
+void BlurShader::Free()
+{
+    UnloadRenderTexture(TextureHorizontal);
+    UnloadRenderTexture(TextureVert);
+    UnloadShader(BlurShader);
+}
 
 void DrawTextureProF(Texture2D texture, Rectangle source, Rectangle dest,
     Vector2 origin, float rotation, Vector4 tint)

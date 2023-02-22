@@ -1,6 +1,5 @@
 #include "ResourceManager.h"
 
-#include "RenderExtensions.h"
 #include "SString.h"
 
 #define NUM_OF_FONT_GLYPHS 95
@@ -26,26 +25,8 @@ bool InitializeResources(Resources* resources)
     resources->MainFontS = LoadFontEx(FONT_PATH, 16, 0, 0);
     resources->FontSilver = LoadFontEx(SDF_FONT_PATH, 16, 0, 0);
 
-    resources->UnlitShader = LoadShader(
-        "assets/shaders/tile_shader.vert",
-        "assets/shaders/tile_shader.frag");
-
-    resources->LitShader = LoadShader(
-        "assets/shaders/tile_lit.vert",
-        "assets/shaders/tile_lit.frag");
-
-    resources->LightingShader = LoadShader(
-        "assets/shaders/lighting.vert",
-        "assets/shaders/lighting.frag");
-
-    resources->BrightnessShader = LoadShader(
-        "assets/shaders/tile_shader.vert",
-        "assets/shaders/brightness_filter.frag");
-
-    resources->Blur.Initialize(GetScreenWidth() / 4, GetScreenHeight() / 4);
-
 	SLOG_INFO("[ RESOURCES ] Successfully initialized resources!");
-	return resources->IsAllocated = true;
+	return true;
 }
 
 void FreeResouces(Resources* resources)
@@ -53,102 +34,7 @@ void FreeResouces(Resources* resources)
     UnloadFont(resources->FontSilver);
     UnloadFont(resources->MainFontM);
     UnloadTexture(resources->EntitySpriteSheet);
-    UnloadShader(resources->UnlitShader);
-    UnloadShader(resources->LitShader);
-    UnloadShader(resources->LightingShader);
-    UnloadShader(resources->BrightnessShader);
     resources->Atlas.Unload();
-    resources->Blur.Free();
-}
-
-void BlurShader::Initialize(int width, int height)
-{
-    BlurShader = LoadShader(
-        "assets/shaders/blur.vert",
-        "assets/shaders/blur.frag");
-
-    TextureHorizontal = SLoadRenderTexture(width, height, PIXELFORMAT_UNCOMPRESSED_R32G32B32A32);
-    TextureVert = SLoadRenderTexture(width, height, PIXELFORMAT_UNCOMPRESSED_R32G32B32A32);
-
-    UniformIsHorizontalLocation = GetShaderLocation(BlurShader, "IsHorizontal");
-
-    int targetWidthLoc = GetShaderLocation(BlurShader, "TargetWidth");
-    SetShaderValue(BlurShader, targetWidthLoc, &width, SHADER_UNIFORM_FLOAT);
-}
-
-void BlurShader::Draw(const Texture2D& worldTexture) const
-{
-    Rectangle srcRect =
-    {
-        0.0f,
-        0.0f,
-        (float)worldTexture.width,
-        -(float)worldTexture.height,
-    };
-
-    Rectangle blurRectSrc =
-    {
-        0.0f,
-        0.0f,
-        (float)TextureHorizontal.texture.width,
-        -(float)TextureHorizontal.texture.height,
-    };
-
-    Rectangle blurRectDest =
-    {
-        0.0f,
-        0.0f,
-        (float)TextureHorizontal.texture.width,
-        (float)TextureHorizontal.texture.height,
-    };
-
-    Vector4 colorWhite = { 1.0f, 1.0f, 1.0f, 1.0f };
-
-    BeginShaderMode(BlurShader);
-
-    int isHorizontalTrue = 1;
-    SetShaderValue(BlurShader, UniformIsHorizontalLocation, &isHorizontalTrue, SHADER_UNIFORM_INT);
-
-    BeginTextureMode(TextureHorizontal);
-    ClearBackground(BLACK);
-    DrawTextureProF(worldTexture, srcRect, blurRectDest, { 0 }, 0.0f, colorWhite);
-    EndTextureMode();
-
-    int isHorizontalFalse = 0;
-    SetShaderValue(BlurShader, UniformIsHorizontalLocation, &isHorizontalFalse, SHADER_UNIFORM_INT);
-
-    BeginTextureMode(TextureVert);
-    ClearBackground(BLACK);
-    DrawTextureProF(TextureHorizontal.texture, blurRectSrc, blurRectDest, { 0 }, 0.0f, colorWhite);
-    EndTextureMode();
-
-    EndShaderMode();
-}
-
-void BlurShader::Free()
-{
-    UnloadRenderTexture(TextureHorizontal);
-    UnloadRenderTexture(TextureVert);
-    UnloadShader(BlurShader);
-}
-
-void Renderer::Initialize(Resources* resources, Texture2D* lightMapTexture)
-{
-    SASSERT(resources->LitShader.id > 0);
-    SASSERT(resources->LightingShader.id > 0);
-    SASSERT(lightMapTexture->id > 0);
-
-    UniformAmbientLightLoc = GetShaderLocation(resources->LitShader, "ambientLightColor");
-    UniformLightMapLoc = GetShaderLocation(resources->LitShader, "texture1");
-    UniformLightIntensityLoc = GetShaderLocation(resources->LightingShader, "lightIntensity");
-    UniformSunLightColorLoc = GetShaderLocation(resources->LightingShader, "sunLightColor");
-
-    AmbientLight = { 0.1f, 0.1f, 0.2f, 1.0f } ;
-    SunLight = { 0.0f, 0.0f, 0.0f, 0.0f };
-    LightIntensity = 1.0f;
-
-    SetShaderValue(resources->LitShader, UniformAmbientLightLoc, &AmbientLight, SHADER_UNIFORM_VEC4);
-    SetShaderValue(resources->LightingShader, UniformLightIntensityLoc, &LightIntensity, SHADER_UNIFORM_FLOAT);
 }
 
 internal SDFFont LoadSDFFont()
