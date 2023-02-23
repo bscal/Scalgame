@@ -5,6 +5,7 @@
 #include "SUtil.h"
 #include "Vector2i.h"
 #include "Renderer.h"
+#include "LightMap.h"
 
 #include "Structures/SLinkedList.h"
 
@@ -162,13 +163,13 @@ Draw(ChunkedTileMap* tilemap, Game* game)
 
 			//game->DebugDisableFOV
 
-			Vector4 color;
-			if (tile->LOS == TileLOS::FullVision)
-				color = { 1.0f, 1.0f, 1.0f, 1.0f };
-			else
-				color = { 1.0f, 1.0f, 1.0f, 0.6f };
+			Vector4 color = { 1.0f, 1.0f, 1.0f, 1.0f };
+			if (tile->LOS == TileLOS::NoVision)
+				color.w -= 0.4f;
 			tile->LOS = TileLOS::NoVision;
 
+			LightMapSetCeiling(&game->LightMap, coord, tile->HasCeiling);
+			
 			ScalDrawTextureProF(
 				texture,
 				tile->GetTileTexData(tileMgr)->TexCoord,

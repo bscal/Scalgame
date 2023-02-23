@@ -124,7 +124,7 @@ DrawDebugPanel(UIState* state)
 	
 	ctx->style.window.fixed_background.data.color = BG_COLOR;
 	
-	if (nk_begin(ctx, "Debug", { 4, 4, 450, (float)GetScreenHeight()},
+	if (nk_begin(ctx, "Debug", { 4, 4, 500, (float)GetScreenHeight()},
 		NK_WINDOW_NO_SCROLLBAR))
 	{
 		nk_layout_row_dynamic(ctx, 16, 2);
@@ -162,6 +162,7 @@ DrawDebugPanel(UIState* state)
 		AppendMemoryUsage(state);
 
 		// Lighting
+		nk_spacer(ctx);
 		nk_label(ctx, "--- Lighting ---", NK_TEXT_LEFT);
 		{
 			nk_layout_row_begin(ctx, NK_DYNAMIC, 16, 2);
@@ -170,16 +171,34 @@ DrawDebugPanel(UIState* state)
 				float val = GetGame()->Renderer.LightIntensity;
 				nk_label(ctx, TextFormat("%.2f", val), NK_TEXT_LEFT);
 				nk_layout_row_push(ctx, .75f);
-				if (nk_slider_float(ctx, 0.0f, &val, 1.0f, 0.02f))
+				if (nk_slider_float(ctx, 0.0f, &val, 2.0f, 0.02f))
 					GetGame()->Renderer.SetValueAndUniformLightIntensity(val);
 			}
 			nk_layout_row_end(ctx);
 
-			nk_layout_row_dynamic(ctx, 150, 1);
-			struct nk_colorf color = Vec4ToColorF(GetGame()->Renderer.AmbientLight);
-			struct nk_colorf newColor = nk_color_picker(ctx, color, NK_RGBA);
-			if (!ColorFEqual(color, newColor))
-				GetGame()->Renderer.SetValueAndUniformAmbientLight(ColorFToVec4(newColor));
+			nk_layout_row_begin(ctx, NK_DYNAMIC, 125, 2);
+			{
+				nk_layout_row_push(ctx, .2f);
+				nk_label(ctx, "Ambient", NK_TEXT_LEFT);
+				nk_layout_row_push(ctx, .8f);
+				struct nk_colorf ambientColor = Vec4ToColorF(GetGame()->Renderer.AmbientLight);
+				struct nk_colorf newAmbientColor = nk_color_picker(ctx, ambientColor, NK_RGB);
+				if (!ColorFEqual(ambientColor, newAmbientColor))
+					GetGame()->Renderer.SetValueAndUniformAmbientLight(ColorFToVec4(newAmbientColor));
+			}
+			nk_layout_row_end(ctx);
+
+			nk_layout_row_begin(ctx, NK_DYNAMIC, 125, 2);
+			{
+				nk_layout_row_push(ctx, .2f);
+				nk_label(ctx, "Sunlight", NK_TEXT_LEFT);
+				nk_layout_row_push(ctx, .8f);
+				struct nk_colorf skyColor = Vec4ToColorF(GetGame()->Renderer.SunLight);
+				struct nk_colorf newSkyColor = nk_color_picker(ctx, skyColor, NK_RGB);
+				if (!ColorFEqual(skyColor, newSkyColor))
+					GetGame()->Renderer.SetValueAndUniformSunLight(ColorFToVec4(newSkyColor));
+			}
+			nk_layout_row_end(ctx);
 		}
 
 		
@@ -192,6 +211,7 @@ AppendMemoryUsage(UIState* state)
 {
 	nk_layout_row_dynamic(&state->Ctx, 16, 1);
 
+	nk_spacer(&state->Ctx);
 	nk_label(&state->Ctx, "--- Memory Usage ---", NK_TEXT_LEFT);
 	MemorySizeData usage = FindMemSize(SMemGetUsage());
 	nk_label(&state->Ctx, TextFormat("Tagged: %.2f%cbs", usage.Size, usage.BytePrefix), NK_TEXT_LEFT);
@@ -208,7 +228,7 @@ AppendMemoryUsage(UIState* state)
 	MemorySizeData memSizeAlloc = FindMemSize(uiMem.allocated);
 	MemorySizeData memSizeNeed = FindMemSize(uiMem.needed);
 	MemorySizeData memSizeSize = FindMemSize(uiMem.size);
-	const char* str = TextFormat("Alloc:%.2f%cbs/Need:%.2f%cbs/Sise:%.2f%cbs",
+	const char* str = TextFormat("Alloc:%.2f%cbs/Need:%.2f%cbs/Size:%.2f%cbs",
 		memSizeAlloc.Size, memSizeAlloc.BytePrefix,
 		memSizeNeed.Size, memSizeNeed.BytePrefix,
 		memSizeSize.Size, memSizeSize.BytePrefix);

@@ -10,6 +10,7 @@ out vec4 finalColor;
 void main()
 {
 	// TODO maybe use light alpha to add sunlight, //indoor, outdoor,
-	vec4 color = (fragColor * lightIntensity) + sunLightColor;
-	finalColor = color;
+	vec3 sunColor = sunLightColor.rgb * fragColor.w;
+	vec3 color = (fragColor.rgb * lightIntensity) + sunColor;
+	finalColor = vec4(color, 1.0);
 }

@@ -40,11 +40,11 @@ SAPI bool GameApplication::Start()
 	size_t tempMemorySize = Megabytes(4);
 	SMemInitialize(this, gameMemorySize, tempMemorySize);
 
-	const int screenWidth = 1600;
-	const int screenHeight = 900;
-	SetConfigFlags(FLAG_WINDOW_RESIZABLE);
+	const int screenWidth = 1920;
+	const int screenHeight = 1080;
+	//SetConfigFlags(FLAG_WINDOW_RESIZABLE);
 	InitWindow(screenWidth, screenHeight, "Some roguelike game");
-	SetTargetFPS(60);
+	SetTargetFPS(144);
 	SetTraceLogLevel(LOG_ALL);
 
 	SRandomInitialize(&GlobalRandom, 0);
@@ -95,12 +95,13 @@ SAPI void GameApplication::Shutdown()
 
 internal void GameLoadScreen(GameApplication* gameApp, int width, int height)
 {
-	const auto game = gameApp->Game;
-
 	gameApp->HalfWidthHeight.x = (float)width / 2.0f;
 	gameApp->HalfWidthHeight.y = (float)height / 2.0f;
-	game->WorldCamera.offset = gameApp->HalfWidthHeight;
-	game->ViewCamera.offset = gameApp->HalfWidthHeight;
+	gameApp->Game->WorldCamera.offset = gameApp->HalfWidthHeight;
+	gameApp->Game->ViewCamera.offset = gameApp->HalfWidthHeight;
+	
+	gameApp->Game->Renderer.Free();
+	gameApp->Game->Renderer.Initialize();
 }
 
 internal bool GameInitialize(Game* game, GameApplication* gameApp)
@@ -267,13 +268,22 @@ SAPI void GameApplication::Run()
 					light.Colors[1] = { 0x89, 0x12, 0x08, 255 };
 					light.Colors[2] = { 0xd6, 0x1b, 0x0c, 255 };
 					light.Colors[3] = { 0xbf, 0x05, 0x00, 255 };
-					Color c = ColorFromNormalized({ 1.0, 0.8, 0.2, 1.0f });
+					//Color c = ColorFromNormalized({ 1.0, 0.8, 0.2, 1.0f });
 					/*light.Colors[0] = c;
 					light.Colors[1] = c;
 					light.Colors[2] = c;
 					light.Colors[3] = c;*/
 					light.Color = light.Colors[0];
 					LightsAddUpdating(light);
+				}
+			}
+			if (IsMouseButtonPressed(MOUSE_BUTTON_MIDDLE))
+			{
+				Vector2i clickedTilePos = GetTileFromMouse(Game);
+				if (CTileMap::IsTileInBounds(&Game->World.ChunkedTileMap, clickedTilePos))
+				{
+					Tile* tile = CTileMap::GetTile(&Game->World.ChunkedTileMap, clickedTilePos);
+					tile->HasCeiling = true;
 				}
 			}
 

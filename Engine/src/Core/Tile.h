@@ -1,10 +1,9 @@
 #pragma once
 
 #include "Core.h"
-#include "SpriteAtlas.h"
+#include "SString.h"
 
-#include <string.h>
-#include <string_view>
+struct SpriteAtlas;
 
 enum class TileType : uint8_t
 {
@@ -17,7 +16,6 @@ enum class TileLOS : uint8_t
 {
 	NoVision,
 	FullVision,
-	HalfVision
 };
 
 struct TileColor
@@ -56,20 +54,14 @@ struct TileMgr
 	uint32_t NextTileId;
 };
 
-struct TileRenderInfo
-{
-	Vector4 Color;
-	uint16_t TileId;
-	TileLOS LOS;
-};
-
 struct Tile
 {
 	uint16_t TileId;
 	TileLOS LOS;
+	bool HasCeiling;
 
-	const TileData* const GetTileData(TileMgr* tileMgr) const;
-	const TileTexData* const GetTileTexData(TileMgr* tileMgr) const;
+	const TileData* GetTileData(TileMgr* tileMgr) const;
+	const TileTexData* GetTileTexData(TileMgr* tileMgr) const;
 };
 
 void TileMgrInitialize(TileMgr* tileMgr, SpriteAtlas* spriteAtlas);

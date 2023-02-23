@@ -1,11 +1,11 @@
 #include "Tile.h"
 
-#include "assert.h"
+#include "SpriteAtlas.h"
 
 void TileMgrInitialize(TileMgr* tileMgr, SpriteAtlas* spriteAtlas)
 {
-	assert(tileMgr);
-	assert(spriteAtlas);
+	SASSERT(tileMgr);
+	SASSERT(spriteAtlas);
 	tileMgr->SpriteAtlas = spriteAtlas;
 
 	RegisterTile(tileMgr, "Tile1", TileType::Floor);
@@ -23,9 +23,9 @@ uint32_t RegisterTile(TileMgr* tileMgr,
 	const char* spriteName,
 	TileType type)
 {
-	assert(tileMgr);
-	assert(tileMgr->NextTileId < MAX_TILES);
-	assert(spriteName[0] != 0);
+	SASSERT(tileMgr);
+	SASSERT(tileMgr->NextTileId < MAX_TILES);
+	SASSERT(spriteName[0] != 0);
 
 	uint32_t id = tileMgr->NextTileId++;
 
@@ -56,12 +56,12 @@ uint32_t RegisterTile(TileMgr* tileMgr,
 	return CreateTile(tileMgr, tileMgr->Tiles[tileId]);
 }
 
-const TileData* const Tile::GetTileData(TileMgr* tileMgr) const
+const TileData* Tile::GetTileData(TileMgr* tileMgr) const
 {
 	return &tileMgr->Tiles[TileId];
 }
 
-const TileTexData* const Tile::GetTileTexData(TileMgr* tileMgr) const
+const TileTexData* Tile::GetTileTexData(TileMgr* tileMgr) const
 {
 	return &tileMgr->TileTextureData[TileId];
 }
