@@ -41,7 +41,6 @@ template<typename K,
 template<typename K, typename HashFunc, typename EqualsFunc>
 void SHoodSet<K, HashFunc, EqualsFunc>::Reserve(uint32_t capacity)
 {
-	SASSERT(Allocator);
 	SASSERT(Allocator.Alloc);
 	SASSERT(Allocator.Free);
 	if (!IsPowerOf2_32(capacity))
@@ -106,6 +105,7 @@ template<typename K, typename HashFunc, typename EqualsFunc>
 bool SHoodSet<K, HashFunc, EqualsFunc>::Insert(const K* key)
 {
 	SASSERT(key);
+	SASSERT(EqualsFunc{}(*key, *key))
 
 	if (Capacity == 0) Reserve(SSET_DEFAULT_RESERVE_SIZE);
 	else
@@ -125,24 +125,21 @@ bool SHoodSet<K, HashFunc, EqualsFunc>::Insert(const K* key)
 	swapBucket.Key = *key;
 	swapBucket.Occupied = true;
 
-	uint64_t index = hash;
 	uint32_t probeLength = 0;
 	while (true)
 	{
 		if (index == Capacity) index = 0; // Wrap
 
-		SHoodSetBucket<K, V>* bucket = &Buckets[index];
-		if (bucket->Occupied != 0) // Bucket is being used
+		SHoodSetBucket<K>* bucket = &Buckets[index];
+		if (bucket->Occupied == 1) // Bucket is being used
 		{
 			// Duplicate
-			if (EqualsFunc{}(&bucket->Key, key)) return false;
+			if (EqualsFunc{}(bucket->Key, *key)) return false;
 
 			if (bucket->ProbeLength > probeLength)
 			{
-				if (!valuePointer) valuePointer = &bucket->Value;
-
 				// Note: Swap out current insert with bucket
-				SHoodBucket<K, V> tmpBucket = *bucket;
+				SHoodSetBucket<K> tmpBucket = *bucket;
 
 				swapBucket.ProbeLength = probeLength;
 				*bucket = swapBucket;

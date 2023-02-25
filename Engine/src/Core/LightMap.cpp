@@ -66,11 +66,10 @@ void LightMapAddColor(LightData* lightData, TileCoord tileCoord, const Vector4& 
 	};
 	int index = worldTileCoord.x + worldTileCoord.y * SCREEN_WIDTH_TILES;
 	SASSERT(index >= 0);
-	SASSERT(index < TILES_IN_VIEW)
+	SASSERT(index < TILES_IN_VIEW);
 	lightData->LightColors[index].x += colors.x;
 	lightData->LightColors[index].y += colors.y;
 	lightData->LightColors[index].z += colors.z;
-	//lightData->LightColors[index].w += colors.w;
 }
 
 internal inline bool

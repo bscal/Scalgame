@@ -68,7 +68,7 @@ EntityId CreateEntityId(EntityMgr* entMgr, EntityType type)
 	SetEntityType(&entity, type);
 	SASSERT(GetEntityId(entity) != CREATURE_EMPTY_ENTITY_ID);
 	SASSERT(GetEntityType(entity) != EntityType::UNKNOWN);
-	SASSERT(GetEntityType(entity) < EntityType::MAX_TYPES)
+	SASSERT(GetEntityType(entity) < EntityType::MAX_TYPES);
 	return entity;
 }
 

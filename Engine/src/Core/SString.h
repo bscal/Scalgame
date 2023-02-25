@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Core.h"
 #include "SMemory.h"
 
 #include <stdint.h>
@@ -186,7 +187,7 @@ inline int TestStringImpls()
 	SASSERT(string1.Capacity == SSTR_SSO_LENGTH);
 
 	string1.Append("This");
-	SASSERT(string1 == "LiteralThis")
+	SASSERT(string1 == "LiteralThis");
 	SASSERT(string1.Length == 12);
 	SASSERT(string1.Capacity == SSTR_SSO_LENGTH);
 

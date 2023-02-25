@@ -247,9 +247,6 @@ AppendMemoryUsage(UIState* state)
 			memSize.Size, memSize.BytePrefix);
 		nk_label(&state->Ctx, str, NK_TEXT_LEFT);
 	}
-
-	nk_layout_row_dynamic(&state->Ctx, 16, 1);
-	nk_label(&state->Ctx, TextFormat("NewCalls: %d", GetNewCalls()), NK_TEXT_LEFT);
 }
 
 internal void 

@@ -70,7 +70,7 @@ struct STable
 template<typename K, typename V>
 STable<K, V>::STable(bool (*keyEqualsFunction)(const K* v0, const K* v1),
 	uint64_t(*keyHashFunction)(const K* key))
-	: Entries(NULL), Allocator(SMEM_GAME_ALLOCATOR),
+	: Entries(nullptr), Allocator(SMEM_GAME_ALLOCATOR),
 		Size(0), Capacity(0), MaxSize(0), 
 		KeyEqualsFunction(keyEqualsFunction), KeyHashFunction(keyHashFunction)
 {
@@ -86,7 +86,7 @@ CreateEntry(const STable<K, V>* table, const K* key, const V* value)
 	SASSERT(entry);
 	entry->Key = *key;
 	entry->Value = *value;
-	entry->Next = NULL;
+	entry->Next = nullptr;
 	return entry;
 }
 

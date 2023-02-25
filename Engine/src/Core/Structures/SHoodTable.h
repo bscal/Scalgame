@@ -407,7 +407,7 @@ inline int TestSHoodTable()
 	*ikv = 101;
 	SASSERT(table.Size == 16);
 	int* ikvget = table.Get(&ik);
-	SASSERT(*ikvget == 101)
+	SASSERT(*ikvget == 101);
 
 	table.Free();
 	SASSERT(!table.Buckets);

@@ -1,10 +1,10 @@
 #pragma once
 
-#include "Core.h"
 #include "rmem/rmem.h"
 
+#include <stdint.h>
+
 struct GameApplication;
-struct UIState;
 
 enum class MemoryTag : uint8_t
 {
@@ -19,7 +19,7 @@ enum class MemoryTag : uint8_t
 	MaxTags
 };
 
-constexpr static const char* MemoryTagStrings[(uint8_t)MemoryTag::MaxTags] =
+static constexpr const char* MemoryTagStrings[(uint8_t)MemoryTag::MaxTags] =
 {
 	"Unknown",
 	"Arrays",
@@ -27,7 +27,7 @@ constexpr static const char* MemoryTagStrings[(uint8_t)MemoryTag::MaxTags] =
 	"Tables",
 	"Strings",
 	"Game",
-	"UI"
+	"UI",
 };
 
 void
@@ -39,11 +39,7 @@ void* SMemRealloc(void* block, size_t size);
 void  SMemFree(void* block);
 
 void* SMemTempAlloc(size_t size);
-void SMemTempReset();
-
-void* SMemStdAlloc(size_t size);
-void* SMemStdRealloc(void* block, size_t size);
-void  SMemStdFree(void* block);
+void  SMemTempReset();
 
 void* SMemAllocTag(size_t size, MemoryTag tag);
 void* SMemReallocTag(void* block, size_t oldSize, size_t newSize, MemoryTag tag);
@@ -54,14 +50,23 @@ void SMemMove(void* dst, const void* src, size_t size);
 void SMemSet(void* block, int value, size_t size);
 void SMemClear(void* block, size_t size);
 
-int GetNewCalls();
-
 const uint64_t* SMemGetTaggedUsages();
 uint64_t SMemGetUsage();
 uint64_t SMemGetAllocated();
 
-MemPool* const GetGameMemory();
-BiStack* const GetTempMemory();
+// Overrides malloc calls for raylib
+#ifndef RL_MALLOC
+#define RL_MALLOC(sz) SMemAlloc(sz)
+#endif
+#ifndef RL_CALLOC
+#define RL_CALLOC(n,sz) SMemAlloc(n * sz)
+#endif
+#ifndef RL_REALLOC
+#define RL_REALLOC(ptr,sz) SMemRealloc(ptr, 0, sz)
+#endif
+#ifndef RL_FREE
+#define RL_FREE(ptr) SMemFree(ptr)
+#endif
 
 struct SMemAllocator
 {
@@ -70,31 +75,29 @@ struct SMemAllocator
 };
 
 // Temp memory gets freed at start of a frame
-internal inline void
+static void
 SMemTempAllocatorFree(void* block)
 {
 };
 
-global_var const SMemAllocator SMEM_GAME_ALLOCATOR = { SMemAlloc, SMemFree };
-global_var const SMemAllocator SMEM_TEMP_ALLOCATOR = { SMemTempAlloc, SMemTempAllocatorFree };
+static const SMemAllocator SMEM_GAME_ALLOCATOR = { SMemAlloc, SMemFree };
+static const SMemAllocator SMEM_TEMP_ALLOCATOR = { SMemTempAlloc, SMemTempAllocatorFree };
 
 inline bool IsTemporaryAllocator(const SMemAllocator* allocator)
 {
-	SASSERT(allocator);
 	return allocator->Alloc == SMemTempAlloc;
 };
 
-struct SMemAllocO
+struct SMemAllocatorFunc
 {
 	[[nodiscard]] inline void* operator()(size_t n, MemoryTag tag) const noexcept
 	{
 		void* mem = SMemAllocTag(n, tag);
-		SASSERT(mem);
 		return mem;
 	}
 };
 
-struct SMemFreeO
+struct SMemFreeFunc
 {
 	inline void Free(void* block, size_t n, MemoryTag tag) const noexcept
 	{
@@ -107,13 +110,13 @@ struct SMemTagAllocator
 {
 	[[nodiscard]] inline void* Alloc(size_t size, MemoryTag tag) const noexcept
 	{ 
-		return AllocatorFunc(size, tag);
+		return AllocatorFunc{}(size, tag);
 	}
 
 	inline void Free(void* block, size_t size, MemoryTag tag) const noexcept
 	{
-		FreeFunc(block, size, tag);
+		FreeFunc{}(block, size, tag);
 	}
 };
 
-global_var constexpr const SMemTagAllocator<SMemAllocO, SMemFreeO> SMemTagGameAllocator;
+static const SMemTagAllocator<SMemAllocatorFunc, SMemFreeFunc> SMemTagGameAllocator;

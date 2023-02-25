@@ -1,10 +1,19 @@
 #define RMEM_IMPLEMENTATION
 #include "SMemory.h"
 
+#include "Core.h"
 #include "Game.h"
 #include "SUtil.h"
 
 #include <stdlib.h>
+
+#if SCAL_DEBUG
+#define SMEM_LOG_ALLOC(type, size) SLOG_INFO("[ Memory ] %s %d bytes, %d mb", type, size, size / 1024 / 1024)
+#define SMEM_LOG_FREE() SLOG_INFO("[ Memory ] Freeing")
+#else
+#define SMEM_LOG_ALLOC(type, size)
+#define SMEM_LOG_FREE()
+#endif
 
 // TODO: maybe move this to an internal state struct?
 global_var GameApplication* GameAppPtr;
@@ -47,6 +56,7 @@ SMemInitialize(GameApplication* gameApp,
 void* SMemAlloc(size_t size)
 {
     void* mem = MemPoolAlloc(&GameAppPtr->GameMemory, size);
+    SMEM_LOG_ALLOC("Allocated", size);
     SASSERT(mem);
     return mem;
 }
@@ -54,6 +64,7 @@ void* SMemAlloc(size_t size)
 void* SMemRealloc(void* block, size_t size)
 {
     void* mem = MemPoolRealloc(&GameAppPtr->GameMemory, block, size);
+    SMEM_LOG_ALLOC("Reallocated", size);
     SASSERT(mem);
     return mem;
 }
@@ -61,6 +72,7 @@ void* SMemRealloc(void* block, size_t size)
 void SMemFree(void* block)
 {
     MemPoolFree(&GameAppPtr->GameMemory, block);
+    SMEM_LOG_FREE();
 }
 
 void* SMemTempAlloc(size_t size)
@@ -72,25 +84,6 @@ void SMemTempReset()
 {
     GameAppPtr->LastFrameTempMemoryUsage = GameAppPtr->TemporaryMemory.front - GameAppPtr->TemporaryMemory.mem;
     BiStackResetFront(&GameAppPtr->TemporaryMemory);
-}
-
-void* SMemStdAlloc(size_t size)
-{
-    size_t alignedSize = AlignSize(size, sizeof(void*));
-    return malloc(alignedSize);
-}
-
-void* SMemStdRealloc(void* block, size_t size)
-{
-    size_t alignedSize = AlignSize(size, sizeof(void*));
-    void* mem = realloc(block, alignedSize);
-    SASSERT(mem);
-    return mem;
-}
-
-void SMemStdFree(void* block)
-{
-    free(block);
 }
 
 void* SMemAllocTag(size_t size, MemoryTag tag)
@@ -160,40 +153,22 @@ uint64_t SMemGetAllocated()
     return TotalMemoryAllocated;
 }
 
-inline MemPool* const GetGameMemory()
+void* operator new(size_t sz)
 {
-    return &GameAppPtr->GameMemory;
+    return SMemAlloc(sz);
 }
 
-inline BiStack* const GetTempMemory()
+void* operator new[](size_t sz)
 {
-    return &GameAppPtr->TemporaryMemory;
+    return SMemAlloc(sz);
 }
 
-static int NewUsageCount;
-
-int GetNewCalls()
+void operator delete(void* ptr) noexcept
 {
-    return NewUsageCount;
+    SMemFree(ptr);
 }
 
-void* operator new(size_t size) noexcept(false)
+void operator delete[](void* ptr) noexcept
 {
-    ++NewUsageCount;
-    return SMemAlloc(size);
-}
-
-void operator delete(void* block) noexcept(false)
-{
-    SMemFree(block);
-}
-
-void* operator new[](size_t size) noexcept(false)
-{
-    ++NewUsageCount;
-    return SMemAlloc(size);
-}
-void operator delete[](void* block) noexcept(false)
-{
-    SMemFree(block);
+    SMemFree(ptr);
 }

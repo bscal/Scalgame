@@ -50,22 +50,25 @@ int64_t  Vec2iPackInt64(Vector2i v);
 Vector2i Vec2iUnpackInt64(int64_t packedVector);
 Vector2i Vec2fToVec2i(Vector2 v);
 
+inline constexpr int HashVec2i(Vector2i vec)
+{
+    return vec.x ^ (vec.y << 2);
+}
+
 template<>
 struct std::hash<Vector2i>
 {
     std::size_t operator()(const Vector2i& v) const noexcept
     {
-        std::size_t i0 = std::hash<int>{}(v.x);
-        std::size_t i1 = std::hash<int>{}(v.y);
-        return i0 ^ (i1 << 1);
+        return HashVec2i(v);
     }
 };
 
 struct Vector2iHasher
 {
-    std::size_t operator()(const Vector2i& v) const noexcept
+    size_t operator()(const Vector2i& v) const noexcept
     {
-        return std::hash<Vector2i>{}(v);
+        return HashVec2i(v);
     }
 };
 
