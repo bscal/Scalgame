@@ -5,9 +5,9 @@
 #include "Core/SHash.hpp"
 #include "Core/SUtil.h"
 
-global_var constexpr float SSET_LOAD_FACTOR = 0.65f;
+global_var constexpr float SSET_LOAD_FACTOR = 0.60f;
+global_var constexpr float SSET_LOAD_MULTIPLIER = 1.0f + SSET_LOAD_FACTOR;
 global_var constexpr uint32_t SSET_RESIZE = 2;
-global_var constexpr uint32_t SSET_DEFAULT_RESERVE_SIZE = 2;
 
 template<typename K>
 struct SHoodSetBucket
@@ -25,6 +25,7 @@ template<typename K,
 	SHoodSetBucket<K>* Buckets;
 	uint32_t Size;
 	uint32_t Capacity;
+	uint32_t MaxSize;
 
 	void Reserve(uint32_t capacity);
 	void Free();
@@ -36,6 +37,8 @@ template<typename K,
 
 	bool IsAllocated() const { return MemAllocated() > 0; };
 	size_t MemAllocated() const { return Capacity * sizeof(SHoodSetBucket<K>); };
+
+	void ToString() const;
 };
 
 template<typename K, typename HashFunc, typename EqualsFunc>
@@ -43,38 +46,44 @@ void SHoodSet<K, HashFunc, EqualsFunc>::Reserve(uint32_t capacity)
 {
 	SASSERT(Allocator.Alloc);
 	SASSERT(Allocator.Free);
-	if (!IsPowerOf2_32(capacity))
+
+	uint32_t newCapacity = (uint32_t)((float)capacity * SSET_LOAD_MULTIPLIER);
+	if (newCapacity == 0)
+		newCapacity = 2;
+	else if (!IsPowerOf2_32(newCapacity))
+		newCapacity = AlignPowTwo32Ceil(newCapacity);
+
+	if (newCapacity <= Capacity) return;
+
+	uint32_t oldCapacity = Capacity;
+	Capacity = newCapacity;
+	MaxSize = (uint32_t)((float)Capacity * SSET_LOAD_FACTOR);
+
+	if (Size == 0)
 	{
-		capacity = AlignPowTwo32Ceil(capacity);
+		Allocator.Free(Buckets);
+		Buckets = (SHoodSetBucket<K>*)(Allocator.Alloc(MemAllocated()));
 	}
-	if (capacity > Capacity)
+	else
 	{
-		uint32_t oldCapacity = Capacity;
-		Capacity = capacity;
-		if (Size == 0)
-		{
-			Allocator.Free(Buckets);
-			size_t newSize = Capacity * sizeof(K);
-			Buckets = static_cast<SHoodSetBucket<K>*>(Allocator.Alloc(newSize * sizeof(SHoodSetBucket<K>)));
-		}
-		else
-		{
-			SHoodSet<K, HashFunc, EqualsFunc> tmpSet = {};
-			tmpSet.Reserve(Capacity);
+		SHoodSet<K, HashFunc, EqualsFunc> tmpSet = {};
+		tmpSet.Allocator = Allocator;
+		tmpSet.Capacity = Capacity;
+		tmpSet.MaxSize = MaxSize;
+		tmpSet.Buckets = (SHoodSetBucket<K>*)(Allocator.Alloc(MemAllocated()));
 
-			for (uint32_t i = 0; i < oldCapacity; ++i)
+		for (uint32_t i = 0; i < oldCapacity; ++i)
+		{
+			if (Buckets[i].Occupied == 1)
 			{
-				if (Buckets[i].Occupied == 1)
-				{
-					tmpSet.Insert(&Buckets[i].Key);
-				}
-				if (tmpSet.Size == Size) break;
+				tmpSet.Insert(&Buckets[i].Key);
 			}
-
-			Allocator.Free(Buckets);
-			SASSERT(Size == tmpSet.Size);
-			*this = tmpSet;
+			if (tmpSet.Size == Size) break;
 		}
+
+		Allocator.Free(Buckets);
+		SASSERT(Size == tmpSet.Size);
+		*this = tmpSet;
 	}
 
 	SASSERT(Buckets);
@@ -89,9 +98,10 @@ void SHoodSet<K, HashFunc, EqualsFunc>::Free()
 	SASSERT(Allocator.Alloc);
 	SASSERT(Allocator.Free);
 	Allocator.Free(Buckets);
-	Buckets = NULL;
+	Buckets = nullptr;
 	Size = 0;
 	Capacity = 0;
+	MaxSize = 0;
 }
 
 template<typename K, typename HashFunc, typename EqualsFunc>
@@ -105,15 +115,10 @@ template<typename K, typename HashFunc, typename EqualsFunc>
 bool SHoodSet<K, HashFunc, EqualsFunc>::Insert(const K* key)
 {
 	SASSERT(key);
-	SASSERT(EqualsFunc{}(*key, *key))
+	SASSERT(EqualsFunc{}(key, key))
 
-	if (Capacity == 0) Reserve(SSET_DEFAULT_RESERVE_SIZE);
-	else
-	{
-		float loadFactor = ((float)Size + 1.0f) / (float)Capacity;
-		if (loadFactor >= SSET_LOAD_FACTOR)
-			Reserve(Capacity * SSET_RESIZE);
-	}
+	if (Size == MaxSize)
+		Reserve(Capacity * SSET_RESIZE);
 
 	SASSERT(IsAllocated());
 
@@ -134,9 +139,9 @@ bool SHoodSet<K, HashFunc, EqualsFunc>::Insert(const K* key)
 		if (bucket->Occupied == 1) // Bucket is being used
 		{
 			// Duplicate
-			if (EqualsFunc{}(bucket->Key, *key)) return false;
+			if (EqualsFunc{}(&bucket->Key, key)) return false;
 
-			if (bucket->ProbeLength > probeLength)
+			if (probeLength > bucket->ProbeLength)
 			{
 				// Note: Swap out current insert with bucket
 				SHoodSetBucket<K> tmpBucket = *bucket;
@@ -147,8 +152,9 @@ bool SHoodSet<K, HashFunc, EqualsFunc>::Insert(const K* key)
 				swapBucket = tmpBucket;
 				probeLength = swapBucket.ProbeLength;
 			}
-
 			// Continues searching
+			++index;
+			++probeLength;
 		}
 		else
 		{
@@ -158,8 +164,6 @@ bool SHoodSet<K, HashFunc, EqualsFunc>::Insert(const K* key)
 			++Size;
 			return true;
 		}
-		++index;
-		++probeLength;
 	}
 	SASSERT_MSG(false, "Container had no room, this should not happen");
 	return false;
@@ -171,6 +175,7 @@ bool SHoodSet<K, HashFunc, EqualsFunc>::Contains(const K* key) const
 {
 	SASSERT(key);
 	SASSERT(IsAllocated());
+	SASSERT(EqualsFunc{}(*key, *key))
 
 	uint64_t hash = HashFunc{}(key);
 	uint32_t index = hash & ((uint64_t)(Capacity - 1));
@@ -194,6 +199,7 @@ bool SHoodSet<K, HashFunc, EqualsFunc>::Remove(const K* key)
 {
 	SASSERT(key);
 	SASSERT(IsAllocated());
+	SASSERT(EqualsFunc{}(*key, *key))
 
 	uint64_t hash = HashFunc{}(key);
 	uint32_t index = hash & ((uint64_t)(Capacity - 1));
@@ -235,4 +241,15 @@ bool SHoodSet<K, HashFunc, EqualsFunc>::Remove(const K* key)
 		}
 	}
 	return false;
+}
+
+template<typename K, typename HashFunc, typename EqualsFunc>
+void SHoodSet<K, HashFunc, EqualsFunc>::ToString() const
+{
+	SLOG_INFO("\nSHoodSet Info: Size:%u/MaxSize:%u , Capacity: %u", Size, MaxSize, Capacity);
+	for (uint32_t i = 0; i < Capacity; ++i)
+	{
+		const SHoodSetBucket<K>& bucket = Buckets[i];
+		SLOG_INFO("%d = probe:%d, occupied:%d, hash:%u", i, bucket.ProbeLength, bucket.Occupied, HashFunc{}(&bucket.Key) % Capacity);
+	}
 }

@@ -5,7 +5,8 @@
 #include "Core/SHash.hpp"
 #include "Core/SUtil.h"
 
-global_var constexpr float SHOOD_LOAD_FACTOR = 0.75f;
+global_var constexpr float SHOOD_LOAD_FACTOR = 0.60f;
+global_var constexpr float SHOOD_LOAD_MULTIPLIER = 1.0f + SHOOD_LOAD_FACTOR;
 global_var constexpr uint32_t SHOOD_RESIZE = 2;
 
 template<typename K, typename V>
@@ -13,7 +14,8 @@ struct SHoodBucket
 {
 	K Key;
 	V Value;
-	uint32_t ProbeLength : 31, Occupied : 1;
+	uint32_t ProbeLength : 31;
+	uint32_t Occupied : 1;
 };
 
 template<
@@ -30,6 +32,7 @@ struct SHoodTable
 	uint32_t MaxSize;
 
 	void Reserve(uint32_t newCapacity);
+	void Clear();
 	void Free();
 
 	void Insert(const K* key, const V* val);
@@ -66,36 +69,38 @@ template<
 	typename EqualsFunc>
 void SHoodTable<K, V, HashFunc, EqualsFunc>::Reserve(uint32_t capacity)
 {
-	if (capacity == 0) capacity = 2;
-	else if (!IsPowerOf2_32(capacity))
-	{
-		capacity = AlignPowTwo32Ceil(capacity);
-		SLOG_WARN("SHoodTable::Reserve capacity is not a power of 2, automatically aligning");
-	}
+	SASSERT(Allocator.Alloc);
+	SASSERT(Allocator.Free);
 
-	SASSERT(capacity > Capacity);
+	uint32_t newCapacity = (uint32_t)((float)capacity * SHOOD_LOAD_MULTIPLIER);
+	if (newCapacity == 0)
+		newCapacity = 2;
+	else if (!IsPowerOf2_32(newCapacity))
+		newCapacity = AlignPowTwo32Ceil(newCapacity);
 
-	Capacity = capacity;
+	if (newCapacity <= Capacity) return;
+
+	uint32_t oldCapacity = Capacity;
+	Capacity = newCapacity;
 	MaxSize = (uint32_t)((float)Capacity * SHOOD_LOAD_FACTOR);
-	if (!IsAllocated())
-	{
-		Buckets = (SHoodBucket<K, V>*)Allocator.Alloc(MemSize());
-		SMemClear(Buckets, MemSize());
-	}
-	else if (Size == 0)
+
+	if (Size == 0)
 	{
 		Allocator.Free(Buckets);
-		Buckets = (SHoodBucket<K, V>*)Allocator.Alloc(MemSize());
-		SMemClear(Buckets, MemSize());
+		size_t newSize = MemSize();
+		Buckets = (SHoodBucket<K, V>*)(Allocator.Alloc(newSize));
 	}
 	else
 	{
 		SHoodTable<K, V, HashFunc, EqualsFunc> tmpTable = {};
-		tmpTable.Reserve(Capacity);
+		tmpTable.Allocator = Allocator;
+		tmpTable.Capacity = Capacity;
+		tmpTable.MaxSize = MaxSize;
+		tmpTable.Buckets = (SHoodBucket<K, V>*)(Allocator.Alloc(MemSize()));
 
-		for (uint32_t i = 0; i < tmpTable.Capacity; ++i)
+		for (uint32_t i = 0; i < oldCapacity; ++i)
 		{
-			if (Buckets[i].Occupied != 0)
+			if (Buckets[i].Occupied == 1)
 			{
 				tmpTable.Insert(&Buckets[i].Key, &Buckets[i].Value);
 			}
@@ -103,8 +108,24 @@ void SHoodTable<K, V, HashFunc, EqualsFunc>::Reserve(uint32_t capacity)
 		}
 
 		Allocator.Free(Buckets);
+		SASSERT(Size == tmpTable.Size);
 		*this = tmpTable;
 	}
+
+	SASSERT(Buckets);
+	SASSERT(Capacity > 0);
+	SASSERT(IsPowerOf2_32(Capacity));
+}
+
+template<
+	typename K,
+	typename V,
+	typename HashFunc,
+	typename EqualsFunc>
+void SHoodTable<K, V, HashFunc, EqualsFunc>::Clear()
+{
+	SMemClear(Buckets, MemSize());
+	Size = 0;
 }
 
 template<
@@ -115,7 +136,10 @@ template<
 void SHoodTable<K, V, HashFunc, EqualsFunc>::Free()
 {
 	Allocator.Free(Buckets);
-	SMemClear(this, sizeof(SHoodTable<K, V, HashFunc, EqualsFunc>));
+	Buckets = nullptr;
+	Capacity = 0;
+	Size = 0;
+	MaxSize = 0;
 }
 
 template<
@@ -125,10 +149,14 @@ template<
 	typename EqualsFunc>
 void SHoodTable<K, V, HashFunc, EqualsFunc>::Insert(const K* key, const V* value)
 {
-    if (Size >= MaxSize)
-    {
-        Reserve(Capacity * SHOOD_RESIZE);
-    }
+	SASSERT(EqualsFunc{}(key, key));
+
+	if (Size >= MaxSize)
+	{
+		Reserve(Capacity * SHOOD_RESIZE);
+	}
+
+	SASSERT(Buckets);
 
 	uint64_t hash = Hash(key);
 
@@ -144,12 +172,12 @@ void SHoodTable<K, V, HashFunc, EqualsFunc>::Insert(const K* key, const V* value
 		if (index == Capacity) index = 0; // Wrap
 
 		SHoodBucket<K, V>* bucket = &Buckets[index];
-		if (bucket->Occupied != 0) // Bucket is being used
+		if (bucket->Occupied == 1) // Bucket is being used
 		{
 			// Duplicate
 			if (EqualsFunc{}(&bucket->Key, key)) return;
 			
-			if (bucket->ProbeLength > probeLength)
+			if (probeLength > bucket->ProbeLength)
 			{
 				// Note: Swap out current insert with bucket
 				SHoodBucket<K, V> tmpBucket = *bucket;
@@ -159,8 +187,9 @@ void SHoodTable<K, V, HashFunc, EqualsFunc>::Insert(const K* key, const V* value
 				bucket->ProbeLength = probeLength;
 				probeLength = swapBucket.ProbeLength;
 			}
-
 			// Continues searching
+			++index;
+			++probeLength;
 		}
 		else
 		{
@@ -170,8 +199,7 @@ void SHoodTable<K, V, HashFunc, EqualsFunc>::Insert(const K* key, const V* value
 			++Size;
 			break;
 		}
-		++index;
-		++probeLength;
+
 	}
 }
 
@@ -182,10 +210,14 @@ template<
 	typename EqualsFunc>
 V* SHoodTable<K, V, HashFunc, EqualsFunc>::InsertKey(const K* key)
 {
+	SASSERT(EqualsFunc{}(key, key));
+
 	if (Size >= MaxSize)
 	{
 		Reserve(Capacity * SHOOD_RESIZE);
 	}
+
+	SASSERT(Buckets);
 
 	uint64_t hash = Hash(key);
 
@@ -205,9 +237,9 @@ V* SHoodTable<K, V, HashFunc, EqualsFunc>::InsertKey(const K* key)
 		if (bucket->Occupied != 0) // Bucket is being used
 		{
 			// Duplicate
-			if (EqualsFunc{}(&bucket->Key, key)) return NULL;
+			if (EqualsFunc{}(&bucket->Key, key)) return nullptr;
 
-			if (bucket->ProbeLength > probeLength)
+			if (probeLength > bucket->ProbeLength)
 			{
 				if (!valuePointer) valuePointer = &bucket->Value;
 
@@ -220,8 +252,9 @@ V* SHoodTable<K, V, HashFunc, EqualsFunc>::InsertKey(const K* key)
 				swapBucket = tmpBucket;
 				probeLength = swapBucket.ProbeLength;
 			}
-
 			// Continues searching
+			++index;
+			++probeLength;
 		}
 		else
 		{
@@ -232,8 +265,7 @@ V* SHoodTable<K, V, HashFunc, EqualsFunc>::InsertKey(const K* key)
 			valuePointer = &bucket->Value;
 			break;
 		}
-		++index;
-		++probeLength;
+
 	}
 	return valuePointer;
 }
@@ -246,6 +278,7 @@ template<
 V* SHoodTable<K, V, HashFunc, EqualsFunc>::Get(const K* key) const
 {
 	SASSERT(IsAllocated());
+	SASSERT(EqualsFunc{}(key, key));
 	SASSERT(key);
 
 	uint64_t hash = Hash(key);
@@ -255,17 +288,14 @@ V* SHoodTable<K, V, HashFunc, EqualsFunc>::Get(const K* key) const
 		if (index == Capacity) index = 0;
 
 		SHoodBucket<K, V>* bucket = &Buckets[index];
-		if (bucket->Occupied != 0)
-		{
-			if (EqualsFunc{}(&bucket->Key, key))
-				return &bucket->Value;
-		}
+		if (bucket->Occupied == 0)
+			return nullptr;
+		else if (EqualsFunc{}(&bucket->Key, key))
+			return &bucket->Value;
 		else
-			return NULL;
-
-		++index;
+			++index;
 	}
-	return NULL;
+	return nullptr;
 }
 
 template<
@@ -276,6 +306,7 @@ template<
 bool SHoodTable<K, V, HashFunc, EqualsFunc>::Contains(const K* key) const
 {
 	SASSERT(IsAllocated());
+	SASSERT(EqualsFunc{}(key, key));
 	SASSERT(key);
 
 	uint64_t hash = Hash(key);
@@ -285,15 +316,12 @@ bool SHoodTable<K, V, HashFunc, EqualsFunc>::Contains(const K* key) const
 		if (index == Capacity) index = 0;
 
 		SHoodBucket<K, V>* bucket = &Buckets[index];
-		if (bucket->Occupied != 0 &&
-			EqualsFunc{}(&bucket->Key, key))
-		{
-			return true;
-		}
-		else
+		if (bucket->Occupied == 0)
 			return false;
-
-		++index;
+		else if (EqualsFunc{}(&bucket->Key, key))
+			return true;
+		else
+			++index;
 	}
 	return false;
 }
@@ -306,6 +334,7 @@ template<
 void SHoodTable<K, V, HashFunc, EqualsFunc>::Remove(const K* key)
 {
 	SASSERT(IsAllocated());
+	SASSERT(EqualsFunc{}(key, key));
 	SASSERT(key);
 
 	uint64_t hash = Hash(key);
@@ -315,7 +344,7 @@ void SHoodTable<K, V, HashFunc, EqualsFunc>::Remove(const K* key)
 		if (index == Capacity) index = 0;
 
 		SHoodBucket<K, V>* bucket = &Buckets[index];
-		if (bucket->Occupied != 0)
+		if (bucket->Occupied == 1)
 		{
 			if (EqualsFunc{}(&bucket->Key, key))
 			{
@@ -327,24 +356,24 @@ void SHoodTable<K, V, HashFunc, EqualsFunc>::Remove(const K* key)
 					SHoodBucket<K, V>* nextBucket = &Buckets[index];
 					if (nextBucket->ProbeLength != 0)
 					{
-						--nextBucket->ProbeLength;
 						Buckets[lastIndex] = *nextBucket;
+						Buckets[lastIndex].ProbeLength--;
 					}
 					else
 					{
-						Buckets[lastIndex].Occupied = false;
+						Buckets[lastIndex].ProbeLength = 0;
+						Buckets[lastIndex].Occupied = 0;
 						--Size;
 						return;
 					}
 				}
 			}
+			++index; // continue searching till 0 or found equals key
 		}
 		else
 		{
-			return; // No key found
+			break; // No key found
 		}
-
-		++index;
 	}
 }
 
@@ -358,7 +387,7 @@ inline int TestSHoodTable()
 	table.Insert(&k0, &v1);
 
 	SASSERT(table.Size == 1);
-	SASSERT(table.MaxSize == 1);
+	SASSERT(table.MaxSize == uint32_t((float)table.Capacity * SHOOD_LOAD_FACTOR));
 	SASSERT(table.Capacity == 2);
 
 	int* get0 = table.Get(&k0);
@@ -377,7 +406,7 @@ inline int TestSHoodTable()
 	}
 
 	SASSERT(table.Size == 17);
-	SASSERT(table.MaxSize == 32 * SHOOD_LOAD_FACTOR);
+	SASSERT(table.MaxSize == uint32_t((float)table.Capacity * SHOOD_LOAD_FACTOR));
 	SASSERT(table.Capacity == 32);
 
 	int* get1 = table.Get(&k0);
