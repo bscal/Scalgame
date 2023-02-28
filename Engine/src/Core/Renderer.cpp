@@ -1,5 +1,6 @@
 #include "Renderer.h"
 
+#include "Game.h"
 #include "ResourceManager.h"
 
 #include "raylib/src/rlgl.h"
@@ -33,17 +34,21 @@ void Renderer::Initialize()
         "assets/shaders/tile_shader.vert",
         "assets/shaders/brightness_filter.frag");
 
+    BloomShader = LoadShader(
+        "assets/shaders/bloom.vert",
+        "assets/shaders/bloom.frag");
+
     UniformAmbientLightLoc = GetShaderLocation(LitShader, "ambientLightColor");
     UniformLightMapLoc = GetShaderLocation(LitShader, "texture1");
     UniformLightIntensityLoc = GetShaderLocation(LightingShader, "lightIntensity");
     UniformSunLightColorLoc = GetShaderLocation(LightingShader, "sunLightColor");
+    UniformLightTexLoc = GetShaderLocation(BloomShader, "texture1");
+    UniformBloomIntensityLoc = GetShaderLocation(BloomShader, "bloomIntensity");
 
-    AmbientLight = { 0.1f, 0.1f, 0.2f, 1.0f };
-    SunLight = { 0.0f, 0.0f, 0.0f, 0.0f };
-    LightIntensity = 1.0f;
-
-    SetShaderValue(LitShader, UniformAmbientLightLoc, &AmbientLight, SHADER_UNIFORM_VEC4);
-    SetShaderValue(LightingShader, UniformLightIntensityLoc, &LightIntensity, SHADER_UNIFORM_FLOAT);
+    SetValueAndUniformAmbientLight({ 0.1f, 0.1f, 0.2f, 1.0f });
+    SetValueAndUniformSunLight({ 186.f / 255.f,  186.f / 255.f,  169.f / 255.f, 1.0f });
+    SetValueAndUniformLightIntensity(1.0f);
+    SetValueAndUniformBloomIntensity(1.0f);
 
     SLOG_INFO("[ Renderer ] Initialized!");
 }
@@ -58,6 +63,35 @@ void Renderer::Free()
     UnloadShader(LitShader);
     UnloadShader(LightingShader);
     UnloadShader(BrightnessShader);
+    UnloadShader(BloomShader);
+}
+
+void Renderer::PostProcess(Game* game, const RenderTexture2D& worldTexture,
+    const RenderTexture2D& lightingTexture) const
+{
+    float screenW = (float)GetScreenWidth();
+    float screenH = (float)GetScreenHeight();
+    Rectangle srcRect = { 0.0f, 0.0f, screenW, -screenH };
+    Rectangle screenRect = { 0.0f, 0.0f, screenW, screenH };
+
+    // Brightness pass
+    BeginShaderMode(BrightnessShader);
+    BeginTextureMode(EffectTextureTwo);
+    ClearBackground(BLACK);
+    DrawTexturePro(lightingTexture.texture, srcRect, screenRect, { 0 }, 0.f, WHITE);
+    EndTextureMode();
+    EndShaderMode();
+
+    // Blur pass
+    BlurShader.Draw(EffectTextureTwo.texture);
+
+    BeginShaderMode(BloomShader);
+    BeginTextureMode(EffectTextureTwo);
+    ClearBackground(BLACK);
+    SetShaderValueTexture(BloomShader, UniformLightTexLoc, BlurShader.TextureVert.texture);
+    DrawTexturePro(lightingTexture.texture, srcRect, screenRect, { 0 }, 0.f, WHITE);
+    EndTextureMode();
+    EndShaderMode();
 }
 
 void Renderer::SetValueAndUniformAmbientLight(Vector4 ambientLight)
@@ -78,6 +112,12 @@ void Renderer::SetValueAndUniformLightIntensity(float intensity)
     SetShaderValue(LightingShader, UniformLightIntensityLoc, &LightIntensity, SHADER_UNIFORM_FLOAT);
 }
 
+void Renderer::SetValueAndUniformBloomIntensity(float intensity)
+{
+    BloomIntensity = intensity;
+    SetShaderValue(LightingShader, UniformLightIntensityLoc, &BloomIntensity, SHADER_UNIFORM_FLOAT);
+}
+
 void BlurShader::Initialize(int width, int height)
 {
     BlurShader = LoadShader(
@@ -87,20 +127,21 @@ void BlurShader::Initialize(int width, int height)
     TextureHorizontal = SLoadRenderTexture(width, height, PIXELFORMAT_UNCOMPRESSED_R32G32B32A32);
     TextureVert = SLoadRenderTexture(width, height, PIXELFORMAT_UNCOMPRESSED_R32G32B32A32);
 
-    UniformIsHorizontalLocation = GetShaderLocation(BlurShader, "IsHorizontal");
+    UniformIsHorizontalLocation = GetShaderLocation(BlurShader, "isHorizontal");
 
-    int targetWidthLoc = GetShaderLocation(BlurShader, "TargetWidth");
-    SetShaderValue(BlurShader, targetWidthLoc, &width, SHADER_UNIFORM_FLOAT);
+    int targetWidthLoc = GetShaderLocation(BlurShader, "targetWidth");
+    float targetWidth = (float)width;
+    SetShaderValue(BlurShader, targetWidthLoc, &targetWidth, SHADER_UNIFORM_FLOAT);
 }
 
-void BlurShader::Draw(const Texture2D& worldTexture) const
+void BlurShader::Draw(const Texture2D& lightingTexture) const
 {
     Rectangle srcRect =
     {
         0.0f,
         0.0f,
-        (float)worldTexture.width,
-        -(float)worldTexture.height,
+        (float)lightingTexture.width,
+        -(float)lightingTexture.height,
     };
 
     Rectangle blurRectSrc =
@@ -123,16 +164,16 @@ void BlurShader::Draw(const Texture2D& worldTexture) const
 
     BeginShaderMode(BlurShader);
 
-    int isHorizontalTrue = 1;
-    SetShaderValue(BlurShader, UniformIsHorizontalLocation, &isHorizontalTrue, SHADER_UNIFORM_INT);
+    int isHorizontal = 1;
+    SetShaderValue(BlurShader, UniformIsHorizontalLocation, &isHorizontal, SHADER_UNIFORM_INT);
 
     BeginTextureMode(TextureHorizontal);
     ClearBackground(BLACK);
-    DrawTextureProF(worldTexture, srcRect, blurRectDest, { 0 }, 0.0f, colorWhite);
+    DrawTextureProF(lightingTexture, srcRect, blurRectDest, { 0 }, 0.0f, colorWhite);
     EndTextureMode();
 
-    int isHorizontalFalse = 0;
-    SetShaderValue(BlurShader, UniformIsHorizontalLocation, &isHorizontalFalse, SHADER_UNIFORM_INT);
+    isHorizontal = 0;
+    SetShaderValue(BlurShader, UniformIsHorizontalLocation, &isHorizontal, SHADER_UNIFORM_INT);
 
     BeginTextureMode(TextureVert);
     ClearBackground(BLACK);
@@ -302,6 +343,12 @@ void SDrawRectangleProF(Rectangle rec, Vector2 origin, float rotation, Vector4 c
 
 RenderTexture2D SLoadRenderTexture(int width, int height, PixelFormat format)
 {
+    return SLoadRenderTextureEx(width, height, format, false);
+}
+
+RenderTexture2D
+SLoadRenderTextureEx(int width, int height, PixelFormat format, bool useDepth)
+{
     RenderTexture2D target = { 0 };
 
     target.id = rlLoadFramebuffer(width, height);   // Load an empty framebuffer
@@ -317,16 +364,23 @@ RenderTexture2D SLoadRenderTexture(int width, int height, PixelFormat format)
         target.texture.format = format;
         target.texture.mipmaps = 1;
 
-        // Create depth renderbuffer/texture
-        target.depth.id = rlLoadTextureDepth(width, height, true);
-        target.depth.width = width;
-        target.depth.height = height;
-        target.depth.format = 19;       //DEPTH_COMPONENT_24BIT?
-        target.depth.mipmaps = 1;
+        if (useDepth)
+        {
+            // Create depth renderbuffer/texture
+            target.depth.id = rlLoadTextureDepth(width, height, true);
+            target.depth.width = width;
+            target.depth.height = height;
+            target.depth.format = 19;       //DEPTH_COMPONENT_24BIT?
+            target.depth.mipmaps = 1;
+        }
 
         // Attach color texture and depth renderbuffer/texture to FBO
         rlFramebufferAttach(target.id, target.texture.id, RL_ATTACHMENT_COLOR_CHANNEL0, RL_ATTACHMENT_TEXTURE2D, 0);
-        rlFramebufferAttach(target.id, target.depth.id, RL_ATTACHMENT_DEPTH, RL_ATTACHMENT_RENDERBUFFER, 0);
+
+        if (useDepth)
+        {
+            rlFramebufferAttach(target.id, target.depth.id, RL_ATTACHMENT_DEPTH, RL_ATTACHMENT_RENDERBUFFER, 0);
+        }
 
         // Check if fbo is complete with attachments (valid)
         if (rlFramebufferComplete(target.id)) TRACELOG(LOG_INFO, "FBO: [ID %i] Framebuffer object created successfully", target.id);

@@ -50,9 +50,9 @@ int64_t  Vec2iPackInt64(Vector2i v);
 Vector2i Vec2iUnpackInt64(int64_t packedVector);
 Vector2i Vec2fToVec2i(Vector2 v);
 
-inline constexpr int HashVec2i(Vector2i vec)
+inline constexpr uint32_t HashVec2i(Vector2i vec)
 {
-    return vec.x ^ (vec.y << 2);
+    return (uint32_t)(vec.x ^ (vec.y << 2));
 }
 
 template<>
@@ -66,9 +66,9 @@ struct std::hash<Vector2i>
 
 struct Vector2iHasher
 {
-    size_t operator()(const Vector2i& v) const noexcept
+    size_t operator()(const Vector2i* v) const noexcept
     {
-        return HashVec2i(v);
+        return HashVec2i(*v);
     }
 };
 
@@ -79,8 +79,8 @@ inline bool Vector2iEqualsFunc(const Vector2i* lhs, const Vector2i* rhs) noexcep
 
 struct Vector2iEquals
 {
-    bool operator()(const Vector2i& lhs, const Vector2i& rhs) const noexcept
+    bool operator()(const Vector2i* lhs, const Vector2i* rhs) const noexcept
     {
-        return lhs.Equals(rhs);
+        return lhs->Equals(*rhs);
     }
 };

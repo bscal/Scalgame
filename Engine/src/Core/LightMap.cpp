@@ -5,11 +5,11 @@
 #include "ChunkedTileMap.h"
 #include "Renderer.h"
 
-#define LIGHTINFO_DEFAULT LightInfo{  0.0f, 0.0f, 0.0f, 0.0f }
+#define LIGHTINFO_DEFAULT LightInfo{ 0.0f, 0.0f, 0.0f, 0.0f }
 
 void LightMapInitialize(LightData* lightData)
 {
-	for (int i = 0; i < TILES_IN_VIEW; ++i)
+	for (int i = 0; i < SCREEN_TOTAL_TILES; ++i)
 	{
 		lightData->LightColors[i] = LIGHTINFO_DEFAULT;
 	}
@@ -18,19 +18,20 @@ void LightMapInitialize(LightData* lightData)
 void LightMapUpdate(LightData* lightData, Game* game)
 {
 	Vector2i target = GetClientPlayer()->Transform.TilePos;
-	const float lPadding = 1.0f;
-	float offsetX = game->WorldCamera.offset.x / TILE_SIZE_F - lPadding;
-	float offsetY = game->WorldCamera.offset.y / TILE_SIZE_F - lPadding;
+	const float lPadding = 2.0f;
+	float offsetX = game->WorldCamera.offset.x / TILE_SIZE_F + lPadding;
+	float offsetY = game->WorldCamera.offset.y / TILE_SIZE_F + lPadding;
 	lightData->LightMapOffset.x = (target.x - (int)offsetX);
 	lightData->LightMapOffset.y = (target.y - (int)offsetY);
-
-	BeginBlendMode(BLEND_ADDITIVE);
 	for (int y = 0; y < SCREEN_HEIGHT_TILES; ++y)
 	{
 		for (int x = 0; x < SCREEN_WIDTH_TILES; ++x)
 		{
 			int index = x + y * SCREEN_WIDTH_TILES;
+			SASSERT(index >= 0);
+			SASSERT(index < SCREEN_TOTAL_TILES);
 			const Vector4& color = lightData->LightColors[index].AsVec4();
+			if (color.x == 0.f && color.y == 0.f && color.z == 0.f && color.w == 0.f) continue;
 			Rectangle rec =
 			{
 				((float)x + (float)lightData->LightMapOffset.x) * TILE_SIZE_F,
@@ -42,7 +43,6 @@ void LightMapUpdate(LightData* lightData, Game* game)
 			lightData->LightColors[index] = LIGHTINFO_DEFAULT; // resets dynamic lights
 		}
 	}
-	EndBlendMode();
 }
 
 void LightMapSetColor(LightData* lightData, TileCoord tileCoord, const Vector4& colors)
@@ -53,7 +53,7 @@ void LightMapSetColor(LightData* lightData, TileCoord tileCoord, const Vector4& 
 		tileCoord.y - lightData->LightMapOffset.y
 	};
 	int index = worldTileCoord.x + worldTileCoord.y * SCREEN_WIDTH_TILES;
-	if (index < 0 || index >= TILES_IN_VIEW) return;
+	if (index < 0 || index >= SCREEN_TOTAL_TILES) return;
 	lightData->LightColors[index].AssignFromVec4(colors);
 }
 
@@ -66,26 +66,17 @@ void LightMapAddColor(LightData* lightData, TileCoord tileCoord, const Vector4& 
 	};
 	int index = worldTileCoord.x + worldTileCoord.y * SCREEN_WIDTH_TILES;
 	SASSERT(index >= 0);
-	SASSERT(index < TILES_IN_VIEW);
+	SASSERT(index < SCREEN_TOTAL_TILES);
 	lightData->LightColors[index].x += colors.x;
 	lightData->LightColors[index].y += colors.y;
 	lightData->LightColors[index].z += colors.z;
 }
 
-internal inline bool
-IsTileValid(Vector2i pos)
-{
-	if (!CTileMap::IsTileInBounds(&GetGame()->World.ChunkedTileMap, pos)) return false;
-	if (pos.x < GetGame()->LightMap.LightMapOffset.x ||
-		pos.y < GetGame()->LightMap.LightMapOffset.y ||
-		pos.x >= GetGame()->LightMap.LightMapOffset.x + SCREEN_WIDTH_TILES ||
-		pos.y >= GetGame()->LightMap.LightMapOffset.y + SCREEN_HEIGHT_TILES) return false;
-	return true;
-}
-
 void LightMapSetCeiling(LightData* lightData, TileCoord tileCoord, bool HasCieling)
 {
-	if (!IsTileValid(tileCoord)) return;
+	if (!CTileMap::IsTileInBounds(&GetGame()->World.ChunkedTileMap, tileCoord)) return;
+	if (!LightMapInView(lightData, tileCoord)) return;
+
 	TileCoord worldTileCoord =
 	{
 		tileCoord.x - lightData->LightMapOffset.x,
@@ -93,4 +84,12 @@ void LightMapSetCeiling(LightData* lightData, TileCoord tileCoord, bool HasCieli
 	};
 	int index = worldTileCoord.x + worldTileCoord.y * SCREEN_WIDTH_TILES;
 	lightData->LightColors[index].w = (HasCieling) ? 0.f : 1.f;
+}
+
+bool LightMapInView(LightData* lightData, TileCoord tileCoord)
+{
+	return (tileCoord.x >= GetGame()->LightMap.LightMapOffset.x ||
+		tileCoord.y >= GetGame()->LightMap.LightMapOffset.y ||
+		tileCoord.x < GetGame()->LightMap.LightMapOffset.x + SCREEN_WIDTH_TILES ||
+		tileCoord.y < GetGame()->LightMap.LightMapOffset.y + SCREEN_HEIGHT_TILES);
 }

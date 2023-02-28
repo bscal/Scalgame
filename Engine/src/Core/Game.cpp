@@ -1,5 +1,6 @@
 #include "Game.h"
 
+#include "Globals.h"
 #include "Creature.h"
 #include "ResourceManager.h"
 #include "Lighting.h"
@@ -246,6 +247,11 @@ SAPI void GameApplication::Run()
 					Tile newTile = CreateTileId(&Game->TileMgr, 5);
 					CTileMap::SetTile(&Game->World.ChunkedTileMap, &newTile, clickedTilePos);
 					SLOG_INFO("Clicked Tile[%d, %d] Id: %d", clickedTilePos.x, clickedTilePos.y, tile->TileId);
+
+					Vector2 translatedVector = clickedTilePos.AsVec2();
+					translatedVector.x *= TILE_SIZE_F;
+					translatedVector.y *= TILE_SIZE_F;
+					SLOG_INFO("%s\n %s\n %s", RECT_STR(GetTopLeftTile()), VEC2I_STR(TranslateTileToViewTile(clickedTilePos)), VEC2_STR(translatedVector));
 				}
 			}
 			if (IsMouseButtonPressed(MOUSE_BUTTON_RIGHT))
@@ -359,6 +365,7 @@ SAPI void GameApplication::Run()
 		EndTextureMode();
 		EndShaderMode();
 
+		// Update and draw lightmap
 		BeginShaderMode(Game->Renderer.LightingShader);
 		BeginTextureMode(Game->Renderer.EffectTextureOne);
 		BeginMode2D(Game->WorldCamera);
@@ -367,17 +374,8 @@ SAPI void GameApplication::Run()
 		EndMode2D();
 		EndTextureMode();
 		EndShaderMode();
-
-		// Brightness pass
-		BeginShaderMode(Game->Renderer.BrightnessShader);
-		BeginTextureMode(Game->Renderer.EffectTextureTwo);
-		ClearBackground(BLACK);
-		DrawTexturePro(Game->Renderer.EffectTextureOne.texture, srcRect, screenRect, { 0 }, 0.f, WHITE);
-		EndTextureMode();
-		EndShaderMode();
 		
-		// Blur pass
-		Game->Renderer.BlurShader.Draw(Game->Renderer.EffectTextureTwo.texture);
+		Game->Renderer.PostProcess(Game, Game->Renderer.WorldTexture, Game->Renderer.EffectTextureOne);
 
 		// ***************
 		// Draws to buffer
@@ -386,25 +384,13 @@ SAPI void GameApplication::Run()
 
 		BeginShaderMode(Game->Renderer.LitShader);
 		BeginMode2D(Game->ViewCamera);
+		ClearBackground(BLACK);
 
 		rlPushMatrix();
 		rlScalef(GetScale(), GetScale(), 1.0f);
 
-		SetShaderValueTexture(Game->Renderer.LitShader, Game->Renderer.UniformLightMapLoc, Game->Renderer.EffectTextureOne.texture);
+		SetShaderValueTexture(Game->Renderer.LitShader, Game->Renderer.UniformLightMapLoc, Game->Renderer.EffectTextureTwo.texture);
 		DrawTexturePro(Game->Renderer.WorldTexture.texture, srcRect, dstRect, { 0 }, 0.0f, WHITE);
-		
-		// Enable brighter bright
-		if (Game->DebugTest)
-		{
-			BeginBlendMode(BLEND_ADDITIVE);
-			DrawTexturePro(Game->Renderer.EffectTextureTwo.texture, srcRect, dstRect, { 0 }, 0.0f, WHITE);
-			EndBlendMode();
-		}
-
-		//BeginBlendMode(BLEND_ADDITIVE);
-		//Rectangle r = { 0.f, 0.f, (float)Game->Resources.Blur.TextureVert.texture.width, -(float)Game->Resources.Blur.TextureVert.texture.height };
-		//DrawTexturePro(Game->Resources.Blur.TextureVert.texture, r, dstRect, { 0 }, 0.0f, WHITE);
-		//EndBlendMode();
 
 		rlPopMatrix();
 
@@ -462,14 +448,20 @@ internal void GameLateUpdate(Game* game)
 	WorldLateUpdate(&game->World, game);
 }
 
-GameApplication* const GetGameApp()
+GameApplication* GetGameApp()
 {
 	SASSERT(GameAppPtr);
 	SASSERT(GameAppPtr->IsInitialized);
 	return GameAppPtr;
 }
 
-Player* const GetClientPlayer()
+Game* GetGame()
+{
+	SASSERT(GetGameApp()->Game);
+	return GetGameApp()->Game;
+}
+
+Player* GetClientPlayer()
 {
 	SASSERT(GetGame()->EntityMgr.Players.Count > 0);
 	return GetGame()->EntityMgr.Players.PeekAt(0);
@@ -479,12 +471,6 @@ EntityMgr* GetEntityMgr()
 {
 	SASSERT(GetGame()->World.IsAllocated);
 	return &GetGame()->EntityMgr;
-}
-
-Game* const GetGame()
-{
-	SASSERT(GetGameApp()->Game);
-	return GetGameApp()->Game;
 }
 
 SRandom* GetGlobalRandom()
@@ -553,4 +539,38 @@ void SetCameraDistance(GameApplication* gameApp, float zoom)
 	gameApp->Game->WorldCamera.target = playerPos;
 	Vector2 viewTarget = Vector2Multiply(playerPos, { GetScale(), GetScale() });
 	gameApp->Game->ViewCamera.target = viewTarget;
+}
+
+bool TileInScreen(Vector2i tileCoord)
+{
+	Rectangle topLeft = GetTopLeftTile();
+
+	Vector2 translatedVector = tileCoord.AsVec2();
+	translatedVector.x *= TILE_SIZE_F;
+	translatedVector.y *= TILE_SIZE_F;
+
+
+	return CheckCollisionPointRec(translatedVector, topLeft);
+}
+
+Rectangle GetTopLeftTile()
+{
+	constexpr float paddingW = (SCREEN_WIDTH_PADDING / 2.0f);
+	constexpr float paddingH = (SCREEN_HEIGHT_PADDING / 2.0f);
+
+	Rectangle result;
+	result.x = ceilf(GetGame()->WorldCamera.offset.x) - paddingW;
+	result.y = ceilf(GetGame()->WorldCamera.offset.y) - paddingH;
+	result.width = SCREEN_WIDTH_PADDING;
+	result.height = SCREEN_HEIGHT_PADDING;
+	return result;
+}
+
+Vector2i TranslateTileToViewTile(Vector2i tileCoord)
+{
+	constexpr float PADDING = 2.0f;
+	Vector2 result;
+	result.x = roundf(GetGame()->WorldCamera.offset.x / TILE_SIZE_F) + PADDING;
+	result.y = roundf(GetGame()->WorldCamera.offset.y / TILE_SIZE_F) + PADDING;
+	return tileCoord.Subtract(Vec2fToVec2i(result));
 }

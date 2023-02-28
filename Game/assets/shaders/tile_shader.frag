@@ -1,15 +1,14 @@
-#version 460
+#version 430 core
 
-in vec2 FragTexCoord;
-in vec4 FragColor;
+in vec2 fragTexCoord;
+in vec4 fragColor;
 
 uniform sampler2D texture0;
-uniform vec4 colDiffuse;
 
-out vec4 FinalColor;
+out vec4 finalColor;
 
 void main()
 {
-	vec4 texColor = texture(texture0, FragTexCoord);
-	FinalColor = texColor * colDiffuse * FragColor;
+	vec4 texColor = texture(texture0, fragTexCoord);
+	finalColor = texColor * fragColor;
 }

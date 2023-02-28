@@ -2,6 +2,7 @@
 
 #include "Core.h"
 
+struct Game;
 struct Resources;
 
 struct BlurShader
@@ -27,22 +28,30 @@ struct Renderer
 	Shader LitShader;
 	Shader LightingShader;
 	Shader BrightnessShader;
+	Shader BloomShader;
         
     int UniformAmbientLightLoc;
 	int UniformLightIntensityLoc;
 	int UniformSunLightColorLoc;
 	int UniformLightMapLoc;
+	int UniformLightTexLoc;
+	int UniformBloomIntensityLoc;
 
 	Vector4 AmbientLight;
 	Vector4 SunLight;
 	float LightIntensity;
+	float BloomIntensity;
 
 	void Initialize();
 	void Free();
 
+	void PostProcess(Game* game, const RenderTexture2D& worldTexture,
+		const RenderTexture2D& lightingTexture) const;
+
 	void SetValueAndUniformAmbientLight(Vector4 ambientLight);
 	void SetValueAndUniformSunLight(Vector4 sunLight);
 	void SetValueAndUniformLightIntensity(float intensity);
+	void SetValueAndUniformBloomIntensity(float intensity);
 };
 
 void 
@@ -58,3 +67,6 @@ SDrawRectangleProF(Rectangle rec, Vector2 origin, float rotation, Vector4 color)
 
 RenderTexture2D
 SLoadRenderTexture(int width, int height, PixelFormat format);
+
+RenderTexture2D
+SLoadRenderTextureEx(int width, int height, PixelFormat format, bool useDepth);

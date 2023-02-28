@@ -14,6 +14,7 @@ global_var const struct nk_color BG_COLOR = ColorToNuklear({ 17, 17, 17, 155 });
 internal void DrawFPS(struct nk_context* ctx);
 internal struct nk_colorf Vec4ToColorf(Vector4 color);
 internal Vector4 ColorFToVec4(struct nk_colorf color);
+internal struct nk_color ColorFToColor(struct nk_colorf* color);
 internal bool ColorFEqual(const struct nk_colorf& v0, const struct nk_colorf& v1);
 internal float CalculateTextWidth(nk_handle handle, float height, const char* text, int len);
 internal void InitializeNuklear(nk_context* nkCtxToInit, UIState* state, Font* font, float fontSize);
@@ -70,6 +71,17 @@ ColorFToVec4(struct nk_colorf color)
 	return { color.r, color.g, color.b, color.a };
 }
 
+internal struct nk_color 
+ColorFToColor(struct nk_colorf* color)
+{
+	struct nk_color result;
+	result.r = (uint8_t)(color->r * 255.0f);
+	result.g = (uint8_t)(color->g * 255.0f);
+	result.b = (uint8_t)(color->b * 255.0f);
+	result.a = (uint8_t)(color->a * 255.0f);
+	return result;
+}
+
 internal bool ColorFEqual(const struct nk_colorf& v0, const struct nk_colorf& v1)
 {
 	return (v0.r == v1.r && v0.g == v1.g && v0.b == v1.b && v0.a == v1.a);
@@ -102,7 +114,7 @@ InitializeNuklear(nk_context* nkCtxToInit, UIState* state, Font* font, float fon
 		state->UIMemorySize, &state->Font))
 	{
 		SLOG_ERR("[ UI ] Nuklear failed to initialized");
-		assert(false);
+		SASSERT(false);
 	}
 
 	// Set the internal user data.
@@ -133,10 +145,10 @@ DrawDebugPanel(UIState* state)
 		nk_label(ctx, TextFormat("% .2f", GetDeltaTime() * 1000.f), NK_TEXT_LEFT);
 
 		nk_label(ctx, "RenderTime:", NK_TEXT_LEFT);
-		nk_label(ctx, TextFormat("% .2f", GetGameApp()->RenderTime * 1000.f), NK_TEXT_LEFT);
+		nk_label(ctx, TextFormat("% .2f", GetGameApp()->RenderTime * 1000.0), NK_TEXT_LEFT);
 
 		nk_label(ctx, "WorldUpdateTime:", NK_TEXT_LEFT);
-		nk_label(ctx, TextFormat("% .2f", GetGameApp()->UpdateWorldTime * 1000.f), NK_TEXT_LEFT);
+		nk_label(ctx, TextFormat("% .2f", GetGameApp()->UpdateWorldTime * 1000.0), NK_TEXT_LEFT);
 
 		nk_label(ctx, "Chunks(Load/Up):", NK_TEXT_LEFT);
 		nk_label(ctx, TextFormat("%d/%d",
@@ -163,45 +175,54 @@ DrawDebugPanel(UIState* state)
 
 		// Lighting
 		nk_spacer(ctx);
+
+		nk_layout_row_dynamic(ctx, 16, 1);
 		nk_label(ctx, "--- Lighting ---", NK_TEXT_LEFT);
 		{
 			nk_layout_row_begin(ctx, NK_DYNAMIC, 16, 2);
 			{
-				nk_layout_row_push(ctx, .25f);
+				nk_layout_row_push(ctx, .4f);
 				float val = GetGame()->Renderer.LightIntensity;
-				nk_label(ctx, TextFormat("%.2f", val), NK_TEXT_LEFT);
-				nk_layout_row_push(ctx, .75f);
+				nk_label(ctx, TextFormat("Light Intensity: %.2f", val), NK_TEXT_LEFT);
+				nk_layout_row_push(ctx, .6f);
 				if (nk_slider_float(ctx, 0.0f, &val, 2.0f, 0.02f))
 					GetGame()->Renderer.SetValueAndUniformLightIntensity(val);
 			}
 			nk_layout_row_end(ctx);
 
-			nk_layout_row_begin(ctx, NK_DYNAMIC, 125, 2);
+			nk_layout_row_begin(ctx, NK_DYNAMIC, 16, 2);
 			{
-				nk_layout_row_push(ctx, .2f);
-				nk_label(ctx, "Ambient", NK_TEXT_LEFT);
-				nk_layout_row_push(ctx, .8f);
+				nk_layout_row_push(ctx, .4f);
+				float val = GetGame()->Renderer.BloomIntensity;
+				nk_label(ctx, TextFormat("Bloom Intensity: %.2f", val), NK_TEXT_LEFT);
+				nk_layout_row_push(ctx, .6f);
+				if (nk_slider_float(ctx, 0.0f, &val, 2.0f, 0.02f))
+					GetGame()->Renderer.SetValueAndUniformBloomIntensity(val);
+			}
+			nk_layout_row_end(ctx);
+
+			{
+				nk_layout_row_dynamic(ctx, 16, 1);
 				struct nk_colorf ambientColor = Vec4ToColorF(GetGame()->Renderer.AmbientLight);
+				nk_value_color_hex(ctx, "Ambient Color", ColorFToColor(&ambientColor));
+
+				nk_layout_row_dynamic(ctx, 150, 1);
 				struct nk_colorf newAmbientColor = nk_color_picker(ctx, ambientColor, NK_RGB);
 				if (!ColorFEqual(ambientColor, newAmbientColor))
 					GetGame()->Renderer.SetValueAndUniformAmbientLight(ColorFToVec4(newAmbientColor));
 			}
-			nk_layout_row_end(ctx);
 
-			nk_layout_row_begin(ctx, NK_DYNAMIC, 125, 2);
 			{
-				nk_layout_row_push(ctx, .2f);
-				nk_label(ctx, "Sunlight", NK_TEXT_LEFT);
-				nk_layout_row_push(ctx, .8f);
+				nk_layout_row_dynamic(ctx, 16, 1);
 				struct nk_colorf skyColor = Vec4ToColorF(GetGame()->Renderer.SunLight);
+				nk_value_color_hex(ctx, "Sunlight Color", ColorFToColor(&skyColor));
+
+				nk_layout_row_dynamic(ctx, 150, 1);
 				struct nk_colorf newSkyColor = nk_color_picker(ctx, skyColor, NK_RGB);
 				if (!ColorFEqual(skyColor, newSkyColor))
 					GetGame()->Renderer.SetValueAndUniformSunLight(ColorFToVec4(newSkyColor));
 			}
-			nk_layout_row_end(ctx);
 		}
-
-		
 	}
 	nk_end(&state->Ctx);
 }

@@ -3,10 +3,10 @@
 #include "Core.h"
 #include "Structures/SList.h"
 #include "Structures/SSet.h"
+#include "Structures/SHoodSet.h"
 
 struct GameApplication;
 struct Game;
-namespace CTileMap { struct ChunkedTileMap; }
 struct Light;
 struct UpdatingLight;
 
@@ -14,7 +14,7 @@ struct LightingState
 {
     SList<Light> Lights;
     SList<UpdatingLight> UpdatingLights;
-    SSet<Vector2i> VisitedTilePerLight;
+    SHoodSet<Vector2i, DefaultHasher<Vector2i>, Vector2iEquals> VisitedTilePerLight;
 };
 
 struct Light
@@ -45,5 +45,4 @@ void LightsUpdate(Game* game);
 size_t GetNumOfLights();
 
 void
-LightsUpdateTileColor(CTileMap::ChunkedTileMap* tilemap,
-    TileCoord tileCoord, float distance, const Light& light);
+LightsUpdateTileColor(TileCoord tileCoord, float distance, const Light& light);

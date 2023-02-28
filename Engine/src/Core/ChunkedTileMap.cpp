@@ -85,6 +85,7 @@ FindChunksInView(ChunkedTileMap* tilemap, Game* game, Vector2i centerChunk)
 			if (!IsChunkInBounds(tilemap, nextChunkCoord)) continue;
 			if (IsChunkLoaded(tilemap, nextChunkCoord)) continue;
 			TileMapChunk* chunk = LoadChunk(tilemap, nextChunkCoord);
+			SLOG_INFO("ChunkLoaded");
 			if (!chunk->IsChunkGenerated)
 			{
 				GenerateChunk(tilemap, chunk);
@@ -128,18 +129,14 @@ Draw(ChunkedTileMap* tilemap, Game* game)
 	TileMgr* tileMgr = &game->TileMgr;
 
 	Vector2i target = GetClientPlayer()->Transform.TilePos;
-	Vector2i screenDims
-	{
-		(GetScreenWidth() / TILE_SIZE) + 2,
-		(GetScreenHeight() / TILE_SIZE) + 2
-	};
-	float offsetX = game->WorldCamera.offset.x / TILE_SIZE - 1.0f;
-	float offsetY = game->WorldCamera.offset.y / TILE_SIZE - 1.0f;
+	const float lPadding = 2.0f;
+	float offsetX = game->WorldCamera.offset.x / TILE_SIZE_F + lPadding;
+	float offsetY = game->WorldCamera.offset.y / TILE_SIZE_F + lPadding;
 	int tileOffsetX = (target.x - (int)offsetX);
 	int tileOffsetY = (target.y - (int)offsetY);
-	for (int y = 0; y < screenDims.y; ++y)
+	for (int y = 0; y < SCREEN_HEIGHT_TILES; ++y)
 	{
-		for (int x = 0; x < screenDims.x; ++x)
+		for (int x = 0; x < SCREEN_WIDTH_TILES; ++x)
 		{
 			TileCoord coord = {
 				x + tileOffsetX,
@@ -244,6 +241,7 @@ void UnloadChunk(ChunkedTileMap* tilemap, ChunkCoord coord)
 		{
 			chunkPtr->Entities.Free();
 			tilemap->ChunksList.RemoveAtFast(i);
+			SLOG_INFO("ChunkUnloaded");
 			break;
 		}
 	}

@@ -3,8 +3,6 @@
 #include "Core/Core.h"
 #include "Core/SMemory.h"
 
-#include <assert.h>
-
 template<typename T>
 struct SLinkedListEntry
 {
@@ -15,23 +13,47 @@ struct SLinkedListEntry
 template<typename T>
 struct SLinkedList
 {
+	SMemAllocator Allocator = SMEM_GAME_ALLOCATOR;
 	SLinkedListEntry<T>* First;
 	uint32_t Size;
 
 	void Free();
+
 	void Push(const T* value);
 	void Pop();
+	T* Peek() const;
 	[[nodiscard]] T PopValue();
 
 	inline bool HasNext() const { return (Size > 0); }
+
+private:
+	SLinkedListEntry<T>* CreateEntry(const T* value) const;
+	SLinkedListEntry<T>* FreeEntry(SLinkedListEntry<T>* entry) const;
 };
 
 template<typename T>
-internal SLinkedListEntry<T>* FreeEntry(SLinkedListEntry<T>* entry)
+SLinkedListEntry<T>*
+SLinkedList<T>::CreateEntry(const T* value) const
 {
-	assert(entry);
+	SASSERT(value);
+	SASSERT(Allocator.Alloc);
+
+	SLinkedListEntry<T>* entry = (SLinkedListEntry<T>*)Allocator.Alloc(sizeof(SLinkedListEntry<T>));
+	SASSERT(entry);
+	entry->Next = First;
+	entry->Value = *value;
+	return entry;
+}
+
+template<typename T>
+SLinkedListEntry<T>* 
+SLinkedList<T>::FreeEntry(SLinkedListEntry<T>* entry) const
+{
+	SASSERT(entry);
+	SASSERT(Allocator.Free);
+
 	SLinkedListEntry<T>* next = entry->Next;
-	SMemFree(entry);
+	Allocator.Free(entry);
 	return next;
 }
 
@@ -55,33 +77,32 @@ void SLinkedList<T>::Free()
 template<typename T>
 void SLinkedList<T>::Push(const T* value)
 {
-	assert(value);
-
-	SLinkedListEntry<T>* entry = (SLinkedListEntry<T>*)SMemAlloc(sizeof(SLinkedListEntry<T>));
-	assert(entry);
-	SMemClear(entry, sizeof(SLinkedListEntry<T>));
-
-	entry->Value = *value;
-	entry->Next = First;
-	First = entry;
+	First = CreateEntry(value);
 	++Size;
 }
 
 template<typename T>
 void SLinkedList<T>::Pop()
 {
-	if (Size == 0) return;
-	First = FreeEntry(First);
-	--Size;
+	if (HasNext())
+	{
+		First = FreeEntry(First);
+		--Size;
+	}
+}
+
+template<typename T>
+T* SLinkedList<T>::Peek() const
+{
+	return (HasNext()) ? &First->Value : nullptr;
 }
 
 template<typename T>
 [[nodiscard]] T SLinkedList<T>::PopValue()
 {
-	assert(Size > 0);
-	assert(First);
+	SASSERT(HasNext());
+	SASSERT(First);
 	T val = First->Value;
-	First = FreeEntry(First);
-	--Size;
+	Pop();
 	return val;
 }

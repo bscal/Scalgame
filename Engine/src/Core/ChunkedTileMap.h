@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core.h"
+#include "Globals.h"
 #include "Vector2i.h"
 #include "Tile.h"
 
@@ -11,13 +12,6 @@
 
 struct GameApp;
 struct Game;
-
-global_var constexpr int CHUNK_DIMENSIONS = 64;
-global_var constexpr int CHUNK_SIZE = CHUNK_DIMENSIONS * CHUNK_DIMENSIONS;
-global_var constexpr int TILE_SIZE = 16;
-global_var constexpr float TILE_SIZE_F = (float)TILE_SIZE;
-global_var constexpr float HALF_TILE_SIZE = ((float)TILE_SIZE) / 2.0f;
-global_var constexpr Vector2i VIEW_DISTANCE = { 1, 1 };
 
 namespace CTileMap
 {

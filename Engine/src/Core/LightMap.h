@@ -1,16 +1,12 @@
 #pragma once
 
 #include "Core.h"
+#include "Globals.h"
 #include "Vector2i.h"
 
-struct Game;
+#include "Structures/StaticArray.h"
 
-global_var constexpr int SCREEN_WIDTH = 1920;
-global_var constexpr int SCREEN_HEIGHT = 1080;
-global_var constexpr int TILES_IN_VIEW_PADDING = 2;
-global_var constexpr int SCREEN_WIDTH_TILES = (SCREEN_WIDTH / 16) + TILES_IN_VIEW_PADDING;
-global_var constexpr int SCREEN_HEIGHT_TILES = (SCREEN_HEIGHT / 16) + TILES_IN_VIEW_PADDING;
-global_var constexpr int TILES_IN_VIEW = SCREEN_WIDTH_TILES * SCREEN_HEIGHT_TILES;
+struct Game;
 
 struct LightInfo
 {
@@ -26,7 +22,7 @@ struct LightInfo
 struct LightData
 {
 	Vector2i LightMapOffset;
-	LightInfo LightColors[TILES_IN_VIEW];
+	StaticArray<LightInfo, SCREEN_TOTAL_TILES> LightColors;
 };
 
 void LightMapInitialize(LightData* lightData);
@@ -38,3 +34,5 @@ void LightMapSetColor(LightData* lightData, TileCoord tileCoord, const Vector4& 
 void LightMapAddColor(LightData* lightData, TileCoord tileCoord, const Vector4& colors);
 
 void LightMapSetCeiling(LightData* lightData, TileCoord tileCoord, bool hasCeiling);
+
+bool LightMapInView(LightData* lightData, TileCoord tileCoord);

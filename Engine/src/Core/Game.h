@@ -26,7 +26,7 @@ struct Game
     LightData LightMap;
     
     World World;
-    
+
     uint64_t Time;
     uint64_t CurrentDayProgress;
 
@@ -74,11 +74,12 @@ struct GameApplication
     SAPI void Run();
 };
 
-GameApplication* const GetGameApp();
+GameApplication* GetGameApp();
+Game* GetGame();
+Player* GetClientPlayer();
+
 void SetCameraPosition(Game* game, Vector3 pos);
 void SetCameraDistance(GameApplication* gameApp, float zoom);
-Player* const GetClientPlayer();
-Game* const GetGame();
 
 SRandom* GetGlobalRandom();
 float GetDeltaTime();
@@ -87,3 +88,6 @@ Rectangle GetScaledScreenRect();
 Vector2 VecToTileCenter(Vector2 vec);
 Vector2 GetZoomedMousePos(const Camera2D& camera);
 Vector2i GetTileFromMouse(Game* game);
+bool TileInScreen(Vector2i tileCoord);
+Rectangle GetTopLeftTile();
+Vector2i TranslateTileToViewTile(Vector2i tileCoord);

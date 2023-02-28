@@ -5,15 +5,15 @@
 #include "Core/SHash.hpp"
 #include "Core/SUtil.h"
 
-global_var constexpr float SSET_LOAD_FACTOR = 0.60f;
-global_var constexpr float SSET_LOAD_MULTIPLIER = 1.0f + SSET_LOAD_FACTOR;
+global_var constexpr float SSET_LOAD_FACTOR = 1.75f;
 global_var constexpr uint32_t SSET_RESIZE = 2;
 
 template<typename K>
 struct SHoodSetBucket
 {
 	K Key;
-	uint32_t ProbeLength : 31, Occupied : 1;
+	uint32_t ProbeLength : 31;
+	uint32_t Occupied : 1;
 };
 
 template<typename K,
@@ -35,8 +35,8 @@ template<typename K,
 	bool Contains(const K* key) const;
 	bool Remove(const K* key);
 
-	bool IsAllocated() const { return MemAllocated() > 0; };
-	size_t MemAllocated() const { return Capacity * sizeof(SHoodSetBucket<K>); };
+	bool IsAllocated() const { return MemSize() > 0; };
+	size_t MemSize() const { return Capacity * sizeof(SHoodSetBucket<K>); };
 
 	void ToString() const;
 };
@@ -47,7 +47,7 @@ void SHoodSet<K, HashFunc, EqualsFunc>::Reserve(uint32_t capacity)
 	SASSERT(Allocator.Alloc);
 	SASSERT(Allocator.Free);
 
-	uint32_t newCapacity = (uint32_t)((float)capacity * SSET_LOAD_MULTIPLIER);
+	uint32_t newCapacity = (uint32_t)((float)capacity * SSET_LOAD_FACTOR);
 	if (newCapacity == 0)
 		newCapacity = 2;
 	else if (!IsPowerOf2_32(newCapacity))
@@ -57,12 +57,12 @@ void SHoodSet<K, HashFunc, EqualsFunc>::Reserve(uint32_t capacity)
 
 	uint32_t oldCapacity = Capacity;
 	Capacity = newCapacity;
-	MaxSize = (uint32_t)((float)Capacity * SSET_LOAD_FACTOR);
+	MaxSize = (uint32_t)((float)Capacity / SSET_LOAD_FACTOR);
 
 	if (Size == 0)
 	{
 		Allocator.Free(Buckets);
-		Buckets = (SHoodSetBucket<K>*)(Allocator.Alloc(MemAllocated()));
+		Buckets = (SHoodSetBucket<K>*)(Allocator.Alloc(MemSize()));
 	}
 	else
 	{
@@ -70,7 +70,7 @@ void SHoodSet<K, HashFunc, EqualsFunc>::Reserve(uint32_t capacity)
 		tmpSet.Allocator = Allocator;
 		tmpSet.Capacity = Capacity;
 		tmpSet.MaxSize = MaxSize;
-		tmpSet.Buckets = (SHoodSetBucket<K>*)(Allocator.Alloc(MemAllocated()));
+		tmpSet.Buckets = (SHoodSetBucket<K>*)(Allocator.Alloc(MemSize()));
 
 		for (uint32_t i = 0; i < oldCapacity; ++i)
 		{
@@ -87,15 +87,13 @@ void SHoodSet<K, HashFunc, EqualsFunc>::Reserve(uint32_t capacity)
 	}
 
 	SASSERT(Buckets);
-	SASSERT(Capacity > 0);
+	SASSERT(IsAllocated());
 	SASSERT(IsPowerOf2_32(Capacity));
 }
 
 template<typename K, typename HashFunc, typename EqualsFunc>
 void SHoodSet<K, HashFunc, EqualsFunc>::Free()
 {
-	SASSERT(Allocator);
-	SASSERT(Allocator.Alloc);
 	SASSERT(Allocator.Free);
 	Allocator.Free(Buckets);
 	Buckets = nullptr;
@@ -107,7 +105,7 @@ void SHoodSet<K, HashFunc, EqualsFunc>::Free()
 template<typename K, typename HashFunc, typename EqualsFunc>
 void SHoodSet<K, HashFunc, EqualsFunc>::Clear()
 {
-	SMemClear(Buckets, MemAllocated());
+	SMemClear(Buckets, MemSize());
 	Size = 0;
 }
 
@@ -174,8 +172,8 @@ template<typename K, typename HashFunc, typename EqualsFunc>
 bool SHoodSet<K, HashFunc, EqualsFunc>::Contains(const K* key) const
 {
 	SASSERT(key);
-	SASSERT(IsAllocated());
 	SASSERT(EqualsFunc{}(*key, *key))
+	SASSERT(IsAllocated());
 
 	uint64_t hash = HashFunc{}(key);
 	uint32_t index = hash & ((uint64_t)(Capacity - 1));
@@ -184,7 +182,7 @@ bool SHoodSet<K, HashFunc, EqualsFunc>::Contains(const K* key) const
 	{
 		if (index == Capacity) index = 0; // wraps
 
-		SHoodSetBucket<K, V>* bucket = &Buckets[index];
+		SHoodSetBucket<K>* bucket = &Buckets[index];
 		if (!bucket->Occupied)
 			return false;
 		if (EqualsFunc{}(&bucket->Key, key))
@@ -198,8 +196,8 @@ template<typename K, typename HashFunc, typename EqualsFunc>
 bool SHoodSet<K, HashFunc, EqualsFunc>::Remove(const K* key)
 {
 	SASSERT(key);
-	SASSERT(IsAllocated());
 	SASSERT(EqualsFunc{}(*key, *key))
+	SASSERT(IsAllocated());
 
 	uint64_t hash = HashFunc{}(key);
 	uint32_t index = hash & ((uint64_t)(Capacity - 1));
@@ -208,7 +206,7 @@ bool SHoodSet<K, HashFunc, EqualsFunc>::Remove(const K* key)
 	{
 		if (index == Capacity) index = 0; // wrap
 
-		SHoodBucket<K, V>* bucket = &Buckets[index];
+		SHoodBucket<K>* bucket = &Buckets[index];
 		if (!bucket->Occupied)
 			return false; // No key found
 

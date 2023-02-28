@@ -15,6 +15,17 @@
 #define SMEM_LOG_FREE()
 #endif
 
+#define UseMalloc 0
+#if UseMalloc
+#define SMalloc(void) malloc(size)
+#define SRealloc(void) realloc(block, size)
+#define SFree(void) free(block)
+#else
+#define SMalloc(void) MemPoolAlloc(&GameAppPtr->GameMemory, size)
+#define SRealloc(void) MemPoolRealloc(&GameAppPtr->GameMemory, block, size)
+#define SFree(void) MemPoolFree(&GameAppPtr->GameMemory, block)
+#endif
+
 // TODO: maybe move this to an internal state struct?
 global_var GameApplication* GameAppPtr;
 global_var uint64_t MemoryTagUsage[(uint8_t)MemoryTag::MaxTags];
@@ -55,23 +66,23 @@ SMemInitialize(GameApplication* gameApp,
 
 void* SMemAlloc(size_t size)
 {
-    void* mem = MemPoolAlloc(&GameAppPtr->GameMemory, size);
-    SMEM_LOG_ALLOC("Allocated", size);
+    void* mem = SMalloc();
+    //SMEM_LOG_ALLOC("Allocated", size);
     SASSERT(mem);
     return mem;
 }
 
 void* SMemRealloc(void* block, size_t size)
 {
-    void* mem = MemPoolRealloc(&GameAppPtr->GameMemory, block, size);
-    SMEM_LOG_ALLOC("Reallocated", size);
+    void* mem = SRealloc();
+    //SMEM_LOG_ALLOC("Reallocated", size);
     SASSERT(mem);
     return mem;
 }
 
 void SMemFree(void* block)
 {
-    MemPoolFree(&GameAppPtr->GameMemory, block);
+    SFree();
     SMEM_LOG_FREE();
 }
 
