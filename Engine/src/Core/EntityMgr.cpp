@@ -13,8 +13,8 @@ ComponentMgr::ComponentMgr()
 
 void EntityMgrInitialize(Game* game)
 {
-	game->EntityMgr.Players.Resize(1);
-	game->EntityMgr.Creatures.Resize(ESTIMATED_ENTITIES);
+	game->EntityMgr.Players.Reserve(1);
+	game->EntityMgr.Creatures.Reserve(ESTIMATED_ENTITIES);
 
 	SLOG_INFO("[ Entity Manager ] Initialized!");
 }

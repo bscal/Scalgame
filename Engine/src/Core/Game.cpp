@@ -25,7 +25,6 @@ internal void GameLoad(Game* game, GameApplication* gameApp);
 internal void GameUnload(Game* game);
 internal void GameUpdate(Game* game, GameApplication* gameApp);
 internal void GameLateUpdate(Game* game);
-internal void GameInputUpdate(Game* game, GameApplication* gameApp);
 
 SAPI bool GameApplication::Start()
 {
@@ -182,11 +181,6 @@ internal void GameUnload(Game* game)
 }
 
 
-internal void TestActionFunc(World* world, Action* action)
-{
-	TraceLog(LOG_INFO, "Testing!");
-}
-
 SAPI void GameApplication::Run()
 {
 	TraceLog(LOG_INFO, "Game Running...");
@@ -205,10 +199,16 @@ SAPI void GameApplication::Run()
 		// Update
 		// ***************
 
+		if (IsKeyPressed(KEY_GRAVE))
+			UIState->IsDebugPanelOpen = !UIState->IsDebugPanelOpen;
+		if (IsKeyPressed(KEY_EQUAL))
+			UIState->IsConsoleOpen = !UIState->IsConsoleOpen;
+		if (IsKeyPressed(KEY_BACKSLASH))
+			UIState->IsDrawingFPS = !UIState->IsDrawingFPS;
+
 		// Don't want game input when over UI
 		if (!UIState->IsMouseHoveringUI)
 		{
-			IsKeyPressed(KEY_LEFT_SHIFT);
 			// Free Camera Controls
 			if (IsKeyPressed(KEY_SLASH))
 				Game->IsFreeCam = !Game->IsFreeCam;
@@ -240,18 +240,16 @@ SAPI void GameApplication::Run()
 			if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
 			{
 				Vector2i clickedTilePos = GetTileFromMouse(Game);
-				auto tilemap = &Game->World.ChunkedTileMap;
-				if (CTileMap::IsTileInBounds(tilemap, clickedTilePos))
+				if (CTileMap::IsTileInBounds(&Game->World.ChunkedTileMap, clickedTilePos))
 				{
-					Tile* tile = CTileMap::GetTile(tilemap, clickedTilePos);
+					Tile* tile = CTileMap::GetTile(&Game->World.ChunkedTileMap, clickedTilePos);
 					Tile newTile = CreateTileId(&Game->TileMgr, 5);
 					CTileMap::SetTile(&Game->World.ChunkedTileMap, &newTile, clickedTilePos);
 					SLOG_INFO("Clicked Tile[%d, %d] Id: %d", clickedTilePos.x, clickedTilePos.y, tile->TileId);
 
-					Vector2 translatedVector = clickedTilePos.AsVec2();
-					translatedVector.x *= TILE_SIZE_F;
-					translatedVector.y *= TILE_SIZE_F;
-					SLOG_INFO("%s\n %s\n %s", RECT_STR(GetTopLeftTile()), VEC2I_STR(TranslateTileToViewTile(clickedTilePos)), VEC2_STR(translatedVector));
+					auto v = TranslateTileWorldToCull(clickedTilePos);
+					auto inside = TileInsideCullRect(clickedTilePos);
+					SLOG_INFO("%d | %s | rect: %s", inside, VEC2I_STR(v), RECT_STR(Game->CullingRect));
 				}
 			}
 			if (IsMouseButtonPressed(MOUSE_BUTTON_RIGHT))
@@ -262,24 +260,14 @@ SAPI void GameApplication::Run()
 					UpdatingLight light = {};
 					light.Pos = clickedTilePos.AsVec2();
 					light.Intensity = 1.0f;
-					light.Radius = 16.0f;
-
 					light.MinIntensity = 14.0f;
 					light.MaxIntensity = 16.0f;
-					//light.Colors[0] = { 0xfb, 0xbe, 0x46, 255 };
-					//light.Colors[1] = { 0xc7, 0x46, 0x07, 255 };
-					//light.Colors[2] = { 0x6e, 0x15, 0x05, 255 };
-					//light.Colors[3] = { 0xf9, 0x92, 0x20, 255 };
 					light.Colors[0] = { 0xab, 0x16, 0x0a, 255 };
 					light.Colors[1] = { 0x89, 0x12, 0x08, 255 };
 					light.Colors[2] = { 0xd6, 0x1b, 0x0c, 255 };
 					light.Colors[3] = { 0xbf, 0x05, 0x00, 255 };
-					//Color c = ColorFromNormalized({ 1.0, 0.8, 0.2, 1.0f });
-					/*light.Colors[0] = c;
-					light.Colors[1] = c;
-					light.Colors[2] = c;
-					light.Colors[3] = c;*/
 					light.Color = light.Colors[0];
+					light.Radius = light.MaxIntensity;
 					LightsAddUpdating(light);
 				}
 			}
@@ -293,31 +281,12 @@ SAPI void GameApplication::Run()
 				}
 			}
 
-			if (IsKeyPressed(KEY_ONE))
-			{
-				Action testAction = {};
-				testAction.Cost = 100;
-				testAction.ActionFunction = TestActionFunc;
-				AddAction(&Game->World, &testAction);
-			}
-
-			if (IsKeyPressed(KEY_TWO))
-			{
-				Game->DebugTest = !Game->DebugTest;
-			}
-
 			if (IsKeyPressed(KEY_F1))
-			{
 				Game->DebugDisableDarkess = !Game->DebugDisableDarkess;
-			}
 			if (IsKeyPressed(KEY_F2))
-			{
 				Game->DebugDisableFOV = !Game->DebugDisableFOV;
-			}
 			if (IsKeyPressed(KEY_F3))
-			{
 				Game->DebugTileView = !Game->DebugTileView;
-			}
 			if (IsKeyPressed(KEY_F4))
 			{
 				if (Game->ViewCamera.zoom == 1.f)
@@ -325,12 +294,6 @@ SAPI void GameApplication::Run()
 				else
 					Game->ViewCamera.zoom = 1.f;
 			}
-			if (IsKeyPressed(KEY_GRAVE))
-				UIState->IsDebugPanelOpen = !UIState->IsDebugPanelOpen;
-			if (IsKeyPressed(KEY_EQUAL))
-				UIState->IsConsoleOpen = !UIState->IsConsoleOpen;
-			if (IsKeyPressed(KEY_BACKSLASH))
-				UIState->IsDrawingFPS = !UIState->IsDrawingFPS;
 		}
 
 		// **************************
@@ -348,7 +311,6 @@ SAPI void GameApplication::Run()
 		float screenH = (float)GetScreenHeight();
 		Rectangle srcRect = { 0.0f, 0.0f, screenW, -screenH };
 		Rectangle dstRect = { ScreenXY.x, ScreenXY.y, screenW, screenH };
-		Rectangle screenRect = { 0.0f, 0.0f, screenW, screenH };
 
 		// Update and draw world
 		BeginShaderMode(Game->Renderer.UnlitShader);
@@ -407,13 +369,14 @@ SAPI void GameApplication::Run()
 	IsRunning = false;
 }
 
-internal void GameUpdate(Game* game, GameApplication* gameApp)
+internal void 
+GameUpdate(Game* game, GameApplication* gameApp)
 {
 	// Handle Camera Move
 	if (!game->IsFreeCam)
 	{
+		game->CameraLerpTime += GetDeltaTime();
 		if (game->CameraLerpTime > 1.0f) game->CameraLerpTime = 1.0f;
-		else game->CameraLerpTime += GetDeltaTime();
 
 		Vector2 from = game->WorldCamera.target;
 		Vector2 playerPos = VecToTileCenter(GetClientPlayer()->Transform.Pos);
@@ -422,7 +385,19 @@ internal void GameUpdate(Game* game, GameApplication* gameApp)
 	}
 
 	gameApp->ScreenXY = Vector2Subtract(game->WorldCamera.target, game->WorldCamera.offset);
-	gameApp->ScaledScreenXY = Vector2Divide(gameApp->ScreenXY, { GetScale(), GetScale() });
+
+	constexpr float halfCullingPadding = (float)(TILES_IN_VIEW_PADDING / 2) * TILE_SIZE_F;
+	game->CullingRect.x = gameApp->ScreenXY.x - halfCullingPadding;
+	game->CullingRect.y = gameApp->ScreenXY.y - halfCullingPadding;
+	game->CullingRect.width = SCREEN_WIDTH_PADDING;
+	game->CullingRect.height = SCREEN_HEIGHT_PADDING;
+
+	constexpr float halfUpdatePadding = 32.0f * TILE_SIZE_F;
+	constexpr float fullUpdatePadding = halfUpdatePadding * 2.0f;
+	game->UpdateRect.x = gameApp->ScreenXY.x - halfUpdatePadding;
+	game->UpdateRect.y = gameApp->ScreenXY.y - halfUpdatePadding;
+	game->UpdateRect.width = SCREEN_WIDTH + fullUpdatePadding;
+	game->UpdateRect.height = SCREEN_HEIGHT + fullUpdatePadding;
 
 	if (IsWindowResized())
 	{
@@ -489,15 +464,6 @@ float GetScale()
 	return GetGameApp()->Scale;
 }
 
-Rectangle GetScaledScreenRect()
-{
-	return {
-		GetGameApp()->ScreenXY.x,
-		GetGameApp()->ScreenXY.y,
-		(float)GetScreenWidth(),
-		(float)GetScreenHeight() };
-}
-
 Vector2 VecToTileCenter(Vector2 vec)
 {
 	return { vec.x + HALF_TILE_SIZE, vec.y + HALF_TILE_SIZE };
@@ -541,36 +507,22 @@ void SetCameraDistance(GameApplication* gameApp, float zoom)
 	gameApp->Game->ViewCamera.target = viewTarget;
 }
 
-bool TileInScreen(Vector2i tileCoord)
+bool TileInsideCullRect(Vector2i tileCoord)
 {
-	Rectangle topLeft = GetTopLeftTile();
-
-	Vector2 translatedVector = tileCoord.AsVec2();
-	translatedVector.x *= TILE_SIZE_F;
-	translatedVector.y *= TILE_SIZE_F;
-
-
-	return CheckCollisionPointRec(translatedVector, topLeft);
+	Vector2 pixelCoord = Vector2Multiply(tileCoord.AsVec2(), { TILE_SIZE_F, TILE_SIZE_F });
+	return CheckCollisionPointRec(pixelCoord, GetGame()->CullingRect);
 }
 
-Rectangle GetTopLeftTile()
+Vector2i TranslateTileWorldToCull(Vector2i pos)
 {
-	constexpr float paddingW = (SCREEN_WIDTH_PADDING / 2.0f);
-	constexpr float paddingH = (SCREEN_HEIGHT_PADDING / 2.0f);
-
-	Rectangle result;
-	result.x = ceilf(GetGame()->WorldCamera.offset.x) - paddingW;
-	result.y = ceilf(GetGame()->WorldCamera.offset.y) - paddingH;
-	result.width = SCREEN_WIDTH_PADDING;
-	result.height = SCREEN_HEIGHT_PADDING;
-	return result;
+	Vector2 cullTopLeft = { GetGame()->CullingRect.x, GetGame()->CullingRect.y };
+	cullTopLeft = Vector2Divide(cullTopLeft, { TILE_SIZE_F, TILE_SIZE_F });
+	return pos.Subtract(Vec2fToVec2i(cullTopLeft));
 }
 
-Vector2i TranslateTileToViewTile(Vector2i tileCoord)
+Vector2i TranslateTileCullToWorld(Vector2i pos)
 {
-	constexpr float PADDING = 2.0f;
-	Vector2 result;
-	result.x = roundf(GetGame()->WorldCamera.offset.x / TILE_SIZE_F) + PADDING;
-	result.y = roundf(GetGame()->WorldCamera.offset.y / TILE_SIZE_F) + PADDING;
-	return tileCoord.Subtract(Vec2fToVec2i(result));
+	Vector2 cullTopLeft = { GetGame()->CullingRect.x, GetGame()->CullingRect.y };
+	cullTopLeft = Vector2Divide(cullTopLeft, { TILE_SIZE_F, TILE_SIZE_F });
+	return pos.Add(Vec2fToVec2i(cullTopLeft));
 }

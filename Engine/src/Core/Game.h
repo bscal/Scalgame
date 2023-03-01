@@ -27,6 +27,9 @@ struct Game
     
     World World;
 
+    Rectangle CullingRect;
+    Rectangle UpdateRect;
+
     uint64_t Time;
     uint64_t CurrentDayProgress;
 
@@ -37,7 +40,6 @@ struct Game
     bool DebugDisableDarkess;
     bool DebugDisableFOV;
     bool DebugTileView;
-    bool DebugTest;
 };
 
 struct GameApplication
@@ -51,7 +53,6 @@ struct GameApplication
     SRandom GlobalRandom;
 
     Vector2 ScreenXY; // Camera top left corner
-    Vector2 ScaledScreenXY;
     Vector2 HalfWidthHeight;
     
     double RenderTime;
@@ -84,10 +85,9 @@ void SetCameraDistance(GameApplication* gameApp, float zoom);
 SRandom* GetGlobalRandom();
 float GetDeltaTime();
 float GetScale();
-Rectangle GetScaledScreenRect();
 Vector2 VecToTileCenter(Vector2 vec);
 Vector2 GetZoomedMousePos(const Camera2D& camera);
 Vector2i GetTileFromMouse(Game* game);
-bool TileInScreen(Vector2i tileCoord);
-Rectangle GetTopLeftTile();
-Vector2i TranslateTileToViewTile(Vector2i tileCoord);
+bool TileInsideCullRect(Vector2i tileCoord);
+Vector2i TranslateTileWorldToCull(Vector2i pos);
+Vector2i TranslateTileCullToWorld(Vector2i pos);

@@ -14,7 +14,7 @@ bool SpriteAtlas::Load(const char* atlasDataPath,
 	if (!FileExists(atlasDataPath))
 		return false;
 
-	SpritesArray.Resize(estimatedSprites);
+	SpritesArray.Reserve(estimatedSprites);
 	SpritesByName.Reserve(estimatedSprites);
 
 	// Info for sprite

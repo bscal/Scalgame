@@ -88,8 +88,8 @@ void LightMapSetCeiling(LightData* lightData, TileCoord tileCoord, bool HasCieli
 
 bool LightMapInView(LightData* lightData, TileCoord tileCoord)
 {
-	return (tileCoord.x >= GetGame()->LightMap.LightMapOffset.x ||
-		tileCoord.y >= GetGame()->LightMap.LightMapOffset.y ||
-		tileCoord.x < GetGame()->LightMap.LightMapOffset.x + SCREEN_WIDTH_TILES ||
+	return (tileCoord.x >= GetGame()->LightMap.LightMapOffset.x &&
+		tileCoord.y >= GetGame()->LightMap.LightMapOffset.y &&
+		tileCoord.x < GetGame()->LightMap.LightMapOffset.x + SCREEN_WIDTH_TILES &&
 		tileCoord.y < GetGame()->LightMap.LightMapOffset.y + SCREEN_HEIGHT_TILES);
 }

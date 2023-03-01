@@ -10,8 +10,8 @@ LightingState State;
 
 void LightsInitialized(GameApplication* gameApp)
 {
-	State.Lights.Resize(16);
-	State.UpdatingLights.Resize(32);
+	State.Lights.Reserve(16);
+	State.UpdatingLights.Reserve(32);
 	size_t size = (size_t)(20.f * 20.f * 1.5f);
 	State.VisitedTilePerLight.Reserve(size);
 }

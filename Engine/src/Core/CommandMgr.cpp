@@ -57,8 +57,8 @@ CommandMgr::CommandMgr()
 	Commands.KeyEqualsFunction = STableDefaultKeyEquals;
 	Commands.KeyHashFunction = SStringViewHash;
 
-	Suggestions.EnsureCapacity(MAX_SUGGESTIONS);
-	InputArgs.EnsureCapacity(5);
+	Suggestions.Reserve(MAX_SUGGESTIONS);
+	InputArgs.Reserve(5);
 
 	Command testCommand = {};
 	testCommand.Execute = TestExecute;

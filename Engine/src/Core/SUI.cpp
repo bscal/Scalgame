@@ -28,7 +28,7 @@ bool InitializeUI(UIState* state, GameApplication* gameApp)
 	
 	// Initialize ConsoleEntries
 	state->ConsoleEntries.Allocator = SMEM_GAME_ALLOCATOR;
-	state->ConsoleEntries.Resize(CONSOLE_MAX_LENGTH);
+	state->ConsoleEntries.Reserve(CONSOLE_MAX_LENGTH);
 
 	SLOG_INFO("[ UI ] Initialized");
 

@@ -58,7 +58,7 @@ void Initialize(ChunkedTileMap* tilemap)
 		* tilemap->TileSize.y);
 
 	uint32_t capacity = (uint32_t)labs(tilemap->ViewDistance.x * tilemap->ViewDistance.y);
-	tilemap->ChunksList.Resize(capacity);
+	tilemap->ChunksList.Reserve(capacity);
 
 	SASSERT_MSG(tilemap->Origin.x >= 0 && tilemap->Origin.y >= 0, "Non 0, 0 world origin is current not supported");
 }
@@ -128,20 +128,14 @@ Draw(ChunkedTileMap* tilemap, Game* game)
 	const Texture2D* texture = &game->Resources.Atlas.Texture;
 	TileMgr* tileMgr = &game->TileMgr;
 
-	Vector2i target = GetClientPlayer()->Transform.TilePos;
-	const float lPadding = 2.0f;
-	float offsetX = game->WorldCamera.offset.x / TILE_SIZE_F + lPadding;
-	float offsetY = game->WorldCamera.offset.y / TILE_SIZE_F + lPadding;
-	int tileOffsetX = (target.x - (int)offsetX);
-	int tileOffsetY = (target.y - (int)offsetY);
+	Vector2 cullTopLeft = Vector2Divide(GetGameApp()->ScreenXY, { TILE_SIZE_F, TILE_SIZE_F });
 	for (int y = 0; y < SCREEN_HEIGHT_TILES; ++y)
 	{
 		for (int x = 0; x < SCREEN_WIDTH_TILES; ++x)
 		{
-			TileCoord coord = {
-				x + tileOffsetX,
-				y + tileOffsetY
-			};
+			TileCoord coord;
+			coord.x = x + (int)cullTopLeft.x;
+			coord.y = y + (int)cullTopLeft.y;
 			if (!IsTileInBounds(tilemap, coord)) continue;
 
 			TileMapChunk* chunk = GetChunkByTile(tilemap, coord);
@@ -162,7 +156,7 @@ Draw(ChunkedTileMap* tilemap, Game* game)
 
 			Vector4 color = { 1.0f, 1.0f, 1.0f, 1.0f };
 			if (tile->LOS == TileLOS::NoVision)
-				color.w -= 0.4f;
+				color.w = 0.2f;
 			tile->LOS = TileLOS::NoVision;
 
 			LightMapSetCeiling(&game->LightMap, coord, tile->HasCeiling);
@@ -195,12 +189,15 @@ void Update(ChunkedTileMap* tilemap, Game* game)
 void LateUpdateChunk(ChunkedTileMap* tilemap, Game* game)
 {
 	if (!game->DebugTileView) return; 
-	const auto& screenRect = GetScaledScreenRect();
-
+	Rectangle screen;
+	screen.x = GetGameApp()->ScreenXY.x;
+	screen.y = GetGameApp()->ScreenXY.y;
+	screen.width = (float)GetScreenWidth();
+	screen.height = (float)GetScreenHeight();
 	for (uint32_t i = 0; i < tilemap->ChunksList.Count; ++i)
 	{
 		CTileMap::TileMapChunk* chunk = tilemap->ChunksList.PeekAt(i);
-		if (CheckCollisionRecs(screenRect, chunk->Bounds))
+		if (CheckCollisionRecs(screen, chunk->Bounds))
 		{
 			DrawRectangleLinesEx(chunk->Bounds, 4, GREEN);
 		}
@@ -218,7 +215,7 @@ TileMapChunk* LoadChunk(ChunkedTileMap* tilemap,
 {
 	TileMapChunk* chunk = tilemap->ChunksList.PushNew();
 	chunk->Entities.Allocator = SMEM_GAME_ALLOCATOR;
-	chunk->Entities.Resize(10); // TODO
+	chunk->Entities.Reserve(10); // TODO
 	chunk->ChunkCoord = coord;
 
 	float chunkOffSetX = (float)coord.x * (float)tilemap->TileSize.x
@@ -282,7 +279,7 @@ bool IsTileInBounds(ChunkedTileMap* tilemap, TileCoord tilePos)
 {
 	return (tilePos.x >= tilemap->Origin.x &&
 		tilePos.y >= tilemap->Origin.y &&
-		tilePos.x < tilemap->WorldDimTiles.x&&
+		tilePos.x < tilemap->WorldDimTiles.x &&
 		tilePos.y < tilemap->WorldDimTiles.y);
 }
 

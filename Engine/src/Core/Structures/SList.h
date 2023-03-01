@@ -8,15 +8,14 @@
 template<typename T>
 struct SList
 {
+	SMemAllocator Allocator = SMEM_GAME_ALLOCATOR;
 	T* Memory;
 	uint32_t Capacity;
 	uint32_t Count; // Number of elements or last index to insert
-	SMemAllocator Allocator = SMEM_GAME_ALLOCATOR;
 
-	void EnsureCapacity(uint32_t ensuredCapacity); // same as resize, wont allocate if 0
 	void EnsureSize(uint32_t ensuredCount); // ensures capacity and count elements
 	void Free();
-	void Resize(uint32_t capacity); // allocated memory based on capacity
+	void Reserve(uint32_t capacity); // allocated memory based on capacity
 
 	void Push(const T* valueSrc); // Checks resize, inserts and end of array
 	T* PushNew(); // Checks resize, default constructs next element, and returns pointer. Useful if you dont want to copy large objects
@@ -31,7 +30,6 @@ struct SList
 	void Remove(); // Same as pop, but does not do a copy
 	void RemoveAt(uint32_t index);
 	void RemoveAtFast(uint32_t index);
-	void Set(uint32_t index, const T* valueSrc);
 
 	inline T* PeekAt(uint32_t index) const;
 	inline T* Last() const;
@@ -51,25 +49,18 @@ struct SList
 // ********************
 
 template<typename T>
-void SList<T>::EnsureCapacity(uint32_t ensuredCapacity)
-{
-	if (ensuredCapacity > Capacity) Resize(ensuredCapacity);
-}
-
-template<typename T>
 void SList<T>::EnsureSize(uint32_t ensuredCount)
 {
-	if (ensuredCount > Count)
+	if (ensuredCount <= Count) return;
+
+	Reserve(ensuredCount);
+
+	for (uint32_t i = Count; i < ensuredCount; ++i)
 	{
-		EnsureCapacity(ensuredCount);
-
-		for (size_t i = Count; i < ensuredCount; ++i)
-		{
-			Memory[i] = {};
-		}
-
-		Count = ensuredCount;
+		Memory[i] = (T){};
 	}
+	Count = ensuredCount;
+
 	SASSERT(ensuredCount <= Count);
 	SASSERT(ensuredCount <= Capacity);
 	SASSERT(Count <= Capacity);
@@ -79,21 +70,22 @@ template<typename T>
 void SList<T>::Free()
 {
 	Allocator.Free(Memory);
-	Memory = NULL;
+	Memory = nullptr;
 	Capacity = 0;
 	Count = 0;
 }
 
 template<typename T>
-void SList<T>::Resize(uint32_t newCapacity)
+void SList<T>::Reserve(uint32_t newCapacity)
 {
-	if (newCapacity == 0 && Capacity == 0) newCapacity = 1;
-	
-	SASSERT(newCapacity > Capacity);
-	
+	if (newCapacity == 0) newCapacity = 1;
+	if (newCapacity <= Capacity) return;
+
 	size_t oldSize = Capacity * sizeof(T);
 	size_t newSize = newCapacity * sizeof(T);
+
 	Capacity = newCapacity;
+
 	if (Memory)
 	{
 		T* newMem = (T*)Allocator.Alloc(newSize);
@@ -114,7 +106,7 @@ void SList<T>::Push(const T* valueSrc)
 	SASSERT(Count <= Capacity);
 	if (Count == Capacity)
 	{
-		Resize(Capacity * SLIST_DEFAULT_RESIZE);
+		Reserve(Capacity * SLIST_DEFAULT_RESIZE);
 	}
 	Memory[Count] = *valueSrc;
 	++Count;
@@ -126,7 +118,7 @@ T* SList<T>::PushNew()
 	SASSERT(Count <= Capacity);
 	if (Count == Capacity)
 	{
-		Resize(Capacity * SLIST_DEFAULT_RESIZE);
+		Reserve(Capacity * SLIST_DEFAULT_RESIZE);
 	}
 	
 	uint32_t index = Count;
@@ -143,7 +135,7 @@ void SList<T>::PushAt(uint32_t index, const T* valueSrc)
 	SASSERT(Count <= Capacity);
 	if (Count == Capacity)
 	{
-		Resize(Capacity * SLIST_DEFAULT_RESIZE);
+		Reserve(Capacity * SLIST_DEFAULT_RESIZE);
 	}
 	if (index != Count)
 	{
@@ -165,7 +157,7 @@ void SList<T>::PushAtFast(uint32_t index, const T* valueSrc)
 	SASSERT(Count <= Capacity);
 	if (Count == Capacity)
 	{
-		Resize(Capacity * SLIST_DEFAULT_RESIZE);
+		Reserve(Capacity * SLIST_DEFAULT_RESIZE);
 	}
 	if (Count > 1)
 	{
@@ -290,18 +282,6 @@ inline T* SList<T>::PeekAt(uint32_t index) const
 	SASSERT(Count <= Capacity);
 	return &Memory[index];
 }
-
-template<typename T>
-void SList<T>::Set(uint32_t index, const T* valueSrc)
-{
-	SASSERT(Memory);
-	SASSERT(valueSrc);
-	SASSERT(index < Count)
-	if (index < Count)
-	{
-		Memory[index] = *valueSrc;
-	}
-}		
 
 template<typename T>
 inline T* SList<T>::Last() const
