@@ -249,7 +249,7 @@ SAPI void GameApplication::Run()
 
 					auto v = TranslateTileWorldToCull(clickedTilePos);
 					auto inside = TileInsideCullRect(clickedTilePos);
-					SLOG_INFO("%d | %s | rect: %s", inside, VEC2I_STR(v), RECT_STR(Game->CullingRect));
+					SLOG_INFO("%d | %s | rect: %s", inside, FMT_VEC2I(v), FMT_RECT(Game->CullingRect));
 				}
 			}
 			if (IsMouseButtonPressed(MOUSE_BUTTON_RIGHT))
@@ -405,6 +405,7 @@ GameUpdate(Game* game, GameApplication* gameApp)
 		SLOG_INFO("[ GAME ] Window Resizing!");
 	}
 
+	WorldUpdate(&game->World, game);
 
 	Vector2i playerPos = GetClientPlayer()->Transform.TilePos;
 	CTileMap::SetVisible(&game->World.ChunkedTileMap, playerPos);
@@ -414,7 +415,6 @@ GameUpdate(Game* game, GameApplication* gameApp)
 		CTileMap::SetVisible(&game->World.ChunkedTileMap, pos);
 	}
 
-	WorldUpdate(&game->World, game);
 	EntityMgrUpdate(&game->EntityMgr, game);
 }
 

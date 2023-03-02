@@ -19,10 +19,7 @@ void WorldLoad(World* world, Game* game)
 {
 	LightsInitialized(GetGameApp());
 
-	// Load chunks around players at start
-	Vector2i playerChunkCoord = TileToChunkCoord(&world->ChunkedTileMap,
-		GetClientPlayer()->Transform.TilePos);
-	CTileMap::FindChunksInView(&world->ChunkedTileMap, game, playerChunkCoord);
+	CTileMap::Load(&world->ChunkedTileMap);
 
 	world->IsLoaded = true;
 	SLOG_INFO("[ WORLD ] World loaded!");
@@ -55,18 +52,16 @@ void WorldUpdate(World* world, Game* game)
 
 void WorldLateUpdate(World* world, Game* game)
 {
-	CTileMap::LateUpdateChunk(&world->ChunkedTileMap, game);
+	CTileMap::LateUpdate(&world->ChunkedTileMap, game);
 }
 
 bool CanMoveToTile(World* world, Vector2i position)
 {
 	if (!WorldIsInBounds(world, position))
-	{
 		return false;
-	}
-	const auto& tile = CTileMap::GetTile(&world->ChunkedTileMap,
-		position);
-	const auto& tileData = tile->GetTileData(&GetGame()->TileMgr);
+
+	Tile* tile = CTileMap::GetTile(&world->ChunkedTileMap, position);
+	const TileData* tileData = tile->GetTileData(&GetGame()->TileMgr);
 	return tileData->Type == TileType::Floor;
 }
 
@@ -114,11 +109,6 @@ void ProcessActions(World* world)
 		Action* at = world->EntityActionsList.PeekAt(i);
 		at->ActionFunction(world, at);
 	}
-}
-
-Vector2i WorldTileScale(World* world)
-{
-	return world->ChunkedTileMap.TileSize;
 }
 
 Vector2i WorldToTileCoord(World* world, Vector2 tile)

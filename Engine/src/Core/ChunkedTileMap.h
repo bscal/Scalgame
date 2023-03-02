@@ -5,10 +5,8 @@
 #include "Vector2i.h"
 #include "Tile.h"
 
-#include "Structures/SArray.h"
 #include "Structures/SList.h"
 #include "Structures/SLinkedList.h"
-#include "Structures/STable.h"
 
 struct GameApp;
 struct Game;
@@ -20,7 +18,6 @@ struct TileMapChunk
 {
 	Rectangle Bounds;
 	ChunkCoord ChunkCoord;
-	SList<uint64_t> Entities;
 	bool IsChunkGenerated;
 	Tile Tiles[CHUNK_SIZE];
 };
@@ -32,64 +29,40 @@ struct ChunkedTileMap
 	SList<TileMapChunk> ChunksList;
 	SLinkedList<ChunkCoord> ChunksToUnload;
 
-	Rectangle WorldBounds;
-	Rectangle ChunkBounds;
-
-	Vector2i TileSize;
-	Vector2i Origin;
-	Vector2i WorldDimChunks;
-	Vector2i ChunkSize;
-
-	Vector2i WorldDimTiles;
 	Vector2i ViewDistance;
-	size_t ChunkTileCount;
+	Vector2i Origin;			// Used in bounds check
+	Vector2i WorldDimChunks;	// Used in bounds check
+	Vector2i WorldDimTiles;		// Used in bounds check
 };
 
 void Initialize(ChunkedTileMap* tilemap);
 void Free(ChunkedTileMap* tilemap);
-
-void 
-FindChunksInView(ChunkedTileMap* tilemap, Game* game, Vector2i centerChunkCoord);
+void Load(ChunkedTileMap* tilemap);
 
 void Update(ChunkedTileMap* tilemap, Game* game);
+void LateUpdate(ChunkedTileMap* tilemap, Game* game);
 
-TileMapChunk* 
-LoadChunk(ChunkedTileMap* tilemap, ChunkCoord coord);
 
+TileMapChunk* LoadChunk(ChunkedTileMap* tilemap, ChunkCoord coord);
 void GenerateChunk(ChunkedTileMap* tilemap,TileMapChunk* chunk);
 void UnloadChunk(ChunkedTileMap* tilemap, ChunkCoord coord);
-void UpdateChunk(ChunkedTileMap* tilmap, TileMapChunk* chunk, Game* game);
-void LateUpdateChunk(ChunkedTileMap* tilemap, Game* game);
+
+void UpdateChunk(ChunkedTileMap* tilemap, TileMapChunk* chunk, Game* game);
 
 TileMapChunk* GetChunk(ChunkedTileMap* tilemap, ChunkCoord coord);
+TileMapChunk* GetChunkByTile(ChunkedTileMap* tilemap, TileCoord tileCoord);
+ChunkCoord TileToChunkCoord(ChunkedTileMap* tilemap, TileCoord tilePos);
 
-TileMapChunk*
-GetChunkByTile(ChunkedTileMap* tilemap, ChunkCoord coord);
-
-ChunkCoord
-TileToChunkCoord(ChunkedTileMap* tilemap, TileCoord tilePos);
-
-void 
-SetTile(ChunkedTileMap* tilemap, const Tile* tile, TileCoord tilePos);
-
-Tile* 
-GetTile(ChunkedTileMap* tilemap, TileCoord tilePos);
-
-const Tile& 
-GetTileRef(ChunkedTileMap* tilemap, TileCoord tilePos);
-
-ChunkCoord
-TileToChunkCoord(ChunkedTileMap* tilemap, TileCoord tilePos);
-
-uint64_t
-TileToIndex(ChunkedTileMap* tilemap, TileCoord tilePos);
-
+uint64_t TileToIndex(ChunkedTileMap* tilemap, TileCoord tilePos);
 TileCoord WorldToTile(ChunkedTileMap* tilemap, Vector2 pos);
+
+void SetTile(ChunkedTileMap* tilemap, const Tile* tile, TileCoord tilePos);
+Tile* GetTile(ChunkedTileMap* tilemap, TileCoord tilePos);
 
 bool IsChunkLoaded(ChunkedTileMap* tilemap, ChunkCoord coord);
 bool IsTileInBounds(ChunkedTileMap* tilemap, TileCoord tilePos);
 bool IsChunkInBounds(ChunkedTileMap* tilemap, ChunkCoord chunkPos);
-void SetColor(ChunkedTileMap* tilemap, TileCoord coord, Vector4 color);
+
 void SetVisible(ChunkedTileMap* tilemap, TileCoord coord);
 bool BlocksLight(ChunkedTileMap* tilemap, TileCoord coord);
 
