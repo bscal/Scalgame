@@ -3,7 +3,6 @@
 #include "raylib/src/raylib.h"
 
 #include <stdint.h>
-#include <functional>
 
 struct Vector2i
 {
@@ -49,38 +48,3 @@ static const Vector2i Vec2i_NEIGHTBORS_CORNERS[8] = {
 int64_t  Vec2iPackInt64(Vector2i v);
 Vector2i Vec2iUnpackInt64(int64_t packedVector);
 Vector2i Vec2fToVec2i(Vector2 v);
-
-inline constexpr uint32_t HashVec2i(Vector2i vec)
-{
-    return (uint32_t)(vec.x ^ (vec.y << 2));
-}
-
-template<>
-struct std::hash<Vector2i>
-{
-    std::size_t operator()(const Vector2i& v) const noexcept
-    {
-        return HashVec2i(v);
-    }
-};
-
-struct Vector2iHasher
-{
-    size_t operator()(const Vector2i* v) const noexcept
-    {
-        return HashVec2i(*v);
-    }
-};
-
-inline bool Vector2iEqualsFunc(const Vector2i* lhs, const Vector2i* rhs) noexcept
-{
-    return lhs->Equals(*rhs);
-}
-
-struct Vector2iEquals
-{
-    bool operator()(const Vector2i* lhs, const Vector2i* rhs) const noexcept
-    {
-        return lhs->Equals(*rhs);
-    }
-};

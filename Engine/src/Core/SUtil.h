@@ -52,6 +52,27 @@ SStringViewHash(const SStringView* key)
 	return FNVHash64(data, key->Length);
 }
 
+struct Vector2iHasher
+{
+	inline constexpr size_t operator()(const Vector2i* v) const
+	{
+		return FNVHash64((const uint8_t*)v, sizeof(Vector2i));
+	}
+};
+
+inline bool Vector2iEqualsFunc(const Vector2i* lhs, const Vector2i* rhs) noexcept
+{
+	return lhs->Equals(*rhs);
+}
+
+struct Vector2iEquals
+{
+	inline constexpr bool operator()(const Vector2i* lhs, const Vector2i* rhs) const noexcept
+	{
+		return lhs->Equals(*rhs);
+	}
+};
+
 inline constexpr size_t
 AlignPowTwo64(size_t num)
 {
@@ -154,51 +175,3 @@ QueryTilesRect(World* world, Vector2i start, Vector2i end);
 // Returns a temporary array of tile positions
 SList<Vector2i>
 QueryTilesRadius(World* world, Vector2i center, float radius);
-
-
-
-//template<typename T>
-//struct SAllocator
-//{
-//    typedef T value_type;
-//
-//    SAllocator() = default;
-//
-//    template<class U>
-//    constexpr SAllocator(const SAllocator <U>&) noexcept {}
-//
-//    [[nodiscard]] T* allocate(size_t n)
-//    {
-//        SASSERT(n < (SIZE_MAX / sizeof(T)));
-//        auto p = static_cast<T*>(SMemAlloc(n * sizeof(T)));
-//        if (p)
-//        {
-//            report(p, n);
-//            return p;
-//        }
-//        else
-//        {
-//            SLOG_ERR("SAllocator bad allocation!");
-//            SASSERT(p);
-//            return nullptr;
-//        }
-//    }
-//
-//    void deallocate(T* p, size_t n) noexcept
-//    {
-//        report(p, n, 0);
-//        SMemFree(p);
-//    }
-//private:
-//    void report(T* p, size_t n, bool alloc = true) const
-//    {
-//        const char* str = (alloc) ? "Alloc" : "Dealloc";
-//        SLOG_INFO("%sing %d bytes at %p", str, n, p);
-//    }
-//};
-
-//template<class T, class U>
-//bool operator==(const SAllocator <T>&, const SAllocator <U>&) { return true; }
-//
-//template<class T, class U>
-//bool operator!=(const SAllocator <T>&, const SAllocator <U>&) { return false; }

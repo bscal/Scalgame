@@ -234,8 +234,6 @@ AppendMemoryUsage(UIState* state)
 
 	nk_spacer(&state->Ctx);
 	nk_label(&state->Ctx, "--- Memory Usage ---", NK_TEXT_LEFT);
-	MemorySizeData usage = FindMemSize(SMemGetUsage());
-	nk_label(&state->Ctx, TextFormat("Tagged: %.2f%cbs", usage.Size, usage.BytePrefix), NK_TEXT_LEFT);
 	size_t freeMem = GetMemPoolFreeMemory(GetGameApp()->GameMemory);
 	MemorySizeData alloced = FindMemSize(SMemGetAllocated());
 	nk_label(&state->Ctx, TextFormat("Allocated: %.2f%cbs", alloced.Size, alloced.BytePrefix), NK_TEXT_LEFT);

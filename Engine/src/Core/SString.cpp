@@ -104,8 +104,8 @@ void SString::SetCapacity(uint32_t capacity)
 	{
 		if (Capacity > SSTR_SSO_LENGTH)
 		{
-			m_Buffer.StrMemory = (char*)SMemReallocTag(
-				Data(), Capacity, capacity, MemoryTag::Strings);
+			SMemFreeTag(m_Buffer.StrMemory, Capacity, MemoryTag::Strings);
+			m_Buffer.StrMemory = (char*)SMemAllocTag(capacity, MemoryTag::Strings);
 		}
 		else
 		{
@@ -147,8 +147,8 @@ void SString::Assign(const char* cStr, uint32_t length)
 		}
 		else
 		{
-			m_Buffer.StrMemory = (char*)SMemReallocTag(
-				Data(), Capacity, length, MemoryTag::Strings);
+			SMemFreeTag(m_Buffer.StrMemory, Capacity, MemoryTag::Strings);
+			m_Buffer.StrMemory = (char*)SMemAllocTag(length, MemoryTag::Strings);
 		}
 		Capacity = length;
 	}

@@ -29,7 +29,6 @@
 // TODO: maybe move this to an internal state struct?
 global_var GameApplication* GameAppPtr;
 global_var uint64_t MemoryTagUsage[(uint8_t)MemoryTag::MaxTags];
-global_var uint64_t TotalUsage;
 global_var uint64_t GameMemSize;
 global_var uint64_t TemporaryMemSize;
 global_var uint64_t TotalMemoryAllocated;
@@ -43,13 +42,13 @@ SMemInitialize(GameApplication* gameApp,
     TemporaryMemSize = temporaryMemSize;
     TotalMemoryAllocated = GameMemSize + TemporaryMemSize;
 
-    uint8_t* memory = (uint8_t*)malloc(TotalMemoryAllocated);
-    SASSERT(memory);
-    SMemClear(memory, TotalMemoryAllocated);
+    uint8_t* memoryLocation = (uint8_t*)malloc(TotalMemoryAllocated);
+    SASSERT(memoryLocation);
+    SMemClear(memoryLocation, TotalMemoryAllocated);
 
-    gameApp->GameMemory = CreateMemPoolFromBuffer(memory, GameMemSize);
+    gameApp->GameMemory = CreateMemPoolFromBuffer(memoryLocation, GameMemSize);
 
-    gameApp->TemporaryMemory = CreateBiStackFromBuffer(memory + GameMemSize, TemporaryMemSize);
+    gameApp->TemporaryMemory = CreateBiStackFromBuffer(memoryLocation + GameMemSize, TemporaryMemSize);
 
     SASSERT(gameApp->GameMemory.arena.mem);
     SASSERT(gameApp->TemporaryMemory.mem);
@@ -59,24 +58,26 @@ SMemInitialize(GameApplication* gameApp,
 
     SLOG_INFO("[ Memory ] Initialized! Total Mem: %d bytes.", TotalMemoryAllocated);
     SLOG_INFO("[ Memory ] Game mem size: %.2f%c. At: 0x%p", gameFormatSize.Size,
-        gameFormatSize.BytePrefix, memory);
+        gameFormatSize.BytePrefix, memoryLocation);
     SLOG_INFO("[ Memory ] Temporary mem size: %.2f%c. At: 0x%p", tempFormatSize.Size,
-        tempFormatSize.BytePrefix, memory + GameMemSize);
+        tempFormatSize.BytePrefix, memoryLocation + GameMemSize);
 }
 
 void* SMemAlloc(size_t size)
 {
     void* mem = SMalloc();
-    //SMEM_LOG_ALLOC("Allocated", size);
     SASSERT(mem);
+
+    SMEM_LOG_ALLOC("Allocated", size);
     return mem;
 }
 
 void* SMemRealloc(void* block, size_t size)
 {
     void* mem = SRealloc();
-    //SMEM_LOG_ALLOC("Reallocated", size);
     SASSERT(mem);
+
+    SMEM_LOG_ALLOC("Reallocated", size);
     return mem;
 }
 
@@ -102,19 +103,7 @@ void* SMemAllocTag(size_t size, MemoryTag tag)
     SASSERT(tag != MemoryTag::Unknown);
 
     MemoryTagUsage[(uint8_t)tag] += size;
-    TotalUsage += size;
     return SMemAlloc(size);
-}
-
-void* SMemReallocTag(void* block, size_t oldSize, size_t newSize, MemoryTag tag)
-{
-    SASSERT(tag != MemoryTag::Unknown);
-
-    MemoryTagUsage[(uint8_t)tag] -= oldSize;
-    MemoryTagUsage[(uint8_t)tag] += newSize;
-    TotalUsage -= oldSize;
-    TotalUsage += newSize;
-    return SMemRealloc(block, newSize);
 }
 
 void SMemFreeTag(void* block, size_t size, MemoryTag tag)
@@ -122,41 +111,48 @@ void SMemFreeTag(void* block, size_t size, MemoryTag tag)
     SASSERT(block);
     SASSERT(tag != MemoryTag::Unknown);
 
-    MemoryTagUsage[(uint8_t)tag] -= size;
-    TotalUsage -= size;
-    SMemFree(block);
+    if (!block)
+    {
+        MemoryTagUsage[(uint8_t)tag] -= size;
+        SMemFree(block);
+    }
 }
 
 void SMemCopy(void* dst, const void* src, size_t size)
 {
+    SASSERT(dst);
+    SASSERT(src);
+    SASSERT(size > 0);
+    SASSERT(dst != src);
     memcpy(dst, src, size);
 }
 
 void SMemMove(void* dst, const void* src, size_t size)
 {
+    SASSERT(dst);
+    SASSERT(src);
+    SASSERT(size > 0);
+    SASSERT(dst != src);
     memmove(dst, src, size);
 }
 
-void SMemSet(void* block, int value, size_t size)
+void SMemSet(void* dst, int value, size_t size)
 {
-    memset(block, value, size);
+    SASSERT(dst);
+    SASSERT(size > 0);
+    memset(dst, value, size);
 }
 
-void SMemClear(void* block, size_t size)
+void SMemClear(void* dst, size_t size)
 {
-    memset(block, 0, size);
+    SASSERT(dst);
+    SASSERT(size > 0);
+    memset(dst, 0, size);
 }
-
 
 const size_t* SMemGetTaggedUsages()
 {
     return MemoryTagUsage;
-}
-
-
-size_t SMemGetUsage()
-{
-    return TotalUsage;
 }
 
 uint64_t SMemGetAllocated()
