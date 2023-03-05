@@ -19,6 +19,9 @@ void WorldLoad(World* world, Game* game)
 {
 	LightsInitialized(GetGameApp());
 
+	// FIXME: find better location for this
+	MapGenInitialize(&game->MapGen, 0);
+
 	CTileMap::Load(&world->ChunkedTileMap);
 
 	world->IsLoaded = true;
@@ -41,6 +44,7 @@ void WorldFree(World* world)
 
 void WorldUpdate(World* world, Game* game)
 {
+	PROFILE_BEGIN();
 	GetGameApp()->NumOfChunksUpdated = 0;
 
 	LightsUpdate(game);
@@ -48,6 +52,7 @@ void WorldUpdate(World* world, Game* game)
 	CTileMap::Update(&world->ChunkedTileMap, game);
 
 	GetGameApp()->NumOfLoadedChunks = (int)world->ChunkedTileMap.ChunksList.Count;
+	PROFILE_END();
 }
 
 void WorldLateUpdate(World* world, Game* game)

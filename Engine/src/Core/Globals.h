@@ -22,7 +22,7 @@ global_var constexpr int CHUNK_DIMENSIONS = 64;
 global_var constexpr int CHUNK_SIZE = CHUNK_DIMENSIONS * CHUNK_DIMENSIONS;
 
 // TODO: move to settings struct?
-global_var constexpr Vector2i VIEW_DISTANCE = { 1, 1 };
+global_var constexpr Vector2i VIEW_DISTANCE = { 2, 2 };
 
 global_var constexpr Vector2 ScreenCenter = { (float)SCREEN_WIDTH / 2.0f, (float)SCREEN_HEIGHT / 2.0f };
 

@@ -164,14 +164,12 @@ GetArgInt(int index, const SList<SStringView>& args)
 {
 	Argument<int> arg = {};
 	if (index >= args.Count) return arg;
-	try
+	arg.Value = strtol(args[index].Str, NULL, 10);
+	arg.IsPresent = true;
+	if (errno)
 	{
-		arg.Value = strtol(args[index].Str, NULL, 10);
-		arg.IsPresent = true;
-	}
-	catch (std::exception e)
-	{
-		SLOG_ERR("GetArgInt: %s", e.what());
+		char buffer[256];
+		SLOG_ERR("GetArgInt: %s", strerror_s(buffer, errno));
 	}
 	return arg;
 }
@@ -181,16 +179,12 @@ GetArgFloat(int index, const SList<SStringView>& args)
 {
 	Argument<float> arg = {};
 	if (index >= args.Count) return arg;
-	try
+	arg.Value = strtof(args[index].Str, NULL);
+	arg.IsPresent = true;
+	if (errno)
 	{
-		// TODO maybe move to custom warpped strto function
-		// in string class? just for better errors
-		arg.Value = strtof(args[index].Str, NULL);
-		arg.IsPresent = true;
-	}
-	catch (std::exception e)
-	{
-		SLOG_ERR("GetArgFloat: %s", e.what());
+		char buffer[256];
+		SLOG_ERR("GetArgFloat: %s", strerror_s(buffer, errno));
 	}
 	return arg;
 }
@@ -200,22 +194,29 @@ GetArgVec2(int index, const SList<SStringView>& args)
 {
 	Argument<Vector2> arg = {};
 	if (index >= args.Count) return arg;
-	try
+	SStringView strView = args[index];
+	uint32_t found = strView.FindChar(',');
+	if (found != SSTR_NO_POS)
 	{
-		SStringView strView = args[index];
-		uint32_t found = strView.FindChar(',');
-		if (found != SSTR_NO_POS)
+		SStringView xStr = strView.SubString(0, found);
+		SStringView yStr = strView.SubString(found + 1, strView.Length);
+		arg.Value.x = strtof(xStr.Str, NULL);
+
+		if (errno)
 		{
-			SStringView xStr = strView.SubString(0, found);
-			SStringView yStr = strView.SubString(found + 1, strView.Length);
-			arg.Value.x = strtof(xStr.Str, NULL);
-			arg.Value.y = strtof(yStr.Str, NULL);
-			arg.IsPresent = true;
+			char buffer[256];
+			SLOG_ERR("GetArgVec2(X field): %s", strerror_s(buffer, errno));
 		}
-	}
-	catch (std::exception e)
-	{
-		SLOG_ERR("GetArgVec2: %s", e.what());
+
+		arg.Value.y = strtof(yStr.Str, NULL);
+
+		if (errno)
+		{
+			char buffer[256];
+			SLOG_ERR("GetArgVec2(Y field): %s", strerror_s(buffer, errno));
+		}
+
+		arg.IsPresent = true;
 	}
 	return arg;
 }

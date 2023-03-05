@@ -1,9 +1,10 @@
 #pragma once
 
 #include "Core.h"
+#include "Globals.h"
+
+#include "Structures/StaticArray.h"
 #include "Structures/SList.h"
-#include "Structures/SSet.h"
-#include "Structures/SHoodSet.h"
 
 struct GameApplication;
 struct Game;
@@ -14,7 +15,9 @@ struct LightingState
 {
     SList<Light> Lights;
     SList<UpdatingLight> UpdatingLights;
-    SHoodSet<Vector2i, DefaultHasher<Vector2i>, Vector2iEquals> VisitedTilePerLight;
+
+    size_t Size = SCREEN_WIDTH_TILES * SCREEN_HEIGHT_TILES;
+    StaticArray<bool, SCREEN_WIDTH_TILES * SCREEN_HEIGHT_TILES> CheckedTiles;
 };
 
 struct Light
@@ -45,4 +48,7 @@ void LightsUpdate(Game* game);
 size_t GetNumOfLights();
 
 void
-LightsUpdateTileColor(TileCoord tileCoord, float distance, const Light& light);
+LightsUpdateTileColor(int index, float distance, const Light& light);
+
+void
+LightsUpdateTileColorTile(Vector2i tileCoord, float distance, const Light& light);

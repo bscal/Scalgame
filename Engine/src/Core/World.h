@@ -27,7 +27,7 @@ struct WorldTime
 
 struct World
 {
-	CTileMap::ChunkedTileMap ChunkedTileMap;
+	ChunkedTileMap ChunkedTileMap;
 	
 	SList<Action> EntityActionsList;
 	bool IsAllocated;

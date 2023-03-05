@@ -21,6 +21,8 @@ void EntityMgrInitialize(Game* game)
 
 void EntityMgrUpdate(EntityMgr* entMgr, Game* game)
 {
+	PROFILE_BEGIN();
+
 	for (size_t i = 0; i < entMgr->Players.Count; ++i)
 	{
 		auto player = entMgr->Players.PeekAt(i);
@@ -40,6 +42,8 @@ void EntityMgrUpdate(EntityMgr* entMgr, Game* game)
 		EntityId entToRemove = entMgr->EntitiesToRemove.PopValue();
 		RemoveEntity(entMgr, entToRemove);
 	}
+
+	PROFILE_END();
 }
 
 void MarkEntityForRemove(EntityMgr* entMgr, EntityId ent)

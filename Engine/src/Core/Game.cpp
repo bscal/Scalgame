@@ -40,6 +40,19 @@ SAPI bool GameApplication::Start()
 	size_t tempMemorySize = Megabytes(4);
 	SMemInitialize(this, gameMemorySize, tempMemorySize);
 
+#if ENABLE_PROFILING
+	SpallCtx = spall_init_file("profile.spall", 1);
+	SpallData.length = Megabytes(1);
+	SpallData.data = SMemAlloc(SpallData.length);
+	bool spallBufferInit = spall_buffer_init(&SpallCtx, &SpallData);
+	if (!spallBufferInit)
+	{
+		SLOG_ERR("Spall buffer failed to initialize");
+		return false;
+	}
+	else SLOG_INFO("[ PROFILING ] Spall profiling initialized");
+#endif
+
 	const int screenWidth = 1920;
 	const int screenHeight = 1080;
 	//SetConfigFlags(FLAG_WINDOW_RESIZABLE);
@@ -82,14 +95,20 @@ SAPI bool GameApplication::Start()
 
 	double initEnd = GetTime() - initStart;
 	SLOG_INFO("[ Init ] Initialized Success. Took %f second", initEnd);
+
 	return IsInitialized;
 }
 
 SAPI void GameApplication::Shutdown()
 {
+#if ENABLE_PROFILING
+	spall_buffer_quit(&SpallCtx, &SpallData);
+	spall_quit(&SpallCtx);
+#endif
 	GameAppPtr = nullptr;
 	FreeResouces(&Game->Resources);
 	Game->Renderer.Free();
+	GameUnload(Game);
 	CloseWindow();
 }
 
@@ -188,6 +207,7 @@ SAPI void GameApplication::Run()
 
 	while (!WindowShouldClose())
 	{
+		PROFILE_BEGIN_EX("Run");
 		if (IsSuspended) continue;
 
 		// ***************
@@ -365,6 +385,8 @@ SAPI void GameApplication::Run()
 		double drawStart = GetTime();
 		EndDrawing();
 		RenderTime = GetTime() - drawStart;
+
+		PROFILE_END();
 	}
 	IsRunning = false;
 }
@@ -372,6 +394,8 @@ SAPI void GameApplication::Run()
 internal void 
 GameUpdate(Game* game, GameApplication* gameApp)
 {
+	PROFILE_BEGIN();
+
 	// Handle Camera Move
 	if (!game->IsFreeCam)
 	{
@@ -416,6 +440,8 @@ GameUpdate(Game* game, GameApplication* gameApp)
 	}
 
 	EntityMgrUpdate(&game->EntityMgr, game);
+
+	PROFILE_END();
 }
 
 internal void GameLateUpdate(Game* game)
@@ -462,6 +488,11 @@ float GetScale()
 {
 	SASSERT(GetGameApp()->Scale > 0.0f);
 	return GetGameApp()->Scale;
+}
+
+double GetMicrosTime()
+{
+	return GetTime() * 1000000.0;
 }
 
 Vector2 VecToTileCenter(Vector2 vec)

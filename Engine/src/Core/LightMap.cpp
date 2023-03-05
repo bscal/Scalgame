@@ -9,10 +9,7 @@
 
 void LightMapInitialize(LightData* lightData)
 {
-	for (int i = 0; i < SCREEN_TOTAL_TILES; ++i)
-	{
-		lightData->LightColors[i] = LIGHTINFO_DEFAULT;
-	}
+	lightData->LightColors.fill(LIGHTINFO_DEFAULT);
 }
 
 void LightMapUpdate(LightData* lightData, Game* game)
@@ -65,6 +62,7 @@ void LightMapAddColor(LightData* lightData, TileCoord tileCoord, const Vector4& 
 		tileCoord.y - lightData->LightMapOffset.y
 	};
 	int index = worldTileCoord.x + worldTileCoord.y * SCREEN_WIDTH_TILES;
+
 	SASSERT(index >= 0);
 	SASSERT(index < SCREEN_TOTAL_TILES);
 	lightData->LightColors[index].x += colors.x;
