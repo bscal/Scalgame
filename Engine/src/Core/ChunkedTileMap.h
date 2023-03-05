@@ -11,14 +11,29 @@
 struct GameApp;
 struct Game;
 
-namespace CTileMap
+enum class ChunkState : uint8_t
 {
+	Unloaded	= 0x00,
+	Loaded		= 0x01,
+	Sleeping	= 0x02,
+
+	MaxStates
+};
+
+enum class ChunkBake : uint8_t
+{
+	NoBuild			= 0x00,
+	BuildSelf		= 0x01,
+	BuildNeighbors	= 0x02,
+};
 
 struct TileMapChunk
 {
+	RenderTexture2D Texture;
 	Rectangle Bounds;
 	ChunkCoord ChunkCoord;
-	bool IsChunkGenerated;
+	ChunkState State;
+	ChunkBake BakeState;
 	Tile Tiles[CHUNK_SIZE];
 };
 
@@ -30,10 +45,12 @@ struct ChunkedTileMap
 	SLinkedList<ChunkCoord> ChunksToUnload;
 
 	Vector2i ViewDistance;
-	Vector2i Origin;			// Used in bounds check
 	Vector2i WorldDimChunks;	// Used in bounds check
 	Vector2i WorldDimTiles;		// Used in bounds check
 };
+
+namespace CTileMap
+{
 
 void Initialize(ChunkedTileMap* tilemap);
 void Free(ChunkedTileMap* tilemap);
@@ -42,9 +59,7 @@ void Load(ChunkedTileMap* tilemap);
 void Update(ChunkedTileMap* tilemap, Game* game);
 void LateUpdate(ChunkedTileMap* tilemap, Game* game);
 
-
 TileMapChunk* LoadChunk(ChunkedTileMap* tilemap, ChunkCoord coord);
-void GenerateChunk(ChunkedTileMap* tilemap,TileMapChunk* chunk);
 void UnloadChunk(ChunkedTileMap* tilemap, ChunkCoord coord);
 
 void UpdateChunk(ChunkedTileMap* tilemap, TileMapChunk* chunk, Game* game);
