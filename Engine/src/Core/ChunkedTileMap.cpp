@@ -78,13 +78,22 @@ void Update(ChunkedTileMap* tilemap, Game* game)
 		CheckChunksInLOS(tilemap);
 	}
 	
-	// Update our chunks and handle removal
+	// TODO: unloading a chunk will delete the texture. Im not
+	// sure if I should use a pool of textures and never free them
+	// till the end? This probably wouldnt cause issues because those
+	// textures shouldnt be drawn.
+	DrawChunks(tilemap);
+
+	// Updates chunks, 
 	for (uint32_t i = 0; i < tilemap->ChunksList.Count; ++i)
 	{
 		TileMapChunk* chunk = tilemap->ChunksList.PeekAt(i);
 		Vector2i difference = playerChunkCoord.Subtract(chunk->ChunkCoord);
 		int chunkX = labs(difference.x);
 		int chunkY = labs(difference.y);
+
+		// TODO: revisit this, current chunks dont need to be updated outside
+		// view distance, but they might, or to handle rebuilds?
 		if (chunkX > VIEW_DISTANCE.x + 1 || chunkY > VIEW_DISTANCE.y + 1)
 		{
 			tilemap->ChunksToUnload.Push(&chunk->ChunkCoord);
@@ -102,27 +111,25 @@ void Update(ChunkedTileMap* tilemap, Game* game)
 		UnloadChunk(tilemap, chunkCoord);
 	}
 
-	DrawChunks(tilemap);
-
-	// Draw tilemap
-	// Draw(tilemap, game);
 	PROFILE_END();
 }
 
 void LateUpdate(ChunkedTileMap* tilemap, Game* game)
 {
-	if (!game->DebugTileView) return;
-	Rectangle screen;
-	screen.x = GetGameApp()->ScreenXY.x;
-	screen.y = GetGameApp()->ScreenXY.y;
-	screen.width = (float)GetScreenWidth();
-	screen.height = (float)GetScreenHeight();
-	for (uint32_t i = 0; i < tilemap->ChunksList.Count; ++i)
+	if (game->DebugTileView)
 	{
-		TileMapChunk* chunk = tilemap->ChunksList.PeekAt(i);
-		if (CheckCollisionRecs(screen, chunk->Bounds))
+		Rectangle screen;
+		screen.x = GetGameApp()->ScreenXY.x;
+		screen.y = GetGameApp()->ScreenXY.y;
+		screen.width = (float)GetScreenWidth();
+		screen.height = (float)GetScreenHeight();
+		for (uint32_t i = 0; i < tilemap->ChunksList.Count; ++i)
 		{
-			DrawRectangleLinesEx(chunk->Bounds, 4, GREEN);
+			TileMapChunk* chunk = tilemap->ChunksList.PeekAt(i);
+			if (CheckCollisionRecs(screen, chunk->Bounds))
+			{
+				DrawRectangleLinesEx(chunk->Bounds, 4, GREEN);
+			}
 		}
 	}
 }
@@ -130,16 +137,16 @@ void LateUpdate(ChunkedTileMap* tilemap, Game* game)
 void 
 UpdateChunk(ChunkedTileMap* tilemap, TileMapChunk* chunk, Game* game)
 {
-	if (chunk->BakeState != ChunkBake::NoBuild)
+	if (chunk->RebakeFlags != NO_REBUILD)
 	{
 		BakeChunk(chunk, game);
-		if (chunk->BakeState == ChunkBake::BuildNeighbors)
+		if ((chunk->RebakeFlags & REBUILD_NEIGHBOURS) == REBUILD_NEIGHBOURS)
 		{
-			for (int i = 0; i < ARRAY_LENGTH(Vec2i_NEIGHTBORS_CORNERS); ++i)
+			for (int i = 0; i < ArrayLength(Vec2i_NEIGHTBORS_CORNERS); ++i)
 			{
 				Vector2i coord = chunk->ChunkCoord.Add(Vec2i_NEIGHTBORS_CORNERS[i]);
 				if (!IsChunkInBounds(tilemap, coord)) continue;
-				GetChunk(tilemap, coord)->BakeState = ChunkBake::BuildSelf;
+				GetChunk(tilemap, coord)->RebakeFlags |= REBUILD_SELF;
 			}
 		}
 	}
@@ -166,6 +173,8 @@ TileMapChunk* LoadChunk(ChunkedTileMap* tilemap, ChunkCoord coord)
 	MapGenGenerateChunk(&GetGame()->MapGen, tilemap, chunk);
 
 	BakeChunk(chunk, GetGame());
+
+	chunk->State = ChunkState::Loaded;
 
 	SLOG_INFO("[ Chunk ] Loaded chunk (%s). State: %s", FMT_VEC2I(coord), ChunkStateToString(chunk->State));
 	return chunk;
@@ -274,7 +283,7 @@ SetTile(ChunkedTileMap* tilemap, const Tile* tile, TileCoord tilePos)
 	}
 	uint64_t index = TileToIndex(tilemap, tilePos);
 	chunk->Tiles[index] = *tile;
-	chunk->BakeState = ChunkBake::BuildSelf;
+	chunk->RebakeFlags |= REBUILD_SELF;
 }
 
 Tile* 
@@ -312,11 +321,7 @@ void SetVisible(ChunkedTileMap* tilemap, TileCoord coord)
 
 bool BlocksLight(ChunkedTileMap* tilemap, TileCoord coord)
 {
-	if (!IsTileInBounds(tilemap, coord)) return true;
-
-	Tile* tile = GetTile(tilemap, coord);
-	SASSERT(tile);
-	return tile->GetTileData(&GetGameApp()->Game->TileMgr)->Type == TileType::Solid;
+	return GetTile(tilemap, coord)->GetTileData(&GetGame()->TileMgr)->Type == TileType::Solid;
 }
 
 internal void
@@ -338,7 +343,8 @@ CheckChunksInLOS(ChunkedTileMap* tilemap)
 	PROFILE_END();
 }
 
-internal void DrawChunks(ChunkedTileMap* tilemap)
+internal void 
+DrawChunks(ChunkedTileMap* tilemap)
 {
 	PROFILE_BEGIN();
 	for (uint32_t i = 0; i < tilemap->ChunksList.Count; ++i)
@@ -366,6 +372,7 @@ BakeChunk(TileMapChunk* chunk, Game* game)
 {
 	PROFILE_BEGIN();
 	BeginTextureMode(chunk->Texture);
+	ClearBackground(BLACK);
 	Texture2D* texture = &game->Resources.Atlas.Texture;
 	TileMgr* tileMgr = &game->TileMgr;
 	for (int y = 0; y < CHUNK_DIMENSIONS; ++y)
@@ -387,8 +394,9 @@ BakeChunk(TileMapChunk* chunk, Game* game)
 				{ 1.0f, 1.0f, 1.0f, 1.0f });
 		}
 	}
-	chunk->BakeState = ChunkBake::NoBuild;
+	chunk->RebakeFlags = NO_REBUILD;
 	EndTextureMode();
+	SLOG_INFO("Baked chunk(%s) texture", FMT_VEC2I(chunk->ChunkCoord));
 	PROFILE_END();
 }
 

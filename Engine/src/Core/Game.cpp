@@ -1,6 +1,7 @@
 #include "Game.h"
 
 #include "Globals.h"
+#include "Tools/Instrument.h"
 #include "Creature.h"
 #include "ResourceManager.h"
 #include "Lighting.h"
@@ -40,18 +41,7 @@ SAPI bool GameApplication::Start()
 	size_t tempMemorySize = Megabytes(4);
 	SMemInitialize(this, gameMemorySize, tempMemorySize);
 
-#if ENABLE_PROFILING
-	SpallCtx = spall_init_file("profile.spall", 1);
-	SpallData.length = Megabytes(1);
-	SpallData.data = SMemAlloc(SpallData.length);
-	bool spallBufferInit = spall_buffer_init(&SpallCtx, &SpallData);
-	if (!spallBufferInit)
-	{
-		SLOG_ERR("Spall buffer failed to initialize");
-		return false;
-	}
-	else SLOG_INFO("[ PROFILING ] Spall profiling initialized");
-#endif
+	InitProfile("profile.spall");
 
 	const int screenWidth = 1920;
 	const int screenHeight = 1080;
@@ -101,10 +91,8 @@ SAPI bool GameApplication::Start()
 
 SAPI void GameApplication::Shutdown()
 {
-#if ENABLE_PROFILING
-	spall_buffer_quit(&SpallCtx, &SpallData);
-	spall_quit(&SpallCtx);
-#endif
+	ExitProfile();
+
 	GameAppPtr = nullptr;
 	FreeResouces(&Game->Resources);
 	Game->Renderer.Free();
@@ -488,11 +476,6 @@ float GetScale()
 {
 	SASSERT(GetGameApp()->Scale > 0.0f);
 	return GetGameApp()->Scale;
-}
-
-double GetMicrosTime()
-{
-	return GetTime() * 1000000.0;
 }
 
 Vector2 VecToTileCenter(Vector2 vec)

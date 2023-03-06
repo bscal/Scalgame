@@ -11,20 +11,19 @@
 struct GameApp;
 struct Game;
 
+global_var const Vector2i TILEMAP_ORIGIN = { 0, 0 };
+
+#define NO_REBUILD 0x00
+#define REBUILD_SELF 0x01
+#define REBUILD_NEIGHBOURS 0x02
+
 enum class ChunkState : uint8_t
 {
-	Unloaded	= 0x00,
-	Loaded		= 0x01,
-	Sleeping	= 0x02,
+	Unloaded = 0,
+	Loaded,
+	Sleeping,
 
 	MaxStates
-};
-
-enum class ChunkBake : uint8_t
-{
-	NoBuild			= 0x00,
-	BuildSelf		= 0x01,
-	BuildNeighbors	= 0x02,
 };
 
 struct TileMapChunk
@@ -33,9 +32,10 @@ struct TileMapChunk
 	Rectangle Bounds;
 	ChunkCoord ChunkCoord;
 	ChunkState State;
-	ChunkBake BakeState;
+	uint8_t RebakeFlags;
 	Tile Tiles[CHUNK_SIZE];
 };
+
 
 struct ChunkedTileMap
 {

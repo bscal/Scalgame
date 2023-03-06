@@ -2,6 +2,7 @@
 
 #include "Core.h"
 #include "Vector2i.h"
+#include "Tools/Instrument.h"
 
 // TODO: should probably move resolution to another place
 global_var constexpr int SCREEN_WIDTH = 1920;

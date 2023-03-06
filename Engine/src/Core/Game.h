@@ -12,18 +12,6 @@
 
 #include "MapGeneration/MapGeneration.h"
 
-#define ENABLE_PROFILING 0
-#if ENABLE_PROFILING
-#include "spall/spall.h"
-#define PROFILE_BEGIN(void) spall_buffer_begin(&GetGameApp()->SpallCtx, &GetGameApp()->SpallData, __FUNCTION__, sizeof(__FUNCTION__) - 1, GetMicrosTime())
-#define PROFILE_BEGIN_EX(str) spall_buffer_begin(&GetGameApp()->SpallCtx, &GetGameApp()->SpallData, str, sizeof(str) - 1, GetMicrosTime())
-#define PROFILE_END(void) spall_buffer_end(&GetGameApp()->SpallCtx, &GetGameApp()->SpallData, GetMicrosTime())
-#else
-#define PROFILE_BEGIN(void)
-#define PROFILE_BEGIN_EX(str)
-#define PROFILE_END(void)
-#endif
-
 struct UIState;
 
 struct Game
@@ -61,11 +49,6 @@ struct GameApplication
 {
     Game* Game;
     UIState* UIState;
-    
-#if ENABLE_PROFILING
-    SpallProfile SpallCtx;
-    SpallBuffer SpallData;
-#endif
 
     MemPool GameMemory;
     BiStack TemporaryMemory;
@@ -105,7 +88,6 @@ void SetCameraDistance(GameApplication* gameApp, float zoom);
 SRandom* GetGlobalRandom();
 float GetDeltaTime();
 float GetScale();
-double GetMicrosTime();
 Vector2 VecToTileCenter(Vector2 vec);
 Vector2 GetZoomedMousePos(const Camera2D& camera);
 Vector2i GetTileFromMouse(Game* game);

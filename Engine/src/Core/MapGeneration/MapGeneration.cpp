@@ -27,10 +27,9 @@ void MapGenGenerateChunk(MapGenerator* generator, ChunkedTileMap* tilemap, TileM
 			float worldX = (float)x + chunk->ChunkCoord.x * CHUNK_DIMENSIONS;
 			float worldY = (float)y + chunk->ChunkCoord.y * CHUNK_DIMENSIONS;
 			float noise = generator->Noise.GetNoise(worldX, worldY);
-			int tileTableIndex = (int)(((noise + 1.f) / 2.f) * ARRAY_LENGTH(TILE_IDS));
-			if (tileTableIndex == ARRAY_LENGTH(TILE_IDS)) tileTableIndex = ARRAY_LENGTH(TILE_IDS) - 1;
+			int tileTableIndex = (int)(((noise + 1.f) / 2.f) * ArrayLength(TILE_IDS));
+			if (tileTableIndex == ArrayLength(TILE_IDS)) tileTableIndex = ArrayLength(TILE_IDS) - 1;
 			chunk->Tiles[index].TileId = GetGame()->TileMgr.Tiles[tileTableIndex].TileId;
 		}
 	}
-	chunk->IsChunkGenerated = true;
 }

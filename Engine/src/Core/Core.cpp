@@ -23,3 +23,8 @@ MemorySizeData FindMemSize(uint64_t size)
 	else
 		return { (float)size, ' ' };
 }
+
+double GetMicroTime()
+{
+	return GetTime() * 1000000.0;
+}

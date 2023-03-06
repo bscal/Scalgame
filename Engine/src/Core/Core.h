@@ -36,7 +36,7 @@ global_var constexpr float TAO = (float)PI * 2.0f;
 #define SAPI
 #endif // SCAL_PLATFORM_WINDOWS
 
-#define ARRAY_LENGTH(arr) sizeof(arr) / sizeof(arr[0])
+#define ArrayLength(arr) (sizeof(arr) / sizeof(arr[0]))
 
 #define Kilobytes(n) (n * 1024ULL)
 #define Megabytes(n) (Kilobytes(n) * 1024ULL)
@@ -89,3 +89,5 @@ struct MemorySizeData
 };
 
 MemorySizeData FindMemSize(uint64_t size);
+
+double GetMicroTime();
