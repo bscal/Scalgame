@@ -31,8 +31,6 @@ void LightMapUpdate(LightData* lightData, Game* game);
 
 void LightMapSetColor(LightData* lightData, TileCoord tileCoord, const Vector4& colors);
 
-void LightMapAddColor(LightData* lightData, TileCoord tileCoord, const Vector4& colors);
-
 void LightMapSetCeiling(LightData* lightData, TileCoord tileCoord, bool hasCeiling);
 
 bool LightMapInView(LightData* lightData, TileCoord tileCoord);

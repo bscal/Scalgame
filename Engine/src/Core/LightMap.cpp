@@ -14,21 +14,14 @@ void LightMapInitialize(LightData* lightData)
 
 void LightMapUpdate(LightData* lightData, Game* game)
 {
-	Vector2i target = GetClientPlayer()->Transform.TilePos;
-	const float lPadding = 2.0f;
-	float offsetX = game->WorldCamera.offset.x / TILE_SIZE_F + lPadding;
-	float offsetY = game->WorldCamera.offset.y / TILE_SIZE_F + lPadding;
-	lightData->LightMapOffset.x = (target.x - (int)offsetX);
-	lightData->LightMapOffset.y = (target.y - (int)offsetY);
+	PROFILE_BEGIN();
+	lightData->LightMapOffset.x = GetGame()->CullingRect.x / TILE_SIZE_F;
+	lightData->LightMapOffset.y = GetGame()->CullingRect.y / TILE_SIZE_F;
 	for (int y = 0; y < SCREEN_HEIGHT_TILES; ++y)
 	{
 		for (int x = 0; x < SCREEN_WIDTH_TILES; ++x)
 		{
 			int index = x + y * SCREEN_WIDTH_TILES;
-			SASSERT(index >= 0);
-			SASSERT(index < SCREEN_TOTAL_TILES);
-			const Vector4& color = lightData->LightColors[index].AsVec4();
-			if (color.x == 0.f && color.y == 0.f && color.z == 0.f && color.w == 0.f) continue;
 			Rectangle rec =
 			{
 				((float)x + (float)lightData->LightMapOffset.x) * TILE_SIZE_F,
@@ -36,10 +29,11 @@ void LightMapUpdate(LightData* lightData, Game* game)
 				TILE_SIZE_F,
 				TILE_SIZE_F
 			};
-			SDrawRectangleProF(rec, { 0 }, 0.0f, color);
+			SDrawRectangleProF(rec, { 0 }, 0.0f, lightData->LightColors[index].AsVec4());
 			lightData->LightColors[index] = LIGHTINFO_DEFAULT; // resets dynamic lights
 		}
 	}
+	PROFILE_END();
 }
 
 void LightMapSetColor(LightData* lightData, TileCoord tileCoord, const Vector4& colors)
@@ -52,22 +46,6 @@ void LightMapSetColor(LightData* lightData, TileCoord tileCoord, const Vector4& 
 	int index = worldTileCoord.x + worldTileCoord.y * SCREEN_WIDTH_TILES;
 	if (index < 0 || index >= SCREEN_TOTAL_TILES) return;
 	lightData->LightColors[index].AssignFromVec4(colors);
-}
-
-void LightMapAddColor(LightData* lightData, TileCoord tileCoord, const Vector4& colors)
-{
-	TileCoord worldTileCoord =
-	{
-		tileCoord.x - lightData->LightMapOffset.x,
-		tileCoord.y - lightData->LightMapOffset.y
-	};
-	int index = worldTileCoord.x + worldTileCoord.y * SCREEN_WIDTH_TILES;
-
-	SASSERT(index >= 0);
-	SASSERT(index < SCREEN_TOTAL_TILES);
-	lightData->LightColors[index].x += colors.x;
-	lightData->LightColors[index].y += colors.y;
-	lightData->LightColors[index].z += colors.z;
 }
 
 void LightMapSetCeiling(LightData* lightData, TileCoord tileCoord, bool HasCieling)

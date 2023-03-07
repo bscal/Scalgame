@@ -1,7 +1,6 @@
 #include "Game.h"
 
 #include "Globals.h"
-#include "Tools/Instrument.h"
 #include "Creature.h"
 #include "ResourceManager.h"
 #include "Lighting.h"
@@ -43,10 +42,8 @@ SAPI bool GameApplication::Start()
 
 	InitProfile("profile.spall");
 
-	const int screenWidth = 1920;
-	const int screenHeight = 1080;
 	//SetConfigFlags(FLAG_WINDOW_RESIZABLE);
-	InitWindow(screenWidth, screenHeight, "Some roguelike game");
+	InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Some roguelike game");
 	SetTargetFPS(144);
 	SetTraceLogLevel(LOG_ALL);
 

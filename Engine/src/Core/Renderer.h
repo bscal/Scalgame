@@ -54,6 +54,11 @@ struct Renderer
 	void SetValueAndUniformBloomIntensity(float intensity);
 };
 
+struct OccultionMap
+{
+	uint8_t Data[0];
+};
+
 void 
 DrawTextureProF(Texture2D texture, Rectangle source, Rectangle dest,
 	Vector2 origin, float rotation, Vector4 tint);

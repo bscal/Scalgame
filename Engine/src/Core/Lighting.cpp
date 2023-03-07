@@ -55,13 +55,8 @@ struct Slope
 	inline bool Less(int y, int x) { return this->y * x < this->x* y; } // this < y/x
 };
 
-
-internal inline bool
-IsTileValid(Vector2i pos);
-
 internal void ComputeOctant(ChunkedTileMap* tilemap, uint8_t octant,
 	Vector2i origin, int rangeLimit, int x, Slope top, Slope bottom);
-
 
 internal void ComputeLightShadowCast(ChunkedTileMap* tilemap,
 	const Light& light, uint8_t octant, Vector2i origin,
@@ -72,7 +67,7 @@ void LightsUpdate(Game* game)
 	PROFILE_BEGIN();
 	Vector2i originTile = GetClientPlayer()->Transform.TilePos;
 	ChunkedTileMap* tilemap = &game->World.ChunkedTileMap;
-
+	
 	if (CTileMap::IsTileInBounds(tilemap, originTile))
 	{
 		CTileMap::SetVisible(tilemap, originTile);
@@ -106,16 +101,23 @@ void LightsUpdate(Game* game)
 		Vector2i lightTilePos = Vec2fToVec2i(State.UpdatingLights[i].Pos);
 		if (!LightMapInView(&game->LightMap, lightTilePos)) continue;
 
+		PROFILE_BEGIN_EX("UpdatingLights::SMemSet");
 		SMemSet(State.CheckedTiles.data(), 0, State.Size);
+		PROFILE_END();
 
+		PROFILE_BEGIN_EX("UpdatingLights::Update");
 		State.UpdatingLights[i].Update(game);
 		const UpdatingLight& light = State.UpdatingLights[i];
 		LightsUpdateTileColorTile({ lightTilePos.x, lightTilePos.y }, 0.0f, light);
+		PROFILE_END();
+
+		PROFILE_BEGIN_EX("UpdatingLights::ComputeLoop");
 		for (uint8_t octant = 0; octant < 8; ++octant)
 		{
 			ComputeLightShadowCast(tilemap, light, octant, lightTilePos,
 				(int)light.Radius, 1, { 1, 1 }, { 0, 1 });
 		}
+		PROFILE_END();
 	}
 	PROFILE_END();
 }
@@ -256,7 +258,7 @@ internal void ComputeOctant(ChunkedTileMap* tilemap, uint8_t octant,
 		int wasOpaque = -1; // 0:false, 1:true, -1:not applicable
 		for (int y = topY; (int)y >= (int)bottomY; y--) // use a signed comparison because y can wrap around when decremented
 		{
-			float distance = Vector2i{ x, y }.Distance(tilemap->Origin);
+			float distance = Vector2i{ x, y }.Distance(TILEMAP_ORIGIN);
 			if (distance < rangeLimit) // skip the tile if it's out of visual range
 			{
 				bool isOpaque = BlocksLight(tilemap, x, y, origin, octant);
@@ -344,9 +346,10 @@ global_var constexpr int TranslationTable[8][4] =
 	{  1,  0,  0,  1 },
 };
 
-internal void ComputeLightShadowCast(ChunkedTileMap* tilemap,
-	const Light& light, uint8_t octant, Vector2i origin,
-	int rangeLimit, int x, Slope top, Slope bottom)
+internal void 
+ComputeLightShadowCast(ChunkedTileMap* tilemap, const Light& light,
+	uint8_t octant, Vector2i origin, int rangeLimit, int x,
+	Slope top, Slope bottom)
 {
 	for (; x <= rangeLimit; ++x) // rangeLimit < 0 || x <= rangeLimit
 	{
@@ -364,20 +367,22 @@ internal void ComputeLightShadowCast(ChunkedTileMap* tilemap,
 			txty.y += x * TranslationTable[octant][2] + y * TranslationTable[octant][3];
 
 			float distance;
-			TileCoord coord =
-			{
-				txty.x - GetGame()->LightMap.LightMapOffset.x,
-				txty.y - GetGame()->LightMap.LightMapOffset.y
-			};
-			int index = coord.x + coord.y * SCREEN_WIDTH_TILES;
-			bool inRange = index >= 0 
-				&& index < State.Size
+			bool inRange = LightMapInView(&GetGame()->LightMap, txty)
 				&& CTileMap::IsTileInBounds(tilemap, txty)
-				&& ((distance = Vector2i{ x, y }.Distance(tilemap->Origin)) <= rangeLimit);
-			if (inRange && !State.CheckedTiles[index])
+				&& ((distance = Vector2i{ x, y }.Distance(TILEMAP_ORIGIN)) <= rangeLimit);
+			if (inRange)
 			{
-				State.CheckedTiles[index] = true;
-				LightsUpdateTileColor(index, distance, light);
+				TileCoord coord
+				{
+					txty.x - GetGame()->LightMap.LightMapOffset.x,
+					txty.y - GetGame()->LightMap.LightMapOffset.y
+				};
+				int index = coord.x + coord.y * SCREEN_WIDTH_TILES;
+				if (!State.CheckedTiles[index])
+				{
+					State.CheckedTiles[index] = true;
+					LightsUpdateTileColor(index, distance, light);
+				}
 			}
 
 			// NOTE: use the next line instead if you want the algorithm to be symmetrical
@@ -410,6 +415,9 @@ internal void ComputeLightShadowCast(ChunkedTileMap* tilemap,
 void
 LightsUpdateTileColor(int index, float distance, const Light& light)
 {
+	SASSERT(index >= 0);
+	SASSERT(index < SCREEN_TOTAL_TILES);
+
 	// https://www.desmos.com/calculator/nmnaud1hrw
 	const float a = 0.0f;
 	const float b = 0.1f;
@@ -425,24 +433,14 @@ LightsUpdateTileColor(int index, float distance, const Light& light)
 void
 LightsUpdateTileColorTile(Vector2i tileCoord, float distance, const Light& light)
 {
-	// im lazy and this just converts for you
 	TileCoord coord =
 	{
 		tileCoord.x - GetGame()->LightMap.LightMapOffset.x,
 		tileCoord.y - GetGame()->LightMap.LightMapOffset.y
 	};
 	int index = coord.x + coord.y * SCREEN_WIDTH_TILES;
-	LightsUpdateTileColor(index, distance, light);
-}
-
-internal inline bool
-IsTileValid(Vector2i pos)
-{
-	if (!CTileMap::IsTileInBounds(&GetGame()->World.ChunkedTileMap, pos)) return false;
-	//if (pos.x < GetGame()->LightMap.LightMapOffset.x ||
-	//	pos.y < GetGame()->LightMap.LightMapOffset.y ||
-	//	pos.x >= GetGame()->LightMap.LightMapOffset.x + SCREEN_WIDTH_TILES ||
-	//	pos.y >= GetGame()->LightMap.LightMapOffset.y + SCREEN_HEIGHT_TILES) return false;
-
-	return true;
+	constexpr float inverse = 1.0f / 255.0f;
+	GetGame()->LightMap.LightColors[index].x += (float)light.Color.r * inverse;
+	GetGame()->LightMap.LightColors[index].y += (float)light.Color.g * inverse;
+	GetGame()->LightMap.LightColors[index].z += (float)light.Color.b * inverse;
 }

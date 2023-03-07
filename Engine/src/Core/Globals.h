@@ -2,11 +2,11 @@
 
 #include "Core.h"
 #include "Vector2i.h"
-#include "Tools/Instrument.h"
+#include "Tools/Profiling.h"
 
 // TODO: should probably move resolution to another place
-global_var constexpr int SCREEN_WIDTH = 1920;
-global_var constexpr int SCREEN_HEIGHT = 1080;
+global_var constexpr int SCREEN_WIDTH = 1600;
+global_var constexpr int SCREEN_HEIGHT = 900;
 
 global_var constexpr int TILE_SIZE = 16;
 global_var constexpr float TILE_SIZE_F = static_cast<float>(TILE_SIZE);

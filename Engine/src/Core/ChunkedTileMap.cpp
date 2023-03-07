@@ -82,7 +82,8 @@ void Update(ChunkedTileMap* tilemap, Game* game)
 	// sure if I should use a pool of textures and never free them
 	// till the end? This probably wouldnt cause issues because those
 	// textures shouldnt be drawn.
-	DrawChunks(tilemap);
+	//DrawChunks(tilemap);
+	Draw(tilemap, game);
 
 	// Updates chunks, 
 	for (uint32_t i = 0; i < tilemap->ChunksList.Count; ++i)
@@ -101,7 +102,7 @@ void Update(ChunkedTileMap* tilemap, Game* game)
 		else
 		{
 			GetGameApp()->NumOfChunksUpdated++;
-			UpdateChunk(tilemap, chunk, game);
+			//UpdateChunk(tilemap, chunk, game);
 		}
 	}
 
@@ -321,7 +322,7 @@ void SetVisible(ChunkedTileMap* tilemap, TileCoord coord)
 
 bool BlocksLight(ChunkedTileMap* tilemap, TileCoord coord)
 {
-	return GetTile(tilemap, coord)->GetTileData(&GetGame()->TileMgr)->Type == TileType::Solid;
+	return IsTileInBounds(tilemap, coord) && GetTile(tilemap, coord)->GetTileData(&GetGame()->TileMgr)->Type == TileType::Solid;
 }
 
 internal void
@@ -422,7 +423,6 @@ Draw(ChunkedTileMap* tilemap, Game* game)
 			SASSERT(chunk->State != ChunkState::Unloaded);
 
 			uint64_t index = TileToIndex(tilemap, coord);
-			Tile* tile = &chunk->Tiles[index];
 			Rectangle position
 			{
 				(float)(coord.x * TILE_SIZE),
@@ -430,22 +430,12 @@ Draw(ChunkedTileMap* tilemap, Game* game)
 				(float)TILE_SIZE,
 				(float)TILE_SIZE
 			};
-
 			Vector4 color = { 1.0f, 1.0f, 1.0f, 1.0f };
-			if (tile->LOS == TileLOS::NoVision)
-				color.w = 0.2f;
-			tile->LOS = TileLOS::NoVision;
-
-			LightMapSetCeiling(&game->LightMap, coord, tile->HasCeiling);
-
 			ScalDrawTextureProF(
 				texture,
-				tile->GetTileTexData(tileMgr)->TexCoord,
+				chunk->Tiles[index].GetTileTexData(tileMgr)->TexCoord,
 				position,
 				color);
-
-			if (game->DebugTileView)
-				DrawRectangleLinesEx(position, 1.0f, PINK);
 		}
 	}
 	PROFILE_END();
