@@ -27,6 +27,9 @@ global_var constexpr Vector2i VIEW_DISTANCE = { 2, 2 };
 
 global_var constexpr Vector2 ScreenCenter = { (float)SCREEN_WIDTH / 2.0f, (float)SCREEN_HEIGHT / 2.0f };
 
+global_var constexpr float SCREEN_TEXTURE_W = SCREEN_WIDTH_PADDING;
+global_var constexpr float SCREEN_TEXTURE_H = SCREEN_HEIGHT_PADDING;
+
 #define FMT_VEC2(v) TextFormat("Vector2(x: %.3f, y: %.3f)", v.x, v.y)
 #define FMT_VEC2I(v) TextFormat("Vector2i(x: %d, y: %d)", v.x, v.y)
 #define FMT_RECT(rect) TextFormat("Rectangle(x: %.3f, y: %.3f, w: %.3f, h: %.3f)", rect.x, rect.y, rect.width, rect.height)

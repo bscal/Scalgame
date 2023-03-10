@@ -8,15 +8,15 @@
 
 void Renderer::Initialize()
 {
-    int width = GetScreenWidth();
-    int height = GetScreenHeight();
-    int blurWidth = width / 4;
-    int blurHeight = height / 4;
+    int screenW = GetScreenWidth();
+    int screenH = GetScreenHeight();
+    int blurWidth = screenW / 4;
+    int blurHeight = screenH / 4;
     BlurShader.Initialize(blurWidth, blurHeight);
 
-    WorldTexture = SLoadRenderTexture(width, height, PIXELFORMAT_UNCOMPRESSED_R32G32B32A32);
-    EffectTextureOne = SLoadRenderTexture(width, height, PIXELFORMAT_UNCOMPRESSED_R32G32B32A32);
-    EffectTextureTwo = SLoadRenderTexture(width, height, PIXELFORMAT_UNCOMPRESSED_R32G32B32A32);
+    WorldTexture = SLoadRenderTexture(screenW, screenH, PIXELFORMAT_UNCOMPRESSED_R32G32B32A32);
+    EffectTextureOne = SLoadRenderTexture(screenW, screenH, PIXELFORMAT_UNCOMPRESSED_R32G32B32A32);
+    EffectTextureTwo = SLoadRenderTexture(screenW, screenH, PIXELFORMAT_UNCOMPRESSED_R32G32B32A32);
 
     UnlitShader = LoadShader(
         "assets/shaders/tile_shader.vert",
@@ -188,6 +188,70 @@ void BlurShader::Free()
     UnloadRenderTexture(TextureHorizontal);
     UnloadRenderTexture(TextureVert);
     UnloadShader(BlurShader);
+}
+
+void TileMapRenderer::Initialize(Game* game)
+{
+    TileMapShader = LoadShader(
+        "assets/shaders/tilemap.vert",
+        "assets/shaders/tilemap.frag");
+
+    UniformViewOffsetLoc = GetShaderLocation(TileMapShader, "viewOffset");
+    UniformViewPortSizeLoc = GetShaderLocation(TileMapShader, "viewportSize");
+    UniformInverseTileTextureSizeLoc = GetShaderLocation(TileMapShader, "inverseTileTextureSize");
+    UniformInverseTileSizeLoc = GetShaderLocation(TileMapShader, "inverseTileSize");
+    UniformTilesLoc = GetShaderLocation(TileMapShader, "mapData");
+    UniformSpriteLoc = GetShaderLocation(TileMapShader, "textureAtlas");
+    UniformInverseSpriteTextureSizeLoc = GetShaderLocation(TileMapShader, "inverseSpriteTextureSize");
+    UniformTileSizeLoc = GetShaderLocation(TileMapShader, "tileSize");
+
+    Vector2 viewPortSize = { (float)GetScreenWidth(), (float)GetScreenHeight() };
+    SetShaderValue(TileMapShader, UniformViewPortSizeLoc, &viewPortSize, RL_SHADER_UNIFORM_VEC2);
+
+    Vector2 inverseTileTextureSize = { 1. / (float)8, 1. / (float)8 };
+    SetShaderValue(TileMapShader, UniformInverseTileTextureSizeLoc, &inverseTileTextureSize, RL_SHADER_UNIFORM_VEC2);
+
+    float inverseTileSize = 1.f / 16.0f;
+    SetShaderValue(TileMapShader, UniformInverseTileSizeLoc, &inverseTileSize, RL_SHADER_UNIFORM_FLOAT);
+
+    Vector2 inverseSpriteTextureSize = { 1. / (512.f), 1. / (512.f)};
+    SetShaderValue(TileMapShader, UniformInverseSpriteTextureSizeLoc, &inverseSpriteTextureSize, RL_SHADER_UNIFORM_VEC2);
+
+    float tileSize = 16.0f;
+    SetShaderValue(TileMapShader, UniformTileSizeLoc, &tileSize, RL_SHADER_UNIFORM_FLOAT);
+
+    TileMapTexture = SLoadRenderTexture(SCREEN_WIDTH_TILES, SCREEN_HEIGHT_TILES, PIXELFORMAT_UNCOMPRESSED_R8G8B8);
+    TileMapInfo info = {};
+    info.x = 1;
+    info.y = 27;
+    info.a = 0;
+    Tiles.fill(info);
+    UpdateTexture(TileMapTexture.texture, Tiles.data());
+}
+
+void TileMapRenderer::Free()
+{
+    UnloadShader(TileMapShader);
+    UnloadRenderTexture(TileMapTexture);
+}
+
+
+void TileMapRenderer::Draw() const
+{
+    BeginShaderMode(TileMapShader);
+
+    SetShaderValueTexture(TileMapShader, UniformSpriteLoc, GetGame()->Resources.TileSheet);
+
+    SetShaderValueTexture(TileMapShader, UniformTilesLoc, TileMapTexture.texture);
+
+   // Rectangle r = GetGame()->CullingRect;
+
+    //Vector2 viewOffset = { 0.0f, 0.0f };
+    //SetShaderValue(TileMapShader, UniformViewOffsetLoc, &viewOffset, RL_SHADER_UNIFORM_VEC2);
+
+    DrawTexturePro(GetGame()->Resources.TileSprite, { 0, 0, 16, -16 }, { 0, 0, SCREEN_WIDTH_TILES * 16, SCREEN_HEIGHT_TILES * 16 }, { 0 }, 0.0f, WHITE);
+    
+    EndShaderMode();
 }
 
 void DrawTextureProF(Texture2D texture, Rectangle source, Rectangle dest,
@@ -391,3 +455,47 @@ SLoadRenderTextureEx(int width, int height, PixelFormat format, bool useDepth)
 
     return target;
 }
+
+constexpr int vertexCount = SCREEN_WIDTH_TILES * SCREEN_HEIGHT_TILES * 4;
+
+void DrawTileMap(Texture2D texture, Rectangle dest)
+{
+    //SASSERT(texture.id > 0);
+
+    //rlBatch
+    //float width = (float)texture.width;
+    //float height = (float)texture.height;
+
+    //Vector2 topLeft = Vector2{ dest.x, dest.y };
+    //Vector2 topRight = Vector2{ dest.x + dest.width, dest.y };
+    //Vector2 bottomLeft = Vector2{ dest.x, dest.y + dest.height };
+    //Vector2 bottomRight = Vector2{ dest.x + dest.width, dest.y + dest.height };
+
+    //rlCheckRenderBatchLimit(4);     // Make sure there is enough free space on the batch buffer
+
+    //rlSetTexture(texture->id);
+    //rlBegin(RL_QUADS);
+
+    //rlColor4f(tint.x, tint.y, tint.z, tint.w);
+    //rlNormal3f(0.0f, 0.0f, 1.0f);                          // Normal vector pointing towards viewer
+
+    //rlTexCoord2f(source.x / width, source.y / height);
+    //rlVertex2f(topLeft.x, topLeft.y);
+
+    //rlTexCoord2f(source.x / width, (source.y + source.height) / height);
+    //rlVertex2f(bottomLeft.x, bottomLeft.y);
+
+    //rlTexCoord2f((source.x + source.width) / width, (source.y + source.height) / height);
+    //rlVertex2f(bottomRight.x, bottomRight.y);
+
+    //rlTexCoord2f((source.x + source.width) / width, source.y / height);
+    //rlVertex2f(topRight.x, topRight.y);
+
+    //rlEnd();
+    //rlSetTexture(0);
+
+}
+
+// Draw render batch
+// NOTE: We require a pointer to reset batch and increase current buffer (multi-buffer)
+//

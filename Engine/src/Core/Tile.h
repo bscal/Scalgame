@@ -54,6 +54,16 @@ struct TileMgr
 	uint32_t NextTileId;
 };
 
+struct TileTex
+{
+	uint8_t x;
+	uint8_t y;
+	TileLOS LOS;
+	uint8_t Null;
+};
+
+static_assert(sizeof(TileTex) == sizeof(int), "Tile size must be 32 bits");
+
 struct Tile
 {
 	uint16_t TileId;

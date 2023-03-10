@@ -13,6 +13,7 @@ struct Resources
 {
 	Texture2D EntitySpriteSheet;
 	Texture2D TileSheet;
+	Texture2D TileSprite;
 	SpriteAtlas Atlas;
 	Font MainFontM;
 	Font MainFontS;

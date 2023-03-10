@@ -91,9 +91,10 @@ SString SString::CreateFake(const SStringView* tempStr)
 	{
 		string.Capacity = SSTR_SSO_LENGTH;
 		SMemCopy(string.Data(), tempStr->Str, string.Length - 1);
-		SASSERT(string.Data()[SSTR_SSO_LENGTH] == 0);
 	}
 	string.Data()[string.End()] = '\0';
+	string.Data()[SSTR_SSO_LENGTH] = '\0';
+	SASSERT(string.Data()[SSTR_SSO_LENGTH] == 0);
 	return string;
 }
 

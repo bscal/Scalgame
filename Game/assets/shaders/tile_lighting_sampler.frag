@@ -1,47 +1,52 @@
-#version 460
+#version 430 core
 
-in vec2 FragTexCoord;
+in vec2 fragTexCoord;
 
-uniform sampler2D LightMap;
-uniform sampler2D texture0;
+uniform sampler2D texture0; // WorldMap
+uniform sampler2D texture1; // LightMap/Ray
 
-uniform vec3 Light;
-uniform vec2 Size;
+uniform vec3 lightPos;
+uniform vec3 lightColor;
 
-out vec4 FinalColor;
+uniform vec2 lightCenter;
+uniform float rayTexSize;
 
-const float MAXRADIUS = 65535.0f;
+const float MAXRADIUS = 65535.0;
 const float TAU = 6.2831853071795864769252867665590;
+
+out vec4 finalColor;
 
 // Custom tone map function, adjust as you please, keep in range 0 to 1.
 float ToneMapFunc(float d, float m) {
 	return clamp(1. - (d/m), 0., 1.);
 }
 
-void main() {
+void main()
+{
+	vec2 worldTexSize = textureSize(texture0, 0);
+	vec2 lightTexSize = textureSize(texture1, 0);
 	// Gets the current pixel's texture XY coordinate from it's texture UV coordinate.
-	vec2 Coord = FragTexCoord * Size,
+	vec2 coord = fragTexCoord * lightTexSize;
 		// Gets the lengthdir_xy of the current pixel in reference to the light position.
-		Delta = Coord - Light.xy;
+	vec2 delta = coord - lightCenter;
 	// Gets the ray count as equal to the light's circumference.
-	float RayCount = TAU * Light.z,
+	float rayCount = TAU * lightPos.z;
 		// Gets the index of the closest ray pointing towards this pixel within the ray texture.
-		RayIndex = floor((RayCount * fract(atan(-Delta.y, Delta.x)/TAU)) + 0.5);
+	float rayIndex = floor((rayCount * fract(atan(-delta.y, delta.x)/TAU)) + 0.5);
 	// Gets the position of the closest ray pointing towards this pixel within the ray texture.
-	vec2 RayPos = vec2(mod(RayIndex, Size.x), RayIndex / Size.x) * (1./Size.x);
+	vec2 rayPos = vec2(mod(rayIndex, rayTexSize), rayIndex / rayTexSize) * (1./rayTexSize);
 		// Gets the closest ray associated with this pixel.
-	vec2 TexRay = texture2D(LightMap, RayPos).rg;
+	vec2 texRay = texture2D(texture1, rayPos).rg;
 	// Gets the distance from the current pixel to the light center.
-	float Distance = distance(Coord, Light.xy),
+	float dist = distance(coord, lightCenter);
 		// Reads out the length fo the ray itself.
-		RayLength = clamp(TexRay.r + (TexRay.g / 255.0), 0.0, 1.0) * Light.z,
+	float rayLength = clamp(texRay.r + (texRay.g / 255.0), 0.0, 1.0) * lightPos.z;
 		// Returns a bool whether or not this pixel is within the ray.
-		RayVisible = sign(RayLength - Distance) * (1. - texture2D(texture0, (Light.xy + Delta) * Size).a),
+	float rayVisible = sign(rayLength - dist) * (1. - texture2D(texture0, (lightPos.xy + delta) * worldTexSize).a);
 		// Gets the gradient/tone map based on distance from the pixel to the light.
-		ToneMap = ToneMapFunc(Distance, Light.z);
+	float toneMap = ToneMapFunc(dist, lightPos.z);
 	
-	vec4 color = texture(texture0, FragTexCoord);
 	// Draw the final pixel output with the source and destination color lerp'd together, then apply the gradient/tonemap.
-	FinalColor = vec4(color.xyz * ToneMap, ToneMap * RayVisible);
+	//finalColor = vec4(mix(in_ColorD, in_ColorS, vec3(toneMap)) * toneMap, toneMap * rayVisible);
+	finalColor = vec4(lightColor * toneMap, toneMap * rayVisible);
 }
-

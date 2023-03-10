@@ -49,7 +49,7 @@ void WorldUpdate(World* world, Game* game)
 
 	LightsUpdate(game);
 
-	CTileMap::Update(&world->ChunkedTileMap, game);
+	//CTileMap::Update(&world->ChunkedTileMap, game);
 
 	GetGameApp()->NumOfLoadedChunks = (int)world->ChunkedTileMap.ChunksList.Count;
 	PROFILE_END();

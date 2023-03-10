@@ -28,7 +28,6 @@ enum class ChunkState : uint8_t
 
 struct TileMapChunk
 {
-	RenderTexture2D Texture;
 	Rectangle Bounds;
 	ChunkCoord ChunkCoord;
 	ChunkState State;

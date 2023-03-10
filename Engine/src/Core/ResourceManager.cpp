@@ -5,7 +5,7 @@
 #define NUM_OF_FONT_GLYPHS 95
 
 #define ENTITY_SHEET_PATH "assets/textures/SpriteSheet.png"
-#define TILE_MAP_TEXTURE_PATH "assets/textures/tiles/16x16.png"
+#define TILE_MAP_TEXTURE_PATH "assets/textures/tiles/powerof2map.png"
 
 #define FONT_PATH "assets/textures/fonts/Pixuf.ttf"
 #define SDF_FONT_PATH "assets/textures/fonts/UbuntuMono/UbuntuMono-Regular.ttf"
@@ -20,6 +20,10 @@ bool InitializeResources(Resources* resources)
     resources->Atlas.Load("assets/textures/atlas/tiles.atlas", 32);
 
     resources->EntitySpriteSheet = LoadTexture(ENTITY_SHEET_PATH);
+    resources->TileSheet = LoadTexture(TILE_MAP_TEXTURE_PATH);
+    resources->TileSprite = LoadTexture("assets/textures/tiles/TileSprite.png");
+
+    SetTextureFilter(resources->TileSheet, TEXTURE_FILTER_POINT);
 
 	resources->MainFontM = LoadFont(FONT_PATH);
     resources->MainFontS = LoadFontEx(FONT_PATH, 16, 0, 0);

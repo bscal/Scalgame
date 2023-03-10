@@ -93,6 +93,7 @@ SAPI void GameApplication::Shutdown()
 	GameAppPtr = nullptr;
 	FreeResouces(&Game->Resources);
 	Game->Renderer.Free();
+	Game->TileMapRenderer.Free();
 	GameUnload(Game);
 	CloseWindow();
 }
@@ -115,12 +116,14 @@ internal bool GameInitialize(Game* game, GameApplication* gameApp)
 	// but seems to work.
 	CALL_CONSTRUCTOR(game) Game();
 
-	game->Renderer.Initialize();
-
 	bool didResInit = InitializeResources(&game->Resources);
 	SASSERT(didResInit);
 
+	game->Renderer.Initialize();
+
 	GameLoadScreen(gameApp, GetScreenWidth(), GetScreenHeight());
+
+	game->TileMapRenderer.Initialize(game);
 
 	LightMapInitialize(&game->LightMap);
 	TileMgrInitialize(&game->TileMgr, &game->Resources.Atlas);
@@ -184,11 +187,14 @@ internal void GameUnload(Game* game)
 	WorldFree(&game->World);
 }
 
+RenderTexture2D test;
 
 SAPI void GameApplication::Run()
 {
 	TraceLog(LOG_INFO, "Game Running...");
 	IsRunning = true;
+
+	test = SLoadRenderTexture(SCREEN_WIDTH_TILES * 16, SCREEN_HEIGHT_TILES * 16, PIXELFORMAT_UNCOMPRESSED_R8G8B8);
 
 	while (!WindowShouldClose())
 	{
@@ -317,21 +323,29 @@ SAPI void GameApplication::Run()
 		Rectangle srcRect = { 0.0f, 0.0f, screenW, -screenH };
 		Rectangle dstRect = { ScreenXY.x, ScreenXY.y, screenW, screenH };
 
+		//UpdateTexture(Game->TileMapRenderer.TileMapTexture.texture, Game->TileMapRenderer.Tiles.data());
+
 		// Update and draw world
-		BeginShaderMode(Game->Renderer.UnlitShader);
 		BeginTextureMode(Game->Renderer.WorldTexture);
 		BeginMode2D(Game->WorldCamera);
-		ClearBackground(BLACK);
+		ClearBackground({0});
 		double updateWorldStart = GetTime();
 
+		CTileMap::Update(&Game->World.ChunkedTileMap, Game);
+
+		//Game->TileMapRenderer.Draw();
+
+		BeginShaderMode(Game->Renderer.UnlitShader);
 		GameUpdate(Game, this);
 		GameLateUpdate(Game);
+		EndShaderMode();
 
 		UpdateWorldTime = GetTime() - updateWorldStart;
 		EndMode2D();
 		EndTextureMode();
-		EndShaderMode();
+		
 
+		
 		// Update and draw lightmap
 		BeginShaderMode(Game->Renderer.LightingShader);
 		BeginTextureMode(Game->Renderer.EffectTextureOne);
@@ -344,25 +358,35 @@ SAPI void GameApplication::Run()
 		
 		Game->Renderer.PostProcess(Game, Game->Renderer.WorldTexture, Game->Renderer.EffectTextureOne);
 
+		BeginTextureMode(test);
+		Game->TileMapRenderer.Draw();
+		EndTextureMode();
+
 		// ***************
 		// Draws to buffer
 		// ***************
 		BeginDrawing();
 
-		BeginShaderMode(Game->Renderer.LitShader);
+		//BeginShaderMode(Game->Renderer.LitShader);
 		BeginMode2D(Game->ViewCamera);
 		ClearBackground(BLACK);
 
 		rlPushMatrix();
 		rlScalef(GetScale(), GetScale(), 1.0f);
 
+		Rectangle testRect = { 0, 0, (float)test.texture.width, (float)-test.texture.height };
+		Rectangle testRectDst = { 0, 0, testRect.width, -testRect.height };
+		Vector2 origin = { testRect.width / 2, -testRect.height / 2 };
+		DrawTexturePro(test.texture, testRect, testRectDst, origin, 0.0f, WHITE);
+
 		SetShaderValueTexture(Game->Renderer.LitShader, Game->Renderer.UniformLightMapLoc, Game->Renderer.EffectTextureTwo.texture);
 		DrawTexturePro(Game->Renderer.WorldTexture.texture, srcRect, dstRect, { 0 }, 0.0f, WHITE);
+
 
 		rlPopMatrix();
 
 		EndMode2D();
-		EndShaderMode();
+		//EndShaderMode();
 
 		DrawUI(UIState);
 
@@ -374,6 +398,7 @@ SAPI void GameApplication::Run()
 		PROFILE_END();
 	}
 	IsRunning = false;
+	UnloadRenderTexture(test);
 }
 
 internal void 

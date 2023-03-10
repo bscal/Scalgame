@@ -1,6 +1,8 @@
 #pragma once
 
 #include "Core.h"
+#include "Globals.h"
+#include "Structures/StaticArray.h"
 
 struct Game;
 struct Resources;
@@ -15,6 +17,34 @@ struct BlurShader
 	void Initialize(int width, int height);
 	void Draw(const Texture2D& worldTexture) const;
 	void Free();
+};
+
+struct TileMapInfo
+{
+	char x;
+	char y;
+	char a;
+};
+
+struct TileMapRenderer
+{
+	Shader TileMapShader;
+	RenderTexture2D TileMapTexture;
+
+	int UniformViewOffsetLoc;
+	int UniformViewPortSizeLoc;
+	int UniformInverseTileTextureSizeLoc;
+	int UniformInverseTileSizeLoc;
+	int UniformTilesLoc;
+	int UniformSpriteLoc;
+	int UniformInverseSpriteTextureSizeLoc;
+	int UniformTileSizeLoc;
+
+	StaticArray<TileMapInfo, SCREEN_WIDTH_TILES * SCREEN_HEIGHT_TILES> Tiles;
+
+	void Initialize(Game* game);
+	void Free();
+	void Draw() const;
 };
 
 struct Renderer
@@ -75,3 +105,5 @@ SLoadRenderTexture(int width, int height, PixelFormat format);
 
 RenderTexture2D
 SLoadRenderTextureEx(int width, int height, PixelFormat format, bool useDepth);
+
+void DrawTileMap(Texture2D texture, Rectangle dest);
