@@ -5,7 +5,7 @@
 #define NUM_OF_FONT_GLYPHS 95
 
 #define ENTITY_SHEET_PATH "assets/textures/SpriteSheet.png"
-#define TILE_MAP_TEXTURE_PATH "assets/textures/tiles/powerof2map.png"
+#define TILE_MAP_TEXTURE_PATH "assets/textures/tiles/16x16.png"
 
 #define FONT_PATH "assets/textures/fonts/Pixuf.ttf"
 #define SDF_FONT_PATH "assets/textures/fonts/UbuntuMono/UbuntuMono-Regular.ttf"
@@ -21,6 +21,7 @@ bool InitializeResources(Resources* resources)
 
     resources->EntitySpriteSheet = LoadTexture(ENTITY_SHEET_PATH);
     resources->TileSheet = LoadTexture(TILE_MAP_TEXTURE_PATH);
+    SetTextureFilter(resources->TileSheet, TEXTURE_FILTER_POINT);
     resources->TileSprite = LoadTexture("assets/textures/tiles/TileSprite.png");
 
     SetTextureFilter(resources->TileSheet, TEXTURE_FILTER_POINT);

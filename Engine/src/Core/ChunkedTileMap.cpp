@@ -19,6 +19,7 @@ internal void CheckChunksInLOS(ChunkedTileMap* tilemap);
 internal void Draw(ChunkedTileMap* tilemap, Game* game);
 //internal void DrawChunks(ChunkedTileMap* tilemap);
 //internal void BakeChunk(TileMapChunk* chunk, Game* game);
+internal void UpdateTileMap(ChunkedTileMap* tilemap, Game* game);
 
 internal const char*
 ChunkStateToString(ChunkState state)
@@ -78,7 +79,7 @@ void Update(ChunkedTileMap* tilemap, Game* game)
 	// textures shouldnt be drawn.
 	//DrawChunks(tilemap);
 	//Draw(tilemap, game);
-
+	UpdateTileMap(tilemap, game);
 	// Updates chunks, 
 	for (uint32_t i = 0; i < tilemap->ChunksList.Count; ++i)
 	{
@@ -390,6 +391,68 @@ CheckChunksInLOS(ChunkedTileMap* tilemap)
 //	SLOG_INFO("Baked chunk(%s) texture", FMT_VEC2I(chunk->ChunkCoord));
 //	PROFILE_END();
 //}
+
+internal void
+UpdateTile(ChunkedTileMap* tilemap, Game* game)
+{
+	float xOffset = GetGame()->CullingRect.x / TILE_SIZE_F;
+	float yOffset = GetGame()->CullingRect.y / TILE_SIZE_F;
+	for (int y = 0; y < SCREEN_HEIGHT_TILES; ++y)
+	{
+		for (int x = 0; x < SCREEN_WIDTH_TILES; ++x)
+		{
+			TileCoord coord;
+			coord.x = x + (int)xOffset;
+			coord.y = y + (int)yOffset;
+
+			int index = x + y * SCREEN_WIDTH_TILES;
+
+			if (IsTileInBounds(tilemap, coord))
+			{
+				game->TileMapRenderer.Tiles[index].x = 7;
+				game->TileMapRenderer.Tiles[index].y = 0;
+			}
+			else
+			{
+				game->TileMapRenderer.Tiles[index].x = 0;
+				game->TileMapRenderer.Tiles[index].y = 0;
+			}
+		}
+	}
+
+}
+
+internal void
+UpdateTileMap(ChunkedTileMap* tilemap, Game* game)
+{
+	float xOffset = GetGame()->CullingRect.x / TILE_SIZE_F;
+	float yOffset = GetGame()->CullingRect.y / TILE_SIZE_F;
+	for (int y = 0; y < SCREEN_HEIGHT_TILES; ++y)
+	{
+		for (int x = 0; x < SCREEN_WIDTH_TILES; ++x)
+		{
+			TileCoord coord;
+			coord.x = x + (int)xOffset;
+			coord.y = y + (int)yOffset;
+
+			int index = x + y * SCREEN_WIDTH_TILES;
+			
+			if (IsTileInBounds(tilemap, coord))
+			{
+				Tile* tile = GetTile(tilemap, coord);
+
+				game->TileMapRenderer.Tiles[index].x = 7;
+				game->TileMapRenderer.Tiles[index].y = 0;
+			}
+			else
+			{
+				game->TileMapRenderer.Tiles[index].x = 0;
+				game->TileMapRenderer.Tiles[index].y = 0;
+			}
+		}
+	}
+	
+}
 
 internal void
 Draw(ChunkedTileMap* tilemap, Game* game)

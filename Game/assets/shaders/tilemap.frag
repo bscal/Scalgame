@@ -70,8 +70,8 @@ vec2 getTilePos(vec2 uv) {
 //
 // returns - the pixel position within the current tile
 vec2 getPixelPosInTile(vec2 uv) {
-	float exactPosX = floor(((uv.x * mapTilesCountX)) * tileSizeInPixels);
-	float exactPosY = floor(((uv.y * mapTilesCountY)) * tileSizeInPixels);
+	float exactPosX = ((uv.x * mapTilesCountX)-1.0) * tileSizeInPixels;
+	float exactPosY = ((uv.y * mapTilesCountY)-1.0) * tileSizeInPixels;
 	float relativePosX = mod(exactPosX, tileSizeInPixels);
 	float relativePosY = mod(exactPosY, tileSizeInPixels);
 	return vec2(relativePosX, relativePosY);
@@ -82,15 +82,15 @@ vec2 getPixelPosInTile(vec2 uv) {
 // [pos] - result of getTilePos
 //
 // returns - the ID of the tile from the mapData texture's red channel
-//float getTileId(vec2 pos) {
-//	float tileRed = texture(mapData, pos).r;
-//	return tileRed * 255.;
-//}
+float getTileId(vec2 pos) {
+	float tileRed = texelFetch(mapData, ivec2(pos), 0).r;
+	return tileRed * 255.;
+}
 
 vec2 getTileCoords(vec2 pos)
 {
-	float x = texture(mapData, pos).r * 255.;
-	float y = texture(mapData, pos).g * 255.;
+	float x = texelFetch(mapData, ivec2(pos), 0).r * 255.;
+	float y = texelFetch(mapData, ivec2(pos), 0).g * 255.;
 	return vec2(x, y);
 }
 
@@ -104,6 +104,8 @@ vec2 getTileCoords(vec2 pos)
 vec2 getAtlasPixelPos(vec2 pixelPosInTile, float tileId, vec2 tile) {
 	// Find the row/column in the texture atlas to use
 	// and calculate the pixel position
+	//vec2 coord = getTileCoords(tile);
+	//tileId = coord.x + coord.y * textureAtlasTexturesWidth;
 	//float row = floor(tileId / textureAtlasTexturesWidth);
 	//float col = tileId - (row * textureAtlasTexturesWidth);
 	//vec2 textureStartPos = vec2(textureAtlasTextureSizeInPixels * col,
@@ -145,9 +147,9 @@ void main()
 	vec2 pixelPosInTile = getPixelPosInTile(texCoord);
 	
 	// Grab the ID of the atlas texture to use and the color for this pixel
-	//float tileIdSelf = getTileId(tile);
+	float tileIdSelf = 0.0;//getTileId(tile);
 
-	finalColor = getColorForCurrentPixel(tile, 0., pixelPosInTile);
+	finalColor = getColorForCurrentPixel(tile, tileIdSelf, pixelPosInTile);
 	
 	/*
 	// Check if we should blend

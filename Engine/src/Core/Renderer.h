@@ -21,9 +21,10 @@ struct BlurShader
 
 struct TileMapInfo
 {
-	char x;
-	char y;
-	char a;
+	uint8_t x;
+	uint8_t y;
+	uint8_t z;
+	uint8_t Collision;
 };
 
 struct TileMapRenderer
@@ -47,6 +48,23 @@ struct TileMapRenderer
 	void Draw() const;
 };
 
+struct LightingRenderer
+{
+	Shader LightingShader;
+
+	RenderTexture2D ColorsTexture;
+	RenderTexture2D LightingTexture;
+	
+	int UniformColorsTexture;
+	int UniformLightIntensity;
+	int UniformAmbientLight;
+	int UniformSunlight;
+
+	void Initialize(Game* game);
+	void Free();
+	void Draw() const;
+};
+
 struct Renderer
 {
     BlurShader BlurShader;
@@ -59,6 +77,7 @@ struct Renderer
 	Shader LightingShader;
 	Shader BrightnessShader;
 	Shader BloomShader;
+
         
     int UniformAmbientLightLoc;
 	int UniformLightIntensityLoc;

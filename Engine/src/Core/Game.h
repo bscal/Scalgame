@@ -22,6 +22,7 @@ struct Game
     Resources Resources;
     Renderer Renderer;
     TileMapRenderer TileMapRenderer;
+    LightingRenderer LightingRenderer;
     
     TileMgr TileMgr;
     CommandMgr CommandMgr;
