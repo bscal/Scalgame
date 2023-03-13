@@ -31,6 +31,7 @@ struct TileMapRenderer
 {
 	Shader TileMapShader;
 	RenderTexture2D TileMapTexture;
+	RenderTexture2D TileDataTexture;
 
 	int UniformViewOffsetLoc;
 	int UniformViewPortSizeLoc;
@@ -45,7 +46,7 @@ struct TileMapRenderer
 
 	void Initialize(Game* game);
 	void Free();
-	void Draw() const;
+	void Draw();
 };
 
 struct LightingRenderer

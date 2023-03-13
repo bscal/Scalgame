@@ -189,15 +189,10 @@ internal void GameUnload(Game* game)
 	WorldFree(&game->World);
 }
 
-RenderTexture2D test;
-
 SAPI void GameApplication::Run()
 {
 	TraceLog(LOG_INFO, "Game Running...");
 	IsRunning = true;
-
-	test = SLoadRenderTexture(SCREEN_WIDTH_TILES * 16, SCREEN_HEIGHT_TILES * 16, PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
-	SetTextureFilter(test.texture, TEXTURE_FILTER_POINT);
 
 	while (!WindowShouldClose())
 	{
@@ -323,31 +318,33 @@ SAPI void GameApplication::Run()
 
 		// FIXME: Cleanup!
 
+		double updateWorldStart = GetTime();
+
 		float screenW = (float)GetScreenWidth();
 		float screenH = (float)GetScreenHeight();
 		Rectangle srcRect = { 0.0f, 0.0f, screenW, -screenH };
 		Rectangle dstRect = { ScreenXY.x, ScreenXY.y, screenW, screenH };
+		Rectangle cullingScreenRect = { 0, 0, SCREEN_WIDTH_PADDING, -SCREEN_HEIGHT_PADDING };
+
+		CTileMap::Update(&Game->World.ChunkedTileMap, Game);
+
+		Game->TileMapRenderer.Draw();
 
 		// Update and draw world
 		BeginTextureMode(Game->Renderer.WorldTexture);
+		BeginShaderMode(Game->Renderer.UnlitShader);		
+		ClearBackground({ 0 });
+		
 		BeginMode2D(Game->WorldCamera);
-		ClearBackground({0});
-		double updateWorldStart = GetTime();
-
-		CTileMap::Update(&Game->World.ChunkedTileMap, Game);
-		UpdateTexture(Game->TileMapRenderer.TileMapTexture.texture, Game->TileMapRenderer.Tiles.data());
-
-		BeginShaderMode(Game->Renderer.UnlitShader);
 		GameUpdate(Game, this);
 		GameLateUpdate(Game);
-		EndShaderMode();
-
-
 		EndMode2D();
+
+		EndShaderMode();
 		EndTextureMode();
 		
 		Game->LightingRenderer.Draw();
-		
+
 		// Update and draw lightmap
 		//BeginShaderMode(Game->Renderer.LightingShader);
 		//BeginTextureMode(Game->Renderer.EffectTextureOne);
@@ -360,11 +357,8 @@ SAPI void GameApplication::Run()
 		
 		//Game->Renderer.PostProcess(Game, Game->Renderer.WorldTexture, Game->Renderer.EffectTextureOne);
 		
-		BeginTextureMode(test);
-		Game->TileMapRenderer.Draw();
-		EndTextureMode();
 
-		
+
 		// ***************
 		// Draws to buffer
 		// ***************
@@ -377,25 +371,24 @@ SAPI void GameApplication::Run()
 		rlPushMatrix();
 		rlScalef(GetScale(), GetScale(), 1.0f);
 
-		// Note: Are my cords wrong?
-
-		Rectangle testRect = { 0, 0, (float)test.texture.width, (float)-test.texture.height };
-		Rectangle testRectDst = { GetGame()->CullingRect.x, GetGame()->CullingRect.y, (float)test.texture.width, (float)test.texture.height };
-		testRectDst.x += 8.0f;
-		testRectDst.y += 10.0f;
-		DrawTexturePro(test.texture, testRect, testRectDst, { 0 }, 0.0f, WHITE);
-
+		// TODO: should combine tilemap into world map textures and setup the cordinates again.
+		Rectangle tilemapDest;
+		tilemapDest.x = GetGame()->CullingRect.x + 8.0f;
+		tilemapDest.y = GetGame()->CullingRect.y + 10.0f;
+		tilemapDest.width = Game->TileMapRenderer.TileMapTexture.texture.width;
+		tilemapDest.height = Game->TileMapRenderer.TileMapTexture.texture.height;
+		DrawTexturePro(Game->TileMapRenderer.TileMapTexture.texture, cullingScreenRect, tilemapDest, { 0 }, 0.0f, WHITE);
 
 		//SetShaderValueTexture(Game->Renderer.LitShader, Game->Renderer.UniformLightMapLoc, Game->Renderer.EffectTextureTwo.texture);
 		DrawTexturePro(Game->Renderer.WorldTexture.texture, srcRect, dstRect, { 0 }, 0.0f, WHITE);
 
 		BeginBlendMode(BLEND_ADDITIVE);
-		Rectangle r;
-		r.x = 0;
-		r.y = 0;
-		r.width = Game->LightingRenderer.LightingTexture.texture.width;
-		r.height = Game->LightingRenderer.LightingTexture.texture.height;
-		DrawTexturePro(Game->LightingRenderer.LightingTexture.texture, testRect, r, { 0 }, 0.0f, WHITE);
+		Rectangle lightingDest;
+		lightingDest.x = 0;
+		lightingDest.y = 0;
+		lightingDest.width = Game->LightingRenderer.LightingTexture.texture.width;
+		lightingDest.height = Game->LightingRenderer.LightingTexture.texture.height;
+		DrawTexturePro(Game->LightingRenderer.LightingTexture.texture, cullingScreenRect, lightingDest, { 0 }, 0.0f, WHITE);
 		EndBlendMode();
 
 		rlPopMatrix();
@@ -415,7 +408,6 @@ SAPI void GameApplication::Run()
 		PROFILE_END();
 	}
 	IsRunning = false;
-	UnloadRenderTexture(test);
 }
 
 internal void 

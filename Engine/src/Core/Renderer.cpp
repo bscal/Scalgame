@@ -196,63 +196,38 @@ void TileMapRenderer::Initialize(Game* game)
 		"assets/shaders/tilemap.vert",
 		"assets/shaders/tilemap.frag");
 
-	UniformViewOffsetLoc = GetShaderLocation(TileMapShader, "viewOffset");
-	UniformViewPortSizeLoc = GetShaderLocation(TileMapShader, "viewportSize");
-	UniformInverseTileTextureSizeLoc = GetShaderLocation(TileMapShader, "inverseTileTextureSize");
-	UniformInverseTileSizeLoc = GetShaderLocation(TileMapShader, "inverseTileSize");
 	UniformTilesLoc = GetShaderLocation(TileMapShader, "mapData");
 	UniformSpriteLoc = GetShaderLocation(TileMapShader, "textureAtlas");
-	UniformInverseSpriteTextureSizeLoc = GetShaderLocation(TileMapShader, "inverseSpriteTextureSize");
-	UniformTileSizeLoc = GetShaderLocation(TileMapShader, "tileSize");
 
-	//Vector2 viewPortSize = { (float)GetScreenWidth(), (float)GetScreenHeight() };
-	//SetShaderValue(TileMapShader, UniformViewPortSizeLoc, &viewPortSize, RL_SHADER_UNIFORM_VEC2);
-
-	//Vector2 inverseTileTextureSize = { 1. / (float)8, 1. / (float)8 };
-	//SetShaderValue(TileMapShader, UniformInverseTileTextureSizeLoc, &inverseTileTextureSize, RL_SHADER_UNIFORM_VEC2);
-
-	//float inverseTileSize = 1.f / 16.0f;
-	//SetShaderValue(TileMapShader, UniformInverseTileSizeLoc, &inverseTileSize, RL_SHADER_UNIFORM_FLOAT);
-
-	//Vector2 inverseSpriteTextureSize = { 1. / (512.f), 1. / (512.f)};
-	//SetShaderValue(TileMapShader, UniformInverseSpriteTextureSizeLoc, &inverseSpriteTextureSize, RL_SHADER_UNIFORM_VEC2);
-
-	//float tileSize = 16.0f;
-	//SetShaderValue(TileMapShader, UniformTileSizeLoc, &tileSize, RL_SHADER_UNIFORM_FLOAT);
-
-	TileMapTexture = LoadRenderTexture(SCREEN_WIDTH_TILES, SCREEN_HEIGHT_TILES);
-	SetTextureFilter(TileMapTexture.texture, TEXTURE_FILTER_POINT);
-
-	TileMapInfo info = {};
-	info.x = 1;
-	info.y = 27;
-	Tiles.fill(info);
-	UpdateTexture(TileMapTexture.texture, Tiles.data());
+	int width = SCREEN_WIDTH_PADDING;
+	int height = SCREEN_HEIGHT_PADDING;
+	TileMapTexture = SLoadRenderTexture(width, height, PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
+	TileDataTexture = SLoadRenderTexture(width / TILE_SIZE, height / TILE_SIZE, PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
 }
 
 void TileMapRenderer::Free()
 {
 	UnloadShader(TileMapShader);
 	UnloadRenderTexture(TileMapTexture);
+	UnloadRenderTexture(TileDataTexture);
 }
 
-
-void TileMapRenderer::Draw() const
+void TileMapRenderer::Draw()
 {
+	UpdateTexture(TileDataTexture.texture, Tiles.data());
+
+	BeginTextureMode(TileMapTexture);
 	BeginShaderMode(TileMapShader);
 
 	SetShaderValueTexture(TileMapShader, UniformSpriteLoc, GetGame()->Resources.TileSheet);
-
-	SetShaderValueTexture(TileMapShader, UniformTilesLoc, TileMapTexture.texture);
-
-	// Rectangle r = GetGame()->CullingRect;
-
-	 //Vector2 viewOffset = { 0.0f, 0.0f };
-	 //SetShaderValue(TileMapShader, UniformViewOffsetLoc, &viewOffset, RL_SHADER_UNIFORM_VEC2);
-
-	DrawTexturePro(GetGame()->Resources.TileSprite, { 0, 0, 16.f, 16.f }, { 0, 0, (float)SCREEN_WIDTH_TILES * 16,  (float)SCREEN_HEIGHT_TILES * 16 }, { 0 }, 0.0f, WHITE);
+	SetShaderValueTexture(TileMapShader, UniformTilesLoc, TileDataTexture.texture);
+	const Texture2D& tileSprite = GetGame()->Resources.TileSprite;
+	Rectangle src = { 0, 0, (float)tileSprite.width, (float)tileSprite.height };
+	Rectangle dst = { 0, 0, (float)SCREEN_WIDTH_TILES * TILE_SIZE_F,  (float)SCREEN_HEIGHT_TILES * TILE_SIZE_F };
+	DrawTexturePro(tileSprite, src, dst, { 0 }, 0.0f, WHITE);
 
 	EndShaderMode();
+	EndTextureMode();
 }
 
 void LightingRenderer::Initialize(Game* game)

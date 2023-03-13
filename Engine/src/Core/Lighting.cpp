@@ -369,6 +369,7 @@ ComputeLightShadowCast(ChunkedTileMap* tilemap, const Light& light,
 			float distance;
 			bool inRange = LightMapInView(&GetGame()->LightMap, txty)
 				&& CTileMap::IsTileInBounds(tilemap, txty)
+				//&& ((distance = Vector2i{ x, y }.SqrDistance(TILEMAP_ORIGIN)) <= rangeLimitSqr);
 				&& ((distance = Vector2i{ x, y }.Distance(TILEMAP_ORIGIN)) <= rangeLimit);
 			if (inRange)
 			{
