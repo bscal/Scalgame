@@ -42,7 +42,7 @@ struct TileMapRenderer
 	int UniformInverseSpriteTextureSizeLoc;
 	int UniformTileSizeLoc;
 
-	StaticArray<TileMapInfo, SCREEN_WIDTH_TILES * SCREEN_HEIGHT_TILES> Tiles;
+	StaticArray<TileMapInfo, SCREEN_TOTAL_TILES> Tiles;
 
 	void Initialize(Game* game);
 	void Free();
@@ -56,6 +56,8 @@ struct LightingRenderer
 	RenderTexture2D ColorsTexture;
 	RenderTexture2D LightingTexture;
 	
+	StaticArray<Vector4, SCREEN_TOTAL_TILES> Tiles;
+
 	int UniformColorsTexture;
 	int UniformLightIntensity;
 	int UniformAmbientLight;
@@ -63,7 +65,7 @@ struct LightingRenderer
 
 	void Initialize(Game* game);
 	void Free();
-	void Draw() const;
+	void Draw();
 };
 
 struct Renderer
@@ -114,7 +116,7 @@ DrawTextureProF(Texture2D texture, Rectangle source, Rectangle dest,
 	Vector2 origin, float rotation, Vector4 tint);
 
 void 
-ScalDrawTextureProF(const Texture2D* texture, Rectangle source,
+SDrawTextureProF(const Texture2D* texture, Rectangle source,
 	Rectangle dest, Vector4 tint);
 
 void 

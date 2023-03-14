@@ -425,8 +425,8 @@ UpdateTile(ChunkedTileMap* tilemap, Game* game)
 internal void
 UpdateTileMap(ChunkedTileMap* tilemap, Game* game)
 {
-	float xOffset = GetGame()->CullingRect.x / TILE_SIZE_F;
-	float yOffset = GetGame()->CullingRect.y / TILE_SIZE_F;
+	float xOffset = GetGameApp()->ScreenXY.x / TILE_SIZE_F;
+	float yOffset = GetGameApp()->ScreenXY.y / TILE_SIZE_F;
 	for (int y = 0; y < SCREEN_HEIGHT_TILES; ++y)
 	{
 		for (int x = 0; x < SCREEN_WIDTH_TILES; ++x)
@@ -485,7 +485,7 @@ Draw(ChunkedTileMap* tilemap, Game* game)
 				(float)TILE_SIZE
 			};
 			Vector4 color = { 1.0f, 1.0f, 1.0f, 1.0f };
-			ScalDrawTextureProF(
+			SDrawTextureProF(
 				texture,
 				tile->GetTileTexData(tileMgr)->TexCoord,
 				position,

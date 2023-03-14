@@ -68,6 +68,9 @@ void LightsUpdate(Game* game)
 	Vector2i originTile = GetClientPlayer()->Transform.TilePos;
 	ChunkedTileMap* tilemap = &game->World.ChunkedTileMap;
 	
+	game->LightMap.LightMapOffset.x = GetGameApp()->ScreenXY.x / TILE_SIZE_F;
+	game->LightMap.LightMapOffset.y = GetGameApp()->ScreenXY.y / TILE_SIZE_F;
+
 	if (CTileMap::IsTileInBounds(tilemap, originTile))
 	{
 		CTileMap::SetVisible(tilemap, originTile);
@@ -426,9 +429,9 @@ LightsUpdateTileColor(int index, float distance, const Light& light)
 	float attenuation = 1.0f / (1.0f + a * distance + b * distance * distance);
 	
 	constexpr float inverse = 1.0f / 255.0f;
-	GetGame()->LightMap.LightColors[index].x += (float)light.Color.r * inverse * attenuation;
-	GetGame()->LightMap.LightColors[index].y += (float)light.Color.g * inverse * attenuation;
-	GetGame()->LightMap.LightColors[index].z += (float)light.Color.b * inverse * attenuation;
+	GetGame()->LightingRenderer.Tiles[index].x += (float)light.Color.r * inverse * attenuation;
+	GetGame()->LightingRenderer.Tiles[index].y += (float)light.Color.g * inverse * attenuation;
+	GetGame()->LightingRenderer.Tiles[index].z += (float)light.Color.b * inverse * attenuation;
 }
 
 void
@@ -441,7 +444,7 @@ LightsUpdateTileColorTile(Vector2i tileCoord, float distance, const Light& light
 	};
 	int index = coord.x + coord.y * SCREEN_WIDTH_TILES;
 	constexpr float inverse = 1.0f / 255.0f;
-	GetGame()->LightMap.LightColors[index].x += (float)light.Color.r * inverse;
-	GetGame()->LightMap.LightColors[index].y += (float)light.Color.g * inverse;
-	GetGame()->LightMap.LightColors[index].z += (float)light.Color.b * inverse;
+	GetGame()->LightingRenderer.Tiles[index].x += (float)light.Color.r * inverse;
+	GetGame()->LightingRenderer.Tiles[index].y += (float)light.Color.g * inverse;
+	GetGame()->LightingRenderer.Tiles[index].z += (float)light.Color.b * inverse;
 }

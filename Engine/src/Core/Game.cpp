@@ -122,7 +122,8 @@ internal bool GameInitialize(Game* game, GameApplication* gameApp)
 
 	game->Renderer.Initialize();
 
-	GameLoadScreen(gameApp, GetScreenWidth(), GetScreenHeight());
+
+	GameLoadScreen(gameApp, SCREEN_WIDTH_PADDING, SCREEN_HEIGHT_PADDING);
 
 	game->TileMapRenderer.Initialize(game);
 	game->LightingRenderer.Initialize(game);
@@ -320,11 +321,11 @@ SAPI void GameApplication::Run()
 
 		double updateWorldStart = GetTime();
 
-		float screenW = (float)GetScreenWidth();
-		float screenH = (float)GetScreenHeight();
+		float screenW = (float)SCREEN_WIDTH_PADDING;
+		float screenH = (float)SCREEN_HEIGHT_PADDING;
 		Rectangle srcRect = { 0.0f, 0.0f, screenW, -screenH };
 		Rectangle dstRect = { ScreenXY.x, ScreenXY.y, screenW, screenH };
-		Rectangle cullingScreenRect = { 0, 0, SCREEN_WIDTH_PADDING, -SCREEN_HEIGHT_PADDING };
+		Rectangle cullingScreenRect = { 0, 0, screenW, -screenH };
 
 		CTileMap::Update(&Game->World.ChunkedTileMap, Game);
 
@@ -332,15 +333,26 @@ SAPI void GameApplication::Run()
 
 		// Update and draw world
 		BeginTextureMode(Game->Renderer.WorldTexture);
-		BeginShaderMode(Game->Renderer.UnlitShader);		
-		ClearBackground({ 0 });
+		ClearBackground(BLACK);
+		
+		BeginShaderMode(Game->Renderer.UnlitShader);
 		
 		BeginMode2D(Game->WorldCamera);
+
+		Rectangle tilemapDest;
+		tilemapDest.x = ScreenXY.x + 8.0f;
+		tilemapDest.y = ScreenXY.y + 10.0f;
+		tilemapDest.width = Game->TileMapRenderer.TileMapTexture.texture.width;
+		tilemapDest.height = Game->TileMapRenderer.TileMapTexture.texture.height;
+		DrawTexturePro(Game->TileMapRenderer.TileMapTexture.texture, cullingScreenRect, tilemapDest, { 0 }, 0.0f, WHITE);
+
 		GameUpdate(Game, this);
 		GameLateUpdate(Game);
+
 		EndMode2D();
 
 		EndShaderMode();
+
 		EndTextureMode();
 		
 		Game->LightingRenderer.Draw();
@@ -364,37 +376,20 @@ SAPI void GameApplication::Run()
 		// ***************
 		BeginDrawing();
 
-		//BeginShaderMode(Game->Renderer.LitShader);
+		BeginShaderMode(Game->Renderer.LitShader);
 		BeginMode2D(Game->ViewCamera);
 		ClearBackground(BLACK);
 
 		rlPushMatrix();
 		rlScalef(GetScale(), GetScale(), 1.0f);
 
-		// TODO: should combine tilemap into world map textures and setup the cordinates again.
-		Rectangle tilemapDest;
-		tilemapDest.x = GetGame()->CullingRect.x + 8.0f;
-		tilemapDest.y = GetGame()->CullingRect.y + 10.0f;
-		tilemapDest.width = Game->TileMapRenderer.TileMapTexture.texture.width;
-		tilemapDest.height = Game->TileMapRenderer.TileMapTexture.texture.height;
-		DrawTexturePro(Game->TileMapRenderer.TileMapTexture.texture, cullingScreenRect, tilemapDest, { 0 }, 0.0f, WHITE);
-
-		//SetShaderValueTexture(Game->Renderer.LitShader, Game->Renderer.UniformLightMapLoc, Game->Renderer.EffectTextureTwo.texture);
+		SetShaderValueTexture(Game->Renderer.LitShader, Game->Renderer.UniformLightMapLoc, Game->LightingRenderer.LightingTexture.texture);
 		DrawTexturePro(Game->Renderer.WorldTexture.texture, srcRect, dstRect, { 0 }, 0.0f, WHITE);
-
-		BeginBlendMode(BLEND_ADDITIVE);
-		Rectangle lightingDest;
-		lightingDest.x = 0;
-		lightingDest.y = 0;
-		lightingDest.width = Game->LightingRenderer.LightingTexture.texture.width;
-		lightingDest.height = Game->LightingRenderer.LightingTexture.texture.height;
-		DrawTexturePro(Game->LightingRenderer.LightingTexture.texture, cullingScreenRect, lightingDest, { 0 }, 0.0f, WHITE);
-		EndBlendMode();
 
 		rlPopMatrix();
 
 		EndMode2D();
-		//EndShaderMode();
+		EndShaderMode();
 
 		UpdateWorldTime = GetTime() - updateWorldStart;
 
@@ -404,6 +399,33 @@ SAPI void GameApplication::Run()
 		double drawStart = GetTime();
 		EndDrawing();
 		RenderTime = GetTime() - drawStart;
+
+		// Handle Camera Move
+		if (!Game->IsFreeCam)
+		{
+			Game->CameraLerpTime += GetDeltaTime();
+			if (Game->CameraLerpTime > 1.0f) Game->CameraLerpTime = 1.0f;
+
+			Vector2 from = Game->WorldCamera.target;
+			Vector2 playerPos = VecToTileCenter(GetClientPlayer()->Transform.Pos);
+			Game->WorldCamera.target = playerPos;
+			Game->ViewCamera.target = Vector2Multiply(Game->WorldCamera.target, { GetScale(), GetScale() });
+		}
+
+		ScreenXY = Vector2Subtract(Game->WorldCamera.target, Game->WorldCamera.offset);
+
+		constexpr float halfCullingPadding = (float)(TILES_IN_VIEW_PADDING / 2) * TILE_SIZE_F;
+		Game->CullingRect.x = ScreenXY.x - halfCullingPadding;
+		Game->CullingRect.y = ScreenXY.y - halfCullingPadding;
+		Game->CullingRect.width = SCREEN_WIDTH_PADDING;
+		Game->CullingRect.height = SCREEN_HEIGHT_PADDING;
+
+		constexpr float halfUpdatePadding = 32.0f * TILE_SIZE_F;
+		constexpr float fullUpdatePadding = halfUpdatePadding * 2.0f;
+		Game->UpdateRect.x = ScreenXY.x - halfUpdatePadding;
+		Game->UpdateRect.y = ScreenXY.y - halfUpdatePadding;
+		Game->UpdateRect.width = SCREEN_WIDTH + fullUpdatePadding;
+		Game->UpdateRect.height = SCREEN_HEIGHT + fullUpdatePadding;
 
 		PROFILE_END();
 	}
@@ -415,32 +437,7 @@ GameUpdate(Game* game, GameApplication* gameApp)
 {
 	PROFILE_BEGIN();
 
-	// Handle Camera Move
-	if (!game->IsFreeCam)
-	{
-		game->CameraLerpTime += GetDeltaTime();
-		if (game->CameraLerpTime > 1.0f) game->CameraLerpTime = 1.0f;
 
-		Vector2 from = game->WorldCamera.target;
-		Vector2 playerPos = VecToTileCenter(GetClientPlayer()->Transform.Pos);
-		game->WorldCamera.target = Vector2Lerp(from, playerPos, game->CameraLerpTime);
-		game->ViewCamera.target = Vector2Multiply(game->WorldCamera.target, { GetScale(), GetScale() });
-	}
-
-	gameApp->ScreenXY = Vector2Subtract(game->WorldCamera.target, game->WorldCamera.offset);
-
-	constexpr float halfCullingPadding = (float)(TILES_IN_VIEW_PADDING / 2) * TILE_SIZE_F;
-	game->CullingRect.x = gameApp->ScreenXY.x - halfCullingPadding;
-	game->CullingRect.y = gameApp->ScreenXY.y - halfCullingPadding;
-	game->CullingRect.width = SCREEN_WIDTH_PADDING;
-	game->CullingRect.height = SCREEN_HEIGHT_PADDING;
-
-	constexpr float halfUpdatePadding = 32.0f * TILE_SIZE_F;
-	constexpr float fullUpdatePadding = halfUpdatePadding * 2.0f;
-	game->UpdateRect.x = gameApp->ScreenXY.x - halfUpdatePadding;
-	game->UpdateRect.y = gameApp->ScreenXY.y - halfUpdatePadding;
-	game->UpdateRect.width = SCREEN_WIDTH + fullUpdatePadding;
-	game->UpdateRect.height = SCREEN_HEIGHT + fullUpdatePadding;
 
 	if (IsWindowResized())
 	{

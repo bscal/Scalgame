@@ -8,8 +8,8 @@
 
 void Renderer::Initialize()
 {
-	int screenW = GetScreenWidth();
-	int screenH = GetScreenHeight();
+	int screenW = SCREEN_WIDTH_PADDING;
+	int screenH = SCREEN_HEIGHT_PADDING;
 	int blurWidth = screenW / 4;
 	int blurHeight = screenH / 4;
 	BlurShader.Initialize(blurWidth, blurHeight);
@@ -223,7 +223,7 @@ void TileMapRenderer::Draw()
 	SetShaderValueTexture(TileMapShader, UniformTilesLoc, TileDataTexture.texture);
 	const Texture2D& tileSprite = GetGame()->Resources.TileSprite;
 	Rectangle src = { 0, 0, (float)tileSprite.width, (float)tileSprite.height };
-	Rectangle dst = { 0, 0, (float)SCREEN_WIDTH_TILES * TILE_SIZE_F,  (float)SCREEN_HEIGHT_TILES * TILE_SIZE_F };
+	Rectangle dst = { 0, 0, (float)SCREEN_WIDTH_PADDING,  (float)SCREEN_HEIGHT_PADDING };
 	DrawTexturePro(tileSprite, src, dst, { 0 }, 0.0f, WHITE);
 
 	EndShaderMode();
@@ -252,7 +252,7 @@ void LightingRenderer::Free()
 	UnloadRenderTexture(LightingTexture);
 }
 
-void LightingRenderer::Draw() const
+void LightingRenderer::Draw()
 {
 	Rectangle src;
 	src.x = 0;
@@ -261,24 +261,26 @@ void LightingRenderer::Draw() const
 	src.height = ColorsTexture.texture.height;
 
 	Rectangle dst;
-	dst.x = 0;
-	dst.y = 0;
+	dst.x = GetGameApp()->ScreenXY.x + 8.0f;
+	dst.y = GetGameApp()->ScreenXY.y + 10.0f;
 	dst.width = LightingTexture.texture.width;
 	dst.height = LightingTexture.texture.height;
 
-	auto colors = &GetGame()->LightMap.LightColors;
 	SASSERT(sizeof(LightInfo) == (sizeof(float) * 4));
-	SASSERT(colors->size() == src.width * src.height);
+	SASSERT(Tiles.size() == src.width * src.height);
 
-	UpdateTexture(ColorsTexture.texture, colors);
+	UpdateTexture(ColorsTexture.texture, Tiles.data());
 
-	colors->fill(LightInfo{ 0 });
+	Tiles.fill({ 0 });
 
 	BeginTextureMode(LightingTexture);
+	ClearBackground(BLACK);
 
 	BeginShaderMode(LightingShader);
 
+	BeginMode2D(GetGame()->WorldCamera);
 	DrawTextureProF(ColorsTexture.texture, src, dst, { 0 }, 0.0f, { 1.0f, 1.0f, 1.0f, 1.0f });
+	EndMode2D();
 
 	EndShaderMode();
 
@@ -369,8 +371,7 @@ void DrawTextureProF(Texture2D texture, Rectangle source, Rectangle dest,
 	}
 }
 
-void ScalDrawTextureProF(const Texture2D* texture,
-	Rectangle source, Rectangle dest, Vector4 tint)
+void SDrawTextureProF(const Texture2D* texture, Rectangle source, Rectangle dest, Vector4 tint)
 {
 	SASSERT(texture->id > 0);
 
