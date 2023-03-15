@@ -23,13 +23,13 @@ project "Engine"
     includedirs
     {
         "src/",
-        "vendor/raylib/src/",
         "vendor/",
+        "vendor/raylib/src"
     }
 
     links
     {
-        "raylib", "winmm", "kernel32", "opengl32", "gdi32"
+        "raylib"
     }
 
     filter "configurations:Debug"
@@ -45,16 +45,30 @@ project "Engine"
         optimize "on"
 
     filter "system:Windows"
-        defines "SCAL_PLATFORM_WINDOWS"
+        defines { "PLATFORM_DESKTOP", "SCAL_PLATFORM_WINDOWS", "_WIN32" }
         systemversion "latest"
         buildoptions
         { 
             "-std=c++17", "-Wc++17-compat", "-Weverything", "-Wno-c++98-compat-pedantic",
             "-Wno-old-style-cast", "-Wno-extra-semi-stmt"
         }
+        --links { "winmm", "kernel32", "opengl32", "gdi32" }
 
     filter "system:Unix"
-        defines "SCAL_PLATFORM_LINUX"
+        defines { "PLATFORM_DESKTOP", "SCAL_PLATFORM_LINUX" }
+        --links { "pthread", "GL", "m", "dl", "rt", "X11" }
+
+    filter {"options:graphics=opengl43"}
+        defines{"GRAPHICS_API_OPENGL_43"}
+
+    filter {"options:graphics=opengl33"}
+        defines{"GRAPHICS_API_OPENGL_33"}
+
+    filter {"options:graphics=opengl21"}
+        defines{"GRAPHICS_API_OPENGL_21"}
+
+    filter {"options:graphics=opengl11"}
+        defines{"GRAPHICS_API_OPENGL_11"}
 
     filter {}
 

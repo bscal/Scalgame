@@ -52,20 +52,6 @@ void SMemClear(void* block, size_t size);
 const size_t* SMemGetTaggedUsages();
 uint64_t SMemGetAllocated();
 
-// Overrides malloc calls for raylib
-#ifndef RL_MALLOC
-#define RL_MALLOC(sz) SMemAlloc(sz)
-#endif
-#ifndef RL_CALLOC
-#define RL_CALLOC(n,sz) SMemAlloc(n * sz)
-#endif
-#ifndef RL_REALLOC
-#define RL_REALLOC(ptr,sz) SMemRealloc(ptr, 0, sz)
-#endif
-#ifndef RL_FREE
-#define RL_FREE(ptr) SMemFree(ptr)
-#endif
-
 struct SMemAllocator
 {
 	void* (*Alloc)(size_t);

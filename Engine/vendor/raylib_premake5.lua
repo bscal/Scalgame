@@ -2,6 +2,8 @@ project "raylib"
     kind "SharedLib"
     staticruntime "off"
     language "C++"
+    cdialect "C99"
+    cppdialect "C++17"
 
     targetdir("%{wks.location}/bin/" .. outputdir .. "/%{prj.name}")
     objdir("%{wks.location}/bin-int/" .. outputdir .. "/%{prj.name}")
@@ -19,14 +21,20 @@ project "raylib"
         "raylib/src/external/glfw/include"
     }
 
-    defines{"PLATFORM_DESKTOP", "BUILD_LIBTYPE_SHARED"}
+    defines
+    {
+        "BUILD_LIBTYPE_SHARED",
+        "_WINSOCK_DEPRECATED_NO_WARNINGS",
+        "_CRT_SECURE_NO_WARNINGS"
+    }
     
     filter "system:windows"
-        defines{"_WIN32"}
-        links {"winmm", "kernel32", "opengl32", "gdi32"}
+        defines{ "_WIN32", "PLATFORM_DESKTOP"}
+        links { "winmm", "kernel32", "opengl32", "gdi32" }
 
     filter "system:linux"
-        links {"pthread", "GL", "m", "dl", "rt", "X11"}
+        defines { "PLATFORM_DESKTOP" }
+        links { "pthread", "GL", "m", "dl", "rt", "X11" }
 
     filter {"options:graphics=opengl43"}
         defines{"GRAPHICS_API_OPENGL_43"}
