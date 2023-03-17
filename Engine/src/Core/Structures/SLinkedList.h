@@ -13,7 +13,7 @@ struct SLinkedListEntry
 template<typename T>
 struct SLinkedList
 {
-	SMemAllocator Allocator = SMEM_GAME_ALLOCATOR;
+	SAllocator::Type Allocator;
 	SLinkedListEntry<T>* First;
 	uint32_t Size;
 
@@ -25,6 +25,7 @@ struct SLinkedList
 	[[nodiscard]] T PopValue();
 
 	inline bool HasNext() const { return (Size > 0); }
+	inline size_t Stride() const { return sizeof(SLinkedListEntry<T>); }
 
 private:
 	SLinkedListEntry<T>* CreateEntry(const T* value) const;
@@ -36,9 +37,8 @@ SLinkedListEntry<T>*
 SLinkedList<T>::CreateEntry(const T* value) const
 {
 	SASSERT(value);
-	SASSERT(Allocator.Alloc);
 
-	SLinkedListEntry<T>* entry = (SLinkedListEntry<T>*)Allocator.Alloc(sizeof(SLinkedListEntry<T>));
+	SLinkedListEntry<T>* entry = (SLinkedListEntry<T>*)SAlloc(Allocator, Stride(), MemoryTag::Lists);
 	SASSERT(entry);
 	entry->Next = First;
 	entry->Value = *value;
@@ -50,10 +50,8 @@ SLinkedListEntry<T>*
 SLinkedList<T>::FreeEntry(SLinkedListEntry<T>* entry) const
 {
 	SASSERT(entry);
-	SASSERT(Allocator.Free);
-
 	SLinkedListEntry<T>* next = entry->Next;
-	Allocator.Free(entry);
+	SFree(Allocator, entry, Stride(), MemoryTag::Lists);
 	return next;
 }
 

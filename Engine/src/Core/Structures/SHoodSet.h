@@ -21,7 +21,7 @@ template<typename K,
 	typename EqualsFunc = DefaultEquals<K>>
 	struct SHoodSet
 {
-	SMemAllocator Allocator = SMEM_GAME_ALLOCATOR;
+	SAllocator::Type Allocator;
 	SHoodSetBucket<K>* Buckets;
 	uint32_t Size;
 	uint32_t Capacity;
@@ -35,8 +35,9 @@ template<typename K,
 	bool Contains(const K* key) const;
 	bool Remove(const K* key);
 
-	bool IsAllocated() const { return MemSize() > 0; };
-	size_t MemSize() const { return Capacity * sizeof(SHoodSetBucket<K>); };
+	inline bool IsAllocated() const { return MemUsed() > 0; };
+	inline size_t Stride() const { return  sizeof(SHoodSetBucket<K>); }
+	inline size_t MemUsed() const { return Capacity * Stride(); };
 
 	void ToString() const;
 };
@@ -44,9 +45,6 @@ template<typename K,
 template<typename K, typename HashFunc, typename EqualsFunc>
 void SHoodSet<K, HashFunc, EqualsFunc>::Reserve(uint32_t capacity)
 {
-	SASSERT(Allocator.Alloc);
-	SASSERT(Allocator.Free);
-
 	uint32_t newCapacity = (uint32_t)((float)capacity * SSET_LOAD_FACTOR);
 	if (newCapacity == 0)
 		newCapacity = 2;
@@ -61,8 +59,9 @@ void SHoodSet<K, HashFunc, EqualsFunc>::Reserve(uint32_t capacity)
 
 	if (Size == 0)
 	{
-		Allocator.Free(Buckets);
-		Buckets = (SHoodSetBucket<K>*)(Allocator.Alloc(MemSize()));
+		size_t oldSize = oldCapacity * Stride();
+		size_t newSize = newCapacity * Stride();
+		Buckets = (SHoodSetBucket<K>*)(SRealloc(Allocator, Buckets, oldSize, newSize, MemoryTag::Tables));
 	}
 	else
 	{
@@ -70,7 +69,7 @@ void SHoodSet<K, HashFunc, EqualsFunc>::Reserve(uint32_t capacity)
 		tmpSet.Allocator = Allocator;
 		tmpSet.Capacity = Capacity;
 		tmpSet.MaxSize = MaxSize;
-		tmpSet.Buckets = (SHoodSetBucket<K>*)(Allocator.Alloc(MemSize()));
+		tmpSet.Buckets = (SHoodSetBucket<K>*)(SAlloc(Allocator, MemSize(), MemoryTag::Tables));
 
 		for (uint32_t i = 0; i < oldCapacity; ++i)
 		{
@@ -81,7 +80,7 @@ void SHoodSet<K, HashFunc, EqualsFunc>::Reserve(uint32_t capacity)
 			if (tmpSet.Size == Size) break;
 		}
 
-		Allocator.Free(Buckets);
+		SFree(Allocator, Buckets, oldCapacity * Stride(), MemoryTag::Tables);
 		SASSERT(Size == tmpSet.Size);
 		*this = tmpSet;
 	}
@@ -94,8 +93,7 @@ void SHoodSet<K, HashFunc, EqualsFunc>::Reserve(uint32_t capacity)
 template<typename K, typename HashFunc, typename EqualsFunc>
 void SHoodSet<K, HashFunc, EqualsFunc>::Free()
 {
-	SASSERT(Allocator.Free);
-	Allocator.Free(Buckets);
+	SFree(Allocator, Buckets, MemUsed(), MemoryTag::Tables);
 	Buckets = nullptr;
 	Size = 0;
 	Capacity = 0;
@@ -105,7 +103,7 @@ void SHoodSet<K, HashFunc, EqualsFunc>::Free()
 template<typename K, typename HashFunc, typename EqualsFunc>
 void SHoodSet<K, HashFunc, EqualsFunc>::Clear()
 {
-	SMemClear(Buckets, MemSize());
+	SMemClear(Buckets, MemUsed());
 	Size = 0;
 }
 

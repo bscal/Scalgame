@@ -16,8 +16,8 @@ struct LightingState
     SList<Light> Lights;
     SList<UpdatingLight> UpdatingLights;
 
-    size_t Size = SCREEN_TOTAL_TILES;
-    StaticArray<bool, SCREEN_TOTAL_TILES> CheckedTiles;
+    size_t Size = CULL_TOTAL_TILES;
+    StaticArray<bool, CULL_TOTAL_TILES> CheckedTiles;
 };
 
 struct Light

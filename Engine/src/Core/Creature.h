@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core.h"
+#include "Globals.h"
 #include "Components.h"
 #include "SMemory.h"
 #include "SUtil.h"

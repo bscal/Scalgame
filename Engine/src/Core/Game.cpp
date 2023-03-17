@@ -51,13 +51,11 @@ SAPI bool GameApplication::Start()
 
 	GameAppPtr = this;
 
-	Game = (struct Game*)SMemAllocTag(sizeof(struct Game), MemoryTag::Game);
-	SMemClear(Game, sizeof(struct Game));
+	Game = (struct Game*)SAlloc(SAllocator::Game, sizeof(struct Game), MemoryTag::Game);
 	bool didGameInit = GameInitialize(Game, this);
 	SASSERT(didGameInit);
 
-	UIState = (struct UIState*)SMemAllocTag(sizeof(struct UIState), MemoryTag::UI);
-	SMemClear(UIState, sizeof(struct UIState));
+	UIState = (struct UIState*)SAlloc(SAllocator::Game, sizeof(struct UIState), MemoryTag::UI);
 	bool didUiInit = InitializeUI(UIState, this);
 	SASSERT(didUiInit);
 
@@ -123,12 +121,11 @@ internal bool GameInitialize(Game* game, GameApplication* gameApp)
 	game->Renderer.Initialize();
 
 
-	GameLoadScreen(gameApp, SCREEN_WIDTH_PADDING, SCREEN_HEIGHT_PADDING);
+	GameLoadScreen(gameApp, CULL_WIDTH, CULL_HEIGHT);
 
 	game->TileMapRenderer.Initialize(game);
 	game->LightingRenderer.Initialize(game);
 
-	LightMapInitialize(&game->LightMap);
 	TileMgrInitialize(&game->TileMgr, &game->Resources.Atlas);
 	EntityMgrInitialize(game);
 
@@ -256,10 +253,6 @@ SAPI void GameApplication::Run()
 					Tile newTile = CreateTileId(&Game->TileMgr, 5);
 					CTileMap::SetTile(&Game->World.ChunkedTileMap, &newTile, clickedTilePos);
 					SLOG_INFO("Clicked Tile[%d, %d] Id: %d", clickedTilePos.x, clickedTilePos.y, tile->TileId);
-
-					auto v = TranslateTileWorldToCull(clickedTilePos);
-					auto inside = TileInsideCullRect(clickedTilePos);
-					SLOG_INFO("%d | %s | rect: %s", inside, FMT_VEC2I(v), FMT_RECT(Game->CullingRect));
 				}
 			}
 			if (IsMouseButtonPressed(MOUSE_BUTTON_RIGHT))
@@ -321,11 +314,8 @@ SAPI void GameApplication::Run()
 
 		double updateWorldStart = GetTime();
 
-		float screenW = (float)SCREEN_WIDTH_PADDING;
-		float screenH = (float)SCREEN_HEIGHT_PADDING;
-		Rectangle srcRect = { 0.0f, 0.0f, screenW, -screenH };
-		Rectangle dstRect = { ScreenXY.x, ScreenXY.y, screenW, screenH };
-		Rectangle cullingScreenRect = { 0, 0, screenW, -screenH };
+		Rectangle srcRect = { 0.0f, 0.0f, CULL_WIDTH, -CULL_HEIGHT };
+		Rectangle dstRect = { ScreenXY.x, ScreenXY.y, CULL_WIDTH, CULL_HEIGHT };
 
 		CTileMap::Update(&Game->World.ChunkedTileMap, Game);
 
@@ -339,12 +329,8 @@ SAPI void GameApplication::Run()
 		
 		BeginMode2D(Game->WorldCamera);
 
-		Rectangle tilemapDest;
-		tilemapDest.x = ScreenXY.x + 8.0f;
-		tilemapDest.y = ScreenXY.y + 10.0f;
-		tilemapDest.width = Game->TileMapRenderer.TileMapTexture.texture.width;
-		tilemapDest.height = Game->TileMapRenderer.TileMapTexture.texture.height;
-		DrawTexturePro(Game->TileMapRenderer.TileMapTexture.texture, cullingScreenRect, tilemapDest, { 0 }, 0.0f, WHITE);
+		Rectangle tilemapDest = { CullXY.x + HALF_TILE_SIZE, CullXY.y + HALF_TILE_SIZE, CULL_WIDTH, CULL_HEIGHT };
+		DrawTexturePro(Game->TileMapRenderer.TileMapTexture.texture, srcRect, tilemapDest, { 0 }, 0.0f, WHITE);
 
 		GameUpdate(Game, this);
 		GameLateUpdate(Game);
@@ -413,19 +399,18 @@ SAPI void GameApplication::Run()
 		}
 
 		ScreenXY = Vector2Subtract(Game->WorldCamera.target, Game->WorldCamera.offset);
-
-		constexpr float halfCullingPadding = (float)(TILES_IN_VIEW_PADDING / 2) * TILE_SIZE_F;
-		Game->CullingRect.x = ScreenXY.x - halfCullingPadding;
-		Game->CullingRect.y = ScreenXY.y - halfCullingPadding;
-		Game->CullingRect.width = SCREEN_WIDTH_PADDING;
-		Game->CullingRect.height = SCREEN_HEIGHT_PADDING;
+		ScreenXYTiles.x = (int)(ScreenXY.x / TILE_SIZE_F);
+		ScreenXYTiles.y = (int)(ScreenXY.y / TILE_SIZE_F);
+		CullXY = Vector2Subtract(ScreenXY, { CULL_PADDING_EDGE_PIXELS, CULL_PADDING_EDGE_PIXELS });
+		CullXYTiles.x = (int)(CullXY.x / TILE_SIZE_F);
+		CullXYTiles.y = (int)(CullXY.y / TILE_SIZE_F);
 
 		constexpr float halfUpdatePadding = 32.0f * TILE_SIZE_F;
 		constexpr float fullUpdatePadding = halfUpdatePadding * 2.0f;
-		Game->UpdateRect.x = ScreenXY.x - halfUpdatePadding;
-		Game->UpdateRect.y = ScreenXY.y - halfUpdatePadding;
-		Game->UpdateRect.width = SCREEN_WIDTH + fullUpdatePadding;
-		Game->UpdateRect.height = SCREEN_HEIGHT + fullUpdatePadding;
+		UpdateRect.x = ScreenXY.x - halfUpdatePadding;
+		UpdateRect.y = ScreenXY.y - halfUpdatePadding;
+		UpdateRect.width = SCREEN_WIDTH + fullUpdatePadding;
+		UpdateRect.height = SCREEN_HEIGHT + fullUpdatePadding;
 
 		PROFILE_END();
 	}
@@ -549,22 +534,16 @@ void SetCameraDistance(GameApplication* gameApp, float zoom)
 	gameApp->Game->ViewCamera.target = viewTarget;
 }
 
-bool TileInsideCullRect(Vector2i tileCoord)
+bool TileInsideCullRect(Vector2i coord)
 {
-	Vector2 pixelCoord = Vector2Multiply(tileCoord.AsVec2(), { TILE_SIZE_F, TILE_SIZE_F });
-	return CheckCollisionPointRec(pixelCoord, GetGame()->CullingRect);
+	Vector2i offset = GetGameApp()->CullXYTiles;
+	return (coord.x >= offset.x 
+		&& coord.y >= offset.y
+		&& coord.x < offset.x + CULL_WIDTH_TILES 
+		&& coord.y < offset.y + CULL_HEIGHT_TILES);
 }
 
-Vector2i TranslateTileWorldToCull(Vector2i pos)
+Vector2i WorldTileToCullTile(Vector2i coord)
 {
-	Vector2 cullTopLeft = { GetGame()->CullingRect.x, GetGame()->CullingRect.y };
-	cullTopLeft = Vector2Divide(cullTopLeft, { TILE_SIZE_F, TILE_SIZE_F });
-	return pos.Subtract(Vec2fToVec2i(cullTopLeft));
-}
-
-Vector2i TranslateTileCullToWorld(Vector2i pos)
-{
-	Vector2 cullTopLeft = { GetGame()->CullingRect.x, GetGame()->CullingRect.y };
-	cullTopLeft = Vector2Divide(cullTopLeft, { TILE_SIZE_F, TILE_SIZE_F });
-	return pos.Add(Vec2fToVec2i(cullTopLeft));
+	return coord.Subtract(GetGameApp()->CullXYTiles);
 }

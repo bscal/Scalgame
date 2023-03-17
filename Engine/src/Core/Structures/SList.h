@@ -8,7 +8,7 @@
 template<typename T>
 struct SList
 {
-	SMemAllocator Allocator = SMEM_GAME_ALLOCATOR;
+	SAllocator::Type Allocator;
 	T* Memory;
 	uint32_t Capacity;
 	uint32_t Count; // Number of elements or last index to insert
@@ -42,7 +42,7 @@ struct SList
 	inline void Clear();
 
 	inline uint32_t LastIndex() const; // last used index, or 0
-	inline size_t MemAllocated() const; // Total memory used in bytes
+	inline size_t MemUsed() const; // Total memory used in bytes
 	inline bool IsAllocated() const;
 };
 
@@ -69,7 +69,7 @@ void SList<T>::EnsureSize(uint32_t ensuredCount)
 template<typename T>
 void SList<T>::Free()
 {
-	Allocator.Free(Memory);
+	SFree(Allocator, Memory, Capacity, MemoryTag::Arrays);
 	Memory = nullptr;
 	Capacity = 0;
 	Count = 0;
@@ -83,18 +83,8 @@ void SList<T>::Reserve(uint32_t newCapacity)
 
 	size_t oldSize = Capacity * sizeof(T);
 	size_t newSize = newCapacity * sizeof(T);
-
+	Memory = (T*)SRealloc(Allocator, Memory, oldSize, newSize, MemoryTag::Arrays);
 	Capacity = newCapacity;
-
-	if (Memory)
-	{
-		T* newMem = (T*)Allocator.Alloc(newSize);
-		SMemCopy(newMem, Memory, oldSize);
-		Allocator.Free(Memory);
-		Memory = newMem;
-	}
-	else Memory = (T*)Allocator.Alloc(newSize);
-
 	SASSERT(Memory);
 	SASSERT(Count <= newCapacity);
 }
@@ -325,7 +315,7 @@ inline uint32_t SList<T>::LastIndex() const
 }
 
 template<typename T>
-inline size_t SList<T>::MemAllocated() const
+inline size_t SList<T>::MemUsed() const
 {
 	return Capacity * sizeof(T);
 }

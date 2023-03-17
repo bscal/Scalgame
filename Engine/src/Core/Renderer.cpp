@@ -8,8 +8,8 @@
 
 void Renderer::Initialize()
 {
-	int screenW = SCREEN_WIDTH_PADDING;
-	int screenH = SCREEN_HEIGHT_PADDING;
+	int screenW = CULL_WIDTH;
+	int screenH = CULL_HEIGHT;
 	int blurWidth = screenW / 4;
 	int blurHeight = screenH / 4;
 	BlurShader.Initialize(blurWidth, blurHeight);
@@ -199,8 +199,8 @@ void TileMapRenderer::Initialize(Game* game)
 	UniformTilesLoc = GetShaderLocation(TileMapShader, "mapData");
 	UniformSpriteLoc = GetShaderLocation(TileMapShader, "textureAtlas");
 
-	int width = SCREEN_WIDTH_PADDING;
-	int height = SCREEN_HEIGHT_PADDING;
+	int width = CULL_WIDTH;
+	int height = CULL_HEIGHT;
 	TileMapTexture = SLoadRenderTexture(width, height, PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
 	TileDataTexture = SLoadRenderTexture(width / TILE_SIZE, height / TILE_SIZE, PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
 }
@@ -223,7 +223,7 @@ void TileMapRenderer::Draw()
 	SetShaderValueTexture(TileMapShader, UniformTilesLoc, TileDataTexture.texture);
 	const Texture2D& tileSprite = GetGame()->Resources.TileSprite;
 	Rectangle src = { 0, 0, (float)tileSprite.width, (float)tileSprite.height };
-	Rectangle dst = { 0, 0, (float)SCREEN_WIDTH_PADDING,  (float)SCREEN_HEIGHT_PADDING };
+	Rectangle dst = { 0, 0, (float)CULL_WIDTH,  (float)CULL_HEIGHT };
 	DrawTexturePro(tileSprite, src, dst, { 0 }, 0.0f, WHITE);
 
 	EndShaderMode();
@@ -239,8 +239,8 @@ void LightingRenderer::Initialize(Game* game)
 	UniformLightIntensity = GetShaderLocation(LightingShader, "lightIntensity");
 	UniformSunlight = GetShaderLocation(LightingShader, "sunLightColor");
 
-	int width = SCREEN_WIDTH_PADDING;
-	int height = SCREEN_HEIGHT_PADDING;
+	int width = CULL_WIDTH;
+	int height = CULL_HEIGHT;
 	LightingTexture = SLoadRenderTexture(width, height, PIXELFORMAT_UNCOMPRESSED_R32G32B32A32);
 	ColorsTexture = SLoadRenderTexture(width / TILE_SIZE, height / TILE_SIZE, PIXELFORMAT_UNCOMPRESSED_R32G32B32A32);
 }
@@ -261,12 +261,12 @@ void LightingRenderer::Draw()
 	src.height = ColorsTexture.texture.height;
 
 	Rectangle dst;
-	dst.x = GetGameApp()->ScreenXY.x + 8.0f;
-	dst.y = GetGameApp()->ScreenXY.y + 10.0f;
+	dst.x = GetGameApp()->CullXY.x + HALF_TILE_SIZE;
+	dst.y = GetGameApp()->CullXY.y + HALF_TILE_SIZE;
 	dst.width = LightingTexture.texture.width;
 	dst.height = LightingTexture.texture.height;
 
-	SASSERT(sizeof(LightInfo) == (sizeof(float) * 4));
+	SASSERT(sizeof(Tiles[0]) == (sizeof(float) * 4));
 	SASSERT(Tiles.size() == src.width * src.height);
 
 	UpdateTexture(ColorsTexture.texture, Tiles.data());
@@ -279,7 +279,7 @@ void LightingRenderer::Draw()
 	BeginShaderMode(LightingShader);
 
 	BeginMode2D(GetGame()->WorldCamera);
-	DrawTextureProF(ColorsTexture.texture, src, dst, { 0 }, 0.0f, { 1.0f, 1.0f, 1.0f, 1.0f });
+	SDrawTextureProF(&ColorsTexture.texture, src, dst, Colors::White);
 	EndMode2D();
 
 	EndShaderMode();

@@ -1,12 +1,11 @@
 #include "Lighting.h"
 
 #include "Game.h"
-#include "LightMap.h"
 
 // Most of these implementations for lighting I have gotten
 // from http://www.adammil.net/blog/v125_roguelike_vision_algorithms.html
 
-LightingState State;
+global_var LightingState State;
 
 void LightsInitialized(GameApplication* gameApp)
 {
@@ -67,9 +66,6 @@ void LightsUpdate(Game* game)
 	PROFILE_BEGIN();
 	Vector2i originTile = GetClientPlayer()->Transform.TilePos;
 	ChunkedTileMap* tilemap = &game->World.ChunkedTileMap;
-	
-	game->LightMap.LightMapOffset.x = GetGameApp()->ScreenXY.x / TILE_SIZE_F;
-	game->LightMap.LightMapOffset.y = GetGameApp()->ScreenXY.y / TILE_SIZE_F;
 
 	if (CTileMap::IsTileInBounds(tilemap, originTile))
 	{
@@ -87,7 +83,7 @@ void LightsUpdate(Game* game)
 
 		// FIXME: dont render lights off screen, should add buffer
 		Vector2i lightTilePos = Vec2fToVec2i(light.Pos);
-		if (!LightMapInView(&game->LightMap, lightTilePos)) continue;
+		if (!TileInsideCullRect(lightTilePos)) continue;
 
 		SMemSet(State.CheckedTiles.data(), 0, State.Size);
 
@@ -102,7 +98,7 @@ void LightsUpdate(Game* game)
 	for (int i = 0; i < State.UpdatingLights.Count; ++i)
 	{
 		Vector2i lightTilePos = Vec2fToVec2i(State.UpdatingLights[i].Pos);
-		if (!LightMapInView(&game->LightMap, lightTilePos)) continue;
+		if (!TileInsideCullRect(lightTilePos)) continue;
 
 		PROFILE_BEGIN_EX("UpdatingLights::SMemSet");
 		SMemSet(State.CheckedTiles.data(), 0, State.Size);
@@ -370,18 +366,14 @@ ComputeLightShadowCast(ChunkedTileMap* tilemap, const Light& light,
 			txty.y += x * TranslationTable[octant][2] + y * TranslationTable[octant][3];
 
 			float distance;
-			bool inRange = LightMapInView(&GetGame()->LightMap, txty)
+			bool inRange = TileInsideCullRect(txty)
 				&& CTileMap::IsTileInBounds(tilemap, txty)
 				//&& ((distance = Vector2i{ x, y }.SqrDistance(TILEMAP_ORIGIN)) <= rangeLimitSqr);
 				&& ((distance = Vector2i{ x, y }.Distance(TILEMAP_ORIGIN)) <= rangeLimit);
 			if (inRange)
 			{
-				TileCoord coord
-				{
-					txty.x - GetGame()->LightMap.LightMapOffset.x,
-					txty.y - GetGame()->LightMap.LightMapOffset.y
-				};
-				int index = coord.x + coord.y * SCREEN_WIDTH_TILES;
+				TileCoord coord = WorldTileToCullTile(txty);
+				int index = coord.x + coord.y * CULL_WIDTH_TILES;
 				if (!State.CheckedTiles[index])
 				{
 					State.CheckedTiles[index] = true;
@@ -420,7 +412,7 @@ void
 LightsUpdateTileColor(int index, float distance, const Light& light)
 {
 	SASSERT(index >= 0);
-	SASSERT(index < SCREEN_TOTAL_TILES);
+	SASSERT(index < CULL_TOTAL_TILES);
 
 	// https://www.desmos.com/calculator/nmnaud1hrw
 	const float a = 0.0f;
@@ -437,12 +429,8 @@ LightsUpdateTileColor(int index, float distance, const Light& light)
 void
 LightsUpdateTileColorTile(Vector2i tileCoord, float distance, const Light& light)
 {
-	TileCoord coord =
-	{
-		tileCoord.x - GetGame()->LightMap.LightMapOffset.x,
-		tileCoord.y - GetGame()->LightMap.LightMapOffset.y
-	};
-	int index = coord.x + coord.y * SCREEN_WIDTH_TILES;
+	TileCoord coord = WorldTileToCullTile(tileCoord);
+	int index = coord.x + coord.y * CULL_WIDTH_TILES;
 	constexpr float inverse = 1.0f / 255.0f;
 	GetGame()->LightingRenderer.Tiles[index].x += (float)light.Color.r * inverse;
 	GetGame()->LightingRenderer.Tiles[index].y += (float)light.Color.g * inverse;

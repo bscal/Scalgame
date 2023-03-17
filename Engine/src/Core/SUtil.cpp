@@ -22,7 +22,7 @@ QueryTilesRect(World* world, Vector2i start, Vector2i end)
 	uint32_t width = end.x - start.x;
 	uint32_t size = width * (end.y - start.y);
 	SList<Vector2i> positions = {};
-	positions.Allocator = SMEM_TEMP_ALLOCATOR;
+	positions.Allocator = SAllocator::Temp;
 	positions.Reserve(size);
 
 	for (int y = start.y; y < end.y; ++y)
@@ -51,7 +51,7 @@ QueryTilesRadius(World* world, Vector2i center, float radius)
 
 	uint32_t size = (endX - startX) + (endY - startY);
 	SList<Vector2i> positions = {};
-	positions.Allocator = SMEM_TEMP_ALLOCATOR;
+	positions.Allocator = SAllocator::Temp;
 	positions.Reserve(size);
 
 	for (int y = startY; y < endY; ++y)

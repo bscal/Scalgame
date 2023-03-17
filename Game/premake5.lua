@@ -3,6 +3,7 @@ project "Game"
     language "C++"
     staticruntime "off"
     cppdialect "C++17"
+    cdialect "C99"
 
     targetdir("%{wks.location}/bin/" .. outputdir .. "/%{prj.name}")
     objdir("%{wks.location}/bin-int/" .. outputdir .. "/%{prj.name}")
@@ -15,6 +16,7 @@ project "Game"
     
     defines
     {
+        "USE_LIBTYPE_SHARED"
     }
 
     includedirs
@@ -22,14 +24,14 @@ project "Game"
         "src",
         "vendor",
         "%{wks.location}/Engine/src",
-        "%{wks.location}/Engine/vendor"
+        "%{wks.location}/Engine/vendor",
     }
 
     links
     {
         "Engine",
         "raylib",
-        "winmm", "kernel32", "opengl32", "gdi32"
+        --"winmm", "kernel32", "opengl32", "gdi32"
     }
 
     filter "configurations:Debug"

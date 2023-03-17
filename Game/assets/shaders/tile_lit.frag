@@ -15,7 +15,6 @@ void main()
 	vec4 texColor = texture(texture0, fragTexCoord);
 	vec4 lightmapColor = texture(texture1, fragTexCoord);
 
-	vec3 lightColor = texColor.rgb * lightmapColor.rgb;
-	vec3 ambientColor = texColor.rgb * ambientLightColor.rgb;
-	finalColor = vec4(lightColor + ambientColor, 1.0);
+	vec3 color = texColor.rgb * (lightmapColor.rgb + ambientLightColor.rgb);
+	finalColor = vec4(color, 1.0);
 }

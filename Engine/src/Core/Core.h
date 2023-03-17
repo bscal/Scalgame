@@ -12,16 +12,13 @@
 * 
 */
 
-static_assert(sizeof(size_t) == sizeof(uint64_t), 
-	"ScalEngine does not support 32bit");
+static_assert(sizeof(size_t) == sizeof(uint64_t), "ScalEngine does not support 32bit");
 
 #define internal static
 #define local_var static
 #define global_var static
 
 typedef int bool32;
-
-global_var constexpr float TAO = (float)PI * 2.0f;
 
 #define SCAL_GAME_TESTS 1
 

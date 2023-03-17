@@ -1,29 +1,20 @@
-#define RMEM_IMPLEMENTATION
 #include "SMemory.h"
 
 #include "Core.h"
 #include "Game.h"
 #include "SUtil.h"
 
+#define RMEM_IMPLEMENTATION
+#include "rmem/rmem.h"
+
 #include <stdlib.h>
 
-#if SCAL_DEBUG
+#if 0
 #define SMEM_LOG_ALLOC(type, size) SLOG_INFO("[ Memory ] %s %d bytes, %d mb", type, size, size / 1024 / 1024)
 #define SMEM_LOG_FREE() SLOG_INFO("[ Memory ] Freeing")
 #else
 #define SMEM_LOG_ALLOC(type, size)
 #define SMEM_LOG_FREE()
-#endif
-
-#define UseMalloc 0
-#if UseMalloc
-#define SMalloc(void) malloc(size)
-#define SRealloc(void) realloc(block, size)
-#define SFree(void) free(block)
-#else
-#define SMalloc(void) MemPoolAlloc(&GameAppPtr->GameMemory, size)
-#define SRealloc(void) MemPoolRealloc(&GameAppPtr->GameMemory, block, size)
-#define SFree(void) MemPoolFree(&GameAppPtr->GameMemory, block)
 #endif
 
 // TODO: maybe move this to an internal state struct?
@@ -33,9 +24,11 @@ global_var uint64_t GameMemSize;
 global_var uint64_t TemporaryMemSize;
 global_var uint64_t TotalMemoryAllocated;
 
+internal void* CMemAlloc(size_t n, size_t sz) { return SMemAlloc(n * sz); }
+
 void 
 SMemInitialize(GameApplication* gameApp,
-    uint64_t gameMemSize, uint64_t temporaryMemSize)
+    size_t gameMemSize, size_t temporaryMemSize)
 {
     GameAppPtr = gameApp;
     GameMemSize = gameMemSize;
@@ -47,25 +40,38 @@ SMemInitialize(GameApplication* gameApp,
     SMemClear(memoryLocation, TotalMemoryAllocated);
 
     gameApp->GameMemory = CreateMemPoolFromBuffer(memoryLocation, GameMemSize);
+    SASSERT(gameApp->GameMemory.arena.mem);
 
     gameApp->TemporaryMemory = CreateBiStackFromBuffer(memoryLocation + GameMemSize, TemporaryMemSize);
-
-    SASSERT(gameApp->GameMemory.arena.mem);
     SASSERT(gameApp->TemporaryMemory.mem);
 
-    MemorySizeData gameFormatSize = FindMemSize(gameMemSize);
-    MemorySizeData tempFormatSize = FindMemSize(temporaryMemSize);
+    // Sets Raylibs RL memory allocator functions
+    // Raylib usually doesnt use too much memory,
+    // mostly loading of assets and files
+    SetRLMalloc(SMemAlloc);
+    SetRLCalloc(CMemAlloc);
+    SetRLRealloc(SMemRealloc);
+    SetRLFree(SMemFree);
+
+    SASSERT(GetRLMalloc());
+    SASSERT(GetRLCalloc());
+    SASSERT(GetRLRealloc());
+    SASSERT(GetRLFree());
 
     SLOG_INFO("[ Memory ] Initialized! Total Mem: %d bytes.", TotalMemoryAllocated);
+
+    MemorySizeData gameFormatSize = FindMemSize(gameMemSize);
     SLOG_INFO("[ Memory ] Game mem size: %.2f%c. At: 0x%p", gameFormatSize.Size,
         gameFormatSize.BytePrefix, memoryLocation);
+
+    MemorySizeData tempFormatSize = FindMemSize(temporaryMemSize);
     SLOG_INFO("[ Memory ] Temporary mem size: %.2f%c. At: 0x%p", tempFormatSize.Size,
         tempFormatSize.BytePrefix, memoryLocation + GameMemSize);
 }
 
 void* SMemAlloc(size_t size)
 {
-    void* mem = SMalloc();
+    void* mem = MemPoolAlloc(&GameAppPtr->GameMemory, size);
     SASSERT(mem);
 
     SMEM_LOG_ALLOC("Allocated", size);
@@ -74,7 +80,7 @@ void* SMemAlloc(size_t size)
 
 void* SMemRealloc(void* block, size_t size)
 {
-    void* mem = SRealloc();
+    void* mem = MemPoolRealloc(&GameAppPtr->GameMemory, block, size);
     SASSERT(mem);
 
     SMEM_LOG_ALLOC("Reallocated", size);
@@ -83,7 +89,7 @@ void* SMemRealloc(void* block, size_t size)
 
 void SMemFree(void* block)
 {
-    SFree();
+    MemPoolFree(&GameAppPtr->GameMemory, block);
     SMEM_LOG_FREE();
 }
 
@@ -98,23 +104,93 @@ void SMemTempReset()
     BiStackResetFront(&GameAppPtr->TemporaryMemory);
 }
 
-void* SMemAllocTag(size_t size, MemoryTag tag)
+void* SMemAllocTag(int allocator, size_t size, MemoryTag tag)
 {
+    SASSERT(size > 0);
     SASSERT(tag != MemoryTag::Unknown);
-
-    MemoryTagUsage[(uint8_t)tag] += size;
-    return SMemAlloc(size);
+    
+    void* memory;
+    switch (allocator)
+    {
+        case(SAllocator::Game):
+        {
+            #if SMEM_USE_TAGS
+                MemoryTagUsage[(uint8_t)tag] += size;
+            #endif
+            memory = SMemAlloc(size);
+            break;
+        };
+        case(SAllocator::Temp):
+        {
+            memory = SMemTempAlloc(size);
+            break;
+        };
+        default:
+        {
+            memory = nullptr;
+            SLOG_ERR("Using an invalid allocator!");
+            SASSERT(false);
+        }
+    }
+    return memory;
 }
 
-void SMemFreeTag(void* block, size_t size, MemoryTag tag)
+void* SMemReallocTag(int allocator, void* ptr, size_t oldSize, size_t newSize, MemoryTag tag)
 {
-    SASSERT(block);
+    SASSERT(newSize > 0);
     SASSERT(tag != MemoryTag::Unknown);
 
-    if (!block)
+    void* memory;
+    switch (allocator)
     {
-        MemoryTagUsage[(uint8_t)tag] -= size;
-        SMemFree(block);
+        case(SAllocator::Game):
+        {
+            #if SMEM_USE_TAGS
+                MemoryTagUsage[(uint8_t)tag] -= oldSize;
+                MemoryTagUsage[(uint8_t)tag] += newSize;
+            #endif
+            memory = SMemRealloc(ptr, newSize);
+            break;
+        };
+        case(SAllocator::Temp):
+        {
+            memory = SMemTempAlloc(newSize);
+            SMemCopy(memory, ptr, oldSize);
+            break;
+        };
+        default:
+        {
+            memory = nullptr;
+            SLOG_ERR("Using an invalid allocator!");
+            SASSERT(false);
+        }
+    }
+    return memory;
+}
+
+void  SMemFreeTag(int allocator, void* ptr, size_t size, MemoryTag tag)
+{
+    SASSERT(tag != MemoryTag::Unknown);
+
+    switch (allocator)
+    {
+        case(SAllocator::Game):
+        {
+            #if SMEM_USE_TAGS
+                MemoryTagUsage[(uint8_t)tag] -= size;
+            #endif
+            SMemFree(ptr);
+            break;
+        };
+        case(SAllocator::Temp):
+        {
+            break;
+        };
+        default:
+        {
+            SLOG_ERR("Using an invalid allocator!");
+            SASSERT(false);
+        }
     }
 }
 

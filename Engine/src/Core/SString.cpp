@@ -31,7 +31,7 @@ SString::SString(const char* str, uint32_t length)
 	if (Length > Capacity)
 	{
 		Capacity = Length;
-		m_Buffer.StrMemory = (char*)SMemAllocTag(Capacity, MemoryTag::Strings);
+		m_Buffer.StrMemory = (char*)SAlloc(SAllocator::Game, Capacity, MemoryTag::Strings);
 	}
 	SMemCopy(Data(), str, End());
 	Data()[End()] = '\0';
@@ -46,7 +46,7 @@ SString::SString(const SString& other)
 SString::~SString()
 {
 	if (!DoNotFree && Capacity > SSTR_SSO_LENGTH)
-		SMemFreeTag(m_Buffer.StrMemory, Capacity, MemoryTag::Strings);
+		SFree(SAllocator::Game, m_Buffer.StrMemory, Capacity, MemoryTag::Strings);
 }
 
 SString SString::CreateFake(const STempString* tempStr)
@@ -105,12 +105,11 @@ void SString::SetCapacity(uint32_t capacity)
 	{
 		if (Capacity > SSTR_SSO_LENGTH)
 		{
-			SMemFreeTag(m_Buffer.StrMemory, Capacity, MemoryTag::Strings);
-			m_Buffer.StrMemory = (char*)SMemAllocTag(capacity, MemoryTag::Strings);
+			SRealloc(SAllocator::Game, m_Buffer.StrMemory, Capacity, capacity, MemoryTag::Strings);
 		}
 		else
 		{
-			char* memory = (char*)SMemAllocTag(capacity, MemoryTag::Strings);
+			char* memory = (char*)SAlloc(SAllocator::Game, capacity, MemoryTag::Strings);
 			SMemCopy(memory, Data(), SSTR_SSO_LENGTH);
 			m_Buffer.StrMemory = memory;
 		}
@@ -141,16 +140,10 @@ void SString::Assign(const char* cStr, uint32_t length)
 	if (cStr[length - 1] != '\0') ++length;
 	if (length > SSTR_SSO_LENGTH)
 	{
-		if (Capacity <= SSTR_SSO_LENGTH)
-		{
-			m_Buffer.StrMemory = (char*)SMemAllocTag(
-				length, MemoryTag::Strings);
-		}
+		if (Capacity > SSTR_SSO_LENGTH)
+			m_Buffer.StrMemory = (char*)SRealloc(SAllocator::Game, m_Buffer.StrMemory, Capacity, length, MemoryTag::Strings);
 		else
-		{
-			SMemFreeTag(m_Buffer.StrMemory, Capacity, MemoryTag::Strings);
-			m_Buffer.StrMemory = (char*)SMemAllocTag(length, MemoryTag::Strings);
-		}
+			m_Buffer.StrMemory = (char*)SAlloc(SAllocator::Game, length, MemoryTag::Strings);
 		Capacity = length;
 	}
 	else if (Capacity == 0)

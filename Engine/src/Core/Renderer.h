@@ -42,7 +42,7 @@ struct TileMapRenderer
 	int UniformInverseSpriteTextureSizeLoc;
 	int UniformTileSizeLoc;
 
-	StaticArray<TileMapInfo, SCREEN_TOTAL_TILES> Tiles;
+	StaticArray<TileMapInfo, CULL_TOTAL_TILES> Tiles;
 
 	void Initialize(Game* game);
 	void Free();
@@ -56,7 +56,7 @@ struct LightingRenderer
 	RenderTexture2D ColorsTexture;
 	RenderTexture2D LightingTexture;
 	
-	StaticArray<Vector4, SCREEN_TOTAL_TILES> Tiles;
+	StaticArray<Vector4, CULL_TOTAL_TILES> Tiles;
 
 	int UniformColorsTexture;
 	int UniformLightIntensity;

@@ -38,7 +38,7 @@ template<typename K, typename V>
 struct STable
 {
 	STableEntry<K, V>** Entries;
-	SMemAllocator Allocator = SMEM_GAME_ALLOCATOR;
+	SAllocator::Type Allocator;
 	uint32_t Size;
 	uint32_t Capacity;
 	uint32_t MaxSize;
@@ -63,14 +63,15 @@ struct STable
 	bool Remove(const K* key);
 	bool Contains(const K* key) const;
 
-	inline bool IsAllocated() const;
-	inline size_t MemAllocated() const;
+	inline bool IsAllocated() const { return (Entries != nullptr); }
+	inline size_t Stride() const { return sizeof(STableEntry<K, V>); }
+	inline size_t MemUsed() const { return Capacity * Stride(); }
 };
 
 template<typename K, typename V>
 STable<K, V>::STable(bool (*keyEqualsFunction)(const K* v0, const K* v1),
 	uint64_t(*keyHashFunction)(const K* key))
-	: Entries(nullptr), Allocator(SMEM_GAME_ALLOCATOR),
+	: Entries(nullptr), Allocator(SAllocator::Game),
 		Size(0), Capacity(0), MaxSize(0), 
 		KeyEqualsFunction(keyEqualsFunction), KeyHashFunction(keyHashFunction)
 {
@@ -82,7 +83,7 @@ CreateEntry(const STable<K, V>* table, const K* key, const V* value)
 {
 	size_t entrySize = sizeof(STableEntry<K, V>);
 	STableEntry<K, V>* entry = (STableEntry<K, V>*)
-		table->Allocator.Alloc(entrySize);
+		SAlloc(table->Allocator, entrySize, MemoryTag::Tables);
 	SASSERT(entry);
 	entry->Key = *key;
 	entry->Value = *value;
@@ -95,7 +96,7 @@ internal inline void
 FreeEntry(const STable<K, V>* table, STableEntry<K, V>* entry)
 {
 	SASSERT(entry);
-	table->Allocator.Free(entry);
+	SFree(table->Allocator, entry, sizeof(STableEntry<K, V>), MemoryTag::Tables);
 }
 
 template<typename K, typename V>
@@ -119,30 +120,25 @@ void STable<K, V>::ReserveWithLoadFactor(uint32_t estimatedCapacity, float loadF
 }
 
 template<typename K, typename V>
-void STable<K, V>::Reserve(uint32_t capacity)
+void STable<K, V>::Reserve(uint32_t newCapacity)
 {
-	if (capacity == 0) capacity = STABLE_DEFAULT_CAPACITY;
-	else if (!IsPowerOf2(capacity))
+	if (newCapacity == 0) newCapacity = STABLE_DEFAULT_CAPACITY;
+	else if (!IsPowerOf2(newCapacity))
 	{
-		capacity = AlignPowTwo32Ceil(capacity);
+		newCapacity = AlignPowTwo32Ceil(newCapacity);
 		SLOG_WARN("Reserving STable with non power of 2 capacity!, automatically aligning!");
 	}
 
-	SASSERT(IsPowerOf2(capacity));
+	SASSERT(IsPowerOf2(newCapacity));
 	uint32_t oldCapacity = Capacity; // Used in rehash
-	Capacity = capacity;
-	MaxSize = (uint32_t)((float)capacity * STABLE_DEFAULT_LOADFACTOR);
+	Capacity = newCapacity;
+	MaxSize = (uint32_t)((float)Capacity * STABLE_DEFAULT_LOADFACTOR);
 
-	if (!IsAllocated())
+	if (!IsAllocated() || Size == 0)
 	{
-		Entries = (STableEntry<K, V>**)Allocator.Alloc(MemAllocated());
-		SMemClear(Entries, MemAllocated());
-	}
-	else if (Size == 0)
-	{
-		Allocator.Free(Entries);
-		Entries = (STableEntry<K, V>**)Allocator.Alloc(MemAllocated());
-		SMemClear(Entries, MemAllocated());
+		size_t oldSize = oldCapacity * Stride();
+		size_t newSize = newCapacity * Stride();
+		Entries = (STableEntry<K, V>**)SRealloc(Allocator, Entries, oldSize, newSize, MemoryTag::Tables);
 	}
 	else // Rehash
 	{
@@ -152,7 +148,7 @@ void STable<K, V>::Reserve(uint32_t capacity)
 		sTable2.Allocator = Allocator;
 		sTable2.KeyHashFunction = KeyHashFunction;
 		sTable2.KeyEqualsFunction = KeyEqualsFunction;
-		sTable2.Reserve(capacity);
+		sTable2.Reserve(Capacity);
 
 		// Put old values, Free old values
 		for (uint32_t i = 0; i < oldCapacity; ++i)
@@ -176,7 +172,7 @@ void STable<K, V>::Reserve(uint32_t capacity)
 		SASSERT(sTable2.Size == Size);
 
 		// Frees old entries
-		Allocator.Free(Entries);
+		SFree(Allocator, Entries, oldCapacity * Stride(), MemoryTag::Tables);
 		*this = sTable2;
 	}
 	SASSERT(Entries);
@@ -199,8 +195,7 @@ void STable<K, V>::Free()
 			entry = nextEntry;
 		}
 	}
-
-	Allocator.Free(Entries);
+	SFree(Allocator, Entries, MemUsed(), MemoryTag::Tables);
 	*this = {};
 }
 
@@ -339,18 +334,6 @@ bool STable<K, V>::Remove(const K* key)
 	return true;
 }
 
-template<typename K, typename V>
-inline bool STable<K, V>::IsAllocated() const
-{
-	return (Entries != nullptr);
-}
-
-template<typename K, typename V>
-inline size_t STable<K, V>::MemAllocated() const
-{
-	return Capacity * sizeof(STableEntry<K, V>*);
-}
-
 #include "Core/Vector2i.h"
 inline int TestSTable()
 {
@@ -359,7 +342,6 @@ inline int TestSTable()
 	// asserts will trigger
 
 	STable<int, int> testTable = {};
-	testTable.Allocator = SMEM_TEMP_ALLOCATOR;
 	testTable.Reserve(16);
 	SASSERT(testTable.Capacity == 16);
 

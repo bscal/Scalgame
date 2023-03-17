@@ -8,9 +8,10 @@
 #include "World.h"
 #include "SMemory.h"
 #include "SRandom.h"
-#include "LightMap.h"
 
 #include "MapGeneration/MapGeneration.h"
+
+#include "rmem/rmem.h"
 
 struct UIState;
 
@@ -27,13 +28,9 @@ struct Game
     TileMgr TileMgr;
     CommandMgr CommandMgr;
     struct EntityMgr EntityMgr;
-    LightData LightMap;
 
     MapGenerator MapGen;
     World World;
-
-    Rectangle CullingRect;
-    Rectangle UpdateRect;
 
     uint64_t Time;
     uint64_t CurrentDayProgress;
@@ -58,6 +55,10 @@ struct GameApplication
     SRandom GlobalRandom;
 
     Vector2 ScreenXY; // Camera top left corner
+    Vector2i ScreenXYTiles;
+    Vector2 CullXY;
+    Vector2i CullXYTiles;
+    Rectangle UpdateRect;
     Vector2 HalfWidthHeight;
     
     double RenderTime;
@@ -93,6 +94,5 @@ float GetScale();
 Vector2 VecToTileCenter(Vector2 vec);
 Vector2 GetZoomedMousePos(const Camera2D& camera);
 Vector2i GetTileFromMouse(Game* game);
-bool TileInsideCullRect(Vector2i tileCoord);
-Vector2i TranslateTileWorldToCull(Vector2i pos);
-Vector2i TranslateTileCullToWorld(Vector2i pos);
+bool TileInsideCullRect(Vector2i coord);
+Vector2i WorldTileToCullTile(Vector2i coord);

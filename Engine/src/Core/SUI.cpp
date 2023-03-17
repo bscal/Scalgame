@@ -27,7 +27,7 @@ bool InitializeUI(UIState* state, GameApplication* gameApp)
 	InitializeNuklear(&state->Ctx, state, &gameApp->Game->Resources.FontSilver, 16.0f);
 	
 	// Initialize ConsoleEntries
-	state->ConsoleEntries.Allocator = SMEM_GAME_ALLOCATOR;
+	state->ConsoleEntries.Allocator = SAllocator::Game;
 	state->ConsoleEntries.Reserve(CONSOLE_MAX_LENGTH);
 
 	SLOG_INFO("[ UI ] Initialized");
@@ -109,7 +109,7 @@ InitializeNuklear(nk_context* nkCtxToInit, UIState* state, Font* font, float fon
 	nkCtxToInit->clip.userdata = nk_handle_ptr(0);
 
 	state->UIMemorySize = Megabytes(4);
-	state->UIMemory = SMemAllocTag(state->UIMemorySize, MemoryTag::UI);
+	state->UIMemory = SAlloc(SAllocator::Game, state->UIMemorySize, MemoryTag::UI);
 	if (!nk_init_fixed(nkCtxToInit, state->UIMemory,
 		state->UIMemorySize, &state->Font))
 	{

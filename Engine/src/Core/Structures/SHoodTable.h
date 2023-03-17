@@ -24,7 +24,7 @@ template<
 	typename EqualsFunc = DefaultEquals<K>>
 struct SHoodTable
 {
-	SMemAllocator Allocator = SMEM_GAME_ALLOCATOR;
+	SAllocator::Type Allocator;
 	SHoodBucket<K, V>* Buckets;
 	uint32_t Capacity;
 	uint32_t Size;
@@ -40,8 +40,9 @@ struct SHoodTable
 	bool Contains(const K* key) const;
 	void Remove(const K* key);
 
-	inline bool IsAllocated() const { return MemSize() > 0; }
-	inline size_t MemSize() const { return Capacity * sizeof(SHoodBucket<K, V>); };
+	inline bool IsAllocated() const { return MemUsed() > 0; }
+	inline size_t Stride() const { return sizeof(SHoodBucket<K, V>); }
+	inline size_t MemUsed() const { return Capacity * Stride(); }
 
 private:
 	inline uint64_t Hash(const K* key) const;
@@ -68,9 +69,6 @@ template<
 	typename EqualsFunc>
 void SHoodTable<K, V, HashFunc, EqualsFunc>::Reserve(uint32_t capacity)
 {
-	SASSERT(Allocator.Alloc);
-	SASSERT(Allocator.Free);
-
 	uint32_t newCapacity = (uint32_t)((float)capacity * SHOOD_LOAD_FACTOR);
 	if (newCapacity == 0)
 		newCapacity = 2;
@@ -85,9 +83,9 @@ void SHoodTable<K, V, HashFunc, EqualsFunc>::Reserve(uint32_t capacity)
 
 	if (Size == 0)
 	{
-		Allocator.Free(Buckets);
-		size_t newSize = MemSize();
-		Buckets = (SHoodBucket<K, V>*)(Allocator.Alloc(newSize));
+		size_t oldSize = oldCapacity * Stride();
+		size_t newSize = newCapacity * Stride();
+		Buckets = (SHoodBucket<K, V>*)(SRealloc(Allocator, Buckets, oldSize, newSize, MemoryTag::Tables));
 	}
 	else
 	{
@@ -95,7 +93,7 @@ void SHoodTable<K, V, HashFunc, EqualsFunc>::Reserve(uint32_t capacity)
 		tmpTable.Allocator = Allocator;
 		tmpTable.Capacity = Capacity;
 		tmpTable.MaxSize = MaxSize;
-		tmpTable.Buckets = (SHoodBucket<K, V>*)(Allocator.Alloc(MemSize()));
+		tmpTable.Buckets = (SHoodBucket<K, V>*)SAlloc(Allocator, newCapacity * Stride(), MemoryTag::Tables);
 
 		for (uint32_t i = 0; i < oldCapacity; ++i)
 		{
@@ -106,7 +104,7 @@ void SHoodTable<K, V, HashFunc, EqualsFunc>::Reserve(uint32_t capacity)
 			if (tmpTable.Size == Size) break;
 		}
 
-		Allocator.Free(Buckets);
+		SFree(Allocator, Buckets, oldCapacity * Stride(), MemoryTag::Tables);
 		SASSERT(Size == tmpTable.Size);
 		*this = tmpTable;
 	}
@@ -134,7 +132,7 @@ template<
 	typename EqualsFunc>
 void SHoodTable<K, V, HashFunc, EqualsFunc>::Free()
 {
-	Allocator.Free(Buckets);
+	SFree(Allocator, Buckets, MemUsed(), MemoryTag::Tables);
 	Buckets = nullptr;
 	Capacity = 0;
 	Size = 0;
