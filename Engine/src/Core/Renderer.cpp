@@ -26,10 +26,6 @@ void Renderer::Initialize()
 		"assets/shaders/tile_lit.vert",
 		"assets/shaders/tile_lit.frag");
 
-	LightingShader = LoadShader(
-		"assets/shaders/lighting.vert",
-		"assets/shaders/lighting.frag");
-
 	BrightnessShader = LoadShader(
 		"assets/shaders/tile_shader.vert",
 		"assets/shaders/brightness_filter.frag");
@@ -38,17 +34,9 @@ void Renderer::Initialize()
 		"assets/shaders/bloom.vert",
 		"assets/shaders/bloom.frag");
 
-	UniformAmbientLightLoc = GetShaderLocation(LitShader, "ambientLightColor");
 	UniformLightMapLoc = GetShaderLocation(LitShader, "texture1");
-	UniformLightIntensityLoc = GetShaderLocation(LightingShader, "lightIntensity");
-	UniformSunLightColorLoc = GetShaderLocation(LightingShader, "sunLightColor");
 	UniformLightTexLoc = GetShaderLocation(BloomShader, "texture1");
 	UniformBloomIntensityLoc = GetShaderLocation(BloomShader, "bloomIntensity");
-
-	SetValueAndUniformAmbientLight({ 0.1f, 0.1f, 0.2f, 1.0f });
-	SetValueAndUniformSunLight({ 186.f / 255.f,  186.f / 255.f,  169.f / 255.f, 1.0f });
-	SetValueAndUniformLightIntensity(1.0f);
-	SetValueAndUniformBloomIntensity(1.0f);
 
 	SLOG_INFO("[ Renderer ] Initialized!");
 }
@@ -61,7 +49,6 @@ void Renderer::Free()
 	UnloadRenderTexture(EffectTextureTwo);
 	UnloadShader(UnlitShader);
 	UnloadShader(LitShader);
-	UnloadShader(LightingShader);
 	UnloadShader(BrightnessShader);
 	UnloadShader(BloomShader);
 }
@@ -92,30 +79,6 @@ void Renderer::PostProcess(Game* game, const RenderTexture2D& worldTexture,
 	DrawTexturePro(lightingTexture.texture, srcRect, screenRect, { 0 }, 0.f, WHITE);
 	EndTextureMode();
 	EndShaderMode();
-}
-
-void Renderer::SetValueAndUniformAmbientLight(Vector4 ambientLight)
-{
-	AmbientLight = ambientLight;
-	SetShaderValue(LitShader, UniformAmbientLightLoc, &AmbientLight, SHADER_UNIFORM_VEC4);
-}
-
-void Renderer::SetValueAndUniformSunLight(Vector4 sunLight)
-{
-	SunLight = sunLight;
-	SetShaderValue(LightingShader, UniformSunLightColorLoc, &SunLight, SHADER_UNIFORM_VEC4);
-}
-
-void Renderer::SetValueAndUniformLightIntensity(float intensity)
-{
-	LightIntensity = intensity;
-	SetShaderValue(LightingShader, UniformLightIntensityLoc, &LightIntensity, SHADER_UNIFORM_FLOAT);
-}
-
-void Renderer::SetValueAndUniformBloomIntensity(float intensity)
-{
-	BloomIntensity = intensity;
-	SetShaderValue(LightingShader, UniformLightIntensityLoc, &BloomIntensity, SHADER_UNIFORM_FLOAT);
 }
 
 void BlurShader::Initialize(int width, int height)
@@ -216,6 +179,10 @@ void TileMapRenderer::Draw()
 {
 	UpdateTexture(TileDataTexture.texture, Tiles.data());
 
+	SMemSet(Tiles.data(), 0, sizeof(Tiles[0]) * Tiles.size());
+
+	Tiles.fill({ 0 });
+
 	BeginTextureMode(TileMapTexture);
 	BeginShaderMode(TileMapShader);
 
@@ -233,11 +200,17 @@ void TileMapRenderer::Draw()
 void LightingRenderer::Initialize(Game* game)
 {
 	LightingShader = LoadShader(
-		"assets/shaders/lighting_v2.vert",
-		"assets/shaders/lighting_v2.frag");
+		SHADERS_PATH "lighting_v2.vert",
+		SHADERS_PATH "lighting_v2.frag");
 
-	UniformLightIntensity = GetShaderLocation(LightingShader, "lightIntensity");
-	UniformSunlight = GetShaderLocation(LightingShader, "sunLightColor");
+	UniformSunlight = GetShaderLocation(LightingShader, "sunlightColor");
+	UniformLOSColor = GetShaderLocation(LightingShader, "losColor");
+	UniformWorldMap = GetShaderLocation(LightingShader, "tileDataMap");
+
+	AmbientLightColor = { 25.0f / 255, 20.0 / 255, 45.0f / 255 };
+	SunlightColor = { 0.0f, 0.0f, 0.0f };
+	LOSColor = { 0.0f, 0.0f, 0.0f };
+	LightIntensity = 1.0f;
 
 	int width = CULL_WIDTH;
 	int height = CULL_HEIGHT;
@@ -278,8 +251,17 @@ void LightingRenderer::Draw()
 
 	BeginShaderMode(LightingShader);
 
+	Vector4 color;
+	color.x = AmbientLightColor.x;
+	color.y = AmbientLightColor.y;
+	color.z = AmbientLightColor.z;
+	color.w = LightIntensity;
+
 	BeginMode2D(GetGame()->WorldCamera);
-	SDrawTextureProF(&ColorsTexture.texture, src, dst, Colors::White);
+	SetShaderValue(LightingShader, UniformSunlight, &SunlightColor, SHADER_UNIFORM_VEC3);
+	SetShaderValue(LightingShader, UniformLOSColor, &LOSColor, SHADER_UNIFORM_VEC3);
+	SetShaderValueTexture(LightingShader, UniformWorldMap, GetGame()->TileMapRenderer.TileDataTexture.texture);
+	DrawTextureProF(ColorsTexture.texture, src, dst, { 0 }, 0.0f, color);
 	EndMode2D();
 
 	EndShaderMode();

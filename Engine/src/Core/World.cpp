@@ -65,9 +65,8 @@ bool CanMoveToTile(World* world, Vector2i position)
 	if (!WorldIsInBounds(world, position))
 		return false;
 
-	Tile* tile = CTileMap::GetTile(&world->ChunkedTileMap, position);
-	const TileData* tileData = tile->GetTileData(&GetGame()->TileMgr);
-	return tileData->Type == TileType::Floor;
+	TileData* tile = CTileMap::GetTile(&world->ChunkedTileMap, position);
+	return tile->GetTile()->Type == TileType::Floor;
 }
 
 bool WorldIsInBounds(World* world, Vector2i pos)

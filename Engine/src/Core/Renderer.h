@@ -2,6 +2,7 @@
 
 #include "Core.h"
 #include "Globals.h"
+#include "Tile.h"
 #include "Structures/StaticArray.h"
 
 struct Game;
@@ -19,14 +20,6 @@ struct BlurShader
 	void Free();
 };
 
-struct TileMapInfo
-{
-	uint8_t x;
-	uint8_t y;
-	uint8_t z;
-	uint8_t Collision;
-};
-
 struct TileMapRenderer
 {
 	Shader TileMapShader;
@@ -42,7 +35,7 @@ struct TileMapRenderer
 	int UniformInverseSpriteTextureSizeLoc;
 	int UniformTileSizeLoc;
 
-	StaticArray<TileMapInfo, CULL_TOTAL_TILES> Tiles;
+	StaticArray<TileData, CULL_TOTAL_TILES> Tiles;
 
 	void Initialize(Game* game);
 	void Free();
@@ -58,10 +51,14 @@ struct LightingRenderer
 	
 	StaticArray<Vector4, CULL_TOTAL_TILES> Tiles;
 
-	int UniformColorsTexture;
-	int UniformLightIntensity;
-	int UniformAmbientLight;
+	Vector3 AmbientLightColor;
+	Vector3 SunlightColor;
+	Vector3 LOSColor;
+	float LightIntensity;
+
 	int UniformSunlight;
+	int UniformLOSColor;
+	int UniformWorldMap;
 
 	void Initialize(Game* game);
 	void Free();
@@ -77,11 +74,9 @@ struct Renderer
 
 	Shader UnlitShader;
 	Shader LitShader;
-	Shader LightingShader;
 	Shader BrightnessShader;
 	Shader BloomShader;
 
-        
     int UniformAmbientLightLoc;
 	int UniformLightIntensityLoc;
 	int UniformSunLightColorLoc;
@@ -89,21 +84,11 @@ struct Renderer
 	int UniformLightTexLoc;
 	int UniformBloomIntensityLoc;
 
-	Vector4 AmbientLight;
-	Vector4 SunLight;
-	float LightIntensity;
-	float BloomIntensity;
-
 	void Initialize();
 	void Free();
 
 	void PostProcess(Game* game, const RenderTexture2D& worldTexture,
 		const RenderTexture2D& lightingTexture) const;
-
-	void SetValueAndUniformAmbientLight(Vector4 ambientLight);
-	void SetValueAndUniformSunLight(Vector4 sunLight);
-	void SetValueAndUniformLightIntensity(float intensity);
-	void SetValueAndUniformBloomIntensity(float intensity);
 };
 
 struct OccultionMap

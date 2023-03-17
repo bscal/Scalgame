@@ -1,95 +1,61 @@
 #include "Tile.h"
 
-#include "SpriteAtlas.h"
+global_var struct TileMgr TileMgr;
 
-void TileMgrInitialize(TileMgr* tileMgr, SpriteAtlas* spriteAtlas)
+bool TileMgrInitialize(const Texture2D* tilesheetTexture)
 {
-	SASSERT(tileMgr);
-	SASSERT(spriteAtlas);
-	tileMgr->SpriteAtlas = spriteAtlas;
+	SASSERT(tilesheetTexture);
+	SASSERT(tilesheetTexture->id > 0);
 
-	RegisterTile(tileMgr, "Tile1", TileType::Floor);
-	RegisterTile(tileMgr, "Tile2", TileType::Floor);
-	RegisterTile(tileMgr, "Tile3", TileType::Floor);
-	RegisterTile(tileMgr, "Tile4", TileType::Floor);
-	RegisterTile(tileMgr, "Tile5", TileType::Solid);
-	RegisterTile(tileMgr, "Tile6", TileType::Solid);
+	TileMgr.TileTextureRef = *tilesheetTexture;
 
-	SLOG_INFO("TileManager Initialized! %d tiles registered.",
-		tileMgr->NextTileId);
+	SASSERT(TileMgr.TileTextureRef.width == TILE_SHEET_WIDTH);
+	SASSERT(TileMgr.TileTextureRef.height == TILE_SHEET_HEIGHT);
+
+	TileMgrRegister(BLACK_FLOOR, TileType::Solid);
+	TileMgrRegister(STONE_FLOOR, TileType::Floor);
+	TileMgrRegister(GOLD_ORE, TileType::Floor);
+	TileMgrRegister(DARK_STONE_FLOOR, TileType::Floor);
+	TileMgrRegister(ROCKY_WALL, TileType::Solid);
+
+	return true;
 }
 
-uint32_t RegisterTile(TileMgr* tileMgr,
-	const char* spriteName,
-	TileType type)
+struct TileMgr* GetTileMgr() { return &TileMgr; }
+
+uint16_t TileMgrRegister(TileSheetCoord coord, TileType type)
 {
-	SASSERT(tileMgr);
-	SASSERT(tileMgr->NextTileId < MAX_TILES);
-	SASSERT(spriteName[0] != 0);
+	SASSERT(coord.x < TILE_SHEET_WIDTH_TILES);
+	SASSERT(coord.y < TILE_SHEET_HEIGHT_TILES);
 
-	uint32_t id = tileMgr->NextTileId++;
+	uint16_t tileId = coord.x;
+	tileId |= ((uint16_t)coord.y << 8);
 
-	tileMgr->Tiles[id].TileId = id;
-	tileMgr->Tiles[id].SpriteName = spriteName;
-	tileMgr->Tiles[id].Type = type;
+	TileMgr.Tiles[tileId].IsUsed = true;
+	TileMgr.Tiles[tileId].Type = type;
 
-	tileMgr->TileTextureData[id].TexCoord = 
-		tileMgr->SpriteAtlas->GetRectByName(SStringView(spriteName, strlen(spriteName)));
-
-	return id;
+	return tileId;
 }
 
-
-[[nodiscard]] Tile CreateTile(TileMgr* tileMgr, const TileData& tileData)
+TileData TileMgrCreate(uint16_t tileId)
 {
-	SASSERT(tileMgr);
-	Tile tile;
-	tile.TileId = tileData.TileId;
+	SASSERT(TileMgr.Tiles[tileId].IsUsed);
+
+	uint8_t x = (uint8_t)tileId;
+	uint8_t y = (uint8_t)(tileId >> 8);
+	SASSERT(x < TILE_SHEET_WIDTH_TILES);
+	SASSERT(y < TILE_SHEET_HEIGHT_TILES);
+
+	TileData tile;
+	tile.TexX = x;
+	tile.TexY = y;
+	tile.NOT_USED = 0;
 	tile.LOS = TileLOS::NoVision;
 	return tile;
 }
 
-[[nodiscard]] Tile CreateTileId(TileMgr* tileMgr, uint32_t tileId)
+Tile* TileData::GetTile() const
 {
-	SASSERT(tileMgr);
-	SASSERT(tileId < MAX_TILES);
-	return CreateTile(tileMgr, tileMgr->Tiles[tileId]);
-}
-
-const TileData* Tile::GetTileData(TileMgr* tileMgr) const
-{
-	return &tileMgr->Tiles[TileId];
-}
-
-const TileTexData* Tile::GetTileTexData(TileMgr* tileMgr) const
-{
-	return &tileMgr->TileTextureData[TileId];
-}
-
-void TileColor::AddColor(Color c)
-{
-	r += (uint16_t)c.r;
-	b += (uint16_t)c.g;
-	b += (uint16_t)c.b;
-	a += (uint16_t)c.a;
-	++Count;
-}
-
-Vector4 TileColor::FinalColor()
-{
-	if (Count == 0)
-		return {};
-
-	uint16_t finalR = r / (uint16_t)Count;
-	uint16_t finalG = g / (uint16_t)Count;
-	uint16_t finalB = b / (uint16_t)Count;
-	uint16_t finalA = a / (uint16_t)Count;
-	
-	r = 0;
-	g = 0;
-	b = 0;
-	a = 0;
-	Count = 0;
-
-	return { (float)finalR / 255.0f, (float)finalG / 255.0f, (float)finalB / 255.0f, (float)finalA / 255.0f };
+	uint16_t id = GetTileId();
+	return &TileMgr.Tiles[id];
 }

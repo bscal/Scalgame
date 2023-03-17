@@ -8,7 +8,7 @@
 
 struct TileMap
 {
-	SList<Tile> Tiles;
+	SList<TileData> Tiles;
 	Rectangle SourceRect;
 	Vector2i Dimensions;
 	bool IsLoaded;
@@ -21,8 +21,8 @@ struct TileMap
 
 	void Generate();
 
-	Tile* GetTile(TileCoord tileCoord);
-	void SetTile(TileCoord tileCoord, const Tile* tile);
+	TileData* GetTile(TileCoord tileCoord);
+	void SetTile(TileCoord tileCoord, const TileData* tile);
 
 	bool IsInBounds(TileCoord tileCoord);
 };

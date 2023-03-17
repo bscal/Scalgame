@@ -32,7 +32,7 @@ struct TileMapChunk
 	ChunkCoord ChunkCoord;
 	ChunkState State;
 	uint8_t RebakeFlags;
-	Tile Tiles[CHUNK_SIZE];
+	TileData Tiles[CHUNK_SIZE];
 };
 
 
@@ -70,8 +70,8 @@ ChunkCoord TileToChunkCoord(ChunkedTileMap* tilemap, TileCoord tilePos);
 uint64_t TileToIndex(ChunkedTileMap* tilemap, TileCoord tilePos);
 TileCoord WorldToTile(ChunkedTileMap* tilemap, Vector2 pos);
 
-void SetTile(ChunkedTileMap* tilemap, const Tile* tile, TileCoord tilePos);
-Tile* GetTile(ChunkedTileMap* tilemap, TileCoord tilePos);
+void SetTile(ChunkedTileMap* tilemap, const TileData* tile, TileCoord tilePos);
+TileData* GetTile(ChunkedTileMap* tilemap, TileCoord tilePos);
 
 bool IsChunkLoaded(ChunkedTileMap* tilemap, ChunkCoord coord);
 bool IsTileInBounds(ChunkedTileMap* tilemap, TileCoord tilePos);

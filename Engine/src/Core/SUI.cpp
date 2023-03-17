@@ -182,45 +182,55 @@ DrawDebugPanel(UIState* state)
 			nk_layout_row_begin(ctx, NK_DYNAMIC, 16, 2);
 			{
 				nk_layout_row_push(ctx, .4f);
-				float val = GetGame()->Renderer.LightIntensity;
+				float val = GetGame()->LightingRenderer.LightIntensity;
 				nk_label(ctx, TextFormat("Light Intensity: %.2f", val), NK_TEXT_LEFT);
 				nk_layout_row_push(ctx, .6f);
 				if (nk_slider_float(ctx, 0.0f, &val, 2.0f, 0.02f))
-					GetGame()->Renderer.SetValueAndUniformLightIntensity(val);
+					GetGame()->LightingRenderer.LightIntensity = val;
 			}
 			nk_layout_row_end(ctx);
 
-			nk_layout_row_begin(ctx, NK_DYNAMIC, 16, 2);
-			{
-				nk_layout_row_push(ctx, .4f);
-				float val = GetGame()->Renderer.BloomIntensity;
-				nk_label(ctx, TextFormat("Bloom Intensity: %.2f", val), NK_TEXT_LEFT);
-				nk_layout_row_push(ctx, .6f);
-				if (nk_slider_float(ctx, 0.0f, &val, 2.0f, 0.02f))
-					GetGame()->Renderer.SetValueAndUniformBloomIntensity(val);
-			}
-			nk_layout_row_end(ctx);
+			//nk_layout_row_begin(ctx, NK_DYNAMIC, 16, 2);
+			//{
+			//	nk_layout_row_push(ctx, .4f);
+			//	float val = GetGame()->Renderer.BloomIntensity;
+			//	nk_label(ctx, TextFormat("Bloom Intensity: %.2f", val), NK_TEXT_LEFT);
+			//	nk_layout_row_push(ctx, .6f);
+			//	if (nk_slider_float(ctx, 0.0f, &val, 2.0f, 0.02f))
+			//		GetGame()->Renderer.SetValueAndUniformBloomIntensity(val);
+			//}
+			//nk_layout_row_end(ctx);
 
 			{
 				nk_layout_row_dynamic(ctx, 16, 1);
-				struct nk_colorf ambientColor = Vec4ToColorF(GetGame()->Renderer.AmbientLight);
+				Vector3 color = GetGame()->LightingRenderer.AmbientLightColor;
+				struct nk_colorf ambientColor = { color.x, color.y, color.z, 1.0f };
 				nk_value_color_hex(ctx, "Ambient Color", ColorFToColor(&ambientColor));
 
 				nk_layout_row_dynamic(ctx, 150, 1);
 				struct nk_colorf newAmbientColor = nk_color_picker(ctx, ambientColor, NK_RGB);
 				if (!ColorFEqual(ambientColor, newAmbientColor))
-					GetGame()->Renderer.SetValueAndUniformAmbientLight(ColorFToVec4(newAmbientColor));
+				{
+					GetGame()->LightingRenderer.AmbientLightColor.x = newAmbientColor.r;
+					GetGame()->LightingRenderer.AmbientLightColor.y = newAmbientColor.g;
+					GetGame()->LightingRenderer.AmbientLightColor.z = newAmbientColor.b;
+				}
 			}
 
 			{
 				nk_layout_row_dynamic(ctx, 16, 1);
-				struct nk_colorf skyColor = Vec4ToColorF(GetGame()->Renderer.SunLight);
+				Vector3 color = GetGame()->LightingRenderer.SunlightColor;
+				struct nk_colorf skyColor = { color.x, color.y, color.z, 1.0f };
 				nk_value_color_hex(ctx, "Sunlight Color", ColorFToColor(&skyColor));
 
 				nk_layout_row_dynamic(ctx, 150, 1);
 				struct nk_colorf newSkyColor = nk_color_picker(ctx, skyColor, NK_RGB);
 				if (!ColorFEqual(skyColor, newSkyColor))
-					GetGame()->Renderer.SetValueAndUniformSunLight(ColorFToVec4(newSkyColor));
+				{
+					GetGame()->LightingRenderer.SunlightColor.x = newSkyColor.r;
+					GetGame()->LightingRenderer.SunlightColor.y = newSkyColor.g;
+					GetGame()->LightingRenderer.SunlightColor.z = newSkyColor.b;
+				}
 			}
 		}
 	}

@@ -126,7 +126,7 @@ internal bool GameInitialize(Game* game, GameApplication* gameApp)
 	game->TileMapRenderer.Initialize(game);
 	game->LightingRenderer.Initialize(game);
 
-	TileMgrInitialize(&game->TileMgr, &game->Resources.Atlas);
+	TileMgrInitialize(&game->Resources.TileSheet);
 	EntityMgrInitialize(game);
 
 	game->WorldCamera.zoom = 1.0f;
@@ -249,10 +249,10 @@ SAPI void GameApplication::Run()
 				Vector2i clickedTilePos = GetTileFromMouse(Game);
 				if (CTileMap::IsTileInBounds(&Game->World.ChunkedTileMap, clickedTilePos))
 				{
-					Tile* tile = CTileMap::GetTile(&Game->World.ChunkedTileMap, clickedTilePos);
-					Tile newTile = CreateTileId(&Game->TileMgr, 5);
+					TileData* tile = CTileMap::GetTile(&Game->World.ChunkedTileMap, clickedTilePos);
+					TileData newTile = TileMgrCreate(5);
 					CTileMap::SetTile(&Game->World.ChunkedTileMap, &newTile, clickedTilePos);
-					SLOG_INFO("Clicked Tile[%d, %d] Id: %d", clickedTilePos.x, clickedTilePos.y, tile->TileId);
+					SLOG_INFO("Clicked Tile[%d, %d] Id: %u", clickedTilePos.x, clickedTilePos.y, tile->GetTileId());
 				}
 			}
 			if (IsMouseButtonPressed(MOUSE_BUTTON_RIGHT))
@@ -279,8 +279,8 @@ SAPI void GameApplication::Run()
 				Vector2i clickedTilePos = GetTileFromMouse(Game);
 				if (CTileMap::IsTileInBounds(&Game->World.ChunkedTileMap, clickedTilePos))
 				{
-					Tile* tile = CTileMap::GetTile(&Game->World.ChunkedTileMap, clickedTilePos);
-					tile->HasCeiling = true;
+					TileData* tile = CTileMap::GetTile(&Game->World.ChunkedTileMap, clickedTilePos);
+					//tile->HasCeiling = true;
 				}
 			}
 

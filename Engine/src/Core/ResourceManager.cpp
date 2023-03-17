@@ -4,25 +4,24 @@
 
 #define NUM_OF_FONT_GLYPHS 95
 
-#define ENTITY_SHEET_PATH "assets/textures/SpriteSheet.png"
-#define TILE_MAP_TEXTURE_PATH "assets/textures/tiles/16x16.png"
+#define ENTITY_SHEET_PATH TEXTURES_PATH "SpriteSheet.png"
+#define TILE_MAP_TEXTURE_PATH TEXTURES_PATH "tiles/16x16.png"
 
-#define FONT_PATH "assets/textures/fonts/Pixuf.ttf"
-#define SDF_FONT_PATH "assets/textures/fonts/UbuntuMono/UbuntuMono-Regular.ttf"
+#define FONT_PATH TEXTURES_PATH "fonts/Pixuf.ttf"
+#define SDF_FONT_PATH TEXTURES_PATH "fonts/UbuntuMono/UbuntuMono-Regular.ttf"
 
-global_var const SString ASSET_PATH = "assets/";
-global_var const SString SHADERS_PATH = ASSET_PATH + "shaders/";
+
 
 internal SDFFont LoadSDFFont();
 
 bool InitializeResources(Resources* resources)
 {
-    resources->Atlas.Load("assets/textures/atlas/tiles.atlas", 32);
+    //resources->Atlas.Load("assets/textures/atlas/tiles.atlas", 32);
 
     resources->EntitySpriteSheet = LoadTexture(ENTITY_SHEET_PATH);
     resources->TileSheet = LoadTexture(TILE_MAP_TEXTURE_PATH);
     SetTextureFilter(resources->TileSheet, TEXTURE_FILTER_POINT);
-    resources->TileSprite = LoadTexture("assets/textures/tiles/TileSprite.png");
+    resources->TileSprite = LoadTexture(TEXTURES_PATH "tiles/TileSprite.png");
 
     SetTextureFilter(resources->TileSheet, TEXTURE_FILTER_POINT);
 
@@ -38,8 +37,9 @@ void FreeResouces(Resources* resources)
 {
     UnloadFont(resources->FontSilver);
     UnloadFont(resources->MainFontM);
+    UnloadTexture(resources->TileSheet);
     UnloadTexture(resources->EntitySpriteSheet);
-    resources->Atlas.Unload();
+    //resources->Atlas.Unload();
 }
 
 internal SDFFont LoadSDFFont()

@@ -242,7 +242,7 @@ TileToIndex(ChunkedTileMap* tilemap, TileCoord tilePos)
 }
 
 void 
-SetTile(ChunkedTileMap* tilemap, const Tile* tile, TileCoord tilePos)
+SetTile(ChunkedTileMap* tilemap, const TileData* tile, TileCoord tilePos)
 {
 	SASSERT(tilemap);
 	SASSERT(tile);
@@ -266,7 +266,7 @@ SetTile(ChunkedTileMap* tilemap, const Tile* tile, TileCoord tilePos)
 	chunk->RebakeFlags |= REBUILD_SELF;
 }
 
-Tile* 
+TileData* 
 GetTile(ChunkedTileMap* tilemap, TileCoord tilePos)
 {
 	SASSERT(tilemap);
@@ -301,7 +301,7 @@ void SetVisible(ChunkedTileMap* tilemap, TileCoord coord)
 
 bool BlocksLight(ChunkedTileMap* tilemap, TileCoord coord)
 {
-	return IsTileInBounds(tilemap, coord) && GetTile(tilemap, coord)->GetTileData(&GetGame()->TileMgr)->Type == TileType::Solid;
+	return IsTileInBounds(tilemap, coord) && GetTile(tilemap, coord)->GetTile()->Type == TileType::Solid;
 }
 
 internal void
@@ -340,16 +340,12 @@ UpdateTileMap(ChunkedTileMap* tilemap, TileMapRenderer* tilemapRenderer)
 			
 			if (IsTileInBounds(tilemap, coord))
 			{
-				// TODO: tile ids!
-				Tile* tile = GetTile(tilemap, coord);
-
-				tilemapRenderer->Tiles[index].x = 7;
-				tilemapRenderer->Tiles[index].y = 0;
+				TileData* tile = GetTile(tilemap, coord);
+				tilemapRenderer->Tiles[index] = *tile;
 			}
 			else
 			{
-				tilemapRenderer->Tiles[index].x = 0;
-				tilemapRenderer->Tiles[index].y = 0;
+				tilemapRenderer->Tiles[index] = { 0 };
 			}
 		}
 	}	

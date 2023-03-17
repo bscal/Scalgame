@@ -25,7 +25,6 @@ struct Game
     TileMapRenderer TileMapRenderer;
     LightingRenderer LightingRenderer;
     
-    TileMgr TileMgr;
     CommandMgr CommandMgr;
     struct EntityMgr EntityMgr;
 
