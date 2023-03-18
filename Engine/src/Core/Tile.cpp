@@ -49,13 +49,13 @@ TileData TileMgrCreate(uint16_t tileId)
 	TileData tile;
 	tile.TexX = x;
 	tile.TexY = y;
-	tile.NOT_USED = 0;
+	tile.HasCeiling = false;
 	tile.LOS = TileLOS::NoVision;
 	return tile;
 }
 
 Tile* TileData::GetTile() const
 {
-	uint16_t id = GetTileId();
+	uint16_t id = TileMgrToTileId(AsCoord());
 	return &TileMgr.Tiles[id];
 }

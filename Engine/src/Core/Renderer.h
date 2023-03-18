@@ -35,7 +35,7 @@ struct TileMapRenderer
 	int UniformInverseSpriteTextureSizeLoc;
 	int UniformTileSizeLoc;
 
-	StaticArray<TileData, CULL_TOTAL_TILES> Tiles;
+	StaticArray<TileTexValues, CULL_TOTAL_TILES> Tiles;
 
 	void Initialize(Game* game);
 	void Free();
@@ -89,11 +89,6 @@ struct Renderer
 
 	void PostProcess(Game* game, const RenderTexture2D& worldTexture,
 		const RenderTexture2D& lightingTexture) const;
-};
-
-struct OccultionMap
-{
-	uint8_t Data[0];
 };
 
 void 

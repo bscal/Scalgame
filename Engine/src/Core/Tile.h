@@ -43,24 +43,25 @@ struct TileMgr
 	Tile Tiles[TILE_SHEET_WIDTH_TILES * TILE_SHEET_HEIGHT_TILES];
 };
 
+struct TileTexValues
+{
+	uint8_t x;
+	uint8_t y;
+	uint8_t HasCeiling;
+	uint8_t LOS;
+};
+
 struct TileData
 {
 	uint8_t TexX;
 	uint8_t TexY;
-	uint8_t NOT_USED;
+	bool HasCeiling;
 	TileLOS LOS;
 
-	inline uint16_t GetTileId() const
-	{
-		uint16_t id = TexX;
-		id |= ((uint16_t)TexY << 8);
-		return id;
-	};
+	inline constexpr TileSheetCoord AsCoord() const { return { TexX, TexY }; }
 
 	Tile* GetTile() const;
 };
-
-static_assert(sizeof(TileData) == sizeof(int), "Tile size must be 32 bits");
 
 bool TileMgrInitialize(const Texture2D* tilesheetTexture);
 
@@ -70,10 +71,19 @@ struct TileMgr* GetTileMgr();
 
 TileData TileMgrCreate(uint16_t tileId);
 
-inline TileSheetCoord TileMgrGetXY(uint16_t tileId)
+inline constexpr uint16_t TileMgrToTileId(TileSheetCoord coord)
 {
-	TileSheetCoord res;
-	res.x = (uint8_t)tileId;
-	res.y = (uint8_t)(tileId >> 8);
+	uint16_t id = coord.x;
+	id |= ((uint16_t)coord.y << 8);
+	return id;
+}
+
+inline constexpr TileSheetCoord TileMgrGetXY(uint16_t tileId)
+{
+	TileSheetCoord res = 
+	{
+		(uint8_t)tileId,
+		(uint8_t)(tileId >> 8)
+	};
 	return res;
 }

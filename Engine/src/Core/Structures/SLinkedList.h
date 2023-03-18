@@ -68,7 +68,7 @@ void SLinkedList<T>::Free()
 		}
 		FreeEntry(first);
 	}
-	First = NULL;
+	First = nullptr;
 	Size = 0;
 }
 

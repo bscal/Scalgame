@@ -32,8 +32,9 @@ void MapGenGenerateChunk(MapGenerator* generator, ChunkedTileMap* tilemap, TileM
 			TileSheetCoord coord = TILE_IDS[tileTableIndex];
 			chunk->Tiles[index].TexX = coord.x;
 			chunk->Tiles[index].TexY = coord.y;
-			chunk->Tiles[index].NOT_USED = 0;
+			chunk->Tiles[index].HasCeiling = false;
 			chunk->Tiles[index].LOS = TileLOS::NoVision;
+			
 		}
 	}
 }

@@ -38,7 +38,9 @@ void Initialize(ChunkedTileMap* tilemap)
 	tilemap->WorldDimTiles.x = tilemap->WorldDimChunks.x * CHUNK_DIMENSIONS;
 	tilemap->WorldDimTiles.y = tilemap->WorldDimChunks.y * CHUNK_DIMENSIONS;
 
-	uint32_t capacity = (3 + tilemap->ViewDistance.x) * (3 + tilemap->ViewDistance.y) + 3;
+	SASSERT(tilemap->ViewDistance.x > 0);
+	SASSERT(tilemap->ViewDistance.y > 0);
+	uint32_t capacity = (3u + tilemap->ViewDistance.x) * (3u + tilemap->ViewDistance.y) + 3u;
 	SASSERT(capacity > 0);
 	tilemap->ChunksList.Reserve(capacity);
 }
@@ -61,7 +63,7 @@ void Update(ChunkedTileMap* tilemap, Game* game)
 	PROFILE_BEGIN();
 	const Player* player = GetClientPlayer();
 
-	Vector2i playerChunkCoord = TileToChunkCoord(tilemap, player->Transform.TilePos);
+	Vector2i playerChunkCoord = TileToChunkCoord(player->Transform.TilePos);
 
 	// View distance checks + chunk loading
 	if (player->HasMoved)
@@ -121,21 +123,8 @@ void LateUpdate(ChunkedTileMap* tilemap, Game* game)
 }
 
 void 
-UpdateChunk(ChunkedTileMap* tilemap, TileMapChunk* chunk, Game* game)
+UpdateChunk(ChunkedTileMap* tilemap, TileMapChunk* chunk)
 {
-	if (chunk->RebakeFlags != NO_REBUILD)
-	{
-		//BakeChunk(chunk, game);
-		if ((chunk->RebakeFlags & REBUILD_NEIGHBOURS) == REBUILD_NEIGHBOURS)
-		{
-			for (int i = 0; i < ArrayLength(Vec2i_NEIGHTBORS_CORNERS); ++i)
-			{
-				Vector2i coord = chunk->ChunkCoord.Add(Vec2i_NEIGHTBORS_CORNERS[i]);
-				if (!IsChunkInBounds(tilemap, coord)) continue;
-				GetChunk(tilemap, coord)->RebakeFlags |= REBUILD_SELF;
-			}
-		}
-	}
 }
 
 TileMapChunk* LoadChunk(ChunkedTileMap* tilemap, ChunkCoord coord)
@@ -214,7 +203,7 @@ GetChunk(ChunkedTileMap* tilemap, ChunkCoord coord)
 TileMapChunk* 
 GetChunkByTile(ChunkedTileMap* tilemap, TileCoord tileCoord)
 {
-	ChunkCoord coord = TileToChunkCoord(tilemap, tileCoord);
+	ChunkCoord coord = TileToChunkCoord(tileCoord);
 	for (size_t i = 0; i < tilemap->ChunksList.Count; ++i)
 	{
 		const auto& chunk = tilemap->ChunksList[i];
@@ -225,7 +214,7 @@ GetChunkByTile(ChunkedTileMap* tilemap, TileCoord tileCoord)
 }
 
 ChunkCoord 
-TileToChunkCoord(ChunkedTileMap* tilemap,TileCoord tilePos)
+TileToChunkCoord(TileCoord tilePos)
 {
 	ChunkCoord result;
 	result.x = tilePos.x / CHUNK_DIMENSIONS;
@@ -234,7 +223,7 @@ TileToChunkCoord(ChunkedTileMap* tilemap,TileCoord tilePos)
 }
 
 uint64_t 
-TileToIndex(ChunkedTileMap* tilemap, TileCoord tilePos)
+TileToIndex(TileCoord tilePos)
 {
 	int tileChunkX = tilePos.x % CHUNK_DIMENSIONS;
 	int tileChunkY = tilePos.y % CHUNK_DIMENSIONS;
@@ -249,7 +238,7 @@ SetTile(ChunkedTileMap* tilemap, const TileData* tile, TileCoord tilePos)
 	SASSERT(tilemap->ChunksList.IsAllocated());
 	SASSERT(IsTileInBounds(tilemap, tilePos));
 
-	ChunkCoord chunkCoord = TileToChunkCoord(tilemap, tilePos);
+	ChunkCoord chunkCoord = TileToChunkCoord(tilePos);
 	TileMapChunk* chunk = GetChunk(tilemap, chunkCoord);
 
 	// TODO: Not sure how to handle.
@@ -261,9 +250,8 @@ SetTile(ChunkedTileMap* tilemap, const TileData* tile, TileCoord tilePos)
 			FMT_VEC2I(tilePos), FMT_VEC2I(chunkCoord));
 		return;
 	}
-	uint64_t index = TileToIndex(tilemap, tilePos);
+	uint64_t index = TileToIndex(tilePos);
 	chunk->Tiles[index] = *tile;
-	chunk->RebakeFlags |= REBUILD_SELF;
 }
 
 TileData* 
@@ -273,7 +261,7 @@ GetTile(ChunkedTileMap* tilemap, TileCoord tilePos)
 	SASSERT(tilemap->ChunksList.IsAllocated());
 	SASSERT(IsTileInBounds(tilemap, tilePos));
 
-	ChunkCoord chunkCoord = TileToChunkCoord(tilemap, tilePos);
+	ChunkCoord chunkCoord = TileToChunkCoord(tilePos);
 	TileMapChunk* chunk = GetChunk(tilemap, chunkCoord);
 	if (!chunk || chunk->State == ChunkState::Unloaded)
 	{
@@ -281,22 +269,29 @@ GetTile(ChunkedTileMap* tilemap, TileCoord tilePos)
 			FMT_VEC2I(tilePos), FMT_VEC2I(chunkCoord));
 		return nullptr;
 	}
-	uint64_t index = TileToIndex(tilemap, tilePos);
+	uint64_t index = TileToIndex(tilePos);
 	return &chunk->Tiles[index];
 }
 
-TileCoord WorldToTile(ChunkedTileMap* tilemap, Vector2 pos)
+TileCoord WorldToTile(Vector2 pos)
 {
 	Vector2i v;
-	v.x = (int)(pos.x) / TILE_SIZE;
-	v.y = (int)(pos.y) / TILE_SIZE;
+	v.x = (int)(floorf(pos.x) / TILE_SIZE_F);
+	v.y = (int)(floorf(pos.y) / TILE_SIZE_F);
 	return v;
 }
 
+// TODO: this works fine, but im not quite sure where i want to store
+// Line of sight status for tiles. It doesnt really need to be persistent?
+// but we need to store it currently for lighting. LOS in TileData is currently
+// unused.
 void SetVisible(ChunkedTileMap* tilemap, TileCoord coord)
 {
 	if (!IsTileInBounds(tilemap, coord)) return;
-	GetTile(tilemap, coord)->LOS = TileLOS::FullVision;
+	Vector2i cullTile = WorldTileToCullTile(coord);
+	int index = cullTile.x + cullTile.y * CULL_WIDTH_TILES;
+	GetGame()->TileMapRenderer.Tiles[index].LOS = true;
+	//GetTile(tilemap, coord)->LOS = TileLOS::FullVision;
 }
 
 bool BlocksLight(ChunkedTileMap* tilemap, TileCoord coord)
@@ -336,16 +331,20 @@ UpdateTileMap(ChunkedTileMap* tilemap, TileMapRenderer* tilemapRenderer)
 			coord.x = x + offset.x;
 			coord.y = y + offset.y;
 
-			int index = x + y * CULL_WIDTH_TILES;
+			size_t index = x + y * CULL_WIDTH_TILES;
 			
 			if (IsTileInBounds(tilemap, coord))
 			{
 				TileData* tile = GetTile(tilemap, coord);
-				tilemapRenderer->Tiles[index] = *tile;
+				tilemapRenderer->Tiles[index].x = tile->TexX;
+				tilemapRenderer->Tiles[index].y = tile->TexY;
+				tilemapRenderer->Tiles[index].HasCeiling = tile->HasCeiling;
+				// See SetVisible()
+				//tilemapRenderer->Tiles[index].LOS = (uint8_t)tile->LOS;
 			}
 			else
 			{
-				tilemapRenderer->Tiles[index] = { 0 };
+				tilemapRenderer->Tiles[index] = {};
 			}
 		}
 	}	

@@ -13,10 +13,6 @@ struct Game;
 
 global_var const Vector2i TILEMAP_ORIGIN = { 0, 0 };
 
-#define NO_REBUILD 0x00
-#define REBUILD_SELF 0x01
-#define REBUILD_NEIGHBOURS 0x02
-
 enum class ChunkState : uint8_t
 {
 	Unloaded = 0,
@@ -31,10 +27,8 @@ struct TileMapChunk
 	Rectangle Bounds;
 	ChunkCoord ChunkCoord;
 	ChunkState State;
-	uint8_t RebakeFlags;
 	TileData Tiles[CHUNK_SIZE];
 };
-
 
 struct ChunkedTileMap
 {
@@ -61,14 +55,14 @@ void LateUpdate(ChunkedTileMap* tilemap, Game* game);
 TileMapChunk* LoadChunk(ChunkedTileMap* tilemap, ChunkCoord coord);
 void UnloadChunk(ChunkedTileMap* tilemap, ChunkCoord coord);
 
-void UpdateChunk(ChunkedTileMap* tilemap, TileMapChunk* chunk, Game* game);
+void UpdateChunk(ChunkedTileMap* tilemap, TileMapChunk* chunk);
 
 TileMapChunk* GetChunk(ChunkedTileMap* tilemap, ChunkCoord coord);
 TileMapChunk* GetChunkByTile(ChunkedTileMap* tilemap, TileCoord tileCoord);
-ChunkCoord TileToChunkCoord(ChunkedTileMap* tilemap, TileCoord tilePos);
+ChunkCoord TileToChunkCoord(TileCoord tilePos);
 
-uint64_t TileToIndex(ChunkedTileMap* tilemap, TileCoord tilePos);
-TileCoord WorldToTile(ChunkedTileMap* tilemap, Vector2 pos);
+uint64_t TileToIndex(TileCoord tilePos);
+TileCoord WorldToTile(Vector2 pos);
 
 void SetTile(ChunkedTileMap* tilemap, const TileData* tile, TileCoord tilePos);
 TileData* GetTile(ChunkedTileMap* tilemap, TileCoord tilePos);

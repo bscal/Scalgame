@@ -76,7 +76,7 @@ struct SString
 		SString str(lhs);
 		size_t length = strlen(rhs) - 1;
 		SASSERT(length > 0);
-		str.Append(rhs, length);
+		str.Append(rhs, static_cast<uint32_t>(length));
 		return str;
 	}
 

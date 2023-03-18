@@ -8,15 +8,17 @@
 
 void Renderer::Initialize()
 {
+	int sW = GetScreenWidth();
+	int sH = GetScreenHeight();
 	int screenW = CULL_WIDTH;
 	int screenH = CULL_HEIGHT;
-	int blurWidth = screenW / 4;
-	int blurHeight = screenH / 4;
+	int blurWidth = sW / 4;
+	int blurHeight = sH / 4;
 	BlurShader.Initialize(blurWidth, blurHeight);
 
 	WorldTexture = SLoadRenderTexture(screenW, screenH, PIXELFORMAT_UNCOMPRESSED_R32G32B32A32);
-	EffectTextureOne = SLoadRenderTexture(screenW, screenH, PIXELFORMAT_UNCOMPRESSED_R32G32B32A32);
-	EffectTextureTwo = SLoadRenderTexture(screenW, screenH, PIXELFORMAT_UNCOMPRESSED_R32G32B32A32);
+	EffectTextureOne = SLoadRenderTexture(sW, sH, PIXELFORMAT_UNCOMPRESSED_R32G32B32A32);
+	EffectTextureTwo = SLoadRenderTexture(sW, sH, PIXELFORMAT_UNCOMPRESSED_R32G32B32A32);
 
 	UnlitShader = LoadShader(
 		"assets/shaders/tile_shader.vert",
@@ -62,23 +64,17 @@ void Renderer::PostProcess(Game* game, const RenderTexture2D& worldTexture,
 	Rectangle screenRect = { 0.0f, 0.0f, screenW, screenH };
 
 	// Brightness pass
-	BeginShaderMode(BrightnessShader);
 	BeginTextureMode(EffectTextureTwo);
+
+	BeginShaderMode(BrightnessShader);
 	ClearBackground(BLACK);
 	DrawTexturePro(lightingTexture.texture, srcRect, screenRect, { 0 }, 0.f, WHITE);
-	EndTextureMode();
 	EndShaderMode();
+	
+	EndTextureMode();
 
 	// Blur pass
 	BlurShader.Draw(EffectTextureTwo.texture);
-
-	BeginShaderMode(BloomShader);
-	BeginTextureMode(EffectTextureTwo);
-	ClearBackground(BLACK);
-	SetShaderValueTexture(BloomShader, UniformLightTexLoc, BlurShader.TextureVert.texture);
-	DrawTexturePro(lightingTexture.texture, srcRect, screenRect, { 0 }, 0.f, WHITE);
-	EndTextureMode();
-	EndShaderMode();
 }
 
 void BlurShader::Initialize(int width, int height)
@@ -131,7 +127,7 @@ void BlurShader::Draw(const Texture2D& lightingTexture) const
 	SetShaderValue(BlurShader, UniformIsHorizontalLocation, &isHorizontal, SHADER_UNIFORM_INT);
 
 	BeginTextureMode(TextureHorizontal);
-	ClearBackground(BLACK);
+	ClearBackground({});
 	DrawTextureProF(lightingTexture, srcRect, blurRectDest, { 0 }, 0.0f, colorWhite);
 	EndTextureMode();
 
@@ -139,7 +135,7 @@ void BlurShader::Draw(const Texture2D& lightingTexture) const
 	SetShaderValue(BlurShader, UniformIsHorizontalLocation, &isHorizontal, SHADER_UNIFORM_INT);
 
 	BeginTextureMode(TextureVert);
-	ClearBackground(BLACK);
+	ClearBackground({});
 	DrawTextureProF(TextureHorizontal.texture, blurRectSrc, blurRectDest, { 0 }, 0.0f, colorWhite);
 	EndTextureMode();
 
@@ -234,8 +230,8 @@ void LightingRenderer::Draw()
 	src.height = ColorsTexture.texture.height;
 
 	Rectangle dst;
-	dst.x = GetGameApp()->CullXY.x + HALF_TILE_SIZE;
-	dst.y = GetGameApp()->CullXY.y + HALF_TILE_SIZE;
+	dst.x = GetGameApp()->CullXY.x - HALF_TILE_SIZE;
+	dst.y = GetGameApp()->CullXY.y - HALF_TILE_SIZE;
 	dst.width = LightingTexture.texture.width;
 	dst.height = LightingTexture.texture.height;
 

@@ -314,7 +314,7 @@ bool STable<K, V>::Remove(const K* key)
 	STableEntry<K, V>* entry = Entries[hash];
 	if (!entry) return false;
 
-	STableEntry<K, V>* last = NULL;
+	STableEntry<K, V>* last = nullptr;
 	while (entry)
 	{
 		if (KeyEqualsFunction(key, &entry->Key))

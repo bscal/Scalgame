@@ -114,8 +114,3 @@ void ProcessActions(World* world)
 		at->ActionFunction(world, at);
 	}
 }
-
-Vector2i WorldToTileCoord(World* world, Vector2 tile)
-{
-	return CTileMap::WorldToTile(&world->ChunkedTileMap, tile);
-}

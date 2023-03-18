@@ -16,11 +16,14 @@ void main()
 	vec4 lightColor = texture(texture0, fragTexCoord);
 	vec4 tileData = texture(tileDataMap, fragTexCoord);
 
+	float hasCeilingFactor = 1.0 - clamp(tileData.z * 255.0, 0.0, 1.0);
+	float losFactor = tileData.w;
+
 	vec3 color = lightColor.rgb * fragColor.a;
 	color += fragColor.rgb;
-	color += sunlightColor;
+	color += sunlightColor * hasCeilingFactor;
 
-	if (tileData.a > 0)
+	if (losFactor > 0)
 		finalColor.rgb = color;
 	else
 		finalColor.rgb = losColor;
