@@ -60,7 +60,7 @@ void Renderer::PostProcess(Game* game, const RenderTexture2D& worldTexture,
 {
 	float screenW = (float)GetScreenWidth();
 	float screenH = (float)GetScreenHeight();
-	Rectangle srcRect = { 0.0f, 0.0f, screenW, -screenH };
+	Rectangle srcRect = { 0.0f, 0.0f, (float)lightingTexture.texture.width, -(float)lightingTexture.texture.height};
 	Rectangle screenRect = { 0.0f, 0.0f, screenW, screenH };
 
 	// Brightness pass
@@ -75,6 +75,18 @@ void Renderer::PostProcess(Game* game, const RenderTexture2D& worldTexture,
 
 	// Blur pass
 	BlurShader.Draw(EffectTextureTwo.texture);
+}
+
+void Renderer::DrawBloom(Rectangle dest)
+{
+	BeginBlendMode(BLEND_ADDITIVE);
+	Rectangle rect;
+	rect.x = 0;
+	rect.y = 0;
+	rect.width = (float)BlurShader.TextureVert.texture.width;
+	rect.height = -(float)BlurShader.TextureVert.texture.height;
+	DrawTexturePro(BlurShader.TextureVert.texture, rect, dest, {}, 0.0f, WHITE);
+	EndBlendMode();
 }
 
 void BlurShader::Initialize(int width, int height)
@@ -128,7 +140,7 @@ void BlurShader::Draw(const Texture2D& lightingTexture) const
 
 	BeginTextureMode(TextureHorizontal);
 	ClearBackground({});
-	DrawTextureProF(lightingTexture, srcRect, blurRectDest, { 0 }, 0.0f, colorWhite);
+	SDrawTextureProF(lightingTexture, srcRect, blurRectDest, { 0 }, 0.0f, colorWhite);
 	EndTextureMode();
 
 	isHorizontal = 0;
@@ -136,7 +148,7 @@ void BlurShader::Draw(const Texture2D& lightingTexture) const
 
 	BeginTextureMode(TextureVert);
 	ClearBackground({});
-	DrawTextureProF(TextureHorizontal.texture, blurRectSrc, blurRectDest, { 0 }, 0.0f, colorWhite);
+	SDrawTextureProF(TextureHorizontal.texture, blurRectSrc, blurRectDest, { 0 }, 0.0f, colorWhite);
 	EndTextureMode();
 
 	EndShaderMode();
@@ -257,7 +269,7 @@ void LightingRenderer::Draw()
 	SetShaderValue(LightingShader, UniformSunlight, &SunlightColor, SHADER_UNIFORM_VEC3);
 	SetShaderValue(LightingShader, UniformLOSColor, &LOSColor, SHADER_UNIFORM_VEC3);
 	SetShaderValueTexture(LightingShader, UniformWorldMap, GetGame()->TileMapRenderer.TileDataTexture.texture);
-	DrawTextureProF(ColorsTexture.texture, src, dst, { 0 }, 0.0f, color);
+	SDrawTextureProF(ColorsTexture.texture, src, dst, { 0 }, 0.0f, color);
 	EndMode2D();
 
 	EndShaderMode();
@@ -265,9 +277,11 @@ void LightingRenderer::Draw()
 	EndTextureMode();
 }
 
-void DrawTextureProF(Texture2D texture, Rectangle source, Rectangle dest,
-	Vector2 origin, float rotation, Vector4 tint)
+void
+SDrawTextureProF(const Texture2D& texture, Rectangle source, const Rectangle& dest,
+	Vector2 origin, float rotation, const Vector4& tint)
 {
+	SASSERT(texture.id > 0);
 	// Check if texture is valid
 	if (texture.id > 0)
 	{
@@ -316,77 +330,73 @@ void DrawTextureProF(Texture2D texture, Rectangle source, Rectangle dest,
 			bottomRight.y = y + (dx + dest.width) * sinRotation + (dy + dest.height) * cosRotation;
 		}
 
-		rlCheckRenderBatchLimit(4);     // Make sure there is enough free space on the batch buffer
-
 		rlSetTexture(texture.id);
 		rlBegin(RL_QUADS);
+			rlColor4f(tint.x, tint.y, tint.z, tint.w);
+			rlNormal3f(0.0f, 0.0f, 1.0f);                          // Normal vector pointing towards viewer
 
-		rlColor4f(tint.x, tint.y, tint.z, tint.w);
-		rlNormal3f(0.0f, 0.0f, 1.0f);                          // Normal vector pointing towards viewer
+			// Top-left corner for texture and quad
+			if (flipX) rlTexCoord2f((source.x + source.width) / width, source.y / height);
+			else rlTexCoord2f(source.x / width, source.y / height);
+			rlVertex2f(topLeft.x, topLeft.y);
 
-		// Top-left corner for texture and quad
-		if (flipX) rlTexCoord2f((source.x + source.width) / width, source.y / height);
-		else rlTexCoord2f(source.x / width, source.y / height);
-		rlVertex2f(topLeft.x, topLeft.y);
+			// Bottom-left corner for texture and quad
+			if (flipX) rlTexCoord2f((source.x + source.width) / width, (source.y + source.height) / height);
+			else rlTexCoord2f(source.x / width, (source.y + source.height) / height);
+			rlVertex2f(bottomLeft.x, bottomLeft.y);
 
-		// Bottom-left corner for texture and quad
-		if (flipX) rlTexCoord2f((source.x + source.width) / width, (source.y + source.height) / height);
-		else rlTexCoord2f(source.x / width, (source.y + source.height) / height);
-		rlVertex2f(bottomLeft.x, bottomLeft.y);
+			// Bottom-right corner for texture and quad
+			if (flipX) rlTexCoord2f(source.x / width, (source.y + source.height) / height);
+			else rlTexCoord2f((source.x + source.width) / width, (source.y + source.height) / height);
+			rlVertex2f(bottomRight.x, bottomRight.y);
 
-		// Bottom-right corner for texture and quad
-		if (flipX) rlTexCoord2f(source.x / width, (source.y + source.height) / height);
-		else rlTexCoord2f((source.x + source.width) / width, (source.y + source.height) / height);
-		rlVertex2f(bottomRight.x, bottomRight.y);
-
-		// Top-right corner for texture and quad
-		if (flipX) rlTexCoord2f(source.x / width, source.y / height);
-		else rlTexCoord2f((source.x + source.width) / width, source.y / height);
-		rlVertex2f(topRight.x, topRight.y);
-
+			// Top-right corner for texture and quad
+			if (flipX) rlTexCoord2f(source.x / width, source.y / height);
+			else rlTexCoord2f((source.x + source.width) / width, source.y / height);
+			rlVertex2f(topRight.x, topRight.y);
 		rlEnd();
 		rlSetTexture(0);
 	}
 }
 
-void SDrawTextureProF(const Texture2D* texture, Rectangle source, Rectangle dest, Vector4 tint)
-{
-	SASSERT(texture->id > 0);
 
-	float width = (float)texture->width;
-	float height = (float)texture->height;
+void
+SDrawTextureF(const Texture2D& texture, const Rectangle& source,
+	const Rectangle& dest, const Vector4& tint)
+{
+	SASSERT(texture.id > 0);
+
+	float width = (float)texture.width;
+	float height = (float)texture.height;
 
 	Vector2 topLeft = Vector2{ dest.x, dest.y };
 	Vector2 topRight = Vector2{ dest.x + dest.width, dest.y };
 	Vector2 bottomLeft = Vector2{ dest.x, dest.y + dest.height };
 	Vector2 bottomRight = Vector2{ dest.x + dest.width, dest.y + dest.height };
 
-	rlCheckRenderBatchLimit(4);     // Make sure there is enough free space on the batch buffer
-
-	rlSetTexture(texture->id);
+	rlSetTexture(texture.id);
 	rlBegin(RL_QUADS);
+		rlColor4f(tint.x, tint.y, tint.z, tint.w);
+		rlNormal3f(0.0f, 0.0f, 1.0f);                          // Normal vector pointing towards viewer
 
-	rlColor4f(tint.x, tint.y, tint.z, tint.w);
-	rlNormal3f(0.0f, 0.0f, 1.0f);                          // Normal vector pointing towards viewer
+		rlTexCoord2f(source.x / width, source.y / height);
+		rlVertex2f(topLeft.x, topLeft.y);
 
-	rlTexCoord2f(source.x / width, source.y / height);
-	rlVertex2f(topLeft.x, topLeft.y);
+		rlTexCoord2f(source.x / width, (source.y + source.height) / height);
+		rlVertex2f(bottomLeft.x, bottomLeft.y);
 
-	rlTexCoord2f(source.x / width, (source.y + source.height) / height);
-	rlVertex2f(bottomLeft.x, bottomLeft.y);
+		rlTexCoord2f((source.x + source.width) / width, (source.y + source.height) / height);
+		rlVertex2f(bottomRight.x, bottomRight.y);
 
-	rlTexCoord2f((source.x + source.width) / width, (source.y + source.height) / height);
-	rlVertex2f(bottomRight.x, bottomRight.y);
-
-	rlTexCoord2f((source.x + source.width) / width, source.y / height);
-	rlVertex2f(topRight.x, topRight.y);
-
+		rlTexCoord2f((source.x + source.width) / width, source.y / height);
+		rlVertex2f(topRight.x, topRight.y);
 	rlEnd();
 	rlSetTexture(0);
 }
 
 // Draw a color-filled rectangle with pro parameters
-void SDrawRectangleProF(Rectangle rec, Vector2 origin, float rotation, Vector4 color)
+void
+SDrawRectangleProF(Rectangle rec, Vector2 origin, float rotation, Vector4 color)
 {
 	Vector2 topLeft = { 0 };
 	Vector2 topRight = { 0 };
@@ -395,23 +405,21 @@ void SDrawRectangleProF(Rectangle rec, Vector2 origin, float rotation, Vector4 c
 
 	float x = rec.x - origin.x;
 	float y = rec.y - origin.y;
-	topLeft = (Vector2){ x, y };
-	topRight = (Vector2){ x + rec.width, y };
-	bottomLeft = (Vector2){ x, y + rec.height };
-	bottomRight = (Vector2){ x + rec.width, y + rec.height };
+	topLeft = Vector2{ x, y };
+	topRight = Vector2{ x + rec.width, y };
+	bottomLeft = Vector2{ x, y + rec.height };
+	bottomRight = Vector2{ x + rec.width, y + rec.height };
 
 	rlBegin(RL_TRIANGLES);
+		rlColor4f(color.x, color.y, color.z, color.w);
 
-	rlColor4f(color.x, color.y, color.z, color.w);
+		rlVertex2f(topLeft.x, topLeft.y);
+		rlVertex2f(bottomLeft.x, bottomLeft.y);
+		rlVertex2f(topRight.x, topRight.y);
 
-	rlVertex2f(topLeft.x, topLeft.y);
-	rlVertex2f(bottomLeft.x, bottomLeft.y);
-	rlVertex2f(topRight.x, topRight.y);
-
-	rlVertex2f(topRight.x, topRight.y);
-	rlVertex2f(bottomLeft.x, bottomLeft.y);
-	rlVertex2f(bottomRight.x, bottomRight.y);
-
+		rlVertex2f(topRight.x, topRight.y);
+		rlVertex2f(bottomLeft.x, bottomLeft.y);
+		rlVertex2f(bottomRight.x, bottomRight.y);
 	rlEnd();
 }
 

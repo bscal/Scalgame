@@ -40,7 +40,7 @@ static const Vector2i Vec2i_DOWN    = { 0, 1 };
 static const Vector2i Vec2i_LEFT    = { 1, 0 };
 static const Vector2i Vec2i_RIGHT   = { -1, 0 };
 
-static const Vector2i Vec2i_NEIGHTBORS[4] = { Vec2i_UP, Vec2i_DOWN, Vec2i_LEFT, Vec2i_RIGHT };
+static const Vector2i Vec2i_NEIGHTBORS[4] = { Vec2i_UP, Vec2i_LEFT, Vec2i_DOWN, Vec2i_RIGHT };
 static const Vector2i Vec2i_NEIGHTBORS_CORNERS[8] = {
     Vec2i_UP, { 1, -1 }, Vec2i_LEFT, { 1, 1 },
     Vec2i_DOWN, { -1, 1 }, Vec2i_RIGHT, { -1, -1 } };

@@ -57,7 +57,7 @@ void SList<T>::EnsureSize(uint32_t ensuredCount)
 
 	for (uint32_t i = Count; i < ensuredCount; ++i)
 	{
-		Memory[i] = (T){};
+		Memory[i] = T{};
 	}
 	Count = ensuredCount;
 

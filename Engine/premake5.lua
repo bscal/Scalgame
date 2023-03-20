@@ -32,6 +32,13 @@ project "Engine"
         "raylib"
     }
 
+    filter "toolset:msc-ClangCL"
+        buildoptions
+        { 
+            "-Wc++17-compat", "-Weverything", "-Wno-c++98-compat-pedantic",
+            "-Wno-old-style-cast", "-Wno-extra-semi-stmt"
+        }
+
     filter "configurations:Debug"
         defines "SCAL_DEBUG"
         buildoptions "/MDd"
@@ -47,16 +54,9 @@ project "Engine"
     filter "system:Windows"
         defines { "PLATFORM_DESKTOP", "SCAL_PLATFORM_WINDOWS", "_WIN32" }
         systemversion "latest"
-        buildoptions
-        { 
-            "-std=c++17", "-Wc++17-compat", "-Weverything", "-Wno-c++98-compat-pedantic",
-            "-Wno-old-style-cast", "-Wno-extra-semi-stmt"
-        }
-        --links { "winmm", "kernel32", "opengl32", "gdi32" }
 
     filter "system:Unix"
         defines { "PLATFORM_DESKTOP", "SCAL_PLATFORM_LINUX" }
-        --links { "pthread", "GL", "m", "dl", "rt", "X11" }
 
     filter {"options:graphics=opengl43"}
         defines{"GRAPHICS_API_OPENGL_43"}

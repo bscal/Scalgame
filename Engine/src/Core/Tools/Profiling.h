@@ -2,7 +2,7 @@
 
 #include "Core/Core.h"
 
-#define ENABLE_PROFILING 0
+#define ENABLE_PROFILING 1
 
 #if ENABLE_PROFILING
 #include "spall/spall.h"

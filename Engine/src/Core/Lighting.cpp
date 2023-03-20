@@ -1,11 +1,15 @@
 #include "Lighting.h"
 
 #include "Game.h"
+#include "raylib/src/raymath.h"
 
 // Most of these implementations for lighting I have gotten
 // from http://www.adammil.net/blog/v125_roguelike_vision_algorithms.html
 
+
+
 global_var LightingState State;
+global_var Vector2 PlayerLookVector;
 
 void LightsInitialized(GameApplication* gameApp)
 {
@@ -54,6 +58,36 @@ struct Slope
 	inline bool Less(int y, int x) { return this->y * x < this->x* y; } // this < y/x
 };
 
+// Used to translate tile coordinates 
+global_var constexpr int TranslationTable[8][4] =
+{
+	{  1,  0,  0, -1 },
+	{  0,  1, -1,  0 },
+	{  0, -1, -1,  0 },
+	{ -1,  0,  0, -1 },
+	{ -1,  0,  0,  1 },
+	{  0, -1,  1,  0 },
+	{  0,  1,  1,  0 },
+	{  1,  0,  0,  1 },
+};
+
+// Cone Field of view
+
+#define ENABLE_CONE_FOV 1
+
+// Octants to search to if using cone fov, will not check the back 180degrees
+// I think the algorithm can support fov directly using input slope and octants,
+// however I just use a fov angle and get the angle between tile and player direction.
+// But to help avoid unnecessary checks I still want to cull octants
+// N, E, S, W
+global_var constexpr uint8_t OctantsForDirection[4][4] =
+{
+	{ 0, 1, 2, 3 },
+	{ 6, 7, 0, 1 },
+	{ 4, 5, 6, 7 },
+	{ 2, 3, 4, 5 }
+};
+
 internal void ComputeOctant(ChunkedTileMap* tilemap, uint8_t octant,
 	Vector2i origin, int rangeLimit, int x, Slope top, Slope bottom);
 
@@ -65,16 +99,27 @@ void LightsUpdate(Game* game)
 {
 	PROFILE_BEGIN();
 	Vector2i originTile = GetClientPlayer()->Transform.TilePos;
+	TileDirection playerDir = GetClientPlayer()->LookDirection;
+	Vector2i lookDir = Vec2i_NEIGHTBORS[(uint8_t)playerDir];
+	PlayerLookVector = Vector2Normalize(lookDir.AsVec2());
+
 	ChunkedTileMap* tilemap = &game->World.ChunkedTileMap;
+
 
 	if (CTileMap::IsTileInBounds(tilemap, originTile))
 	{
-		CTileMap::SetVisible(tilemap, originTile);
-
+#if ENABLE_CONE_FOV
+		for (uint8_t octant = 0; octant < 4; ++octant)
+		{
+			uint8_t trueOctant = OctantsForDirection[(uint8_t)playerDir][octant];
+			ComputeOctant(tilemap, trueOctant, originTile, 16, 1, { 1, 1 }, { 0, 1 });
+		}
+#else
 		for (uint8_t octant = 0; octant < 8; ++octant)
 		{
 			ComputeOctant(tilemap, octant, originTile, 16, 1, { 1, 1 }, { 0, 1 });
 		}
+#endif
 	}
 
 	for (int i = 0; i < State.Lights.Count; ++i)
@@ -121,38 +166,32 @@ void LightsUpdate(Game* game)
 	PROFILE_END();
 }
 
+
 internal bool BlocksLight(ChunkedTileMap* tilemap, int x, int y, Vector2i origin, uint8_t octant)
 {
 	Vector2i newPos = origin;
-	switch (octant)
-	{
-		case 0: newPos.x += x; newPos.y -= y; break;
-		case 1: newPos.x += y; newPos.y -= x; break;
-		case 2: newPos.x -= y; newPos.y -= x; break;
-		case 3: newPos.x -= x; newPos.y -= y; break;
-		case 4: newPos.x -= x; newPos.y += y; break;
-		case 5: newPos.x -= y; newPos.y += x; break;
-		case 6: newPos.x += y; newPos.y += x; break;
-		case 7: newPos.x += x; newPos.y += y; break;
-	}
+	newPos.x += x * TranslationTable[octant][0] + y * TranslationTable[octant][1];
+	newPos.y += x * TranslationTable[octant][2] + y * TranslationTable[octant][3];
 	return CTileMap::BlocksLight(tilemap, newPos);
 }
 
 internal void SetVisible(ChunkedTileMap* tilemap, int x, int y, Vector2i origin, uint8_t octant)
 {
+	PROFILE_BEGIN();
 	Vector2i newPos = origin;
-	switch (octant)
-	{
-		case 0: newPos.x += x; newPos.y -= y; break;
-		case 1: newPos.x += y; newPos.y -= x; break;
-		case 2: newPos.x -= y; newPos.y -= x; break;
-		case 3: newPos.x -= x; newPos.y -= y; break;
-		case 4: newPos.x -= x; newPos.y += y; break;
-		case 5: newPos.x -= y; newPos.y += x; break;
-		case 6: newPos.x += y; newPos.y += x; break;
-		case 7: newPos.x += x; newPos.y += y; break;
-	}
+	newPos.x += x * TranslationTable[octant][0] + y * TranslationTable[octant][1];
+	newPos.y += x * TranslationTable[octant][2] + y * TranslationTable[octant][3];
+#if ENABLE_CONE_FOV
+	constexpr float coneFov = (80.0f * DEG2RAD);
+	Vector2i length = newPos.Subtract(GetClientPlayer()->Transform.TilePos);
+	
+	float dot = Vector2LineAngle(PlayerLookVector, Vector2Normalize(length.AsVec2()));
+	if (dot < coneFov)
+		CTileMap::SetVisible(tilemap, newPos);
+#else
 	CTileMap::SetVisible(tilemap, newPos);
+#endif
+	PROFILE_END();
 }
 
 internal void ComputeOctant(ChunkedTileMap* tilemap, uint8_t octant,
@@ -332,18 +371,6 @@ internal void ComputeOctant(ChunkedTileMap* tilemap, uint8_t octant,
 		if (wasOpaque != 0) break;
 	}
 }
-
-global_var constexpr int TranslationTable[8][4] =
-{
-	{  1,  0,  0, -1 },
-	{  0,  1, -1,  0 },
-	{  0, -1, -1,  0 },
-	{ -1,  0,  0, -1 },
-	{ -1,  0,  0,  1 },
-	{  0, -1,  1,  0 },
-	{  0,  1,  1,  0 },
-	{  1,  0,  0,  1 },
-};
 
 internal void 
 ComputeLightShadowCast(ChunkedTileMap* tilemap, const Light& light,

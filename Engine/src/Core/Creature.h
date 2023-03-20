@@ -35,8 +35,7 @@ enum TileDirection : uint8_t
 };
 
 constexpr global_var float
-TileDirectionToTurns[TileDirection::MaxDirs] =
-{ TAO * 0.75f, 0.0f, TAO * 0.25f, TAO * 0.5f };
+TileDirectionToTurns[TileDirection::MaxDirs] = { TAO * 0.75f, 0.0f, TAO * 0.25f, TAO * 0.5f };
 
 inline constexpr float GetRadiansFromDirection(TileDirection dir)
 {

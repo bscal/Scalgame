@@ -1,5 +1,7 @@
+#include "Game.h"
 #include "World.h"
 #include "ChunkedTileMap.h"
+#include "Structures/SHoodSet.h"
 
 #include "raymath.h"
 
@@ -100,3 +102,48 @@ internal float Distance(float x0, float y0, float x1, float y1)
 //		}
 //	}
 //}
+
+void
+IsInCone(SList<Vector2i>* tilesInLos, Vector2 line0, Vector2 line1)
+{
+	ChunkedTileMap* tilemap = &GetGame()->World.ChunkedTileMap;
+	for (uint32_t i = 0; i < tilesInLos->Count; ++i)
+	{
+		Vector2i tile = tilesInLos->Memory[i];
+		float dot0 = Vector2DotProduct(line0, tile.AsVec2());
+		float dot1 = Vector2DotProduct(line1, tile.AsVec2());
+		if (dot0 > 0 && dot1 < 0)
+		{
+			CTileMap::SetVisible(tilemap, tile);
+		}
+	}
+}
+
+void GetTilesInLOS(SHoodSet<Vector2i>* tiles, Vector2i pos, float distance, float fov)
+{
+	Player* player = GetClientPlayer();
+	float playerAngleRadians = GetRadiansFromDirection(player->LookDirection);
+	float coneFov = (fov * DEG2RAD) / 2.0f;
+	float x = (float)pos.x + HALF_TILE_SIZE;
+	float y = (float)pos.y + HALF_TILE_SIZE;
+	float startAngle = 0.0f;
+	float endAngle = coneFov;
+
+	int rayResolution = 32;
+	for (int i = 0; i < rayResolution; ++i)
+	{
+		float t = Lerp(startAngle, endAngle, (float)i / (float)rayResolution);
+		float x0 = cosf(playerAngleRadians + t);
+		float y0 = sinf(playerAngleRadians + t);
+		float x1 = cosf(playerAngleRadians - t);
+		float y1 = sinf(playerAngleRadians - t);
+
+		float xPos0 = x + x0 * distance;
+		float yPos0 = y + y0 * distance;
+		float xPos1 = x + x1 * distance;
+		float yPos1 = y + y1 * distance;
+
+		//Raytrace2DInt(tileMap, x, y, xPos0, yPos0, LOSRayHit);
+		//Raytrace2DInt(tileMap, x, y, xPos1, yPos1, LOSRayHit);
+	}
+}

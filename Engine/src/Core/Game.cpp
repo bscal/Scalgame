@@ -314,7 +314,7 @@ SAPI void GameApplication::Run()
 		
 		Game->LightingRenderer.Draw();
 		
-		//Game->Renderer.PostProcess(Game, Game->Renderer.WorldTexture, Game->LightingRenderer.LightingTexture);
+		Game->Renderer.PostProcess(Game, Game->Renderer.WorldTexture, Game->LightingRenderer.LightingTexture);
 
 		// ***************
 		// Draws to buffer
@@ -331,12 +331,12 @@ SAPI void GameApplication::Run()
 		SetShaderValueTexture(Game->Renderer.LitShader, Game->Renderer.UniformLightMapLoc, Game->LightingRenderer.LightingTexture.texture);
 		DrawTexturePro(Game->Renderer.WorldTexture.texture, srcRect, dstRect, { 0 }, 0.0f, WHITE);
 
+		Game->Renderer.DrawBloom(dstRect);
+
 		rlPopMatrix();
 
 		EndMode2D();
 		EndShaderMode();
-
-
 
 		UpdateWorldTime = GetTime() - updateWorldStart;
 
@@ -363,7 +363,7 @@ GameUpdate(Game* game, GameApplication* gameApp)
 
 	Vector2i playerPos = GetClientPlayer()->Transform.TilePos;
 	CTileMap::SetVisible(&game->World.ChunkedTileMap, playerPos);
-	for (int i = 0; i < sizeof(Vec2i_NEIGHTBORS); ++i)
+	for (int i = 0; i < ArrayLength(Vec2i_NEIGHTBORS); ++i)
 	{
 		Vector2i pos = Vec2i_NEIGHTBORS[i].Add(playerPos);
 		CTileMap::SetVisible(&game->World.ChunkedTileMap, pos);

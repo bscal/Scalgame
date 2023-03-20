@@ -38,14 +38,14 @@ struct DefaultEquals
 	}
 };
 
-inline constexpr uint64_t
+inline uint64_t
 SStringHash(const SString* key)
 {
 	const uint8_t* const data = (const uint8_t* const)key->Data();
 	return FNVHash64(data, key->Length);
 }
 
-inline constexpr uint64_t
+inline uint64_t
 SStringViewHash(const SStringView* key)
 {
 	const uint8_t* const data = (const uint8_t* const)key->Str;
@@ -54,7 +54,7 @@ SStringViewHash(const SStringView* key)
 
 struct Vector2iHasher
 {
-	inline constexpr size_t operator()(const Vector2i* v) const
+	inline size_t operator()(const Vector2i* v) const
 	{
 		return FNVHash64((const uint8_t*)v, sizeof(Vector2i));
 	}
@@ -67,7 +67,7 @@ inline bool Vector2iEqualsFunc(const Vector2i* lhs, const Vector2i* rhs) noexcep
 
 struct Vector2iEquals
 {
-	inline constexpr bool operator()(const Vector2i* lhs, const Vector2i* rhs) const noexcept
+	inline bool operator()(const Vector2i* lhs, const Vector2i* rhs) const noexcept
 	{
 		return lhs->Equals(*rhs);
 	}

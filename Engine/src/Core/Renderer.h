@@ -89,15 +89,17 @@ struct Renderer
 
 	void PostProcess(Game* game, const RenderTexture2D& worldTexture,
 		const RenderTexture2D& lightingTexture) const;
+
+	void DrawBloom(Rectangle dest);
 };
 
-void 
-DrawTextureProF(Texture2D texture, Rectangle source, Rectangle dest,
-	Vector2 origin, float rotation, Vector4 tint);
+void
+SDrawTextureProF(const Texture2D& texture, Rectangle source, const Rectangle& dest,
+	Vector2 origin, float rotation, const Vector4& tint);
 
 void 
-SDrawTextureProF(const Texture2D* texture, Rectangle source,
-	Rectangle dest, Vector4 tint);
+SDrawTextureF(const Texture2D& texture, const Rectangle& source,
+	const Rectangle& dest, const Vector4& tint);
 
 void 
 SDrawRectangleProF(Rectangle rec, Vector2 origin, float rotation, Vector4 color);

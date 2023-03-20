@@ -340,7 +340,8 @@ UpdateTileMap(ChunkedTileMap* tilemap, TileMapRenderer* tilemapRenderer)
 				tilemapRenderer->Tiles[index].y = tile->TexY;
 				tilemapRenderer->Tiles[index].HasCeiling = tile->HasCeiling;
 				// See SetVisible()
-				//tilemapRenderer->Tiles[index].LOS = (uint8_t)tile->LOS;
+				if (GetGame()->DebugDisableDarkess)
+					tilemapRenderer->Tiles[index].LOS = 1;
 			}
 			else
 			{
