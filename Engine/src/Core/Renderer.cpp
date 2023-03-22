@@ -58,6 +58,8 @@ void Renderer::Free()
 void Renderer::PostProcess(Game* game, const RenderTexture2D& worldTexture,
 	const RenderTexture2D& lightingTexture) const
 {
+	PROFILE_BEGIN_EX("Renderer::PostProcess");
+
 	float screenW = (float)GetScreenWidth();
 	float screenH = (float)GetScreenHeight();
 	Rectangle srcRect = { 0.0f, 0.0f, (float)lightingTexture.texture.width, -(float)lightingTexture.texture.height};
@@ -75,6 +77,8 @@ void Renderer::PostProcess(Game* game, const RenderTexture2D& worldTexture,
 
 	// Blur pass
 	BlurShader.Draw(EffectTextureTwo.texture);
+
+	PROFILE_END();
 }
 
 void Renderer::DrawBloom(Rectangle dest)
@@ -185,6 +189,7 @@ void TileMapRenderer::Free()
 
 void TileMapRenderer::Draw()
 {
+	PROFILE_BEGIN_EX("TileMapRenderer::Draw");
 	UpdateTexture(TileDataTexture.texture, Tiles.data());
 
 	SMemSet(Tiles.data(), 0, sizeof(Tiles[0]) * Tiles.size());
@@ -203,6 +208,7 @@ void TileMapRenderer::Draw()
 
 	EndShaderMode();
 	EndTextureMode();
+	PROFILE_END();
 }
 
 void LightingRenderer::Initialize(Game* game)
@@ -235,6 +241,7 @@ void LightingRenderer::Free()
 
 void LightingRenderer::Draw()
 {
+	PROFILE_BEGIN_EX("LightingRenderer::Draw");
 	Rectangle src;
 	src.x = 0;
 	src.y = 0;
@@ -275,6 +282,7 @@ void LightingRenderer::Draw()
 	EndShaderMode();
 
 	EndTextureMode();
+	PROFILE_END();
 }
 
 void

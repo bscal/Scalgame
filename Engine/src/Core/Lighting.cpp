@@ -105,7 +105,7 @@ void LightsUpdate(Game* game)
 
 	ChunkedTileMap* tilemap = &game->World.ChunkedTileMap;
 
-
+	PROFILE_BEGIN_EX("LightsUpdate_ComputePlayerLOS");
 	if (CTileMap::IsTileInBounds(tilemap, originTile))
 	{
 #if ENABLE_CONE_FOV
@@ -121,6 +121,7 @@ void LightsUpdate(Game* game)
 		}
 #endif
 	}
+	PROFILE_END();
 
 	for (int i = 0; i < State.Lights.Count; ++i)
 	{
@@ -145,17 +146,13 @@ void LightsUpdate(Game* game)
 		Vector2i lightTilePos = Vec2fToVec2i(State.UpdatingLights[i].Pos);
 		if (!TileInsideCullRect(lightTilePos)) continue;
 
-		PROFILE_BEGIN_EX("UpdatingLights::SMemSet");
 		SMemSet(State.CheckedTiles.data(), 0, State.Size);
-		PROFILE_END();
 
-		PROFILE_BEGIN_EX("UpdatingLights::Update");
 		State.UpdatingLights[i].Update(game);
 		const UpdatingLight& light = State.UpdatingLights[i];
 		LightsUpdateTileColorTile({ lightTilePos.x, lightTilePos.y }, 0.0f, light);
-		PROFILE_END();
 
-		PROFILE_BEGIN_EX("UpdatingLights::ComputeLoop");
+		PROFILE_BEGIN_EX("LightsUpdate_UpdatingLightsComputeLoop");
 		for (uint8_t octant = 0; octant < 8; ++octant)
 		{
 			ComputeLightShadowCast(tilemap, light, octant, lightTilePos,
@@ -169,9 +166,11 @@ void LightsUpdate(Game* game)
 
 internal bool BlocksLight(ChunkedTileMap* tilemap, int x, int y, Vector2i origin, uint8_t octant)
 {
+	PROFILE_BEGIN();
 	Vector2i newPos = origin;
 	newPos.x += x * TranslationTable[octant][0] + y * TranslationTable[octant][1];
 	newPos.y += x * TranslationTable[octant][2] + y * TranslationTable[octant][3];
+	PROFILE_END();
 	return CTileMap::BlocksLight(tilemap, newPos);
 }
 
@@ -438,6 +437,7 @@ ComputeLightShadowCast(ChunkedTileMap* tilemap, const Light& light,
 void
 LightsUpdateTileColor(int index, float distance, const Light& light)
 {
+	PROFILE_BEGIN();
 	SASSERT(index >= 0);
 	SASSERT(index < CULL_TOTAL_TILES);
 
@@ -451,15 +451,18 @@ LightsUpdateTileColor(int index, float distance, const Light& light)
 	GetGame()->LightingRenderer.Tiles[index].x += (float)light.Color.r * inverse * attenuation;
 	GetGame()->LightingRenderer.Tiles[index].y += (float)light.Color.g * inverse * attenuation;
 	GetGame()->LightingRenderer.Tiles[index].z += (float)light.Color.b * inverse * attenuation;
+	PROFILE_END();
 }
 
 void
 LightsUpdateTileColorTile(Vector2i tileCoord, float distance, const Light& light)
 {
+	PROFILE_BEGIN();
 	TileCoord coord = WorldTileToCullTile(tileCoord);
 	int index = coord.x + coord.y * CULL_WIDTH_TILES;
 	constexpr float inverse = 1.0f / 255.0f;
 	GetGame()->LightingRenderer.Tiles[index].x += (float)light.Color.r * inverse;
 	GetGame()->LightingRenderer.Tiles[index].y += (float)light.Color.g * inverse;
 	GetGame()->LightingRenderer.Tiles[index].z += (float)light.Color.b * inverse;
+	PROFILE_END();
 }

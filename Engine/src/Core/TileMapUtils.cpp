@@ -147,3 +147,63 @@ void GetTilesInLOS(SHoodSet<Vector2i>* tiles, Vector2i pos, float distance, floa
 		//Raytrace2DInt(tileMap, x, y, xPos1, yPos1, LOSRayHit);
 	}
 }
+
+//void Raytrace2D(float x0, float y0, float x1, float y1, bool* values)
+//{
+//	float dx = fabsf(x1 - x0);
+//	float dy = fabsf(y1 - y0);
+//	int x = (int)floorf(x0);
+//	int y = (int)floorf(y0);
+//	int n = 1;
+//	int xInc;
+//	int yInc;
+//	float error;
+//	if (dx == 0)
+//	{
+//		xInc = 0;
+//		error = INFINITY;
+//	} else if (x1 > x0)
+//	{
+//		xInc = 1;
+//		n += (int)floorf(x1) - x;
+//		error = (floorf(x0) + 1 - x0) * dy;
+//	} else
+//	{
+//		xInc = -1;
+//		n += x - (int)floorf(x1);
+//		error = (x0 - floorf(x0)) * dy;
+//	}
+//
+//	if (dy == 0)
+//	{
+//		yInc = 0;
+//		error -= INFINITY;
+//	} else if (y1 > y0)
+//	{
+//		yInc = 1;
+//		n += (int)floorf(y1) - y;
+//		error -= (floorf(y0) + 1 - y0) * dx;
+//	} else
+//	{
+//		yInc = -1;
+//		n += y - (int)floorf(y1);
+//		error -= (y0 - floorf(y0)) * dx;
+//	}
+//
+//	for (; n > 0; --n)
+//	{
+//		// TODO CHANGE 64
+//		if (IsInBounds(x, y, 64, 64))
+//			values[x + y * 64] = true;
+//
+//		if (error > 0.0f)
+//		{
+//			y += yInc;
+//			error -= dx;
+//		} else
+//		{
+//			x += xInc;
+//			error += dy;
+//		}
+//	}
+//}

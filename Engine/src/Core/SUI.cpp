@@ -38,6 +38,7 @@ bool InitializeUI(UIState* state, GameApplication* gameApp)
 
 void UpdateUI(UIState* state)
 {
+	PROFILE_BEGIN();
 	SASSERT_MSG(state->Ctx.memory.needed < state->Ctx.memory.size, 
 		"UI needed memory is larger then memory allocated!");
 
@@ -52,11 +53,14 @@ void UpdateUI(UIState* state)
 		DrawDebugPanel(state);
 
 	DrawConsole(state);
+	PROFILE_END();
 }
 
 void DrawUI(UIState* state)
 {
+	PROFILE_BEGIN();
 	DrawNuklear(&state->Ctx);
+	PROFILE_END();
 }
 
 internal nk_colorf 

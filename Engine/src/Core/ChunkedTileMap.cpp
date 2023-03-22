@@ -321,6 +321,7 @@ CheckChunksInLOS(ChunkedTileMap* tilemap)
 internal void
 UpdateTileMap(ChunkedTileMap* tilemap, TileMapRenderer* tilemapRenderer)
 {
+	PROFILE_BEGIN();
 	Vector2i offset = GetGameApp()->CullXYTiles;
 	for (int y = 0; y < CULL_HEIGHT_TILES; ++y)
 	{
@@ -348,7 +349,8 @@ UpdateTileMap(ChunkedTileMap* tilemap, TileMapRenderer* tilemapRenderer)
 				tilemapRenderer->Tiles[index] = {};
 			}
 		}
-	}	
+	}
+	PROFILE_END();
 }
 
 }

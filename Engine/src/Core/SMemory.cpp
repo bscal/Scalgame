@@ -238,20 +238,24 @@ uint64_t SMemGetAllocated()
 
 void* operator new(size_t sz)
 {
-    return SMemAlloc(sz);
+    SLOG_INFO("[ Memory ] " "new called, size %u", sz);
+    return malloc(sz);
 }
 
 void* operator new[](size_t sz)
 {
-    return SMemAlloc(sz);
+    SLOG_INFO("[ Memory ] " "new[] called, size %u", sz);
+    return malloc(sz);
 }
 
 void operator delete(void* ptr) noexcept
 {
-    SMemFree(ptr);
+    SLOG_INFO("[ Memory ] " "delete called");
+    free(ptr);
 }
 
 void operator delete[](void* ptr) noexcept
 {
-    SMemFree(ptr);
+     SLOG_INFO("[ Memory ] " "delete[] called");
+    free(ptr);
 }

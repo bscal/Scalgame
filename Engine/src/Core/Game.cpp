@@ -14,6 +14,8 @@
 #include "Structures/STable.h"
 #include "Structures/SHoodTable.h"
 
+#include "WickedEngine/Jobs.h"
+
 #include "raymath.h"
 #include "rlgl.h"
 
@@ -51,6 +53,12 @@ SAPI bool GameApplication::Start()
 
 	GameAppPtr = this;
 
+	static int test = 5;
+	wi::jobsystem::Initialize(8);
+	wi::jobsystem::context ctx = {};
+	std::function<void(wi::jobsystem::JobArgs)> cb = [](wi::jobsystem::JobArgs job) { test = 10; };
+	wi::jobsystem::Execute(ctx, cb);
+
 	Game = (struct Game*)SAlloc(SAllocator::Game, sizeof(struct Game), MemoryTag::Game);
 	bool didGameInit = GameInitialize(Game, this);
 	SASSERT(didGameInit);
@@ -80,6 +88,9 @@ SAPI bool GameApplication::Start()
 
 	double initEnd = GetTime() - initStart;
 	SLOG_INFO("[ Init ] Initialized Success. Took %f second", initEnd);
+
+	wi::jobsystem::Wait(ctx);
+	SLOG_INFO("COMPLETED! %d", test);
 
 	return IsInitialized;
 }
@@ -116,6 +127,8 @@ internal bool GameInitialize(Game* game, GameApplication* gameApp)
 
 internal void GameLoad(Game* game, GameApplication* gameApp)
 {
+	PROFILE_BEGIN();
+
 	// TODO world loading / world settings
 	WorldInitialize(&game->World, gameApp);
 
@@ -157,6 +170,8 @@ internal void GameLoad(Game* game, GameApplication* gameApp)
 	SASSERT(getRat->ShouldRemove);
 
 	WorldLoad(&game->World, game);
+	
+	PROFILE_END();
 }
 
 SAPI void GameApplication::Run()
@@ -376,6 +391,7 @@ GameUpdate(Game* game, GameApplication* gameApp)
 
 internal void GameUpdateCamera(Game* game, GameApplication* gameApp)
 {
+	PROFILE_BEGIN();
 	// Handle Camera Move
 	if (!game->IsFreeCam)
 	{
@@ -403,11 +419,14 @@ internal void GameUpdateCamera(Game* game, GameApplication* gameApp)
 	gameApp->UpdateRect.y = gameApp->ScreenXY.y - halfUpdatePadding;
 	gameApp->UpdateRect.width = SCREEN_WIDTH + fullUpdatePadding;
 	gameApp->UpdateRect.height = SCREEN_HEIGHT + fullUpdatePadding;
+	PROFILE_END();
 }
 
 internal void GameLateUpdate(Game* game)
 {
+	PROFILE_BEGIN();
 	WorldLateUpdate(&game->World, game);
+	PROFILE_END();
 }
 
 SAPI void GameApplication::Shutdown()
