@@ -7,6 +7,9 @@
 #define RMEM_IMPLEMENTATION
 #include "rmem/rmem.h"
 
+#include <rpmalloc.h>
+//#include <rpnew.h>
+
 #include <stdlib.h>
 
 #if 0
@@ -44,6 +47,8 @@ SMemInitialize(GameApplication* gameApp,
 
     gameApp->TemporaryMemory = CreateBiStackFromBuffer(memoryLocation + GameMemSize, TemporaryMemSize);
     SASSERT(gameApp->TemporaryMemory.mem);
+
+    int status = rpmalloc_initialize();
 
     // Sets Raylibs RL memory allocator functions
     // Raylib usually doesnt use too much memory,

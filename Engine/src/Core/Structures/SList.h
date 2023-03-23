@@ -37,6 +37,9 @@ struct SList
 	const T& operator[](size_t i) const { SASSERT(i < Count); return Memory[i]; }
 	T& operator[](size_t i) { SASSERT(i < Count); return Memory[i]; }
 
+	T* begin() { return &Memory[0]; }
+	T* end() { return &Memory[LastIndex()]; }
+
 	bool Contains(const T* value) const;
 	int64_t Find(const T* value) const;
 	inline void Clear();

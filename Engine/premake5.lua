@@ -12,7 +12,8 @@ project "Engine"
         "src/**.cpp",
         "src/**.h",
         "src/**.hpp",
-        "src/**.c"
+        "src/**.c",
+        "vendor/rpmalloc/rpmalloc/*.c",
     }
 
     defines
@@ -24,7 +25,8 @@ project "Engine"
     {
         "src/",
         "vendor/",
-        "vendor/raylib/src"
+        "vendor/raylib/src",
+        "vendor/rpmalloc/rpmalloc"
     }
 
     links

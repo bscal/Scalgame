@@ -2,8 +2,8 @@
 
 
 #include "Core/Core.h"
+#include "Core/Structures/SList.h"
 
-#include <vector>
 #include <memory>
 #include <algorithm>
 #include <deque>
@@ -66,7 +66,7 @@ struct InternalState
 	std::condition_variable wakeCondition;
 	std::mutex wakeMutex;
 	std::atomic<uint32_t> nextQueue{ 0 };
-	std::vector<std::thread> threads;
+	SList<std::thread> threads;
 	~InternalState()
 	{
 		alive.store(false); // indicate that new jobs cannot be started from this point
@@ -134,11 +134,13 @@ void Initialize(uint32_t maxThreadCount)
 	// Calculate the actual number of worker threads we want (-1 main thread):
 	internal_state.numThreads = std::min(maxThreadCount, std::max(1u, internal_state.numCores - 1));
 	internal_state.jobQueuePerThread.reset(new JobQueue[internal_state.numThreads]);
-	internal_state.threads.reserve(internal_state.numThreads);
+	//internal_state.threads.reserve(internal_state.numThreads);
+	internal_state.threads.Reserve(internal_state.numThreads);
 
 	for (uint32_t threadID = 0; threadID < internal_state.numThreads; ++threadID)
 	{
-		internal_state.threads.emplace_back([threadID]
+		std::thread* thread = internal_state.threads.PushNew();
+		*thread = std::thread(std::move([threadID]
 			{
 
 				while (internal_state.alive.load())
@@ -150,11 +152,23 @@ void Initialize(uint32_t maxThreadCount)
 					internal_state.wakeCondition.wait(lock);
 				}
 
-			});
-		std::thread& worker = internal_state.threads.back();
+			}));
+
+		//std::thread* thread = internal_state.threads.PushNew();
+		//internal_state.threads.emplace_back([threadID]
+		//	{
+		//		while (internal_state.alive.load())
+		//		{
+		//			work(threadID);
+		//			// finished with jobs, put to sleep
+		//			std::unique_lock<std::mutex> lock(internal_state.wakeMutex);
+		//			internal_state.wakeCondition.wait(lock);
+		//		}
+		//	});
+		//std::thread& worker = internal_state.threads.back();
 
 		#ifdef _WIN32
-		InitThread(worker.native_handle(), threadID);
+		InitThread(thread->native_handle(), threadID);
 		#elif defined(PLATFORM_LINUX)
 		#define handle_error_en(en, msg) \
                do { errno = en; perror(msg); } while (0)
