@@ -45,6 +45,8 @@ static constexpr const char* MemoryTagStrings[(uint8_t)MemoryTag::MaxTags] =
 void
 SMemInitialize(GameApplication* gameApp, size_t gameMemorySize, size_t tempMemorySize);
 
+void SMemFree();
+
 
 void* SMemAlloc(size_t size);
 void* SMemRealloc(void* block, size_t size);

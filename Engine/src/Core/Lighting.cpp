@@ -128,7 +128,7 @@ void LightsUpdate(Game* game)
 		const Light& light = State.Lights[i];
 
 		// FIXME: dont render lights off screen, should add buffer
-		Vector2i lightTilePos = Vec2fToVec2i(light.Pos);
+		Vector2i lightTilePos = Vector2i::FromVec2(light.Pos);
 		if (!TileInsideCullRect(lightTilePos)) continue;
 
 		SMemSet(State.CheckedTiles.data(), 0, State.Size);
@@ -143,7 +143,7 @@ void LightsUpdate(Game* game)
 
 	for (int i = 0; i < State.UpdatingLights.Count; ++i)
 	{
-		Vector2i lightTilePos = Vec2fToVec2i(State.UpdatingLights[i].Pos);
+		Vector2i lightTilePos = Vector2i::FromVec2(State.UpdatingLights[i].Pos);
 		if (!TileInsideCullRect(lightTilePos)) continue;
 
 		SMemSet(State.CheckedTiles.data(), 0, State.Size);

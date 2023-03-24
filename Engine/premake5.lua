@@ -13,7 +13,8 @@ project "Engine"
         "src/**.h",
         "src/**.hpp",
         "src/**.c",
-        "vendor/rpmalloc/rpmalloc/*.c",
+        "vendor/rpmalloc/*.c",
+        "vendor/rpmalloc/*.h",
     }
 
     defines

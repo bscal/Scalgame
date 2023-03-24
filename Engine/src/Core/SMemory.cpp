@@ -7,7 +7,7 @@
 #define RMEM_IMPLEMENTATION
 #include "rmem/rmem.h"
 
-#include <rpmalloc.h>
+#include <rpmalloc/rpmalloc.h>
 //#include <rpnew.h>
 
 #include <stdlib.h>
@@ -48,6 +48,7 @@ SMemInitialize(GameApplication* gameApp,
     gameApp->TemporaryMemory = CreateBiStackFromBuffer(memoryLocation + GameMemSize, TemporaryMemSize);
     SASSERT(gameApp->TemporaryMemory.mem);
 
+
     int status = rpmalloc_initialize();
 
     // Sets Raylibs RL memory allocator functions
@@ -72,6 +73,11 @@ SMemInitialize(GameApplication* gameApp,
     MemorySizeData tempFormatSize = FindMemSize(temporaryMemSize);
     SLOG_INFO("[ Memory ] Temporary mem size: %.2f%c. At: 0x%p", tempFormatSize.Size,
         tempFormatSize.BytePrefix, memoryLocation + GameMemSize);
+}
+
+void SMemFree()
+{
+    rpmalloc_finalize();
 }
 
 void* SMemAlloc(size_t size)

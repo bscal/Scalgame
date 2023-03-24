@@ -49,7 +49,7 @@ void Player::HandleInput(Game* game)
 	if (TryMove)
 	{
 		Vector2 result = TileDirToVec2(inputMoveDir);
-		Vector2i moved = Transform.TilePos.Add(Vec2fToVec2i(result));
+		Vector2i moved = Transform.TilePos.Add(Vector2i::FromVec2(result));
 		if (CanMoveToTile(WorldRef, moved))
 		{
 			Transform.TilePos = moved;

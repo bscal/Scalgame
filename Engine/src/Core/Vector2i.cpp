@@ -14,11 +14,6 @@ Vector2i Vec2iUnpackInt64(int64_t packedVector)
     return { x, y };
 }
 
-Vector2i Vec2fToVec2i(Vector2 v)
-{
-    return { (int)v.x, (int)v.y };
-}
-
 Vector2i Vector2i::Add(Vector2i o) const
 {
     return { x + o.x, y + o.y };
@@ -39,26 +34,6 @@ Vector2i Vector2i::SubtractValue(int sub) const
     return { x - sub, y - sub };
 }
 
-// Calculate vector length
-float Vector2i::Magnitude() const
-{
-    float result = sqrtf((float)((x * x) + (y * y)));
-    return result;
-}
-
-// Calculate vector square length
-int Vector2i::SqrMagnitude() const
-{
-    return (x * x) + (y * y);
-}
-
-// Calculate two vectors dot product
-float Vector2i::Dot(Vector2i o) const
-{
-    float result = (float)(x * o.x + y * o.y);
-    return result;
-}
-
 // Calculate distance between two vectors
 float Vector2i::Distance(Vector2i o) const
 {
@@ -67,16 +42,9 @@ float Vector2i::Distance(Vector2i o) const
 }
 
 // Calculate square distance between two vectors
-int Vector2i::SqrDistance(Vector2i o) const
+float Vector2i::SqrDistance(Vector2i o) const
 {
-    int result = ((x - o.x) * (x - o.x) + (y - o.y) * (y - o.y));
-    return result;
-}
-
-// Calculate angle from two vectors
-float Vector2i::Angle(Vector2 o) const
-{
-    float result = atan2f((float)o.y, (float)o.x) - atan2f((float)y, (float)x);
+    float result = (float)((x - o.x) * (x - o.x) + (y - o.y) * (y - o.y));
     return result;
 }
 

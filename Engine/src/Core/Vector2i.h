@@ -3,6 +3,7 @@
 #include "raylib/src/raylib.h"
 
 #include <stdint.h>
+#include <math.h>
 
 struct Vector2i
 {
@@ -16,18 +17,15 @@ struct Vector2i
     Vector2i Scale(int value) const;
     Vector2i Multiply(Vector2i o) const;
     Vector2i Divide(Vector2i o) const;
-    float Magnitude() const;
-    int SqrMagnitude() const;
-    float Dot(Vector2i o) const;
     float Distance(Vector2i o) const;
-    int SqrDistance(Vector2i o) const;
-    float Angle(Vector2 o) const;
+    float SqrDistance(Vector2i o) const;
     Vector2i Negate() const;
     Vector2i Min(Vector2i min) const;
     Vector2i Max(Vector2i max) const;
+    inline bool Equals(Vector2i other) const { return (x == other.x && y == other.y); }
 
     inline Vector2 AsVec2() const { return { (float)x, (float)y }; }
-    inline bool Equals(Vector2i other) const { return (x == other.x && y == other.y); }
+    static inline Vector2i FromVec2(Vector2 v) { return { (int)floorf(v.x), (int)floorf(v.y) }; }
 };
 
 typedef Vector2i ChunkCoord;
@@ -45,6 +43,50 @@ static const Vector2i Vec2i_NEIGHTBORS_CORNERS[8] = {
     Vec2i_UP, { 1, -1 }, Vec2i_LEFT, { 1, 1 },
     Vec2i_DOWN, { -1, 1 }, Vec2i_RIGHT, { -1, -1 } };
 
-int64_t  Vec2iPackInt64(Vector2i v);
+int64_t Vec2iPackInt64(Vector2i v);
 Vector2i Vec2iUnpackInt64(int64_t packedVector);
-Vector2i Vec2fToVec2i(Vector2 v);
+
+static inline bool operator==(Vector2i left, Vector2i right)
+{
+    return left.Equals(right);
+}
+
+static inline Vector2i operator+(Vector2i left, Vector2i right)
+{
+    return left.Add(right);
+}
+
+static inline Vector2i operator-(Vector2i left, Vector2i right)
+{
+    return left.Subtract(right);
+}
+
+static inline Vector2i operator*(Vector2i left, Vector2i right)
+{
+    return left.Multiply(right);
+}
+
+static inline Vector2i operator/(Vector2i left, Vector2i right)
+{
+    return left.Divide(right);
+}
+
+static inline Vector2i operator+=(Vector2i left, Vector2i right)
+{
+    return left = left.Add(right);
+}
+
+static inline Vector2i operator-=(Vector2i left, Vector2i right)
+{
+    return left = left.Subtract(right);
+}
+
+static inline Vector2i operator*=(Vector2i left, Vector2i right)
+{
+    return left = left.Multiply(right);
+}
+
+static inline Vector2i operator/=(Vector2i left, Vector2i right)
+{
+    return left = left.Divide(right);
+}
