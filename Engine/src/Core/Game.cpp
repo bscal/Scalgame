@@ -53,11 +53,7 @@ SAPI bool GameApplication::Start()
 
 	GameAppPtr = this;
 
-	static int test = 5;
 	wi::jobsystem::Initialize(8);
-	wi::jobsystem::context ctx = {};
-	std::function<void(wi::jobsystem::JobArgs)> cb = [](wi::jobsystem::JobArgs job) { test = 10; };
-	wi::jobsystem::Execute(ctx, cb);
 
 	Game = (struct Game*)SAlloc(SAllocator::Game, sizeof(struct Game), MemoryTag::Game);
 	bool didGameInit = GameInitialize(Game, this);
@@ -88,9 +84,6 @@ SAPI bool GameApplication::Start()
 
 	double initEnd = GetTime() - initStart;
 	SLOG_INFO("[ Init ] Initialized Success. Took %f second", initEnd);
-
-	wi::jobsystem::Wait(ctx);
-	SLOG_INFO("COMPLETED! %d", test);
 
 	return IsInitialized;
 }
@@ -376,14 +369,6 @@ GameUpdate(Game* game, GameApplication* gameApp)
 
 	WorldUpdate(&game->World, game);
 
-	Vector2i playerPos = GetClientPlayer()->Transform.TilePos;
-	CTileMap::SetVisible(&game->World.ChunkedTileMap, playerPos);
-	for (int i = 0; i < ArrayLength(Vec2i_NEIGHTBORS); ++i)
-	{
-		Vector2i pos = Vec2i_NEIGHTBORS[i].Add(playerPos);
-		CTileMap::SetVisible(&game->World.ChunkedTileMap, pos);
-	}
-
 	EntityMgrUpdate(&game->EntityMgr, game);
 
 	PROFILE_END();
@@ -392,6 +377,7 @@ GameUpdate(Game* game, GameApplication* gameApp)
 internal void GameUpdateCamera(Game* game, GameApplication* gameApp)
 {
 	PROFILE_BEGIN();
+
 	// Handle Camera Move
 	if (!game->IsFreeCam)
 	{
@@ -419,6 +405,7 @@ internal void GameUpdateCamera(Game* game, GameApplication* gameApp)
 	gameApp->UpdateRect.y = gameApp->ScreenXY.y - halfUpdatePadding;
 	gameApp->UpdateRect.width = SCREEN_WIDTH + fullUpdatePadding;
 	gameApp->UpdateRect.height = SCREEN_HEIGHT + fullUpdatePadding;
+
 	PROFILE_END();
 }
 
@@ -431,14 +418,16 @@ internal void GameLateUpdate(Game* game)
 
 SAPI void GameApplication::Shutdown()
 {
-	ExitProfile();
-
 	GameAppPtr = nullptr;
 	FreeResouces(&Game->Resources);
 	Game->Renderer.Free();
 	Game->TileMapRenderer.Free();
 	Game->LightingRenderer.Free();
 	GameUnload(Game);
+
+
+
+	ExitProfile();
 	CloseWindow();
 }
 

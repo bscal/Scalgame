@@ -87,6 +87,8 @@ global_var constexpr uint8_t OctantsForDirection[4][4] =
 	{ 4, 5, 6, 7 },
 	{ 2, 3, 4, 5 }
 };
+#include "WickedEngine/Jobs.h"
+#include "ThreadedLights.h"
 
 internal void ComputeOctant(ChunkedTileMap* tilemap, uint8_t octant,
 	Vector2i origin, int rangeLimit, int x, Slope top, Slope bottom);
@@ -95,33 +97,60 @@ internal void ComputeLightShadowCast(ChunkedTileMap* tilemap,
 	const Light& light, uint8_t octant, Vector2i origin,
 	int rangeLimit, int x, Slope top, Slope bottom);
 
+
 void LightsUpdate(Game* game)
 {
 	PROFILE_BEGIN();
-	Vector2i originTile = GetClientPlayer()->Transform.TilePos;
+	
+	for (auto& light : State.UpdatingLights)
+	{
+		light.Update(GetGame());
+	}
+
+	wi::jobsystem::context ctx = {};
+	std::function<void(wi::jobsystem::JobArgs)> task = [](wi::jobsystem::JobArgs job)
+	{
+		PROFILE_BEGIN_EX("LightsUpdate::Job_UpdateLights");
+		uint32_t lightIndex = job.jobIndex;
+		SASSERT(lightIndex < State.UpdatingLights.Count);
+		UpdatingLight* light = &State.UpdatingLights[lightIndex];
+		TileCoord coord = WorldTileToCullTile(Vector2i::FromVec2(light->Pos));
+		int index = coord.x + coord.y * CULL_WIDTH_TILES;
+		UpdateLightColor(light, index, 0.0f);
+		ThreadedLightUpdate(light);
+		PROFILE_END();
+	};
+	wi::jobsystem::Dispatch(ctx, State.UpdatingLights.Count, 16, task, 0);
+
+	ChunkedTileMap* tilemap = &game->World.ChunkedTileMap;
+	Vector2i playerPos = GetClientPlayer()->Transform.TilePos;
 	TileDirection playerDir = GetClientPlayer()->LookDirection;
 	Vector2i lookDir = Vec2i_NEIGHTBORS[(uint8_t)playerDir];
 	PlayerLookVector = Vector2Normalize(lookDir.AsVec2());
-
-	ChunkedTileMap* tilemap = &game->World.ChunkedTileMap;
-
-	PROFILE_BEGIN_EX("LightsUpdate_ComputePlayerLOS");
-	if (CTileMap::IsTileInBounds(tilemap, originTile))
+	if (CTileMap::IsTileInBounds(tilemap, playerPos))
 	{
+		// Tiles around player are always visible
+		CTileMap::SetVisible(tilemap, playerPos);
+		for (int i = 0; i < ArrayLength(Vec2i_NEIGHTBORS); ++i)
+		{
+			Vector2i pos = Vec2i_NEIGHTBORS[i].Add(playerPos);
+			CTileMap::SetVisible(tilemap, pos);
+		}
+
+		// FOV visiblity
 #if ENABLE_CONE_FOV
 		for (uint8_t octant = 0; octant < 4; ++octant)
 		{
 			uint8_t trueOctant = OctantsForDirection[(uint8_t)playerDir][octant];
-			ComputeOctant(tilemap, trueOctant, originTile, 16, 1, { 1, 1 }, { 0, 1 });
+			ComputeOctant(tilemap, trueOctant, playerPos, 16, 1, { 1, 1 }, { 0, 1 });
 		}
 #else
 		for (uint8_t octant = 0; octant < 8; ++octant)
 		{
-			ComputeOctant(tilemap, octant, originTile, 16, 1, { 1, 1 }, { 0, 1 });
+			ComputeOctant(tilemap, octant, playerPos, 16, 1, { 1, 1 }, { 0, 1 });
 		}
 #endif
 	}
-	PROFILE_END();
 
 	for (int i = 0; i < State.Lights.Count; ++i)
 	{
@@ -141,42 +170,42 @@ void LightsUpdate(Game* game)
 		}
 	}
 
-	for (int i = 0; i < State.UpdatingLights.Count; ++i)
-	{
-		Vector2i lightTilePos = Vector2i::FromVec2(State.UpdatingLights[i].Pos);
-		if (!TileInsideCullRect(lightTilePos)) continue;
+	//for (int i = 0; i < State.UpdatingLights.Count; ++i)
+	//{
+	//	Vector2i lightTilePos = Vector2i::FromVec2(State.UpdatingLights[i].Pos);
+	//	if (!TileInsideCullRect(lightTilePos)) continue;
+	//	SMemSet(State.CheckedTiles.data(), 0, State.Size);
+	//	State.UpdatingLights[i].Update(game);
+	//	const UpdatingLight& light = State.UpdatingLights[i];
+	//	LightsUpdateTileColorTile({ lightTilePos.x, lightTilePos.y }, 0.0f, light);
+	//	PROFILE_BEGIN_EX("LightsUpdate_UpdatingLightsComputeLoop");
+	//	for (uint8_t octant = 0; octant < 8; ++octant)
+	//	{
+	//		ComputeLightShadowCast(tilemap, light, octant, lightTilePos,
+	//			(int)light.Radius, 1, { 1, 1 }, { 0, 1 });
+	//	}
+	//	PROFILE_END();
+	//}
 
-		SMemSet(State.CheckedTiles.data(), 0, State.Size);
+	PROFILE_BEGIN_EX("LightsUpdate::WaitForLightsJob");
+	// Wait for lighting to finish updating
+	wi::jobsystem::Wait(ctx);
+	PROFILE_END();
 
-		State.UpdatingLights[i].Update(game);
-		const UpdatingLight& light = State.UpdatingLights[i];
-		LightsUpdateTileColorTile({ lightTilePos.x, lightTilePos.y }, 0.0f, light);
-
-		PROFILE_BEGIN_EX("LightsUpdate_UpdatingLightsComputeLoop");
-		for (uint8_t octant = 0; octant < 8; ++octant)
-		{
-			ComputeLightShadowCast(tilemap, light, octant, lightTilePos,
-				(int)light.Radius, 1, { 1, 1 }, { 0, 1 });
-		}
-		PROFILE_END();
-	}
 	PROFILE_END();
 }
 
 
 internal bool BlocksLight(ChunkedTileMap* tilemap, int x, int y, Vector2i origin, uint8_t octant)
 {
-	PROFILE_BEGIN();
 	Vector2i newPos = origin;
 	newPos.x += x * TranslationTable[octant][0] + y * TranslationTable[octant][1];
 	newPos.y += x * TranslationTable[octant][2] + y * TranslationTable[octant][3];
-	PROFILE_END();
 	return CTileMap::BlocksLight(tilemap, newPos);
 }
 
 internal void SetVisible(ChunkedTileMap* tilemap, int x, int y, Vector2i origin, uint8_t octant)
 {
-	PROFILE_BEGIN();
 	Vector2i newPos = origin;
 	newPos.x += x * TranslationTable[octant][0] + y * TranslationTable[octant][1];
 	newPos.y += x * TranslationTable[octant][2] + y * TranslationTable[octant][3];
@@ -190,7 +219,6 @@ internal void SetVisible(ChunkedTileMap* tilemap, int x, int y, Vector2i origin,
 #else
 	CTileMap::SetVisible(tilemap, newPos);
 #endif
-	PROFILE_END();
 }
 
 internal void ComputeOctant(ChunkedTileMap* tilemap, uint8_t octant,

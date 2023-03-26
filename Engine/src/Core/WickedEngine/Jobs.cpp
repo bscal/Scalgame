@@ -4,6 +4,8 @@
 #include "Core/Core.h"
 #include "Core/Structures/SList.h"
 
+//#include "rpmalloc/rpmalloc.h"
+
 #include <memory>
 #include <algorithm>
 #include <deque>
@@ -21,6 +23,33 @@
 
 namespace wi::jobsystem
 {
+
+// Small wrapper around void*
+// Was not sure if this was needed, but wanted to make sure
+// the stack memory for a thread was deallocated is using
+// thread_local;
+struct ThreadArray
+{
+	void* Memory = nullptr;
+
+	inline void Allocate(size_t size)
+	{
+		//SASSERT(rpmalloc_is_thread_initialized());
+		Memory = calloc(1, size);
+		SASSERT(Memory);
+	}
+
+	~ThreadArray()
+	{
+		if (Memory)
+		{
+			free(Memory);
+			Memory = nullptr;
+		}
+	}
+
+};
+
 struct Job
 {
 	std::function<void(JobArgs)> task;
@@ -74,7 +103,7 @@ struct InternalState
 
 		// NOTE: bscal, this was edited, it created a thread to notify_all() but this caused
 		// some error in thread constructor, hopefully removing it is fine
-
+		
 		for (auto& thread : threads)
 		{
 			thread.join();
@@ -96,9 +125,11 @@ inline void work(uint32_t startingQueue)
 			args.groupID = job.groupID;
 			if (job.sharedmemory_size > 0)
 			{
-				thread_local static std::vector<uint8_t> shared_allocation_data;
-				shared_allocation_data.reserve(job.sharedmemory_size);
-				args.sharedmemory = shared_allocation_data.data();
+				// I don't believe this is a memory leak, these theads
+				thread_local static ThreadArray shared_allocation_data = {};
+				shared_allocation_data.Allocate(job.sharedmemory_size);
+				SASSERT(shared_allocation_data.Memory);
+				args.sharedmemory = shared_allocation_data.Memory;
 			}
 			else
 			{

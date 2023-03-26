@@ -6,6 +6,8 @@
 #include "Structures/StaticArray.h"
 #include "Structures/SList.h"
 
+#include <mutex>
+
 struct GameApplication;
 struct Game;
 struct Light;

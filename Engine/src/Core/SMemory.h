@@ -26,6 +26,7 @@ enum class MemoryTag : uint8_t
 	Strings,
 	Game,
 	UI,
+	Profiling,
 
 	MaxTags
 };
@@ -40,6 +41,7 @@ static constexpr const char* MemoryTagStrings[(uint8_t)MemoryTag::MaxTags] =
 	"Strings",
 	"Game",
 	"UI",
+	"Profiling"
 };
 
 void
