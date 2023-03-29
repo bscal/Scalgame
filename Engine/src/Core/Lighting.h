@@ -6,28 +6,17 @@
 #include "Structures/StaticArray.h"
 #include "Structures/SList.h"
 
-#include <mutex>
-
 struct GameApplication;
 struct Game;
+struct ChunkedTileMap;
 struct Light;
 struct UpdatingLight;
-
-struct LightingState
-{
-    SList<Light> Lights;
-    SList<UpdatingLight> UpdatingLights;
-
-    size_t Size = CULL_TOTAL_TILES;
-    StaticArray<bool, CULL_TOTAL_TILES> CheckedTiles;
-};
 
 struct Light
 {
     Vector2 Pos;
-    Color Color;
-    float Intensity;
     float Radius;
+    Color Color;
 };
 
 struct UpdatingLight : public Light
@@ -42,15 +31,38 @@ struct UpdatingLight : public Light
     void Update(Game* game);
 };
 
-void LightsInitialized(GameApplication* gameApp);
-void LightsAdd(const Light& light);
+struct StaticLightType
+{
+    SList<float> LightModifers;
+    int8_t x;
+    int8_t y;
+    uint8_t Width;
+    uint8_t Height;
+};
+
+global_var int STATIC_LIGHT;
+global_var int STATIC_LIGHT_LAVA;
+
+struct StaticLight : public Light
+{
+    uint8_t StaticLightTypeId;
+};
+
+uint32_t RegisterStaticLightType(const StaticLightType* type);
+void DrawStaticLights(ChunkedTileMap* tilemap, const StaticLight* light);
+
+void LightsInitialize(GameApplication* gameApp);
 void LightsAddUpdating(const UpdatingLight& light);
+void LightsAddStatic(const StaticLight& light);
 
 void LightsUpdate(Game* game);
-size_t GetNumOfLights();
+uint32_t GetNumOfLights();
 
 void
-LightsUpdateTileColor(int index, float distance, const Light& light);
+LightsUpdateTileColor(int index, float distance, const Light* light);
 
 void
-LightsUpdateTileColorTile(Vector2i tileCoord, float distance, const Light& light);
+LightsUpdateTileColorTile(Vector2i tileCoord, float distance, const Light* light);
+
+bool FloodFillLighting(ChunkedTileMap* tilemap, Light* light);
+void FloodFillScanline(const Light* light, int x, int y, int width, int height, bool diagonal);//, bool (*test)(int, int)), void (*paint)(int, int))

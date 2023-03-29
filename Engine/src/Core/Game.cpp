@@ -242,9 +242,8 @@ SAPI void GameApplication::Run()
 				{
 					UpdatingLight light = {};
 					light.Pos = clickedTilePos.AsVec2();
-					light.Intensity = 1.0f;
-					light.MinIntensity = 14.0f;
-					light.MaxIntensity = 16.0f;
+					light.MinIntensity = 8.0f;
+					light.MaxIntensity = 9.0f;
 					light.Colors[0] = { 0xab, 0x16, 0x0a, 255 };
 					light.Colors[1] = { 0x89, 0x12, 0x08, 255 };
 					light.Colors[2] = { 0xd6, 0x1b, 0x0c, 255 };
@@ -260,6 +259,19 @@ SAPI void GameApplication::Run()
 				if (CTileMap::IsTileInBounds(&Game->World.ChunkedTileMap, clickedTilePos))
 				{
 					CTileMap::GetTile(&Game->World.ChunkedTileMap, clickedTilePos)->HasCeiling = true;
+				}
+			}
+			if (IsKeyPressed(KEY_SEMICOLON))
+			{
+				Vector2i clickedTilePos = GetTileFromMouse(Game);
+				if (CTileMap::IsTileInBounds(&Game->World.ChunkedTileMap, clickedTilePos))
+				{
+					StaticLight light = {};
+					light.Pos = clickedTilePos.AsVec2();
+					light.Radius = 5.0f;
+					light.Color = BLUE;
+					light.StaticLightTypeId = STATIC_LIGHT;
+					LightsAddStatic(light);
 				}
 			}
 

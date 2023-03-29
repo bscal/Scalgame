@@ -146,24 +146,27 @@ DrawDebugPanel(UIState* state)
 		nk_layout_row_dynamic(ctx, 16, 2);
 
 		nk_label(ctx, "FrameTime:", NK_TEXT_LEFT);
-		nk_label(ctx, TextFormat("% .2f", GetDeltaTime() * 1000.f), NK_TEXT_LEFT);
+		nk_label(ctx, TextFormat("% .3f", GetDeltaTime() * 1000.f), NK_TEXT_LEFT);
 
 		nk_label(ctx, "RenderTime:", NK_TEXT_LEFT);
-		nk_label(ctx, TextFormat("% .2f", GetGameApp()->RenderTime * 1000.0), NK_TEXT_LEFT);
+		nk_label(ctx, TextFormat("% .3f", GetGameApp()->RenderTime * 1000.0), NK_TEXT_LEFT);
 
 		nk_label(ctx, "WorldUpdateTime:", NK_TEXT_LEFT);
-		nk_label(ctx, TextFormat("% .2f", GetGameApp()->UpdateWorldTime * 1000.0), NK_TEXT_LEFT);
+		nk_label(ctx, TextFormat("% .3f", GetGameApp()->UpdateWorldTime * 1000.0), NK_TEXT_LEFT);
 
-		nk_label(ctx, "Chunks(Load/Up):", NK_TEXT_LEFT);
-		nk_label(ctx, TextFormat("%d/%d",
-			GetGameApp()->NumOfLoadedChunks, GetGameApp()->NumOfChunksUpdated), NK_TEXT_LEFT);
+		nk_label(ctx, "DebugLightTime:", NK_TEXT_LEFT);
+		nk_label(ctx, TextFormat("% .3f", GetGameApp()->DebugLightTime * 1000.0), NK_TEXT_LEFT);
 
 		nk_layout_row_dynamic(ctx, 16, 1);
-		const char* lightStr = TextFormat("Lights: %d", GetNumOfLights());
+
+		nk_label(ctx, TextFormat("Chunks(Updated/Total): %d/%d"
+			, GetGameApp()->NumOfChunksUpdated, GetGameApp()->NumOfLoadedChunks), NK_TEXT_LEFT);
+
+		const char* lightStr = TextFormat("Lights(Updated/Total): %d/%d"
+			, GetGameApp()->NumOfLightsUpdated, GetNumOfLights());
 		nk_label(ctx, lightStr, NK_TEXT_LEFT);
 
 		nk_layout_row_dynamic(ctx, 16, 2);
-
 		const char* xy = TextFormat("X: %.1f, Y: %.1f",
 			p->Transform.Pos.x, p->Transform.Pos.y);
 		nk_label(ctx, xy, NK_TEXT_LEFT);
@@ -250,22 +253,13 @@ AppendMemoryUsage(UIState* state)
 	nk_label(&state->Ctx, "--- Memory Usage ---", NK_TEXT_LEFT);
 	size_t freeMem = GetMemPoolFreeMemory(GetGameApp()->GameMemory);
 	MemorySizeData alloced = FindMemSize(SMemGetAllocated());
-	nk_label(&state->Ctx, TextFormat("Allocated: %.2f%cbs", alloced.Size, alloced.BytePrefix), NK_TEXT_LEFT);
+	nk_label(&state->Ctx, TextFormat("Total Allocated Memory: %.2f%cbs", alloced.Size, alloced.BytePrefix), NK_TEXT_LEFT);
 	MemorySizeData game = FindMemSize(GetGameApp()->GameMemory.arena.size - freeMem);
-	nk_label(&state->Ctx, TextFormat("GameAlloc: %.2f%cbs", game.Size, game.BytePrefix), NK_TEXT_LEFT);
+	nk_label(&state->Ctx, TextFormat("Game Memory: %.2f%cbs", game.Size, game.BytePrefix), NK_TEXT_LEFT);
 	MemorySizeData temp = FindMemSize(GetGameApp()->LastFrameTempMemoryUsage);
-	nk_label(&state->Ctx, TextFormat("LastFrameTemp: %.2f%cbs", temp.Size, temp.BytePrefix), NK_TEXT_LEFT);
-
-	nk_label(&state->Ctx, "--- UI Memory ---", NK_TEXT_LEFT);
-	const auto& uiMem = state->Ctx.memory;
-	MemorySizeData memSizeAlloc = FindMemSize(uiMem.allocated);
-	MemorySizeData memSizeNeed = FindMemSize(uiMem.needed);
-	MemorySizeData memSizeSize = FindMemSize(uiMem.size);
-	const char* str = TextFormat("Alloc:%.2f%cbs/Need:%.2f%cbs/Size:%.2f%cbs",
-		memSizeAlloc.Size, memSizeAlloc.BytePrefix,
-		memSizeNeed.Size, memSizeNeed.BytePrefix,
-		memSizeSize.Size, memSizeSize.BytePrefix);
-	nk_label(&state->Ctx, str, NK_TEXT_LEFT);
+	nk_label(&state->Ctx, TextFormat("Temp Memory: %.2f%cbs", temp.Size, temp.BytePrefix), NK_TEXT_LEFT); // last frames
+	MemorySizeData memSizeNeed = FindMemSize(state->Ctx.memory.needed);
+	nk_label(&state->Ctx, TextFormat("UI Memory Needed: %.2f%cbs", memSizeNeed.Size, memSizeNeed.BytePrefix), NK_TEXT_LEFT);
 
 	// Start at 1, we dont allow allocatios to Unknown
 	for (int i = 1; i < (int)MemoryTag::MaxTags; ++i)

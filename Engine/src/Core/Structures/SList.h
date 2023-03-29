@@ -3,6 +3,8 @@
 #include "Core/Core.h"
 #include "Core/SMemory.h"
 
+#include <initializer_list>
+
 #define SLIST_DEFAULT_RESIZE 2
 
 template<typename T>
@@ -37,8 +39,10 @@ struct SList
 	const T& operator[](size_t i) const { SASSERT(i < Count); return Memory[i]; }
 	T& operator[](size_t i) { SASSERT(i < Count); return Memory[i]; }
 
-	T* begin() { return &Memory[0]; }
-	T* end() { return &Memory[LastIndex()]; }
+	T* begin() { return Memory; }
+	T* end() { return Memory + Count; }
+
+	SList<T>& operator=(std::initializer_list<T> list);
 
 	bool Contains(const T* value) const;
 	int64_t Find(const T* value) const;
@@ -281,6 +285,19 @@ inline T* SList<T>::Last() const
 {
 	SASSERT(Memory);
 	return &Memory[LastIndex()];
+}
+
+template<typename T>
+SList<T>& SList<T>::operator=(std::initializer_list<T> list)
+{
+	SASSERT(!IsAllocated());
+	SASSERT(Count == 0);
+
+	Reserve(list.size());
+	SMemCopy(Memory, list.begin(), list.size() * sizeof(T));
+	Count = list.size();
+
+	return *this;
 }
 
 template<typename T>

@@ -22,6 +22,7 @@ enum class ChunkState : uint8_t
 	MaxStates
 };
 
+
 struct TileMapChunk
 {
 	Rectangle Bounds;

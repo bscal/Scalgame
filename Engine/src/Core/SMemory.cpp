@@ -106,7 +106,10 @@ void SMemFree(void* block)
 
 void* SMemTempAlloc(size_t size)
 {
-    return BiStackAllocFront(&GameAppPtr->TemporaryMemory, size);
+    void* ptr = BiStackAllocFront(&GameAppPtr->TemporaryMemory, size);
+    SASSERT(ptr);
+    SMemClear(ptr, size);
+    return ptr;
 }
 
 void SMemTempReset()
@@ -143,6 +146,7 @@ void* SMemAllocTag(int allocator, size_t size, MemoryTag tag)
             SASSERT(false);
         }
     }
+    SASSERT(memory);
     return memory;
 }
 
@@ -166,7 +170,8 @@ void* SMemReallocTag(int allocator, void* ptr, size_t oldSize, size_t newSize, M
         case(SAllocator::Temp):
         {
             memory = SMemTempAlloc(newSize);
-            SMemCopy(memory, ptr, oldSize);
+            if (oldSize > 0)
+                SMemCopy(memory, ptr, oldSize);
             break;
         };
         default:

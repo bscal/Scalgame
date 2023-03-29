@@ -17,7 +17,7 @@ void WorldInitialize(World* world, GameApplication* gameApp)
 
 void WorldLoad(World* world, Game* game)
 {
-	LightsInitialized(GetGameApp());
+	LightsInitialize(GetGameApp());
 
 	// FIXME: find better location for this
 	MapGenInitialize(&game->MapGen, 0);

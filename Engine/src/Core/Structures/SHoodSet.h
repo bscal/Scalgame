@@ -12,8 +12,8 @@ template<typename K>
 struct SHoodSetBucket
 {
 	K Key;
-	uint32_t ProbeLength : 31;
-	uint32_t Occupied : 1;
+	uint32_t ProbeLength;
+	bool Occupied;
 };
 
 template<typename K,
@@ -36,7 +36,7 @@ template<typename K,
 	bool Remove(const K* key);
 
 	inline bool IsAllocated() const { return MemUsed() > 0; };
-	inline size_t Stride() const { return  sizeof(SHoodSetBucket<K>); }
+	inline size_t Stride() const { return sizeof(SHoodSetBucket<K>); }
 	inline size_t MemUsed() const { return Capacity * Stride(); };
 
 	void ToString() const;
@@ -53,35 +53,33 @@ void SHoodSet<K, HashFunc, EqualsFunc>::Reserve(uint32_t capacity)
 
 	if (newCapacity <= Capacity) return;
 
-	uint32_t oldCapacity = Capacity;
-	Capacity = newCapacity;
-	MaxSize = (uint32_t)((float)Capacity / SSET_LOAD_FACTOR);
-
 	if (Size == 0)
 	{
-		size_t oldSize = oldCapacity * Stride();
+		size_t oldSize = Capacity * Stride();
 		size_t newSize = newCapacity * Stride();
 		Buckets = (SHoodSetBucket<K>*)(SRealloc(Allocator, Buckets, oldSize, newSize, MemoryTag::Tables));
+		Capacity = newCapacity;
+		MaxSize = (uint32_t)((float)newCapacity / SSET_LOAD_FACTOR);
 	}
 	else
 	{
 		SHoodSet<K, HashFunc, EqualsFunc> tmpSet = {};
 		tmpSet.Allocator = Allocator;
-		tmpSet.Capacity = Capacity;
-		tmpSet.MaxSize = MaxSize;
-		tmpSet.Buckets = (SHoodSetBucket<K>*)(SAlloc(Allocator, MemSize(), MemoryTag::Tables));
+		tmpSet.Size = 0;
+		tmpSet.Capacity = newCapacity;
+		tmpSet.MaxSize = (uint32_t)((float)newCapacity / SSET_LOAD_FACTOR);
+		tmpSet.Buckets = (SHoodSetBucket<K>*)(SAlloc(Allocator, tmpSet.Capacity * Stride(), MemoryTag::Tables));
 
-		for (uint32_t i = 0; i < oldCapacity; ++i)
+		for (uint32_t i = 0; i < Capacity; ++i)
 		{
-			if (Buckets[i].Occupied == 1)
+			if (Buckets[i].Occupied)
 			{
-				tmpSet.Insert(&Buckets[i].Key);
+				bool b = tmpSet.Insert(&Buckets[i].Key);
 			}
-			if (tmpSet.Size == Size) break;
 		}
 
-		SFree(Allocator, Buckets, oldCapacity * Stride(), MemoryTag::Tables);
 		SASSERT(Size == tmpSet.Size);
+		SFree(Allocator, Buckets, MemUsed(), MemoryTag::Tables);
 		*this = tmpSet;
 	}
 
@@ -103,7 +101,8 @@ void SHoodSet<K, HashFunc, EqualsFunc>::Free()
 template<typename K, typename HashFunc, typename EqualsFunc>
 void SHoodSet<K, HashFunc, EqualsFunc>::Clear()
 {
-	SMemClear(Buckets, MemUsed());
+	if (Buckets)
+		SMemClear(Buckets, MemUsed());
 	Size = 0;
 }
 
@@ -113,7 +112,7 @@ bool SHoodSet<K, HashFunc, EqualsFunc>::Insert(const K* key)
 	SASSERT(key);
 	SASSERT(EqualsFunc{}(key, key))
 
-	if (Size == MaxSize)
+	if (Size >= MaxSize)
 		Reserve(Capacity * SSET_RESIZE);
 
 	SASSERT(IsAllocated());
@@ -129,10 +128,8 @@ bool SHoodSet<K, HashFunc, EqualsFunc>::Insert(const K* key)
 	uint32_t probeLength = 0;
 	while (true)
 	{
-		if (index == Capacity) index = 0; // Wrap
-
 		SHoodSetBucket<K>* bucket = &Buckets[index];
-		if (bucket->Occupied == 1) // Bucket is being used
+		if (bucket->Occupied) // Bucket is being used
 		{
 			// Duplicate
 			if (EqualsFunc{}(&bucket->Key, key)) return false;
@@ -150,6 +147,7 @@ bool SHoodSet<K, HashFunc, EqualsFunc>::Insert(const K* key)
 			}
 			// Continues searching
 			++index;
+			if (index == Capacity) index = 0; // Wrap
 			++probeLength;
 		}
 		else
@@ -170,22 +168,22 @@ template<typename K, typename HashFunc, typename EqualsFunc>
 bool SHoodSet<K, HashFunc, EqualsFunc>::Contains(const K* key) const
 {
 	SASSERT(key);
-	SASSERT(EqualsFunc{}(*key, *key))
-	SASSERT(IsAllocated());
+	SASSERT(EqualsFunc{}(key, key));
+
+	if (Size == 0) return false;
 
 	uint64_t hash = HashFunc{}(key);
 	uint32_t index = hash & ((uint64_t)(Capacity - 1));
 	SASSERT(index < Capacity);
 	while (true)
 	{
-		if (index == Capacity) index = 0; // wraps
-
 		SHoodSetBucket<K>* bucket = &Buckets[index];
 		if (!bucket->Occupied)
 			return false;
 		if (EqualsFunc{}(&bucket->Key, key))
 			return true;
-		++index;
+
+		if (index++ == Capacity) index = 0; // wraps
 	}
 	return false;
 }
@@ -194,7 +192,7 @@ template<typename K, typename HashFunc, typename EqualsFunc>
 bool SHoodSet<K, HashFunc, EqualsFunc>::Remove(const K* key)
 {
 	SASSERT(key);
-	SASSERT(EqualsFunc{}(*key, *key))
+	SASSERT(EqualsFunc{}(key, key))
 	SASSERT(IsAllocated());
 
 	uint64_t hash = HashFunc{}(key);

@@ -25,3 +25,5 @@ struct Resources
 
 bool InitializeResources(Resources* outData);
 void FreeResouces(Resources* resources);
+
+uint32_t LoadComputeShader(const char* file);

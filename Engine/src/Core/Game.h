@@ -62,9 +62,11 @@ struct GameApplication
     
     double RenderTime;
     double UpdateWorldTime;
+    double DebugLightTime;
     size_t LastFrameTempMemoryUsage;
     int NumOfLoadedChunks;
     int NumOfChunksUpdated;
+    int NumOfLightsUpdated;
 
     float Scale;
     

@@ -2,6 +2,8 @@
 
 #include "SString.h"
 
+#include "raylib/src/rlgl.h"
+
 #define NUM_OF_FONT_GLYPHS 95
 
 #define ENTITY_SHEET_PATH TEXTURES_PATH "SpriteSheet.png"
@@ -40,6 +42,25 @@ void FreeResouces(Resources* resources)
     UnloadTexture(resources->TileSheet);
     UnloadTexture(resources->EntitySpriteSheet);
     //resources->Atlas.Unload();
+}
+
+uint32_t LoadComputeShader(const char* file)
+{
+    SASSERT(FileExists(file));
+    uint32_t result = 0;
+    char* fileData = LoadFileText(file);
+    if (fileData)
+    {
+        uint32_t shader = rlCompileShader(fileData, RL_COMPUTE_SHADER);
+        result = rlLoadComputeShaderProgram(shader);
+    }
+    else
+    {
+        SLOG_ERR("Could not find file: %s", file);
+    }
+    SASSERT(result > 0);
+    UnloadFileText(fileData);
+    return result;
 }
 
 internal SDFFont LoadSDFFont()

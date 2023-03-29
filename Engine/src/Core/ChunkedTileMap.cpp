@@ -89,7 +89,7 @@ void Update(ChunkedTileMap* tilemap, Game* game)
 		else
 		{
 			GetGameApp()->NumOfChunksUpdated++;
-			//UpdateChunk(tilemap, chunk, game);
+			UpdateChunk(tilemap, chunk);
 		}
 	}
 
@@ -120,6 +120,11 @@ void LateUpdate(ChunkedTileMap* tilemap, Game* game)
 			}
 		}
 	}
+}
+
+internal void RebuildLights()
+{
+
 }
 
 void 

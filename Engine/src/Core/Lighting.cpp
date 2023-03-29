@@ -1,25 +1,96 @@
 #include "Lighting.h"
 
 #include "Game.h"
+#include "Structures/SHoodSet.h"
+#include "Structures/SLinkedList.h"
 #include "raylib/src/raymath.h"
+
+#include <cmath>
+#include <chrono>
 
 // Most of these implementations for lighting I have gotten
 // from http://www.adammil.net/blog/v125_roguelike_vision_algorithms.html
 
-
-
-global_var LightingState State;
-global_var Vector2 PlayerLookVector;
-
-void LightsInitialized(GameApplication* gameApp)
+struct LightingState
 {
-	State.Lights.Reserve(16);
-	State.UpdatingLights.Reserve(32);
+	SList<UpdatingLight> UpdatingLights;
+	SList<StaticLight> StaticLights;
+	SList<StaticLightType> StaticLightTypes;
+
+	Vector2 PlayerLookVector; // TODO maybe move this
+	uint32_t NumOfLightsUpdatedThisFrame;
+
+	StaticArray<bool, CULL_TOTAL_TILES> CheckedTiles;
+};
+global_var LightingState State;
+
+void LightsInitialize(GameApplication* gameApp)
+{
+	State.UpdatingLights.Reserve(64);
+	State.StaticLights.Reserve(64);
+	State.StaticLightTypes.Reserve(4);
+
+	StaticLightType light = {};
+	light.LightModifers =
+	{
+		0.0f, 0.0f, 0.2f, 0.0f, 0.0f,
+		0.0f, 0.2f, 0.5f, 0.2f, 0.0f,
+		0.2f, 0.5f, 1.0f, 0.5f, 0.2f,
+		0.0f, 0.2f, 0.5f, 0.2f, 0.0f,
+		0.0f, 0.0f, 0.2f, 0.0f, 0.0f
+	};
+	light.x = -2;
+	light.y = -2;
+	light.Width = 5;
+	light.Height = 5;
+	STATIC_LIGHT = RegisterStaticLightType(&light);
+
+	StaticLightType lava = {};
+	lava.LightModifers =
+	{
+		0.4f, 0.4f, 0.4f,
+		0.4f, 0.8f, 0.4f,
+		0.4f, 0.4f, 0.4f,
+	};
+	lava.x = -1;
+	lava.y = -1;
+	lava.Width = 3;
+	lava.Height = 3;
 }
 
-void LightsAdd(const Light& light)
+uint32_t RegisterStaticLightType(const StaticLightType* type)
 {
-	State.Lights.Push(&light);
+	State.StaticLightTypes.Push(type);
+	return State.StaticLightTypes.LastIndex();
+}
+
+void DrawStaticLights(ChunkedTileMap* tilemap, const StaticLight* light)
+{
+	StaticLightType* lightType = &State.StaticLightTypes[light->StaticLightTypeId];
+
+	Vector2i pos = Vector2i::FromVec2(light->Pos);
+	Vector2i startPos = pos + Vector2i{ lightType->x, lightType->y };
+
+	uint8_t i = 0;
+	for (uint8_t y = 0; y < lightType->Height; ++y)
+	{
+		for (uint8_t x = 0; x < lightType->Width; ++x)
+		{
+			Vector2i curWorld = startPos + Vector2i{ x, y };
+			if (CTileMap::IsTileInBounds(tilemap, curWorld))
+			{
+				Vector2i curCull = WorldTileToCullTile(curWorld);
+				size_t index = curCull.x + curCull.y * CULL_WIDTH_TILES;
+				SASSERT(index < CULL_TOTAL_TILES);
+				float multiplier = lightType->LightModifers[i];
+				constexpr float inverse = 1.0f / 255.0f;
+				GetGame()->LightingRenderer.Tiles[index].x += (float)light->Color.r * inverse * multiplier;
+				GetGame()->LightingRenderer.Tiles[index].y += (float)light->Color.g * inverse * multiplier;
+				GetGame()->LightingRenderer.Tiles[index].z += (float)light->Color.b * inverse * multiplier;
+			}
+			++i;
+		}
+	}
 }
 
 void LightsAddUpdating(const UpdatingLight& light)
@@ -27,9 +98,14 @@ void LightsAddUpdating(const UpdatingLight& light)
 	State.UpdatingLights.Push(&light);
 }
 
-size_t GetNumOfLights()
+void LightsAddStatic(const StaticLight& light)
 {
-	return State.Lights.Count + State.UpdatingLights.Count;
+	State.StaticLights.Push(&light);
+}
+
+uint32_t GetNumOfLights()
+{
+	return State.UpdatingLights.Count + State.StaticLights.Count;
 }
 
 void UpdatingLight::Update(Game* game)
@@ -90,43 +166,101 @@ global_var constexpr uint8_t OctantsForDirection[4][4] =
 #include "WickedEngine/Jobs.h"
 #include "ThreadedLights.h"
 
-internal void ComputeOctant(ChunkedTileMap* tilemap, uint8_t octant,
+internal void 
+ComputeOctant(ChunkedTileMap* tilemap, uint8_t octant,
 	Vector2i origin, int rangeLimit, int x, Slope top, Slope bottom);
 
-internal void ComputeLightShadowCast(ChunkedTileMap* tilemap,
-	const Light& light, uint8_t octant, Vector2i origin,
-	int rangeLimit, int x, Slope top, Slope bottom);
+internal void
+ComputeLightShadowCast(ChunkedTileMap* tilemap, const Light* light,
+	uint8_t octant, int x, Slope top, Slope bottom);
 
 
 void LightsUpdate(Game* game)
 {
 	PROFILE_BEGIN();
 	
-	for (auto& light : State.UpdatingLights)
-	{
-		light.Update(GetGame());
-	}
 
-	wi::jobsystem::context ctx = {};
-	std::function<void(wi::jobsystem::JobArgs)> task = [](wi::jobsystem::JobArgs job)
-	{
-		PROFILE_BEGIN_EX("LightsUpdate::Job_UpdateLights");
-		uint32_t lightIndex = job.jobIndex;
-		SASSERT(lightIndex < State.UpdatingLights.Count);
-		UpdatingLight* light = &State.UpdatingLights[lightIndex];
-		TileCoord coord = WorldTileToCullTile(Vector2i::FromVec2(light->Pos));
-		int index = coord.x + coord.y * CULL_WIDTH_TILES;
-		UpdateLightColor(light, index, 0.0f);
-		ThreadedLightUpdate(light);
-		PROFILE_END();
-	};
-	wi::jobsystem::Dispatch(ctx, State.UpdatingLights.Count, 16, task, 0);
+	//wi::jobsystem::context ctx = {};
+	//std::function<void(wi::jobsystem::JobArgs)> task = [](wi::jobsystem::JobArgs job)
+	//{
+	//	PROFILE_BEGIN_EX("LightsUpdate::Job_UpdateLights");
+	//	uint32_t lightIndex = job.jobIndex;
+	//	SASSERT(lightIndex < State.UpdatingLights.Count);
+	//	UpdatingLight* light = &State.UpdatingLights[lightIndex];
+	//	TileCoord coord = WorldTileToCullTile(Vector2i::FromVec2(light->Pos));
+	//	int index = coord.x + coord.y * CULL_WIDTH_TILES;
+	//	UpdateLightColor(light, index, 0.0f);
+	//	ThreadedLightUpdate(light);
+	//	PROFILE_END();
+	//};
+	//wi::jobsystem::Dispatch(ctx, State.UpdatingLights.Count, 16, task, 0);
 
 	ChunkedTileMap* tilemap = &game->World.ChunkedTileMap;
 	Vector2i playerPos = GetClientPlayer()->Transform.TilePos;
 	TileDirection playerDir = GetClientPlayer()->LookDirection;
 	Vector2i lookDir = Vec2i_NEIGHTBORS[(uint8_t)playerDir];
-	PlayerLookVector = Vector2Normalize(lookDir.AsVec2());
+	State.PlayerLookVector = Vector2Normalize(lookDir.AsVec2());
+
+
+	//std::chrono::milliseconds interval(1000);
+	//std::chrono::milliseconds num_elements_per_frame(500);
+
+	//auto start_time = std::chrono::high_resolution_clock::now();
+	//int num_frames = 0;
+
+	//while (true)
+	//{
+	//	auto current_time = std::chrono::high_resolution_clock::now();
+	//	auto elapsed_time = std::chrono::duration_cast<std::chrono::milliseconds>(current_time - start_time);
+
+	//	if (elapsed_time >= interval)
+	//	{
+	//		start_time = current_time;
+	//		int start_index = num_frames * num_elements_per_frame.count() / interval.count();
+	//		int end_index = (num_frames + 1) * num_elements_per_frame.count() / interval.count();
+
+	//		for (int i = start_index; i < end_index && i < State.UpdatingLights.Count; i++)
+	//		{
+	//			UpdatingLight* light = &State.UpdatingLights[i];
+	//			light->Update(game);
+
+	//		}
+
+	//		num_frames++;
+	//	}
+
+	//	if (num_frames * num_elements_per_frame.count() / interval.count() >= State.UpdatingLights.Count)
+	//	{
+	//		break;
+	//	}
+	//}
+
+	GetGameApp()->NumOfLightsUpdated = 0;
+	
+	double start = GetTime();
+	for (uint32_t i = 0; i < State.UpdatingLights.Count; ++i)
+	{
+		UpdatingLight* light = &State.UpdatingLights[i];
+		if (!TileInsideCullRect(Vector2i::FromVec2(light->Pos))) continue;
+		light->Update(game);
+		//FloodFillLighting(tilemap, light);
+		SMemSet(State.CheckedTiles.data(), 0, ArrayLength(State.CheckedTiles));
+		LightsUpdateTileColorTile(Vector2i::FromVec2(light->Pos), 1.0, light);
+		for (uint8_t octant = 0; octant < 8; ++octant)
+		{
+			ComputeLightShadowCast(tilemap, light, octant, 1, { 1, 1 }, { 0, 1 });
+		}
+		++GetGameApp()->NumOfLightsUpdated;
+	}
+	GetGameApp()->DebugLightTime = GetTime() - start;
+
+	for (uint32_t i = 0; i < State.StaticLights.Count; ++i)
+	{
+		StaticLight* light = &State.StaticLights[i];
+		DrawStaticLights(tilemap, light);
+		++GetGameApp()->NumOfLightsUpdated;
+	}
+
 	if (CTileMap::IsTileInBounds(tilemap, playerPos))
 	{
 		// Tiles around player are always visible
@@ -152,23 +286,23 @@ void LightsUpdate(Game* game)
 #endif
 	}
 
-	for (int i = 0; i < State.Lights.Count; ++i)
-	{
-		const Light& light = State.Lights[i];
+	//for (int i = 0; i < State.Lights.Count; ++i)
+	//{
+	//	const Light& light = State.Lights[i];
 
-		// FIXME: dont render lights off screen, should add buffer
-		Vector2i lightTilePos = Vector2i::FromVec2(light.Pos);
-		if (!TileInsideCullRect(lightTilePos)) continue;
+	//	// FIXME: dont render lights off screen, should add buffer
+	//	Vector2i lightTilePos = Vector2i::FromVec2(light.Pos);
+	//	if (!TileInsideCullRect(lightTilePos)) continue;
 
-		SMemSet(State.CheckedTiles.data(), 0, State.Size);
+	//	SMemSet(State.CheckedTiles.data(), 0, State.Size);
 
-		LightsUpdateTileColorTile({ lightTilePos.x, lightTilePos.y }, 0.0f, light);
-		for (uint8_t octant = 0; octant < 8; ++octant)
-		{
-			ComputeLightShadowCast(tilemap, light, octant, lightTilePos,
-				(int)light.Radius, 1, { 1, 1 }, { 0, 1 });
-		}
-	}
+	//	LightsUpdateTileColorTile({ lightTilePos.x, lightTilePos.y }, 0.0f, light);
+	//	for (uint8_t octant = 0; octant < 8; ++octant)
+	//	{
+	//		ComputeLightShadowCast(tilemap, light, octant, lightTilePos,
+	//			(int)light.Radius, 1, { 1, 1 }, { 0, 1 });
+	//	}
+	//}
 
 	//for (int i = 0; i < State.UpdatingLights.Count; ++i)
 	//{
@@ -187,10 +321,10 @@ void LightsUpdate(Game* game)
 	//	PROFILE_END();
 	//}
 
-	PROFILE_BEGIN_EX("LightsUpdate::WaitForLightsJob");
-	// Wait for lighting to finish updating
-	wi::jobsystem::Wait(ctx);
-	PROFILE_END();
+	//PROFILE_BEGIN_EX("LightsUpdate::WaitForLightsJob");
+	//// Wait for lighting to finish updating
+	//wi::jobsystem::Wait(ctx);
+	//PROFILE_END();
 
 	PROFILE_END();
 }
@@ -213,7 +347,7 @@ internal void SetVisible(ChunkedTileMap* tilemap, int x, int y, Vector2i origin,
 	constexpr float coneFov = (80.0f * DEG2RAD);
 	Vector2i length = newPos.Subtract(GetClientPlayer()->Transform.TilePos);
 	
-	float dot = Vector2LineAngle(PlayerLookVector, Vector2Normalize(length.AsVec2()));
+	float dot = Vector2LineAngle(State.PlayerLookVector, Vector2Normalize(length.AsVec2()));
 	if (dot < coneFov)
 		CTileMap::SetVisible(tilemap, newPos);
 #else
@@ -400,10 +534,11 @@ internal void ComputeOctant(ChunkedTileMap* tilemap, uint8_t octant,
 }
 
 internal void 
-ComputeLightShadowCast(ChunkedTileMap* tilemap, const Light& light,
-	uint8_t octant, Vector2i origin, int rangeLimit, int x,
-	Slope top, Slope bottom)
+ComputeLightShadowCast(ChunkedTileMap* tilemap, const Light* light,
+	uint8_t octant, int x, Slope top, Slope bottom)
 {
+	Vector2i origin = Vector2i::FromVec2(light->Pos);
+	int rangeLimit = (int)light->Radius;
 	for (; x <= rangeLimit; ++x) // rangeLimit < 0 || x <= rangeLimit
 	{
 		// compute the Y coordinates where the top vector leaves the column (on the right) and where the bottom vector
@@ -447,7 +582,7 @@ ComputeLightShadowCast(ChunkedTileMap* tilemap, const Light& light,
 					{                  // adjust the bottom vector upwards and continue processing it in the next column.
 						Slope newBottom = { y * 2 + 1, x * 2 - 1 }; // (x*2-1, y*2+1) is a vector to the top-left of the opaque tile
 						if (!inRange || y == bottomY) { bottom = newBottom; break; } // don't recurse unless we have to
-						else ComputeLightShadowCast(tilemap, light, octant, origin, rangeLimit, x + 1, top, newBottom);
+						else ComputeLightShadowCast(tilemap, light, octant, x + 1, top, newBottom);
 					}
 					wasOpaque = 1;
 				}
@@ -463,9 +598,8 @@ ComputeLightShadowCast(ChunkedTileMap* tilemap, const Light& light,
 }
 
 void
-LightsUpdateTileColor(int index, float distance, const Light& light)
+LightsUpdateTileColor(int index, float distance, const Light* light)
 {
-	PROFILE_BEGIN();
 	SASSERT(index >= 0);
 	SASSERT(index < CULL_TOTAL_TILES);
 
@@ -476,21 +610,199 @@ LightsUpdateTileColor(int index, float distance, const Light& light)
 	float attenuation = 1.0f / (1.0f + a * distance + b * distance * distance);
 	
 	constexpr float inverse = 1.0f / 255.0f;
-	GetGame()->LightingRenderer.Tiles[index].x += (float)light.Color.r * inverse * attenuation;
-	GetGame()->LightingRenderer.Tiles[index].y += (float)light.Color.g * inverse * attenuation;
-	GetGame()->LightingRenderer.Tiles[index].z += (float)light.Color.b * inverse * attenuation;
-	PROFILE_END();
+	GetGame()->LightingRenderer.Tiles[index].x += (float)light->Color.r * inverse * attenuation;
+	GetGame()->LightingRenderer.Tiles[index].y += (float)light->Color.g * inverse * attenuation;
+	GetGame()->LightingRenderer.Tiles[index].z += (float)light->Color.b * inverse * attenuation;
 }
 
 void
-LightsUpdateTileColorTile(Vector2i tileCoord, float distance, const Light& light)
+LightsUpdateTileColorTile(Vector2i tileCoord, float distance, const Light* light)
 {
-	PROFILE_BEGIN();
 	TileCoord coord = WorldTileToCullTile(tileCoord);
 	int index = coord.x + coord.y * CULL_WIDTH_TILES;
+	const float a = 0.0f;
+	const float b = 0.1f;
+	float attenuation = 1.0f / (1.0f + a * distance + b * distance * distance);
 	constexpr float inverse = 1.0f / 255.0f;
-	GetGame()->LightingRenderer.Tiles[index].x += (float)light.Color.r * inverse;
-	GetGame()->LightingRenderer.Tiles[index].y += (float)light.Color.g * inverse;
-	GetGame()->LightingRenderer.Tiles[index].z += (float)light.Color.b * inverse;
-	PROFILE_END();
+	GetGame()->LightingRenderer.Tiles[index].x += (float)light->Color.r * inverse * attenuation;
+	GetGame()->LightingRenderer.Tiles[index].y += (float)light->Color.g * inverse * attenuation;
+	GetGame()->LightingRenderer.Tiles[index].z += (float)light->Color.b * inverse * attenuation;
+}
+
+internal inline bool BlocksLight(ChunkedTileMap* tilemap, Vector2i pos)
+{
+	return (!CTileMap::IsTileInBounds(tilemap, pos) || CTileMap::BlocksLight(tilemap, pos));
+}
+
+bool FloodFillLighting(ChunkedTileMap* tilemap, Light* light)
+{
+	SASSERT(tilemap);
+	SASSERT(light);
+
+	Vector2i pos = Vector2i::FromVec2(light->Pos);
+	
+
+	SHoodSet<Vector2i, Vector2iHasher, Vector2iEquals> visited = {};
+	visited.Allocator = SAllocator::Temp;
+	int str = (int)light->Radius * 2;
+	visited.Reserve(str * str);
+
+	SLinkedList<Vector2i> stack = {};
+	stack.Allocator = SAllocator::Temp;
+
+	LightsUpdateTileColorTile(pos, 1.0, light);
+
+	stack.Push(&pos);
+	while (stack.Peek())
+	{
+		Vector2i cur = stack.PopValue();
+		for (int i = 0; i < ArrayLength(Vec2i_NEIGHTBORS); ++i)
+		{
+			Vector2i next = cur + Vec2i_NEIGHTBORS[i];
+			if (visited.Contains(&next)) continue;
+			visited.Insert(&next);
+
+			float dist = Vector2Distance(pos.AsVec2(), next.AsVec2());
+			if (dist <= light->Radius)
+			{
+				LightsUpdateTileColorTile(next, dist, light);
+				if (BlocksLight(tilemap, next)) continue;
+				else stack.Push(&next);
+			}
+		}
+	}
+	return true;
+}
+
+union FloodFillData
+{
+	struct
+	{
+		int XMin;
+		int XMax;
+		int Y;
+		int UpOrDown;
+		int ExtendLeft;
+		int ExtendRight;
+
+	};
+	int r[6];
+};
+
+
+
+internal inline bool test(const Light* light, int x, int y)
+{
+	ChunkedTileMap* tilemap = &GetGame()->World.ChunkedTileMap;
+	if (CTileMap::BlocksLight(tilemap, { x, y })) return false;
+	float distance = Vector2Distance(light->Pos, { (float)x, (float)y });
+	return distance < light->Radius;
+}
+
+internal inline void paint(const Light* light, int x, int y)
+{
+	//ChunkedTileMap* tilemap = &GetGame()->World.ChunkedTileMap;
+	LightsUpdateTileColorTile({ x, y }, 1.0, light);
+	//CTileMap::LightsUpdateTileColorTile(tilemap, { x, y });
+}
+
+void FloodFillScanline(const Light* light, int x, int y, int width, int height, bool diagonal)//, bool (*test)(int, int)), void (*paint)(int, int))
+{
+	// xMin, xMax, y, down[true] / up[false], extendLeft, extendRight
+	SLinkedList<FloodFillData> ranges = {};
+	ranges.Allocator = SAllocator::Temp;
+
+	FloodFillData data = { x, x, y, 0, 1, 1 };
+	ranges.Push(&data);
+
+	paint(light, x, y);
+	int i = 0;
+	while (ranges.HasNext())
+	{
+		i++;
+		data = ranges.PopValue();
+		bool down = data.r[3] == 1;
+		bool up = data.r[3] == 0;
+
+		int startX = x - light->Radius;
+		int startY = y - light->Radius;
+
+		// extendLeft
+		int minX = data.r[0];
+		int y = data.r[2];
+		if (data.r[4])
+		{
+			while (minX > startX && test(light, minX - 1, y))
+			{
+				minX--;
+				paint(light, minX, y);
+			}
+		}
+		int maxX = data.r[1];
+		// extendRight
+		if (data.r[5])
+		{
+			while (maxX < width - 1 && test(light, maxX + 1, y))
+			{
+				maxX++;
+				paint(light, maxX, y);
+			}
+		}
+
+		if (diagonal)
+		{
+			// extend range looked at for next lines
+			if (minX > 0) minX--;
+			if (maxX < width - 1) maxX++;
+		}
+		else
+		{
+			// extend range ignored from previous line
+			data.r[0]--;
+			data.r[1]++;
+		}
+
+		auto addNextLine = [&](int newY, bool isNext, bool downwards)
+		{
+			int rMinX = minX;
+			bool inRange = false;
+			for (int x = minX; x <= maxX; x++)
+			{
+				// skip testing, if testing previous line within previous range
+				bool empty = (isNext || (x<data.r[0] || x>data.r[1])) && test(light, x, newY);
+				if (!inRange && empty)
+				{
+					rMinX = x;
+					inRange = true;
+				}
+				else if (inRange && !empty)
+				{
+					FloodFillData push = { rMinX, x - 1, newY, downwards ? 1 : 0 , rMinX == minX ? 1 : 0 , 0 };
+					ranges.Push(&push);
+					inRange = false;
+				}
+				if (inRange)
+				{
+					paint(light, x, newY);
+				}
+				// skip
+				if (!isNext && x == data.r[0])
+				{
+					x = data.r[1];
+				}
+			}
+			if (inRange)
+			{
+				FloodFillData push = { rMinX, maxX - 1, newY, downwards ? 1 : 0 , rMinX == minX ? 1 : 0 , 1 };
+				ranges.Push(&push);
+			}
+		};
+
+		if (y < height)
+			addNextLine(y + 1, !up, true);
+
+		if (y > startY)
+			addNextLine(y - 1, !down, false);
+	}
+	SLOG_INFO("%d", i);
 }

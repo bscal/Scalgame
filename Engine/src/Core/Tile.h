@@ -26,6 +26,15 @@ struct TileSheetCoord
 #define GOLD_ORE TileSheetCoord{10, 0}
 #define DARK_STONE_FLOOR TileSheetCoord{14, 0}
 #define ROCKY_WALL TileSheetCoord{20, 2}
+#define LAVA_0 TileSheetCoord{31,54}
+
+struct TileColor
+{
+	uint16_t r;
+	uint16_t g;
+	uint16_t b;
+	uint16_t a;
+};
 
 struct Tile
 {
