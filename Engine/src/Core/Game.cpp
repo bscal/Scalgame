@@ -8,11 +8,13 @@
 #include "SUI.h"
 #include "SUtil.h"
 #include "SString.h"
+#include "Entity.h"
 
 #include "Structures/SArray.h"
 #include "Structures/SList.h"
 #include "Structures/STable.h"
 #include "Structures/SHoodTable.h"
+#include "Structures/SparseSet.h"
 
 #include "WickedEngine/Jobs.h"
 
@@ -53,6 +55,8 @@ SAPI bool GameApplication::Start()
 
 	GameAppPtr = this;
 
+	test();
+
 	wi::jobsystem::Initialize(8);
 
 	Game = (struct Game*)SAlloc(SAllocator::Game, sizeof(struct Game), MemoryTag::Game);
@@ -74,6 +78,7 @@ SAPI bool GameApplication::Start()
 	GAME_TEST(TestEntities);
 	GAME_TEST(TestStringImpls);
 	GAME_TEST(TestSHoodTable);
+	GAME_TEST(TestSparseSet);
 
 	SLOG_INFO("[ Tests ] %d/%d tests passed!", passingTests, totalTests);
 	#endif // SCAL_GAME_TESTS

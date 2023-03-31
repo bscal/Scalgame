@@ -24,9 +24,3 @@ SAPI void ArrayPopAt(SArray* sArray, uint64_t index, void* dest);
 SAPI void* ArrayPeekAt(SArray* sArray, uint64_t index);
 SAPI void ArrayClear(SArray* sArray);
 SAPI bool ArrayRemoveAt(SArray* sArray, uint64_t index);
-
-template<typename T>
-inline T* ArrayIndex(const SArray* sArray, uint64_t index)
-{
-	return &static_cast<T*>(sArray->Memory)[index];
-}

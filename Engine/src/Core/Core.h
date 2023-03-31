@@ -38,10 +38,10 @@ typedef int bool32;
 #define Megabytes(n) (Kilobytes(n) * 1024ULL)
 #define Gigabytes(n) (Megabytes(n) * 1024ULL)
 
-#define BitGet(state, bit) ((state >> bit) & 1U)
-#define BitSet(state, bit) (state | 1U << bit)
-#define BitClear(state, bit) (state & ~(1U << bit))
-#define BitToggle(state, bit) (state ^ 1U << bit)
+#define BitGet(state, bit) ((state >> bit) & 1ULL)
+#define BitSet(state, bit) (state | 1ULL << bit)
+#define BitClear(state, bit) (state & ~(1ULL << bit))
+#define BitToggle(state, bit) (state ^ 1ULL << bit)
 #define BitMask(state, mask) ((state & mask) == mask)
 
 void

@@ -3,54 +3,52 @@
 #include "Core/Core.h"
 #include "Core/SMemory.h"
 
-global_var constexpr size_t WORD_SIZE = sizeof(size_t) * 8;
+//#include <bitset>
+//template <size_t N>
+//using BitArray = std::bitset<N>;
 
+struct BitFlags
+{
+	uint64_t Flag;
+
+	inline bool Get(uint64_t index) const { SASSERT(index < 64); return BitGet(Flag, index); }
+	inline void Set(uint64_t index) { SASSERT(index < 64); BitSet(Flag, index); }
+	inline void Clear(uint64_t index) { SASSERT(index < 64); BitClear(Flag, index); }
+	inline void Toggle(uint64_t index) { SASSERT(index < 64); BitToggle(Flag, index); }
+};
+
+template<size_t N>
 struct BitList
 {
-	SMemAllocator Allocator = SMEM_GAME_ALLOCATOR;
-	uint64_t* Memory;
-	uint32_t Capacity;
-	uint32_t CapacityInBits;
-
-	void Reserve(uint64_t bitsCapacity);
+	uint64_t Data[N];
 
 	bool GetBit(uint64_t bit) const;
 	void SetBit(uint64_t bit);
 	void ClearBit(uint64_t bit);
+
+	inline size_t SizeInBits() const { return N * 64; }
 };
 
-void BitList::Reserve(uint64_t bitsCapacity)
+template<size_t N>
+bool BitList<N>::GetBit(uint64_t bit) const
 {
-	uint32_t capacity = bitsCapacity / WORD_SIZE;
-	if (capacity > Capacity)
-	{
-		Capacity = capacity;
-		CapacityInBits = Capacity * sizeof(size_t) * 8;
-		size_t size = Capacity * sizeof(uint64_t);
-		void* tmp = Allocator.Alloc(size);
-		SMemCopy(tmp, Memory, size);
-		Allocator.Free(Memory);
-		Memory = (uint64_t*)tmp;
-	}
-}
-
-bool BitList::GetBit(uint64_t bit) const
-{
-	uint32_t index = bit / CapacityInBits;
-	uint32_t indexBit = bit % CapacityInBits;
+	uint64_t index = bit / SizeInBits();
+	uint64_t indexBit = bit % SizeInBits();
 	return BitGet(Memory[index], indexBit);
 }
 
-void BitList::SetBit(uint64_t bit)
+template<size_t N>
+void BitList<N>::SetBit(uint64_t bit)
 {
-	uint32_t index = bit / CapacityInBits;
-	uint32_t indexBit = bit % CapacityInBits;
+	uint64_t index = bit / SizeInBits();
+	uint64_t indexBit = bit % SizeInBits();
 	BitSet(Memory[index], indexBit);
 }
 
-void BitList::ClearBit(uint64_t bit)
+template<size_t N>
+void BitList<N>::ClearBit(uint64_t bit)
 {
-	uint32_t index = bit / CapacityInBits;
-	uint32_t indexBit = bit % CapacityInBits;
+	uint64_t index = bit / SizeInBits();
+	uint64_t indexBit = bit % SizeInBits();
 	BitClear(Memory[index], indexBit);
 }
