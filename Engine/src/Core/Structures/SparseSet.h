@@ -93,6 +93,9 @@ struct SparseSet
 	uint32_t Remove(uint32_t id)
 	{
 		SASSERT(id <= MaxValue);
+
+		if (id < SparseCapacity) return SPARE_EMPTY_ID;
+
 		BoundsCheck(Sparse, SparseCapacity, id);
 		uint32_t index = Sparse[id];
 		if (index < Count - 1)

@@ -3,7 +3,6 @@
 #include "Core.h"
 #include "Renderer.h"
 #include "ResourceManager.h"
-#include "EntityMgr.h"
 #include "CommandMgr.h"
 #include "World.h"
 #include "SMemory.h"
