@@ -94,7 +94,8 @@ struct SparseSet
 	{
 		SASSERT(id <= MaxValue);
 
-		if (id < SparseCapacity) return SPARE_EMPTY_ID;
+		if (id >= SparseCapacity) 
+			return SPARE_EMPTY_ID;
 
 		BoundsCheck(Sparse, SparseCapacity, id);
 		uint32_t index = Sparse[id];

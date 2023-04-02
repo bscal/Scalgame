@@ -104,9 +104,9 @@ struct InternalState
 		// NOTE: bscal, this was edited, it created a thread to notify_all() but this caused
 		// some error in thread constructor, hopefully removing it is fine
 		
-		for (auto& thread : threads)
+		for (int i = 0; i < threads.Count; ++i)
 		{
-			thread.join();
+			threads[i].join();
 		}
 	}
 } static internal_state;

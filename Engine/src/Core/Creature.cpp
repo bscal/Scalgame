@@ -4,19 +4,10 @@
 #include "ResourceManager.h"
 #include "Player.h"
 #include "World.h"
-#include "EntityMgr.h"
 #include "SMemory.h"
 
 #include <raymath.h>
 
-constexpr global_var Vector2
-PlayerFowardVectors[TileDirection::MaxDirs] =
-{ { 0.0f, -1.0f }, { 1.0f, 0.0f }, { 0.0f, 1.0f }, { -1.0f, 0.0f } };
-
-Vector2 TileDirToVec2(TileDirection dir)
-{
-	return PlayerFowardVectors[dir];
-}
 
 internal Rectangle RectToTextCoords(const Texture2D& texture, 
 	const Rectangle& rect)

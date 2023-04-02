@@ -196,8 +196,8 @@ void LightsUpdate(Game* game)
 	//wi::jobsystem::Dispatch(ctx, State.UpdatingLights.Count, 16, task, 0);
 
 	ChunkedTileMap* tilemap = &game->World.ChunkedTileMap;
-	Vector2i playerPos = GetClientPlayer()->Transform.TilePos;
-	TileDirection playerDir = GetClientPlayer()->LookDirection;
+	Vector2i playerPos = GetClientPlayer()->Transform.TilePos();
+	TileDirection playerDir = GetClientPlayer()->Transform.LookDir;
 	Vector2i lookDir = Vec2i_NEIGHTBORS[(uint8_t)playerDir];
 	State.PlayerLookVector = Vector2Normalize(lookDir.AsVec2());
 
@@ -345,7 +345,7 @@ internal void SetVisible(ChunkedTileMap* tilemap, int x, int y, Vector2i origin,
 	newPos.y += x * TranslationTable[octant][2] + y * TranslationTable[octant][3];
 #if ENABLE_CONE_FOV
 	constexpr float coneFov = (80.0f * DEG2RAD);
-	Vector2i length = newPos.Subtract(GetClientPlayer()->Transform.TilePos);
+	Vector2i length = newPos.Subtract(GetClientPlayer()->Transform.TilePos());
 	
 	float dot = Vector2LineAngle(State.PlayerLookVector, Vector2Normalize(length.AsVec2()));
 	if (dot < coneFov)

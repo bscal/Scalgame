@@ -7,6 +7,7 @@
 #include "World.h"
 #include "SMemory.h"
 #include "SRandom.h"
+#include "Entity.h"
 
 #include "MapGeneration/MapGeneration.h"
 
@@ -25,7 +26,9 @@ struct Game
     LightingRenderer LightingRenderer;
     
     CommandMgr CommandMgr;
-    struct EntityMgr EntityMgr;
+
+    EntityMgr EntityMgr;
+    ComponentMgr ComponentMgr;
 
     MapGenerator MapGen;
     World World;
@@ -83,7 +86,7 @@ struct GameApplication
 
 GameApplication* GetGameApp();
 Game* GetGame();
-Player* GetClientPlayer();
+PlayerEntity* GetClientPlayer();
 
 void SetCameraPosition(Game* game, Vector3 pos);
 void SetCameraDistance(GameApplication* gameApp, float zoom);

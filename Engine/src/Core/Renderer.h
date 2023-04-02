@@ -3,6 +3,8 @@
 #include "Core.h"
 #include "Globals.h"
 #include "Tile.h"
+#include "Entity.h"
+
 #include "Structures/StaticArray.h"
 
 struct Game;
@@ -100,6 +102,9 @@ SDrawTextureProF(const Texture2D& texture, Rectangle source, const Rectangle& de
 void 
 SDrawTextureF(const Texture2D& texture, const Rectangle& source,
 	const Rectangle& dest, const Vector4& tint);
+
+void
+SDrawSprite(const Texture2D* texture, const TransformComponent* transform, Renderable renderable);
 
 void 
 SDrawRectangleProF(Rectangle rec, Vector2 origin, float rotation, Vector4 color);

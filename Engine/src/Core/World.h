@@ -2,8 +2,6 @@
 
 #include "Core.h"
 #include "ChunkedTileMap.h"
-#include "EntityMgr.h"
-#include "Creature.h"
 
 #include "Structures/SList.h"
 

@@ -48,16 +48,16 @@ void Player::HandleInput(Game* game)
 
 	if (TryMove)
 	{
-		Vector2 result = TileDirToVec2(inputMoveDir);
-		Vector2i moved = Transform.TilePos.Add(Vector2i::FromVec2(result));
-		if (CanMoveToTile(WorldRef, moved))
-		{
-			Transform.TilePos = moved;
-			Transform.Pos.x = (float)moved.x * 16.0f;
-			Transform.Pos.y = (float)moved.y * 16.0f;
-			HasMoved = true;
-			game->CameraLerpTime = 0.0f;
-		}
-		LookDirection = inputMoveDir;
+		//Vector2 result = Vec2i_NEIGHTBORS[(uint8_t)inputMoveDir].M;
+		//Vector2i moved = Transform.TilePos.Add(Vector2i::FromVec2(result));
+		//if (CanMoveToTile(WorldRef, moved))
+		//{
+		//	Transform.TilePos = moved;
+		//	Transform.Pos.x = (float)moved.x * 16.0f;
+		//	Transform.Pos.y = (float)moved.y * 16.0f;
+		//	HasMoved = true;
+		//	game->CameraLerpTime = 0.0f;
+		//}
+		//LookDirection = inputMoveDir;
 	}
 }

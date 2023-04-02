@@ -25,23 +25,6 @@ struct Game;
 struct World;
 struct Player;
 
-enum TileDirection : uint8_t
-{
-	North,
-	East,
-	South,
-	West,
-	MaxDirs
-};
-
-constexpr global_var float
-TileDirectionToTurns[TileDirection::MaxDirs] = { TAO * 0.75f, 0.0f, TAO * 0.25f, TAO * 0.5f };
-
-inline constexpr float GetRadiansFromDirection(TileDirection dir)
-{
-	return TileDirectionToTurns[dir];
-}
-
 struct EntityTransform
 {
 	Vector2 Pos;
@@ -74,5 +57,3 @@ struct SCreature
 
 	void SetTilePos(Vector2i tilePos);
 };
-
-Vector2 TileDirToVec2(TileDirection dir);

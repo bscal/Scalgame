@@ -31,15 +31,15 @@ struct Vector2i
 typedef Vector2i ChunkCoord;
 typedef Vector2i TileCoord;
 
-static const Vector2i Vec2i_ONE     = { 1, 1 };
-static const Vector2i Vec2i_ZERO    = { 0, 0 };
-static const Vector2i Vec2i_UP      = { 0, -1 };
-static const Vector2i Vec2i_DOWN    = { 0, 1 };
-static const Vector2i Vec2i_LEFT    = { 1, 0 };
-static const Vector2i Vec2i_RIGHT   = { -1, 0 };
+inline const Vector2i Vec2i_ONE     = { 1, 1 };
+inline const Vector2i Vec2i_ZERO    = { 0, 0 };
+inline const Vector2i Vec2i_UP      = { 0, -1 };
+inline const Vector2i Vec2i_DOWN    = { 0, 1 };
+inline const Vector2i Vec2i_LEFT    = { 1, 0 };
+inline const Vector2i Vec2i_RIGHT   = { -1, 0 };
 
-static const Vector2i Vec2i_NEIGHTBORS[4] = { Vec2i_UP, Vec2i_LEFT, Vec2i_DOWN, Vec2i_RIGHT };
-static const Vector2i Vec2i_NEIGHTBORS_CORNERS[8] = {
+inline const Vector2i Vec2i_NEIGHTBORS[4] = { Vec2i_UP, Vec2i_LEFT, Vec2i_DOWN, Vec2i_RIGHT };
+inline const Vector2i Vec2i_NEIGHTBORS_CORNERS[8] = {
     Vec2i_UP, { 1, -1 }, Vec2i_LEFT, { 1, 1 },
     Vec2i_DOWN, { -1, 1 }, Vec2i_RIGHT, { -1, -1 } };
 

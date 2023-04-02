@@ -1,7 +1,7 @@
 #include "Game.h"
 
 #include "Globals.h"
-#include "Creature.h"
+//#include "Creature.h"
 #include "ResourceManager.h"
 #include "Lighting.h"
 #include "SpriteAtlas.h"
@@ -73,7 +73,7 @@ SAPI bool GameApplication::Start()
 
 	GAME_TEST(TestListImpl);
 	GAME_TEST(TestSTable);
-	GAME_TEST(TestEntities);
+	//GAME_TEST(TestEntities);
 	GAME_TEST(TestStringImpls);
 	GAME_TEST(TestSHoodTable);
 	GAME_TEST(TestSparseSet);
@@ -112,8 +112,8 @@ internal bool GameInitialize(Game* game, GameApplication* gameApp)
 	game->TileMapRenderer.Initialize(game);
 	game->LightingRenderer.Initialize(game);
 
+	InitializeEntities(&game->EntityMgr, &game->ComponentMgr);
 	TileMgrInitialize(&game->Resources.TileSheet);
-	EntityMgrInitialize(game);
 
 	game->WorldCamera.zoom = 1.0f;
 	game->ViewCamera.zoom = 1.0f;
@@ -313,6 +313,8 @@ SAPI void GameApplication::Run()
 		Rectangle srcRect = { 0.0f, 0.0f, CULL_WIDTH, -CULL_HEIGHT };
 		Rectangle dstRect = { ScreenXY.x, ScreenXY.y, CULL_WIDTH, CULL_HEIGHT };
 
+		Game->EntityMgr.Player.Update(this);
+
 		CTileMap::Update(&Game->World.ChunkedTileMap, Game);
 
 		Game->TileMapRenderer.Draw();
@@ -330,6 +332,7 @@ SAPI void GameApplication::Run()
 
 		GameUpdate(Game, this);
 		GameLateUpdate(Game);
+		UpdateEntities(&Game->EntityMgr, &Game->ComponentMgr);
 
 		EndMode2D();
 
@@ -386,7 +389,7 @@ GameUpdate(Game* game, GameApplication* gameApp)
 
 	WorldUpdate(&game->World, game);
 
-	EntityMgrUpdate(&game->EntityMgr, game);
+	//EntityMgrUpdate(&game->EntityMgr, game);
 
 	PROFILE_END();
 }
@@ -403,8 +406,8 @@ internal void GameUpdateCamera(Game* game, GameApplication* gameApp)
 
 		Vector2 from = game->WorldCamera.target;
 		Vector2 playerPos;
-		playerPos.x = GetClientPlayer()->Transform.Pos.x + HALF_TILE_SIZE;
-		playerPos.y = GetClientPlayer()->Transform.Pos.y + HALF_TILE_SIZE;
+		playerPos.x = GetClientPlayer()->Transform.Position.x + HALF_TILE_SIZE;
+		playerPos.y = GetClientPlayer()->Transform.Position.y + HALF_TILE_SIZE;
 		game->WorldCamera.target = playerPos;
 		game->ViewCamera.target = Vector2Multiply(game->WorldCamera.target, { GetScale(), GetScale() });
 	}
@@ -466,10 +469,9 @@ Game* GetGame()
 	return GetGameApp()->Game;
 }
 
-Player* GetClientPlayer()
+PlayerEntity* GetClientPlayer()
 {
-	SASSERT(GetGame()->EntityMgr.Players.Count > 0);
-	return GetGame()->EntityMgr.Players.PeekAt(0);
+	return &GetGame()->EntityMgr.Player;
 }
 
 EntityMgr* GetEntityMgr()
@@ -531,7 +533,7 @@ void SetCameraDistance(GameApplication* gameApp, float zoom)
 
 	// NOTE: this is so we dont get weird camera
 	// jerking when we scroll
-	Vector2 playerPos = VecToTileCenter(GetClientPlayer()->Transform.Pos);
+	Vector2 playerPos = VecToTileCenter(GetClientPlayer()->Transform.Position);
 	gameApp->Game->WorldCamera.target = playerPos;
 	Vector2 viewTarget = Vector2Multiply(playerPos, { GetScale(), GetScale() });
 	gameApp->Game->ViewCamera.target = viewTarget;

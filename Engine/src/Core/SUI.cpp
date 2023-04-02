@@ -136,7 +136,7 @@ internal void
 DrawDebugPanel(UIState* state)
 {
 	struct nk_context* ctx = &state->Ctx;
-	const Player* p = GetClientPlayer();
+	const PlayerEntity* p = GetClientPlayer();
 	
 	ctx->style.window.fixed_background.data.color = BG_COLOR;
 	
@@ -167,12 +167,12 @@ DrawDebugPanel(UIState* state)
 		nk_label(ctx, lightStr, NK_TEXT_LEFT);
 
 		nk_layout_row_dynamic(ctx, 16, 2);
-		const char* xy = TextFormat("X: %.1f, Y: %.1f",
-			p->Transform.Pos.x, p->Transform.Pos.y);
+		const char* xy = TextFormat("%s", FMT_VEC2(p->Transform.Position));
 		nk_label(ctx, xy, NK_TEXT_LEFT);
 
-		const char* tileXY = TextFormat("TX: %d, TY: %d",
-			p->Transform.TilePos.x, p->Transform.TilePos.y);
+		Vector2i v = Vector2i::FromVec2(p->Transform.Position);
+		v = v.Divide({ TILE_SIZE, TILE_SIZE });
+		const char* tileXY = TextFormat("%s", FMT_VEC2I(v));
 		nk_label(ctx, tileXY, NK_TEXT_LEFT);
 
 		nk_label(ctx, "Zoom: ", NK_TEXT_LEFT);

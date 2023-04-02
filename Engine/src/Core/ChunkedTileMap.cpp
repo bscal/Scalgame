@@ -61,9 +61,9 @@ void Load(ChunkedTileMap* tilemap)
 void Update(ChunkedTileMap* tilemap, Game* game)
 {
 	PROFILE_BEGIN();
-	const Player* player = GetClientPlayer();
+	const PlayerEntity* player = GetClientPlayer();
 
-	Vector2i playerChunkCoord = TileToChunkCoord(player->Transform.TilePos);
+	Vector2i playerChunkCoord = TileToChunkCoord(player->Transform.TilePos());
 
 	// View distance checks + chunk loading
 	if (player->HasMoved)
@@ -308,7 +308,7 @@ internal void
 CheckChunksInLOS(ChunkedTileMap* tilemap)
 {
 	PROFILE_BEGIN();
-	Vector2i target = GetClientPlayer()->Transform.TilePos;
+	Vector2i target = GetClientPlayer()->Transform.TilePos();
 	Vector2i start = target.Subtract(tilemap->ViewDistance);
 	Vector2i end = target.Add(tilemap->ViewDistance);
 	for (int chunkY = start.y; chunkY <= end.y; ++chunkY)

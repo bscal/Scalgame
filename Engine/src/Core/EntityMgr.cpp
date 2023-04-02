@@ -1,7 +1,6 @@
 #include "EntityMgr.h"
 
 #include "Core.h"
-#include "Game.h"
 #include "SMemory.h"
 
 ComponentMgr::ComponentMgr()
@@ -13,8 +12,8 @@ ComponentMgr::ComponentMgr()
 
 void EntityMgrInitialize(Game* game)
 {
-	game->EntityMgr.Players.Reserve(1);
-	game->EntityMgr.Creatures.Reserve(ESTIMATED_ENTITIES);
+	//game->EntityMgr.Players.Reserve(1);
+	//game->EntityMgr.Creatures.Reserve(ESTIMATED_ENTITIES);
 
 	SLOG_INFO("[ Entity Manager ] Initialized!");
 }

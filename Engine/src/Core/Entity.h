@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core.h"
+#include "Globals.h"
 
 #include "Structures/ComponentArray.h"
 #include "Structures/SHoodSet.h"
@@ -11,13 +12,6 @@
 #define ENT_MAX_COMPONENTS 64
 
 typedef uint32_t Entity;
-
-#define SetId(entity, id) (entity | (0x00ffffff & id))
-#define SetGen(entity, gen) ((entity & 0x00ffffff) | ((uint8_t)gen << 24u))
-#define GetId(entity) (entity & 0x00ffffff)
-#define GetGen(entity) (uint8_t)((entity & 0xff000000) >> 24u)
-#define IncGen(entity) SetGen(entity, GetGen(entity) + 1)
-
 
 global_var inline uint32_t NextId = 0;
 
@@ -30,11 +24,20 @@ struct Component
 template<typename T>
 const uint32_t Component<T>::Id = NextId++;
 
-struct TransformT : Component<TransformT>
+struct TransformComponent : Component<TransformComponent>
 {
 	Vector2 Position;
-	Vector2 Scale;
+	Vector2 Scale = { 1.0f, 1.0f };
 	float Rotation;
+	TileDirection LookDir;
+
+	inline Vector2i TilePos() const 
+	{ 
+		Vector2i v;
+		v.x = (int)floorf(Position.x * INVERSE_TILE_SIZE);
+		v.y = (int)floorf(Position.y * INVERSE_TILE_SIZE);
+		return v;
+	}
 };
 
 struct Actor : Component<Actor>
@@ -51,8 +54,12 @@ struct Renderable : Component<Renderable>
 
 struct PlayerEntity
 {
-	uint32_t Entity;
-	TransformT Transform;
+	uint32_t EntityId;
+	TransformComponent Transform;
+	bool HasMoved;
+
+	void Update(GameApplication* gameApp);
+	void Move(Vector2 to);
 };
 
 struct EntityMgr
@@ -73,7 +80,7 @@ struct EntityMgr
 	bool IsAlive(Entity entityId) const;
 };
 
-struct ComponentsManager
+struct ComponentMgr
 {
 	SList<ComponentArray<void*>*> Components;
 
@@ -85,6 +92,14 @@ struct ComponentsManager
 		componentArray->Initialize(); // Default reserve 1 slot, this is so we never has 
 		Components.EnsureSize(ComponentType::Id + 1);
 		Components[ComponentType::Id] = (ComponentArray<void*>*)componentArray;
+
+		SLOG_INFO("Registered Component: %u", ComponentType::Id);
+	}
+
+	template<typename ComponentType>
+	inline ComponentArray<ComponentType>* GetArray() const
+	{
+		return (ComponentArray<ComponentType>*)Components[ComponentType::Id];
 	}
 
 	template<typename ComponentType>
@@ -96,13 +111,12 @@ struct ComponentsManager
 		using ArrayType = ComponentArray<ComponentType>;
 		ArrayType* componentArray = (ArrayType*)Components[componentId];
 
-		uint32_t id = GetId(entity);
-		ComponentType* component = componentArray->Get(id);
+		ComponentType* component = componentArray->Get(entity);
 		return component;
 	}
 
 	template<typename ComponentType>
-	inline void RemoveComponent(Entity id)
+	inline ComponentType* AddComponent(Entity entity, const ComponentType& component)
 	{
 		uint32_t componentId = ComponentType::Id;
 		SASSERT(componentId < Components.Count);
@@ -110,23 +124,42 @@ struct ComponentsManager
 		using ArrayType = ComponentArray<ComponentType>;
 		ArrayType* componentArray = (ArrayType*)Components[componentId];
 
-		uint32_t id = GetId(entity);
-		componentArray->Remove(id);
+		ComponentType* result = componentArray->Add(entity, component);
+		SLOG_INFO("Added Component(%u) to Entity(%u,%u)", ComponentType::Id, GetId(entity), GetGen(entity));
+		return result;
 	}
 
 	template<typename ComponentType>
-	inline bool HasComponent(Entity id)
+	inline void RemoveComponent(Entity entity)
+	{
+		uint32_t componentId = ComponentType::Id;
+		SASSERT(componentId < Components.Count);
+
+		using ArrayType = ComponentArray<ComponentType>;
+		ArrayType* componentArray = (ArrayType*)Components[componentId];
+
+		componentArray->Remove(entity);
+		SLOG_INFO("Removed Component(%u) to Entity(%u,%u)", ComponentType::Id, GetId(entity), GetGen(entity));
+	}
+
+	template<typename ComponentType>
+	inline bool HasComponent(Entity entity)
 	{
 		uint32_t componentId = ComponentType::Id;
 
 		using ArrayType = ComponentArray<ComponentType>;
 		ArrayType* componentArray = (ArrayType*)Components[componentId];
 
-		uint32_t id = GetId(entity);
-		return componentArray->Contains(id);
+		return componentArray->Contains(entity);
 	}
 
 };
+
+void CreatePlayer(EntityMgr* entityMgr, ComponentMgr* componentMgr);
+void InitializeEntities(EntityMgr* entityMgr, ComponentMgr* componentMgr);
+
+void UpdateEntities(EntityMgr* entityMgr, ComponentMgr* componentMgr);
+
 
 inline bool TestEntityId()
 {
@@ -154,12 +187,6 @@ inline bool TestEntityId()
 
 inline bool TestComponents()
 {
-	ComponentsManager cm = {};
-
-	cm.Register<TransformT>();
-
-	TransformT* transform = cm.GetComponent<TransformT>(0);
-
 	return true;
 }
 

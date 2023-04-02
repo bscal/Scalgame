@@ -39,9 +39,6 @@ struct SList
 	const T& operator[](size_t i) const { SASSERT(i < Count); return Memory[i]; }
 	T& operator[](size_t i) { SASSERT(i < Count); return Memory[i]; }
 
-	T* begin() { return Memory; }
-	T* end() { return Memory + Count; }
-
 	SList<T>& operator=(std::initializer_list<T> list);
 
 	bool Contains(const T* value) const;

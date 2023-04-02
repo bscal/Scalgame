@@ -5,16 +5,6 @@
 
 struct Game;
 
-enum class Direction : uint8_t
-{
-	North,
-	East,
-	South,
-	West,
-
-	MaxDirections
-};
-
 struct Player : public SCreature
 {
 	void InitializePlayer(World* world);

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core/Core.h"
+#include "Core/Globals.h"
 #include "Core/Structures/SList.h";
 #include "Core/Structures/SparseSet.h"
 
@@ -17,17 +18,21 @@ struct ComponentArray
 		Indices.Reserve(0, 1);
 	}
 
-	inline void Add(uint32_t entityId, const T& value)
+	inline T* Add(uint32_t entityId, const T& value)
 	{
-		Values.Push(*value);
-		Indices.Add(entityId);
+		uint32_t id = GetId(entityId);
+		Indices.Add(id);
+		Values.EnsureSize(id + 1);
+		Values[id] = value;
+		return &Values[id];
 	}
 
 	inline void Remove(uint32_t entityId)
 	{
 		SASSERT(Values.IsAllocated());
 		SASSERT(Indices.IsAllocated());
-		uint32_t index = Indices.Remove(entityId);
+		uint32_t id = GetId(entityId);
+		uint32_t index = Indices.Remove(id);
 		if (index != SPARE_EMPTY_ID)
 			Values.RemoveAtFast(index);
 	}
@@ -36,7 +41,8 @@ struct ComponentArray
 	{
 		SASSERT(Values.IsAllocated());
 		SASSERT(Indices.IsAllocated());
-		uint32_t index = Indices.Get(entityId);
+		uint32_t id = GetId(entityId);
+		uint32_t index = Indices.Get(id);
 		if (index == SPARE_EMPTY_ID) return nullptr;
 		return &Values[index];
 	}
@@ -45,7 +51,8 @@ struct ComponentArray
 	{
 		SASSERT(Values.IsAllocated());
 		SASSERT(Indices.IsAllocated());
-		uint32_t index = Indices.Get(entityId);
+		uint32_t id = GetId(entityId);
+		uint32_t index = Indices.Get(id);
 		return (index != SPARE_EMPTY_ID);
 	}
 
