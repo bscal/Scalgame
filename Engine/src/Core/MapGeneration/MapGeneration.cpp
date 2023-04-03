@@ -10,7 +10,7 @@ void MapGenInitialize(MapGenerator* generator, int seed)
 	generator->Noise.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
 }
 
-global_var const TileSheetCoord TILE_IDS[] = { STONE_FLOOR, GOLD_ORE, DARK_STONE_FLOOR, ROCKY_WALL };
+global_var const TileSheetCoord TILE_IDS[] = { STONE_FLOOR, GOLD_ORE, DARK_STONE_FLOOR, ROCKY_WALL, LAVA_0 };
 
 void MapGenGenerateChunk(MapGenerator* generator, ChunkedTileMap* tilemap, TileMapChunk* chunk)
 {

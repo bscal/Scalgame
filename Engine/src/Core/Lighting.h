@@ -50,6 +50,7 @@ struct StaticLight : public Light
 
 uint32_t RegisterStaticLightType(const StaticLightType* type);
 void DrawStaticLights(ChunkedTileMap* tilemap, const StaticLight* light);
+void DrawStaticTileLight(Vector2i tilePos, int staticLightType, Color color);
 
 void LightsInitialize(GameApplication* gameApp);
 void LightsAddUpdating(const UpdatingLight& light);

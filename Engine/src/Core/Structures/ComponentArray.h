@@ -14,7 +14,9 @@ struct ComponentArray
 
 	inline void Initialize()
 	{
+		Values = {};
 		Values.Reserve(1);
+		Indices = {};
 		Indices.Reserve(0, 1);
 	}
 

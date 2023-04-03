@@ -127,45 +127,7 @@ internal void GameLoad(Game* game, GameApplication* gameApp)
 {
 	PROFILE_BEGIN();
 
-	// TODO world loading / world settings
 	WorldInitialize(&game->World, gameApp);
-
-	//Player* player = CreatePlayer(&game->EntityMgr, &game->World);
-	//player->TextureInfo.Rect = PLAYER_SPRITE.TexCoord;
-
-	//Human human = {};
-	//human.Age = 30;
-	//game->EntityMgr.ComponentManager.AddComponent(player, &human);
-
-	//Human* playerHuman = game->EntityMgr.ComponentManager
-	//	.GetComponent<Human>(player, Human::ID);
-
-	//SASSERT(playerHuman);
-	//SASSERT(playerHuman->Age == 30);
-	//SASSERT(playerHuman->EntityId == player->Id);
-
-	//SLOG_INFO("[ WORLD ] players age is %d from componentId: %d",
-	//	playerHuman->Age, playerHuman->ID);
-
-	//game->EntityMgr.ComponentManager.RemoveComponent<Human>(player, Human::ID);
-
-	//Human* playerHuman2 = game->EntityMgr.ComponentManager
-	//	.GetComponent<Human>(player, Human::ID);
-	//SASSERT(!playerHuman2);
-
-
-	//SCreature* rat = CreateCreature(&game->EntityMgr, &game->World);
-	//rat->TextureInfo.Rect = RAT_SPRITE.TexCoord;
-	//rat->SetTilePos({ 5, 5 });
-
-	//MarkEntityForRemove(&game->EntityMgr, rat->Id);
-
-	//SCreature* getRat = (SCreature*)FindEntity(&game->EntityMgr, rat->Id);
-	//SASSERT(getRat);
-	//SASSERT(getRat->ComponentIndex[0] == CREATURE_EMPTY_COMPONENT);
-	//SASSERT(GetEntityId(getRat->Id) == 1);
-	//SASSERT(GetEntityType(getRat->Id) == CREATURE);
-	//SASSERT(getRat->ShouldRemove);
 
 	WorldLoad(&game->World, game);
 	
@@ -313,7 +275,7 @@ SAPI void GameApplication::Run()
 		Rectangle srcRect = { 0.0f, 0.0f, CULL_WIDTH, -CULL_HEIGHT };
 		Rectangle dstRect = { ScreenXY.x, ScreenXY.y, CULL_WIDTH, CULL_HEIGHT };
 
-		Game->EntityMgr.Player.Update(this);
+		Game->EntityMgr.Player.Update();
 
 		CTileMap::Update(&Game->World.ChunkedTileMap, Game);
 
@@ -404,11 +366,7 @@ internal void GameUpdateCamera(Game* game, GameApplication* gameApp)
 		game->CameraLerpTime += GetDeltaTime();
 		if (game->CameraLerpTime > 1.0f) game->CameraLerpTime = 1.0f;
 
-		Vector2 from = game->WorldCamera.target;
-		Vector2 playerPos;
-		playerPos.x = GetClientPlayer()->Transform.Position.x + HALF_TILE_SIZE;
-		playerPos.y = GetClientPlayer()->Transform.Position.y + HALF_TILE_SIZE;
-		game->WorldCamera.target = playerPos;
+		game->WorldCamera.target = Vector2AddValue(GetClientPlayer()->Transform.Position, HALF_TILE_SIZE);
 		game->ViewCamera.target = Vector2Multiply(game->WorldCamera.target, { GetScale(), GetScale() });
 	}
 

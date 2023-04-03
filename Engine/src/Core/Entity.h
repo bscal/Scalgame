@@ -54,11 +54,12 @@ struct Renderable : Component<Renderable>
 
 struct PlayerEntity
 {
-	uint32_t EntityId;
 	TransformComponent Transform;
+	Vector2i TilePos;
+	uint32_t EntityId;
 	bool HasMoved;
 
-	void Update(GameApplication* gameApp);
+	void Update();
 	void Move(Vector2 to);
 };
 
@@ -110,6 +111,7 @@ struct ComponentMgr
 
 		using ArrayType = ComponentArray<ComponentType>;
 		ArrayType* componentArray = (ArrayType*)Components[componentId];
+		SASSERT(componentArray);
 
 		ComponentType* component = componentArray->Get(entity);
 		return component;
@@ -123,6 +125,7 @@ struct ComponentMgr
 
 		using ArrayType = ComponentArray<ComponentType>;
 		ArrayType* componentArray = (ArrayType*)Components[componentId];
+		SASSERT(componentArray);
 
 		ComponentType* result = componentArray->Add(entity, component);
 		SLOG_INFO("Added Component(%u) to Entity(%u,%u)", ComponentType::Id, GetId(entity), GetGen(entity));
@@ -137,6 +140,7 @@ struct ComponentMgr
 
 		using ArrayType = ComponentArray<ComponentType>;
 		ArrayType* componentArray = (ArrayType*)Components[componentId];
+		SASSERT(componentArray);
 
 		componentArray->Remove(entity);
 		SLOG_INFO("Removed Component(%u) to Entity(%u,%u)", ComponentType::Id, GetId(entity), GetGen(entity));
@@ -149,6 +153,7 @@ struct ComponentMgr
 
 		using ArrayType = ComponentArray<ComponentType>;
 		ArrayType* componentArray = (ArrayType*)Components[componentId];
+		SASSERT(componentArray);
 
 		return componentArray->Contains(entity);
 	}

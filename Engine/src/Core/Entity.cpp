@@ -63,49 +63,43 @@ void UpdateEntities(EntityMgr* entityMgr, ComponentMgr* componentMgr)
 	ComponentArray<TransformComponent>* transforms = componentMgr->GetArray<TransformComponent>();
 	
 	ComponentArray<Renderable>* renderables = componentMgr->GetArray<Renderable>();
-	for (uint32_t i = 0; i < renderables->Values.Count; ++i)
+	for (uint32_t i = 0; i < renderables->Indices.Count; ++i)
 	{
 		uint32_t entity = renderables->Indices.Dense[i];
 		Renderable renderable = renderables->Values[i];
 		const TransformComponent* transform = transforms->Get(entity);
-		SASSERT(transform); // TODO
-
-		//Rectangle src = { renderable.x, renderable.y, renderable.Width, renderable.Height };
-		//Rectangle dst = { transform->Position.x, transform->Position.y, renderable.Width, renderable.Height };
-		//DrawTexturePro(spriteTextureSheet, src, dst, {}, 0, WHITE);
+		if (!transform) continue;
 		SDrawSprite(spriteTextureSheet, transform, renderable);
 	}
 
 }
 
-void PlayerEntity::Update(GameApplication* gameApp)
+void PlayerEntity::Update()
 {
 	HasMoved = false;
-
-	bool TryMove = false;
 	TileDirection inputMoveDir;
 	if (IsKeyPressed(KEY_D))
 	{
-		TryMove = true;
+		HasMoved = true;
 		inputMoveDir = TileDirection::East;
 	}
 	else if (IsKeyPressed(KEY_A))
 	{
-		TryMove = true;
+		HasMoved = true;
 		inputMoveDir = TileDirection::West;
 	}
 	else if (IsKeyPressed(KEY_S))
 	{
-		TryMove = true;
+		HasMoved = true;
 		inputMoveDir = TileDirection::South;
 	}
 	else if (IsKeyPressed(KEY_W))
 	{
-		TryMove = true;
+		HasMoved = true;
 		inputMoveDir = TileDirection::North;
 	}
 
-	if (TryMove)
+	if (HasMoved)
 	{
 		Vector2 moveDir = TileDirectionVectors[(uint8_t)inputMoveDir];
 		Vector2 moveAmount = Vector2Scale(moveDir, TILE_SIZE_F);
@@ -114,13 +108,12 @@ void PlayerEntity::Update(GameApplication* gameApp)
 		Vector2i tile = Vector2i::FromVec2(Vector2Scale(movePoint, INVERSE_TILE_SIZE));
 		if (CanMoveToTile(&GetGame()->World, tile))
 		{
+			TilePos = tile;
 			Transform.Position = movePoint;
-			HasMoved = true;
 			GetGame()->CameraLerpTime = 0.0f;
 		}
 		Transform.LookDir = inputMoveDir;
 
-		*gameApp->Game->ComponentMgr.GetComponent<TransformComponent>(EntityId) = Transform;
-
+		*GetGame()->ComponentMgr.GetComponent<TransformComponent>(EntityId) = Transform;
 	}
 }

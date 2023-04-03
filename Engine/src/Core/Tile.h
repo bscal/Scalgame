@@ -1,6 +1,10 @@
 #pragma once
 
 #include "Core.h"
+#include "Globals.h"
+
+
+struct TileData;
 
 enum class TileType : uint8_t
 {
@@ -40,6 +44,8 @@ struct Tile
 {
 	bool IsUsed;
 	TileType Type;
+
+	void(*OnUpdate)(Vector2i, TileData);
 };
 
 #define TILE_SHEET_WIDTH 512
@@ -75,6 +81,7 @@ struct TileData
 bool TileMgrInitialize(const Texture2D* tilesheetTexture);
 
 uint16_t TileMgrRegister(TileSheetCoord coord, TileType type);
+uint16_t TileMgrRegister(TileSheetCoord coord);
 
 struct TileMgr* GetTileMgr();
 

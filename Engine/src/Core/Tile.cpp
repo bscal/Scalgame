@@ -1,5 +1,8 @@
 #include "Tile.h"
 
+#include "Game.h"
+#include "Lighting.h"
+
 global_var struct TileMgr TileMgr;
 
 bool TileMgrInitialize(const Texture2D* tilesheetTexture)
@@ -14,9 +17,23 @@ bool TileMgrInitialize(const Texture2D* tilesheetTexture)
 
 	TileMgrRegister(BLACK_FLOOR, TileType::Solid);
 	TileMgrRegister(STONE_FLOOR, TileType::Floor);
-	TileMgrRegister(GOLD_ORE, TileType::Floor);
+	uint16_t gold = TileMgrRegister(GOLD_ORE, TileType::Floor);
+	TileMgr.Tiles[gold].OnUpdate = [](Vector2i v, TileData data)
+	{
+		if (v == GetClientPlayer()->TilePos)
+		{
+			SLOG_INFO("Player stepped on me!");
+		}
+	};
+
 	TileMgrRegister(DARK_STONE_FLOOR, TileType::Floor);
 	TileMgrRegister(ROCKY_WALL, TileType::Solid);
+
+	uint16_t lava0 = TileMgrRegister(LAVA_0, TileType::Floor);
+	TileMgr.Tiles[lava0].OnUpdate = [](Vector2i v, TileData data)
+	{
+		DrawStaticTileLight(v, STATIC_LIGHT_LAVA, RED);
+	};
 
 	return true;
 }
@@ -25,6 +42,13 @@ struct TileMgr* GetTileMgr() { return &TileMgr; }
 
 uint16_t TileMgrRegister(TileSheetCoord coord, TileType type)
 {
+	uint16_t result = TileMgrRegister(coord);
+	TileMgr.Tiles[result].Type = type;
+	return result;
+}
+
+uint16_t TileMgrRegister(TileSheetCoord coord)
+{
 	SASSERT(coord.x < TILE_SHEET_WIDTH_TILES);
 	SASSERT(coord.y < TILE_SHEET_HEIGHT_TILES);
 
@@ -32,7 +56,6 @@ uint16_t TileMgrRegister(TileSheetCoord coord, TileType type)
 	tileId |= ((uint16_t)coord.y << 8);
 
 	TileMgr.Tiles[tileId].IsUsed = true;
-	TileMgr.Tiles[tileId].Type = type;
 
 	return tileId;
 }

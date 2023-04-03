@@ -9,12 +9,12 @@
 
 #include "Structures/SLinkedList.h"
 
-#include "raymath.h"
+#include "raylib/src/raymath.h"
 
 namespace CTileMap
 {
 
-internal void CheckChunksInLOS(ChunkedTileMap* tilemap);
+internal void CheckChunksInLOS(ChunkedTileMap* tilemap, Vector2i curChunkCoord);
 internal void UpdateTileMap(ChunkedTileMap* tilemap, TileMapRenderer* tilemapRenderer);
 
 internal const char*
@@ -55,7 +55,7 @@ void Free(ChunkedTileMap* tilemap)
 
 void Load(ChunkedTileMap* tilemap)
 {
-	CheckChunksInLOS(tilemap);
+	CheckChunksInLOS(tilemap, { 0, 0 });
 }
 
 void Update(ChunkedTileMap* tilemap, Game* game)
@@ -63,12 +63,13 @@ void Update(ChunkedTileMap* tilemap, Game* game)
 	PROFILE_BEGIN();
 	const PlayerEntity* player = GetClientPlayer();
 
-	Vector2i playerChunkCoord = TileToChunkCoord(player->Transform.TilePos());
+	Vector2i playerTilePos = player->TilePos;
+	Vector2i playerChunkPos = TileToChunkCoord(playerTilePos);
 
 	// View distance checks + chunk loading
 	if (player->HasMoved)
 	{
-		CheckChunksInLOS(tilemap);
+		CheckChunksInLOS(tilemap, playerChunkPos);
 	}
 	
 	UpdateTileMap(tilemap, &game->TileMapRenderer);
@@ -76,7 +77,7 @@ void Update(ChunkedTileMap* tilemap, Game* game)
 	for (uint32_t i = 0; i < tilemap->ChunksList.Count; ++i)
 	{
 		TileMapChunk* chunk = tilemap->ChunksList.PeekAt(i);
-		Vector2i difference = playerChunkCoord.Subtract(chunk->ChunkCoord);
+		Vector2i difference = playerChunkPos.Subtract(chunk->ChunkCoord);
 		int chunkX = labs(difference.x);
 		int chunkY = labs(difference.y);
 
@@ -134,6 +135,7 @@ UpdateChunk(ChunkedTileMap* tilemap, TileMapChunk* chunk)
 
 TileMapChunk* LoadChunk(ChunkedTileMap* tilemap, ChunkCoord coord)
 {
+	if (!IsChunkInBounds(tilemap, coord)) return nullptr;
 	if (IsChunkLoaded(tilemap, coord)) return nullptr;
 
 	TileMapChunk* chunk = tilemap->ChunksList.PushNew();
@@ -305,19 +307,16 @@ bool BlocksLight(ChunkedTileMap* tilemap, TileCoord coord)
 }
 
 internal void
-CheckChunksInLOS(ChunkedTileMap* tilemap)
+CheckChunksInLOS(ChunkedTileMap* tilemap, Vector2i chunkCoord)
 {
 	PROFILE_BEGIN();
-	Vector2i target = GetClientPlayer()->Transform.TilePos();
-	Vector2i start = target.Subtract(tilemap->ViewDistance);
-	Vector2i end = target.Add(tilemap->ViewDistance);
+	Vector2i start = chunkCoord.Subtract(tilemap->ViewDistance);
+	Vector2i end = chunkCoord.Add(tilemap->ViewDistance);
 	for (int chunkY = start.y; chunkY <= end.y; ++chunkY)
 	{
 		for (int chunkX = start.x; chunkX <= end.x; ++chunkX)
 		{
-			ChunkCoord nextChunkCoord = { chunkX, chunkY };
-			if (!IsChunkInBounds(tilemap, nextChunkCoord)) continue;
-			LoadChunk(tilemap, nextChunkCoord);
+			LoadChunk(tilemap, { chunkX, chunkY });
 		}
 	}
 	PROFILE_END();
@@ -328,6 +327,7 @@ UpdateTileMap(ChunkedTileMap* tilemap, TileMapRenderer* tilemapRenderer)
 {
 	PROFILE_BEGIN();
 	Vector2i offset = GetGameApp()->CullXYTiles;
+	size_t idx = 0;
 	for (int y = 0; y < CULL_HEIGHT_TILES; ++y)
 	{
 		for (int x = 0; x < CULL_WIDTH_TILES; ++x)
@@ -337,22 +337,27 @@ UpdateTileMap(ChunkedTileMap* tilemap, TileMapRenderer* tilemapRenderer)
 			coord.x = x + offset.x;
 			coord.y = y + offset.y;
 
-			size_t index = x + y * CULL_WIDTH_TILES;
-			
 			if (IsTileInBounds(tilemap, coord))
 			{
-				TileData* tile = GetTile(tilemap, coord);
-				tilemapRenderer->Tiles[index].x = tile->TexX;
-				tilemapRenderer->Tiles[index].y = tile->TexY;
-				tilemapRenderer->Tiles[index].HasCeiling = tile->HasCeiling;
+				TileData* tileData = GetTile(tilemap, coord);
+				tilemapRenderer->Tiles[idx].x = tileData->TexX;
+				tilemapRenderer->Tiles[idx].y = tileData->TexY;
+				tilemapRenderer->Tiles[idx].HasCeiling = tileData->HasCeiling;
 				// See SetVisible()
 				if (GetGame()->DebugDisableDarkess)
-					tilemapRenderer->Tiles[index].LOS = 1;
+					tilemapRenderer->Tiles[idx].LOS = 1;
+
+				Tile* tile = tileData->GetTile();
+				if (tile->OnUpdate)
+					tile->OnUpdate(coord, *tileData);
+
 			}
 			else
 			{
-				tilemapRenderer->Tiles[index] = {};
+				tilemapRenderer->Tiles[idx] = {};
 			}
+
+			++idx;
 		}
 	}
 	PROFILE_END();
