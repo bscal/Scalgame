@@ -28,48 +28,37 @@ void LightsInitialize(GameApplication* gameApp)
 {
 	State.UpdatingLights.Reserve(64);
 	State.StaticLights.Reserve(64);
-	State.StaticLightTypes.Reserve(4);
-
-	StaticLightType light = {};
+	State.StaticLightTypes.EnsureSize((uint8_t)StaticLightTypes::MaxTypes);
 
 	float table[] = {
 		0.0f, 0.0f, 0.1f, 0.0f, 0.0f,
 		0.0f, 0.1f, 0.2f, 0.1f, 0.0f,
-		0.1f, 0.2f, 0.5f, 0.2f, 0.1f,
+		0.1f, 0.2f, 0.4f, 0.2f, 0.1f,
 		0.0f, 0.1f, 0.2f, 0.1f, 0.0f,
 		0.0f, 0.0f, 0.1f, 0.0f, 0.0f
 	};
-	light.LightModifers.Assign(table, ArrayLength(table));
-	light.x = -2;
-	light.y = -2;
-	light.Width = 5;
-	light.Height = 5;
-	STATIC_LIGHT = RegisterStaticLightType(&light);
+	State.StaticLightTypes[(uint8_t)StaticLightTypes::Basic].LightModifers.Assign(table, ArrayLength(table));
+	State.StaticLightTypes[(uint8_t)StaticLightTypes::Basic].x = -2;
+	State.StaticLightTypes[(uint8_t)StaticLightTypes::Basic].y = -2;
+	State.StaticLightTypes[(uint8_t)StaticLightTypes::Basic].Width = 5;
+	State.StaticLightTypes[(uint8_t)StaticLightTypes::Basic].Height = 5;
 
-	StaticLightType lava = {};
 	float lavaTable[] =
 	{
-		0.05f, 0.1f, 0.05f,
-		0.1f, 0.2f, 0.1f,
-		0.05f, 0.1f, 0.05f,
+		0.0f, 0.2f, 0.0f,
+		0.2f, 0.25f, 0.2f,
+		0.0f, 0.2f, 0.0f,
 	};
-	lava.LightModifers.Assign(lavaTable, ArrayLength(lavaTable));
-	lava.x = -1;
-	lava.y = -1;
-	lava.Width = 3;
-	lava.Height = 3;
-	STATIC_LIGHT_LAVA = RegisterStaticLightType(&lava);
-}
-
-uint32_t RegisterStaticLightType(const StaticLightType* type)
-{
-	State.StaticLightTypes.Push(type);
-	return State.StaticLightTypes.LastIndex();
+	State.StaticLightTypes[(uint8_t)StaticLightTypes::Lava].LightModifers.Assign(lavaTable, ArrayLength(lavaTable));
+	State.StaticLightTypes[(uint8_t)StaticLightTypes::Lava].x = -1;
+	State.StaticLightTypes[(uint8_t)StaticLightTypes::Lava].y = -1;
+	State.StaticLightTypes[(uint8_t)StaticLightTypes::Lava].Width = 3;
+	State.StaticLightTypes[(uint8_t)StaticLightTypes::Lava].Height = 3;
 }
 
 void DrawStaticLights(ChunkedTileMap* tilemap, const StaticLight* light)
 {
-	StaticLightType* lightType = &State.StaticLightTypes[light->StaticLightTypeId];
+	StaticLightType* lightType = &State.StaticLightTypes[(uint8_t)light->StaticLightType];
 
 	Vector2i pos = Vector2i::FromVec2(light->Pos);
 	Vector2i startPos = pos + Vector2i{ lightType->x, lightType->y };
@@ -84,7 +73,6 @@ void DrawStaticLights(ChunkedTileMap* tilemap, const StaticLight* light)
 			{
 				Vector2i curCull = WorldTileToCullTile(curWorld);
 				size_t index = curCull.x + curCull.y * CULL_WIDTH_TILES;
-				SASSERT(index < CULL_TOTAL_TILES);
 				float multiplier = lightType->LightModifers[i];
 				constexpr float inverse = 1.0f / 255.0f;
 				GetGame()->LightingRenderer.Tiles[index].x += (float)light->Color.r * inverse * multiplier;
@@ -96,15 +84,67 @@ void DrawStaticLights(ChunkedTileMap* tilemap, const StaticLight* light)
 	}
 }
 
-void DrawStaticTileLight(Vector2i tilePos, int staticLightType, Color color)
+void DrawStaticTileLight(Vector2i tilePos, Color color, StaticLightTypes type)
 {
-	Vector2i curCull = WorldTileToCullTile(tilePos);
-	size_t idx = curCull.x + curCull.y * CULL_WIDTH_TILES;
-	constexpr float inverse = 1.0f / 255.0f;
-	LightingRenderer& lightRenderer = GetGame()->LightingRenderer;
-	lightRenderer.Tiles[idx].x += (float)color.r * inverse;
-	lightRenderer.Tiles[idx].y += (float)color.g * inverse;
-	lightRenderer.Tiles[idx].z += (float)color.b * inverse;
+	ChunkedTileMap* tilemap = &GetGame()->World.ChunkedTileMap;
+	StaticLightType* lightType = &State.StaticLightTypes[(uint8_t)type];
+
+	Vector2i startPos = tilePos + Vector2i{ lightType->x, lightType->y };
+	startPos = WorldTileToCullTile(startPos);
+	uint8_t i = 0;
+	for (uint8_t y = 0; y < lightType->Height; ++y)
+	{
+		for (uint8_t x = 0; x < lightType->Width; ++x)
+		{
+			float multiplier = lightType->LightModifers[i++];
+			if (multiplier > 0.f)
+			{
+				Vector2i cur = startPos + Vector2i{ x, y };
+				size_t index = cur.x + cur.y * CULL_WIDTH_TILES;
+				if (index >= (size_t)CULL_TOTAL_TILES) 
+					continue;
+
+				constexpr float inverse = 1.0f / 255.0f;
+				float m = inverse * multiplier;
+				GetGame()->LightingRenderer.Tiles[index].x += (float)color.r * m;
+				GetGame()->LightingRenderer.Tiles[index].y += (float)color.g * m;
+				GetGame()->LightingRenderer.Tiles[index].z += (float)color.b * m;
+			}
+		}
+	}
+}
+
+
+constexpr global_var Vector2i LavaLightOffsets[9] =
+{
+	{-1, -1}, {0, -1}, {1,-1},
+	{-1, 0}, {0, 0}, {1,0},
+	{-1, 1}, {0, 1}, {1,1},
+};
+constexpr global_var float Inverse = 1.0f / 255.0f;
+constexpr global_var float LavaLightWeights[9] =
+{
+		0.05f * Inverse, 0.15f * Inverse, 0.05f * Inverse,
+		0.15f * Inverse, 0.25f * Inverse, 0.15f * Inverse,
+		0.05f * Inverse, 0.15f * Inverse, 0.05f * Inverse,
+};
+void DrawStaticLavaLight(Vector2i tilePos, Color color)
+{
+	ChunkedTileMap* tilemap = &GetGame()->World.ChunkedTileMap;
+	LightingRenderer* lightRenderer = &GetGame()->LightingRenderer;
+
+	Vector2i cullPos = WorldTileToCullTile(tilePos);
+	for (int i = 0; i < 9; ++i)
+	{
+		Vector2i pos = cullPos.Add(LavaLightOffsets[i]);
+		size_t idx = pos.x + pos.y * CULL_WIDTH_TILES;
+		if (idx < (size_t)CULL_TOTAL_TILES)
+		{
+			lightRenderer->Tiles[idx].x += (float)color.r * LavaLightWeights[i];
+			lightRenderer->Tiles[idx].y += (float)color.g * LavaLightWeights[i];
+			lightRenderer->Tiles[idx].z += (float)color.b * LavaLightWeights[i];
+		}
+	}
 }
 
 void LightsAddUpdating(const UpdatingLight& light)
@@ -571,7 +611,6 @@ ComputeLightShadowCast(ChunkedTileMap* tilemap, const Light* light,
 			float distance;
 			bool inRange = TileInsideCullRect(txty)
 				&& CTileMap::IsTileInBounds(tilemap, txty)
-				//&& ((distance = Vector2i{ x, y }.SqrDistance(TILEMAP_ORIGIN)) <= rangeLimitSqr);
 				&& ((distance = Vector2i{ x, y }.Distance(TILEMAP_ORIGIN)) <= rangeLimit);
 			if (inRange)
 			{

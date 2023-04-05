@@ -2,6 +2,7 @@
 
 #include "Core.h"
 #include "Globals.h"
+#include "ComponentTypes.h"
 
 #include "Structures/ComponentArray.h"
 #include "Structures/SHoodSet.h"
@@ -12,45 +13,6 @@
 #define ENT_MAX_COMPONENTS 64
 
 typedef uint32_t Entity;
-
-global_var inline uint32_t NextId = 0;
-
-template<typename T>
-struct Component
-{
-	static const uint32_t Id;
-};
-
-template<typename T>
-const uint32_t Component<T>::Id = NextId++;
-
-struct TransformComponent : Component<TransformComponent>
-{
-	Vector2 Position;
-	Vector2 Scale = { 1.0f, 1.0f };
-	float Rotation;
-	TileDirection LookDir;
-
-	inline Vector2i TilePos() const 
-	{ 
-		Vector2i v;
-		v.x = (int)floorf(Position.x * INVERSE_TILE_SIZE);
-		v.y = (int)floorf(Position.y * INVERSE_TILE_SIZE);
-		return v;
-	}
-};
-
-struct Actor : Component<Actor>
-{
-};
-
-struct Renderable : Component<Renderable>
-{
-	uint8_t x;
-	uint8_t y;
-	uint8_t Width;
-	uint8_t Height;
-};
 
 struct PlayerEntity
 {
@@ -162,9 +124,6 @@ struct ComponentMgr
 
 void CreatePlayer(EntityMgr* entityMgr, ComponentMgr* componentMgr);
 void InitializeEntities(EntityMgr* entityMgr, ComponentMgr* componentMgr);
-
-void UpdateEntities(EntityMgr* entityMgr, ComponentMgr* componentMgr);
-
 
 inline bool TestEntityId()
 {

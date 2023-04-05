@@ -409,10 +409,10 @@ SDrawSprite(const Texture2D* texture, const TransformComponent* transform, Rende
 
 	float width = (float)texture->width;
 	float height = (float)texture->height;
-	float srcWidth = (float)renderable.Width;
-	float srcHeight = (float)renderable.Height;
-	float dstWidth = (float)renderable.Width;
-	float dstHeight = (float)renderable.Height;
+	float srcWidth = (float)renderable.SrcWidth;
+	float srcHeight = (float)renderable.SrcHeight;
+	float dstWidth = (float)renderable.DstWidth;
+	float dstHeight = (float)renderable.DstHeight;
 
 	bool flipX = false;
 

@@ -3,7 +3,7 @@
 #include "Core.h"
 #include "Globals.h"
 #include "Tile.h"
-#include "Entity.h"
+#include "ComponentTypes.h"
 
 #include "Structures/StaticArray.h"
 

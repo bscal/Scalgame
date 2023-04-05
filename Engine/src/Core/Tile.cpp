@@ -18,21 +18,13 @@ bool TileMgrInitialize(const Texture2D* tilesheetTexture)
 	TileMgrRegister(BLACK_FLOOR, TileType::Solid);
 	TileMgrRegister(STONE_FLOOR, TileType::Floor);
 	uint16_t gold = TileMgrRegister(GOLD_ORE, TileType::Floor);
-	TileMgr.Tiles[gold].OnUpdate = [](Vector2i v, TileData data)
-	{
-		if (v == GetClientPlayer()->TilePos)
-		{
-			SLOG_INFO("Player stepped on me!");
-		}
-	};
-
 	TileMgrRegister(DARK_STONE_FLOOR, TileType::Floor);
 	TileMgrRegister(ROCKY_WALL, TileType::Solid);
 
 	uint16_t lava0 = TileMgrRegister(LAVA_0, TileType::Floor);
-	TileMgr.Tiles[lava0].OnUpdate = [](Vector2i v, TileData data)
+	TileMgr.Tiles[lava0].OnUpdate = [](Vector2i pos, TileData data)
 	{
-		DrawStaticTileLight(v, STATIC_LIGHT_LAVA, RED);
+		DrawStaticLavaLight(pos, RED);
 	};
 
 	return true;

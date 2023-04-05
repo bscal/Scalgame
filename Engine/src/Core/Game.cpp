@@ -9,6 +9,7 @@
 #include "SUtil.h"
 #include "SString.h"
 #include "Entity.h"
+#include "ComponentSystems.h"
 
 #include "Structures/SArray.h"
 #include "Structures/SList.h"
@@ -237,7 +238,7 @@ SAPI void GameApplication::Run()
 					light.Pos = clickedTilePos.AsVec2();
 					light.Radius = 5.0f;
 					light.Color = BLUE;
-					light.StaticLightTypeId = STATIC_LIGHT;
+					light.StaticLightType = StaticLightTypes::Lava;
 					LightsAddStatic(light);
 				}
 			}

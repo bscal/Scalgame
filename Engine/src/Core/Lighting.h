@@ -40,17 +40,21 @@ struct StaticLightType
     uint8_t Height;
 };
 
-global_var int STATIC_LIGHT;
-global_var int STATIC_LIGHT_LAVA;
+enum class StaticLightTypes : uint8_t
+{
+    Basic = 0,
+    Lava,
+    MaxTypes
+};
 
 struct StaticLight : public Light
 {
-    uint8_t StaticLightTypeId;
+    StaticLightTypes StaticLightType;
 };
 
-uint32_t RegisterStaticLightType(const StaticLightType* type);
 void DrawStaticLights(ChunkedTileMap* tilemap, const StaticLight* light);
-void DrawStaticTileLight(Vector2i tilePos, int staticLightType, Color color);
+void DrawStaticTileLight(Vector2i tilePos, Color color, StaticLightTypes type);
+void DrawStaticLavaLight(Vector2i tilePos, Color color);
 
 void LightsInitialize(GameApplication* gameApp);
 void LightsAddUpdating(const UpdatingLight& light);

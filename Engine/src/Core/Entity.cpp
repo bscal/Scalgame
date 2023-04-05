@@ -1,7 +1,7 @@
 #include "Entity.h"
 
 #include "Game.h"
-#include "Renderer.h"
+#include "ComponentTypes.h"
 
 #include "raylib/src/raymath.h"
 
@@ -20,8 +20,10 @@ void CreatePlayer(EntityMgr* entityMgr, ComponentMgr* componentMgr)
 
 	componentMgr->AddComponent(entity, entityMgr->Player.Transform);
 	Renderable* renderable = componentMgr->AddComponent(entity, Renderable{});
-	renderable->Width = 16;
-	renderable->Height = 16;
+	renderable->SrcWidth = 16;
+	renderable->SrcHeight = 16;
+	renderable->DstWidth = 16;
+	renderable->DstHeight = 16;
 }
 
 uint32_t EntityMgr::CreateEntity()
@@ -54,24 +56,6 @@ bool EntityMgr::IsAlive(uint32_t entityId) const
 {
 	EntityStatus status = Entities[GetId(entityId)];
 	return (status.IsAlive && status.Gen == GetGen(entityId));
-}
-
-void UpdateEntities(EntityMgr* entityMgr, ComponentMgr* componentMgr)
-{
-	const Texture2D* spriteTextureSheet = &GetGame()->Resources.EntitySpriteSheet;
-
-	ComponentArray<TransformComponent>* transforms = componentMgr->GetArray<TransformComponent>();
-	
-	ComponentArray<Renderable>* renderables = componentMgr->GetArray<Renderable>();
-	for (uint32_t i = 0; i < renderables->Indices.Count; ++i)
-	{
-		uint32_t entity = renderables->Indices.Dense[i];
-		Renderable renderable = renderables->Values[i];
-		const TransformComponent* transform = transforms->Get(entity);
-		if (!transform) continue;
-		SDrawSprite(spriteTextureSheet, transform, renderable);
-	}
-
 }
 
 void PlayerEntity::Update()
