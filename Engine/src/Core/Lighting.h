@@ -11,6 +11,7 @@ struct Game;
 struct ChunkedTileMap;
 struct Light;
 struct UpdatingLight;
+struct UpdatingLightSource;
 
 struct Light
 {
@@ -68,6 +69,8 @@ LightsUpdateTileColor(int index, float distance, const Light* light);
 
 void
 LightsUpdateTileColorTile(Vector2i tileCoord, float distance, const Light* light);
+
+void DrawLightWithShadows(Vector2 pos, const UpdatingLightSource& light);
 
 bool FloodFillLighting(ChunkedTileMap* tilemap, Light* light);
 void FloodFillScanline(const Light* light, int x, int y, int width, int height, bool diagonal);//, bool (*test)(int, int)), void (*paint)(int, int))

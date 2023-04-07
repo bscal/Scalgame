@@ -190,11 +190,9 @@ void TileMapRenderer::Free()
 void TileMapRenderer::Draw()
 {
 	PROFILE_BEGIN_EX("TileMapRenderer::Draw");
-	UpdateTexture(TileDataTexture.texture, Tiles.data());
+	UpdateTexture(TileDataTexture.texture, Tiles.Data);
 
-	SMemSet(Tiles.data(), 0, sizeof(Tiles[0]) * Tiles.size());
-
-	Tiles.fill({ 0 });
+	Tiles.Fill({});
 
 	BeginTextureMode(TileMapTexture);
 	BeginShaderMode(TileMapShader);
@@ -255,11 +253,10 @@ void LightingRenderer::Draw()
 	dst.height = LightingTexture.texture.height;
 
 	SASSERT(sizeof(Tiles[0]) == (sizeof(float) * 4));
-	SASSERT(Tiles.size() == src.width * src.height);
 
-	UpdateTexture(ColorsTexture.texture, Tiles.data());
+	UpdateTexture(ColorsTexture.texture, Tiles.Data);
 
-	Tiles.fill({ 0 });
+	Tiles.Fill({});
 
 	BeginTextureMode(LightingTexture);
 	ClearBackground(BLACK);
@@ -427,8 +424,8 @@ SDrawSprite(const Texture2D* texture, const TransformComponent* transform, Rende
 	// Only calculate rotation if needed
 	if (transform->Rotation == 0.0f)
 	{
-		float x = transform->Position.x - 0.0f;
-		float y = transform->Position.y - 0.0f;
+		float x = transform->Position.x - transform->Origin.x;
+		float y = transform->Position.y - transform->Origin.y;
 		topLeft = Vector2{ x, y };
 		topRight = Vector2{ x + dstWidth, y };
 		bottomLeft = Vector2{ x, y + dstHeight };
@@ -440,8 +437,8 @@ SDrawSprite(const Texture2D* texture, const TransformComponent* transform, Rende
 		float cosRotation = cosf(transform->Rotation * DEG2RAD);
 		float x = transform->Position.x;
 		float y = transform->Position.y;
-		float dx = -0.0f;
-		float dy = -0.0f;
+		float dx = -transform->Origin.x;
+		float dy = -transform->Origin.y;
 
 		topLeft.x = x + dx * cosRotation - dy * sinRotation;
 		topLeft.y = y + dx * sinRotation + dy * cosRotation;

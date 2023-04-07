@@ -298,7 +298,7 @@ void LightsUpdate(Game* game)
 		if (!TileInsideCullRect(Vector2i::FromVec2(light->Pos))) continue;
 		light->Update(game);
 		//FloodFillLighting(tilemap, light);
-		SMemSet(State.CheckedTiles.data(), 0, ArrayLength(State.CheckedTiles));
+		SMemSet(State.CheckedTiles.Data, 0, ArrayLength(State.CheckedTiles));
 		LightsUpdateTileColorTile(Vector2i::FromVec2(light->Pos), 1.0, light);
 		for (uint8_t octant = 0; octant < 8; ++octant)
 		{
@@ -657,15 +657,16 @@ LightsUpdateTileColor(int index, float distance, const Light* light)
 	SASSERT(index < CULL_TOTAL_TILES);
 
 	// https://www.desmos.com/calculator/nmnaud1hrw
-	const float a = 0.0f;
-	const float b = 0.1f;
-	//distance = distance / light.Radius
+	constexpr float a = 0.0f;
+	constexpr float b = 0.1f;
 	float attenuation = 1.0f / (1.0f + a * distance + b * distance * distance);
 	
 	constexpr float inverse = 1.0f / 255.0f;
-	GetGame()->LightingRenderer.Tiles[index].x += (float)light->Color.r * inverse * attenuation;
-	GetGame()->LightingRenderer.Tiles[index].y += (float)light->Color.g * inverse * attenuation;
-	GetGame()->LightingRenderer.Tiles[index].z += (float)light->Color.b * inverse * attenuation;
+	float intensity = light->Color.a * inverse;
+	float multiplier = attenuation * inverse * intensity;
+	GetGame()->LightingRenderer.Tiles[index].x += (float)light->Color.r * multiplier;
+	GetGame()->LightingRenderer.Tiles[index].y += (float)light->Color.g * multiplier;
+	GetGame()->LightingRenderer.Tiles[index].z += (float)light->Color.b * multiplier;
 }
 
 void
@@ -673,13 +674,30 @@ LightsUpdateTileColorTile(Vector2i tileCoord, float distance, const Light* light
 {
 	TileCoord coord = WorldTileToCullTile(tileCoord);
 	int index = coord.x + coord.y * CULL_WIDTH_TILES;
-	const float a = 0.0f;
-	const float b = 0.1f;
+	constexpr float a = 0.0f;
+	constexpr float b = 0.1f;
 	float attenuation = 1.0f / (1.0f + a * distance + b * distance * distance);
 	constexpr float inverse = 1.0f / 255.0f;
-	GetGame()->LightingRenderer.Tiles[index].x += (float)light->Color.r * inverse * attenuation;
-	GetGame()->LightingRenderer.Tiles[index].y += (float)light->Color.g * inverse * attenuation;
-	GetGame()->LightingRenderer.Tiles[index].z += (float)light->Color.b * inverse * attenuation;
+	float intensity = light->Color.a * inverse;
+	float multiplier = attenuation * inverse * intensity;
+	GetGame()->LightingRenderer.Tiles[index].x += (float)light->Color.r * multiplier;
+	GetGame()->LightingRenderer.Tiles[index].y += (float)light->Color.g * multiplier;
+	GetGame()->LightingRenderer.Tiles[index].z += (float)light->Color.b * multiplier;
+}
+
+void DrawLightWithShadows(Vector2 pos, const UpdatingLightSource& src)
+{
+	ChunkedTileMap* tilemap = &GetGame()->World.ChunkedTileMap;
+	Light light = {};
+	light.Pos = pos;
+	light.Radius = src.Radius;
+	light.Color = src.FinalColor;
+	SMemSet(State.CheckedTiles.Data, 0, ArrayLength(State.CheckedTiles));
+	LightsUpdateTileColorTile(Vector2i::FromVec2(pos), 1.0, &light);
+	for (uint8_t octant = 0; octant < 8; ++octant)
+	{
+		ComputeLightShadowCast(tilemap, &light, octant, 1, { 1, 1 }, { 0, 1 });
+	}
 }
 
 internal inline bool BlocksLight(ChunkedTileMap* tilemap, Vector2i pos)

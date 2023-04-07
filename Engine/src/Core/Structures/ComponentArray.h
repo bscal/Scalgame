@@ -12,6 +12,11 @@ struct ComponentArray
 	SList<T> Values;
 	SparseSet Indices;
 
+	inline uint32_t Size() const
+	{
+		return Indices.DenseCapacity;
+	}
+
 	inline void Initialize()
 	{
 		Values = {};
@@ -24,9 +29,8 @@ struct ComponentArray
 	{
 		uint32_t id = GetId(entityId);
 		Indices.Add(id);
-		Values.EnsureSize(id + 1);
-		Values[id] = value;
-		return &Values[id];
+		Values.Push(&value);
+		return Values.Last();
 	}
 
 	inline void Remove(uint32_t entityId)

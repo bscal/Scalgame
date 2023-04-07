@@ -9,8 +9,8 @@ void InitializeEntities(EntityMgr* entityMgr, ComponentMgr* componentMgr)
 {
 	componentMgr->Register<TransformComponent>();
 	componentMgr->Register<Renderable>();
-
-	CreatePlayer(entityMgr, componentMgr);
+	componentMgr->Register<Attachable>();
+	componentMgr->Register<UpdatingLightSource>();
 }
 
 void CreatePlayer(EntityMgr* entityMgr, ComponentMgr* componentMgr)
@@ -24,6 +24,32 @@ void CreatePlayer(EntityMgr* entityMgr, ComponentMgr* componentMgr)
 	renderable->SrcHeight = 16;
 	renderable->DstWidth = 16;
 	renderable->DstHeight = 16;
+
+
+	uint32_t torch = entityMgr->CreateEntity();
+	componentMgr->AddComponent(torch, TransformComponent{});
+
+	Renderable* torchRenderable = componentMgr->AddComponent(torch, Renderable{});
+	torchRenderable->x = 0;
+	torchRenderable->y = 32;
+	torchRenderable->SrcWidth = 16;
+	torchRenderable->SrcHeight = 16;
+	torchRenderable->DstWidth = 16;
+	torchRenderable->DstHeight = 16;
+
+	Attachable* torchAttachable = componentMgr->AddComponent(torch, Attachable{});
+	torchAttachable->EntityId = entity;
+	torchAttachable->Local.Origin.x = 8.0f;
+	torchAttachable->Local.Origin.y = 8.0f;
+	torchAttachable->Local.Position.x = 4.0f;
+	torchAttachable->Local.Position.y = 1.0f;
+	torchAttachable->Local.Rotation = 0.0f;
+
+	UpdatingLightSource* torchLight = componentMgr->AddComponent(torch, UpdatingLightSource{});
+	torchLight->MinRadius = 6;
+	torchLight->MaxRadius = 7;
+	torchLight->Colors[0] = { 250, 190, 200, 200 };
+	torchLight->Colors[1] = { 255, 200, 210, 200 };
 }
 
 uint32_t EntityMgr::CreateEntity()
@@ -98,6 +124,7 @@ void PlayerEntity::Update()
 		}
 		Transform.LookDir = inputMoveDir;
 
-		*GetGame()->ComponentMgr.GetComponent<TransformComponent>(EntityId) = Transform;
+		TransformComponent* playerTransform = GetGame()->ComponentMgr.GetComponent<TransformComponent>(EntityId);
+		*playerTransform = Transform;
 	}
 }

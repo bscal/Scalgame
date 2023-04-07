@@ -99,9 +99,8 @@ float SRandNextFloatRange(SRandom* state, float lower, float upper)
 {
 	SASSERT(lower < upper);
 	float randomValue = SRandNextFloat(state);
-	float random = (randomValue) / 1.0f;
-	float range = lower - upper;
-	return (random * range) + lower;
+	float range = upper - lower;
+	return (randomValue * range) + lower;
 }
 
 uint64_t SRandNextRange(SRandom* state, uint64_t lower, uint64_t upper)

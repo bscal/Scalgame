@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core.h"
+#include "Structures/SList.h"
 
 typedef uint32_t Entity;
 
@@ -18,6 +19,7 @@ const uint32_t Component<T>::Id = NextId++;
 struct TransformComponent : Component<TransformComponent>
 {
 	Vector2 Position;
+	Vector2 Origin;
 	Vector2 Scale = { 1.0f, 1.0f };
 	float Rotation;
 	TileDirection LookDir;
@@ -33,12 +35,18 @@ struct TransformComponent : Component<TransformComponent>
 
 struct Renderable : Component<Renderable>
 {
-	uint8_t x;
-	uint8_t y;
+	float x;
+	float y;
 	int8_t SrcWidth;
 	int8_t SrcHeight;
 	int8_t DstWidth;
 	int8_t DstHeight;
+};
+
+struct Attachable : Component<Attachable>
+{
+	TransformComponent Local;
+	uint32_t EntityId;
 };
 
 struct UpdatingLightSource : Component<UpdatingLightSource>
@@ -46,18 +54,9 @@ struct UpdatingLightSource : Component<UpdatingLightSource>
 	Color Colors[2];
 	Color FinalColor;
 	float Radius;
+	float MinRadius;
 	float MaxRadius;
 	float UpdateCounter;
-};
-
-struct AttachTransform : Component<AttachTransform>
-{
-	Entity Entity;
-};
-
-struct ChildSprites : Component<ChildSprites>
-{
-	SList<Renderable> Sprites;
 };
 
 

@@ -16,6 +16,8 @@ void WorldInitialize(World* world, GameApplication* gameApp)
 
 void WorldLoad(World* world, Game* game)
 {
+	CreatePlayer(&game->EntityMgr, &game->ComponentMgr);
+
 	LightsInitialize(GetGameApp());
 
 	// FIXME: find better location for this
