@@ -22,6 +22,12 @@ enum class ChunkState : uint8_t
 	MaxStates
 };
 
+struct TileColor
+{
+	uint8_t r;
+	uint8_t g;
+	uint8_t b;
+};
 
 struct TileMapChunk
 {
@@ -29,6 +35,7 @@ struct TileMapChunk
 	ChunkCoord ChunkCoord;
 	ChunkState State;
 	TileData Tiles[CHUNK_SIZE];
+	//TileColor Colors[CHUNK_SIZE];
 };
 
 struct ChunkedTileMap
@@ -62,7 +69,7 @@ TileMapChunk* GetChunk(ChunkedTileMap* tilemap, ChunkCoord coord);
 TileMapChunk* GetChunkByTile(ChunkedTileMap* tilemap, TileCoord tileCoord);
 ChunkCoord TileToChunkCoord(TileCoord tilePos);
 
-uint64_t TileToIndex(TileCoord tilePos);
+size_t TileToIndex(TileCoord tilePos);
 TileCoord WorldToTile(Vector2 pos);
 
 void SetTile(ChunkedTileMap* tilemap, const TileData* tile, TileCoord tilePos);

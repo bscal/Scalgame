@@ -74,16 +74,15 @@ void Update(ChunkedTileMap* tilemap, Game* game)
 	
 	UpdateTileMap(tilemap, &game->TileMapRenderer);
 
+	constexpr float viewDistanceSqr = (VIEW_DISTANCE.x + 1) * (VIEW_DISTANCE.x + 1);
 	for (uint32_t i = 0; i < tilemap->ChunksList.Count; ++i)
 	{
 		TileMapChunk* chunk = tilemap->ChunksList.PeekAt(i);
-		Vector2i difference = playerChunkPos.Subtract(chunk->ChunkCoord);
-		int chunkX = labs(difference.x);
-		int chunkY = labs(difference.y);
+		float dist = Vector2DistanceSqr(playerChunkPos.AsVec2(), chunk->ChunkCoord.AsVec2());
 
 		// TODO: revisit this, current chunks dont need to be updated outside
 		// view distance, but they might, or to handle rebuilds?
-		if (chunkX > VIEW_DISTANCE.x + 1 || chunkY > VIEW_DISTANCE.y + 1)
+		if (dist > viewDistanceSqr)
 		{
 			tilemap->ChunksToUnload.Push(&chunk->ChunkCoord);
 		}
@@ -164,8 +163,6 @@ void UnloadChunk(ChunkedTileMap* tilemap, ChunkCoord coord)
 		if (tilemap->ChunksList[i].ChunkCoord.Equals(coord))
 		{
 			tilemap->ChunksList.RemoveAtFast(i);
-			tilemap->ChunksList[tilemap->ChunksList.Count].State = ChunkState::Unloaded;
-			tilemap->ChunksList[tilemap->ChunksList.Count].ChunkCoord = { -1, -1 };
 			SLOG_INFO("[ Chunk ] Unloaded chunk (%s)", FMT_VEC2I(coord));
 			break;
 		}
@@ -181,16 +178,16 @@ bool IsChunkLoaded(ChunkedTileMap* tilemap,
 
 bool IsTileInBounds(ChunkedTileMap* tilemap, TileCoord tilePos)
 {
-	return (tilePos.x >= 0 
-		&& tilePos.y >= 0
+	return (tilePos.x >= -tilemap->WorldDimTiles.x
+		&& tilePos.y >= -tilemap->WorldDimTiles.y
 		&& tilePos.x < tilemap->WorldDimTiles.x
 		&& tilePos.y < tilemap->WorldDimTiles.y);
 }
 
 bool IsChunkInBounds(ChunkedTileMap* tilemap, ChunkCoord chunkPos)
 {
-	return (chunkPos.x >= 0
-		&& chunkPos.y >= 0
+	return (chunkPos.x >= -tilemap->WorldDimChunks.x
+		&& chunkPos.y >= -tilemap->WorldDimChunks.y
 		&& chunkPos.x < tilemap->WorldDimChunks.x
 		&& chunkPos.y < tilemap->WorldDimChunks.y);
 }
@@ -224,17 +221,19 @@ ChunkCoord
 TileToChunkCoord(TileCoord tilePos)
 {
 	ChunkCoord result;
-	result.x = tilePos.x / CHUNK_DIMENSIONS;
-	result.y = tilePos.y / CHUNK_DIMENSIONS;
+	result.x = (int)floorf((float)tilePos.x / (float)CHUNK_DIMENSIONS);
+	result.y = (int)floorf((float)tilePos.y / (float)CHUNK_DIMENSIONS);
 	return result;
 }
 
-uint64_t 
+size_t 
 TileToIndex(TileCoord tilePos)
 {
-	int tileChunkX = tilePos.x % CHUNK_DIMENSIONS;
-	int tileChunkY = tilePos.y % CHUNK_DIMENSIONS;
-	return static_cast<uint64_t>(tileChunkX + tileChunkY * CHUNK_DIMENSIONS);
+	int tileChunkX = IModNegative(tilePos.x, CHUNK_DIMENSIONS);
+	int tileChunkY = IModNegative(tilePos.y, CHUNK_DIMENSIONS);
+	size_t result = (size_t)tileChunkX + (size_t)tileChunkY * CHUNK_DIMENSIONS;
+	SASSERT(result < CHUNK_SIZE);
+	return result;
 }
 
 void 
@@ -326,16 +325,12 @@ internal void
 UpdateTileMap(ChunkedTileMap* tilemap, TileMapRenderer* tilemapRenderer)
 {
 	PROFILE_BEGIN();
-	Vector2i offset = GetGameApp()->CullXYTiles;
 	size_t idx = 0;
 	for (int y = 0; y < CULL_HEIGHT_TILES; ++y)
 	{
 		for (int x = 0; x < CULL_WIDTH_TILES; ++x)
 		{
-			// Add here because CullTileToWorldTile
-			TileCoord coord;
-			coord.x = x + offset.x;
-			coord.y = y + offset.y;
+			Vector2i coord = CullTileToWorldTile({ x, y });
 
 			if (IsTileInBounds(tilemap, coord))
 			{
@@ -350,7 +345,6 @@ UpdateTileMap(ChunkedTileMap* tilemap, TileMapRenderer* tilemapRenderer)
 				Tile* tile = tileData->GetTile();
 				if (tile->OnUpdate)
 					tile->OnUpdate(coord, *tileData);
-
 			}
 			else
 			{

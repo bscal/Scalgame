@@ -424,8 +424,8 @@ SDrawSprite(const Texture2D* texture, const TransformComponent* transform, Rende
 	// Only calculate rotation if needed
 	if (transform->Rotation == 0.0f)
 	{
-		float x = transform->Position.x - transform->Origin.x;
-		float y = transform->Position.y - transform->Origin.y;
+		float x = transform->Position.x - transform->Origin.x + 8.0f;
+		float y = transform->Position.y - transform->Origin.y + 8.0f;
 		topLeft = Vector2{ x, y };
 		topRight = Vector2{ x + dstWidth, y };
 		bottomLeft = Vector2{ x, y + dstHeight };
@@ -435,8 +435,8 @@ SDrawSprite(const Texture2D* texture, const TransformComponent* transform, Rende
 	{
 		float sinRotation = sinf(transform->Rotation * DEG2RAD);
 		float cosRotation = cosf(transform->Rotation * DEG2RAD);
-		float x = transform->Position.x;
-		float y = transform->Position.y;
+		float x = transform->Position.x + 8.0f;
+		float y = transform->Position.y + 8.0f;
 		float dx = -transform->Origin.x;
 		float dy = -transform->Origin.y;
 

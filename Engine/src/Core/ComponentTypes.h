@@ -59,4 +59,8 @@ struct UpdatingLightSource : Component<UpdatingLightSource>
 	float UpdateCounter;
 };
 
+struct SpriteRenderer : Component<SpriteRenderer>
+{
+	SList<Renderable> Renderables;
+};
 

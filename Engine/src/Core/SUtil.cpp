@@ -12,6 +12,12 @@ Vector4 Vec4Add(const Vector4& v0, const Vector4& v1)
 	return v;
 }
 
+int IModNegative(int a, int b)
+{
+	int res = a % b;
+	return (res < 0) ? res + b : res;
+}
+
 // Temporary list of tile coordinates
 SList<Vector2i>
 QueryTilesRect(World* world, Vector2i start, Vector2i end)

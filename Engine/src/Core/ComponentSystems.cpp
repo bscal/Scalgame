@@ -67,7 +67,8 @@ UpdateAttachables(EntityMgr* entityMgr, ComponentMgr* componentMgr)
 		SASSERT(parent);
 		bool isLookingRight = (parent->LookDir == TileDirection::South || parent->LookDir == TileDirection::West);
 		entityTransform->LookDir = parent->LookDir;
-		entityTransform->Position.x = parent->Position.x + entityAttachable.Local.Position.x;
+		float localPos = (isLookingRight) ? -entityAttachable.Local.Position.x : entityAttachable.Local.Position.x;
+		entityTransform->Position.x = parent->Position.x + localPos;
 		entityTransform->Position.y = parent->Position.y + entityAttachable.Local.Position.y;
 		entityTransform->Origin = entityAttachable.Local.Origin;
 		entityTransform->Scale = Vector2Add(parent->Scale, entityAttachable.Local.Scale);

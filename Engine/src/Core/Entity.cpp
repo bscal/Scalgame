@@ -18,13 +18,15 @@ void CreatePlayer(EntityMgr* entityMgr, ComponentMgr* componentMgr)
 	uint32_t entity = entityMgr->CreateEntity();
 	entityMgr->Player.EntityId = entity;
 
+	entityMgr->Player.Transform.Origin = { 8.0f, 8.0f };
+	//entityMgr->Player.Transform.Position = { -8.0f, -8.0f };
 	componentMgr->AddComponent(entity, entityMgr->Player.Transform);
+
 	Renderable* renderable = componentMgr->AddComponent(entity, Renderable{});
 	renderable->SrcWidth = 16;
 	renderable->SrcHeight = 16;
 	renderable->DstWidth = 16;
 	renderable->DstHeight = 16;
-
 
 	uint32_t torch = entityMgr->CreateEntity();
 	componentMgr->AddComponent(torch, TransformComponent{});
@@ -32,17 +34,17 @@ void CreatePlayer(EntityMgr* entityMgr, ComponentMgr* componentMgr)
 	Renderable* torchRenderable = componentMgr->AddComponent(torch, Renderable{});
 	torchRenderable->x = 0;
 	torchRenderable->y = 32;
-	torchRenderable->SrcWidth = 16;
-	torchRenderable->SrcHeight = 16;
-	torchRenderable->DstWidth = 16;
-	torchRenderable->DstHeight = 16;
+	torchRenderable->SrcWidth = 4;
+	torchRenderable->SrcHeight = 4;
+	torchRenderable->DstWidth = 4;
+	torchRenderable->DstHeight = 4;
 
 	Attachable* torchAttachable = componentMgr->AddComponent(torch, Attachable{});
 	torchAttachable->EntityId = entity;
-	torchAttachable->Local.Origin.x = 8.0f;
-	torchAttachable->Local.Origin.y = 8.0f;
+	torchAttachable->Local.Origin.x = 2.0f;
+	torchAttachable->Local.Origin.y = 2.0f;
 	torchAttachable->Local.Position.x = 4.0f;
-	torchAttachable->Local.Position.y = 1.0f;
+	torchAttachable->Local.Position.y = -3.0f;
 	torchAttachable->Local.Rotation = 0.0f;
 
 	UpdatingLightSource* torchLight = componentMgr->AddComponent(torch, UpdatingLightSource{});

@@ -9,6 +9,8 @@
 
 Vector4 Vec4Add(const Vector4& v0, const Vector4& v1);
 
+int IModNegative(int a, int b);
+
 inline Rectangle RectangleExpand(const Rectangle& rect, float width, float height)
 {
 	Rectangle r;

@@ -32,14 +32,6 @@ struct TileSheetCoord
 #define ROCKY_WALL TileSheetCoord{20, 2}
 #define LAVA_0 TileSheetCoord{31,54}
 
-struct TileColor
-{
-	uint16_t r;
-	uint16_t g;
-	uint16_t b;
-	uint16_t a;
-};
-
 struct Tile
 {
 	bool IsUsed;

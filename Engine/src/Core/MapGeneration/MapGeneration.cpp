@@ -14,27 +14,25 @@ global_var const TileSheetCoord TILE_IDS[] = { STONE_FLOOR, GOLD_ORE, DARK_STONE
 
 void MapGenGenerateChunk(MapGenerator* generator, ChunkedTileMap* tilemap, TileMapChunk* chunk)
 {
+	int idx = 0;
 	for (int y = 0; y < CHUNK_DIMENSIONS; ++y)
 	{
 		for (int x = 0; x < CHUNK_DIMENSIONS; ++x)
 		{
-			int index = x + y * CHUNK_DIMENSIONS;
-			SASSERT(index >= 0);
-			SASSERT(index < CHUNK_SIZE);
-			chunk->Tiles[index].LOS = TileLOS::NoVision;
-
-			float worldX = (float)x + chunk->ChunkCoord.x * CHUNK_DIMENSIONS;
-			float worldY = (float)y + chunk->ChunkCoord.y * CHUNK_DIMENSIONS;
+			float worldX = (float)x + (float)chunk->ChunkCoord.x * (float)CHUNK_DIMENSIONS;
+			float worldY = (float)y + (float)chunk->ChunkCoord.y * (float)CHUNK_DIMENSIONS;
 			float noise = generator->Noise.GetNoise(worldX, worldY);
+
 			int tileTableIndex = (int)(((noise + 1.f) / 2.f) * ArrayLength(TILE_IDS));
-			if (tileTableIndex == ArrayLength(TILE_IDS)) tileTableIndex = ArrayLength(TILE_IDS) - 1;
+			if (tileTableIndex == ArrayLength(TILE_IDS)) 
+				tileTableIndex = ArrayLength(TILE_IDS) - 1;
 
 			TileSheetCoord coord = TILE_IDS[tileTableIndex];
-			chunk->Tiles[index].TexX = coord.x;
-			chunk->Tiles[index].TexY = coord.y;
-			chunk->Tiles[index].HasCeiling = false;
-			chunk->Tiles[index].LOS = TileLOS::NoVision;
-			
+			chunk->Tiles[idx].TexX = coord.x;
+			chunk->Tiles[idx].TexY = coord.y;
+			chunk->Tiles[idx].HasCeiling = false;
+			chunk->Tiles[idx].LOS = TileLOS::NoVision;
+			++idx;
 		}
 	}
 }

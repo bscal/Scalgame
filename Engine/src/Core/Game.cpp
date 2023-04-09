@@ -273,6 +273,8 @@ SAPI void GameApplication::Run()
 
 		double updateWorldStart = GetTime();
 
+		GameUpdateCamera(Game, this);
+
 		Rectangle srcRect = { 0.0f, 0.0f, CULL_WIDTH, -CULL_HEIGHT };
 		Rectangle dstRect = { ScreenXY.x, ScreenXY.y, CULL_WIDTH, CULL_HEIGHT };
 
@@ -337,8 +339,6 @@ SAPI void GameApplication::Run()
 		double drawStart = GetTime();
 		EndDrawing();
 		RenderTime = GetTime() - drawStart;
-
-		GameUpdateCamera(Game, this);
 
 		PROFILE_END();
 	}
@@ -510,4 +510,9 @@ bool TileInsideCullRect(Vector2i coord)
 Vector2i WorldTileToCullTile(Vector2i coord)
 {
 	return coord.Subtract(GetGameApp()->CullXYTiles);
+}
+
+Vector2i CullTileToWorldTile(Vector2i coord)
+{
+	return coord.Add(GetGameApp()->CullXYTiles);
 }

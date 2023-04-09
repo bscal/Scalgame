@@ -98,4 +98,6 @@ Vector2 VecToTileCenter(Vector2 vec);
 Vector2 GetZoomedMousePos(const Camera2D& camera);
 Vector2i GetTileFromMouse(Game* game);
 bool TileInsideCullRect(Vector2i coord);
+
 Vector2i WorldTileToCullTile(Vector2i coord);
+Vector2i CullTileToWorldTile(Vector2i coord);
