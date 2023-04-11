@@ -46,6 +46,7 @@ struct Renderable : Component<Renderable>
 struct Attachable : Component<Attachable>
 {
 	TransformComponent Local;
+	Vector2 EntityOrigin;
 	uint32_t EntityId;
 };
 

@@ -59,6 +59,41 @@ struct ComponentMgr
 		SLOG_INFO("Registered Component: %u", ComponentType::Id);
 	}
 
+
+	inline SList<uint32_t> FindEntities(uint32_t* ids, size_t idsCount) const
+	{
+		PROFILE_BEGIN();
+		SASSERT(idsCount > 1)
+
+		SList<uint32_t> result = {};
+		result.Allocator = SAllocator::Temp;
+
+		const ComponentArray<void*>* firstArr = Components[ids[0]];
+
+		uint32_t count = firstArr->Indices.DenseCapacity;
+		result.Reserve(count);
+
+		for (uint32_t i = 0; i < count; ++i)
+		{
+			uint32_t entity = firstArr->Indices.Dense[i];
+			uint32_t entityId = GetId(entity);
+			bool containsEntity = true;
+			for (size_t nextComponentId = 1; nextComponentId < idsCount; ++nextComponentId)
+			{
+				const ComponentArray<void*>* arr = Components[ids[nextComponentId]];
+				containsEntity = entityId < arr->Indices.SparseCapacity
+					&& arr->Indices.Sparse[entityId] != SPARE_EMPTY_ID;
+				if (!containsEntity) 
+					break;
+			}
+
+			if (containsEntity)
+				result.Push(&entity);
+		}
+		PROFILE_END();
+		return result;
+	}
+
 	template<typename ComponentType>
 	inline ComponentArray<ComponentType>* GetArray() const
 	{

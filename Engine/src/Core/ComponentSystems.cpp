@@ -26,7 +26,8 @@ UpdateEntities(EntityMgr* entityMgr, ComponentMgr* componentMgr)
 		uint32_t entity = renderables->Indices.Dense[i];
 		Renderable renderable = renderables->Values[i];
 		const TransformComponent* transform = transforms->Get(entity);
-		if (!transform) continue;
+		SASSERT(transform);
+
 		if (transform->LookDir == TileDirection::South || transform->LookDir == TileDirection::West)
 			renderable.SrcWidth = -renderable.SrcWidth;
 		SDrawSprite(spriteTextureSheet, transform, renderable);
@@ -47,6 +48,7 @@ UpdateEntities(EntityMgr* entityMgr, ComponentMgr* componentMgr)
 
 		uint32_t entity = renderables->Indices.Dense[i];
 		const TransformComponent* transform = transforms->Get(entity);
+		SASSERT(transform);
 		DrawLightWithShadows(transform->TilePos().AsVec2(), light);
 	}
 }
@@ -57,6 +59,22 @@ UpdateAttachables(EntityMgr* entityMgr, ComponentMgr* componentMgr)
 	ComponentArray<TransformComponent>* transforms = componentMgr->GetArray<TransformComponent>();
 	ComponentArray<Attachable>* attachables = componentMgr->GetArray<Attachable>();
 
+	//uint32_t queryIds[2] = { Attachable::Id, TransformComponent::Id };
+	//SList<uint32_t> queryAttachables = componentMgr->FindEntities(queryIds, ArrayLength(queryIds));
+	// 
+	//for (uint32_t i = 0; i < queryAttachables.Count; ++i)
+	//{
+	//	uint32_t entity = queryAttachables[i];
+	//	auto attachable = attachables->Get(entity);
+	//	auto transform = transforms->Get(entity);
+	//	auto parentTransform = transforms->Get(attachable->EntityId);
+	//	transform->LookDir = parentTransform->LookDir;
+	//	bool isLookingRight = (parentTransform->LookDir == TileDirection::South || parentTransform->LookDir == TileDirection::West);
+	//	transform->Position = Vector2Add(parentTransform->Position, entityAttachable.EntityOrigin);
+	//	transform->Position.x += (isLookingRight) ? -entityAttachable.Local.Position.x : entityAttachable.Local.Position.x;
+	//	transform->Position.y += entityAttachable.Local.Position.y;
+	//}
+
 	for (uint32_t i = 0; i < attachables->Size(); ++i)
 	{
 		uint32_t entity = attachables->Indices.Dense[i];
@@ -65,14 +83,11 @@ UpdateAttachables(EntityMgr* entityMgr, ComponentMgr* componentMgr)
 
 		const TransformComponent* parent = transforms->Get(entityAttachable.EntityId);
 		SASSERT(parent);
-		bool isLookingRight = (parent->LookDir == TileDirection::South || parent->LookDir == TileDirection::West);
 		entityTransform->LookDir = parent->LookDir;
-		float localPos = (isLookingRight) ? -entityAttachable.Local.Position.x : entityAttachable.Local.Position.x;
-		entityTransform->Position.x = parent->Position.x + localPos;
-		entityTransform->Position.y = parent->Position.y + entityAttachable.Local.Position.y;
-		entityTransform->Origin = entityAttachable.Local.Origin;
-		entityTransform->Scale = Vector2Add(parent->Scale, entityAttachable.Local.Scale);
-		entityTransform->Rotation = parent->Rotation + entityAttachable.Local.Rotation;
+		bool isLookingRight = (parent->LookDir == TileDirection::South || parent->LookDir == TileDirection::West);
+		entityTransform->Position = Vector2Add(parent->Position, entityAttachable.EntityOrigin);
+		entityTransform->Position.x += (isLookingRight) ? -entityAttachable.Local.Position.x : entityAttachable.Local.Position.x;
+		entityTransform->Position.y += entityAttachable.Local.Position.y;
 	}
 
 	SList<uint32_t> entToDelete = {};

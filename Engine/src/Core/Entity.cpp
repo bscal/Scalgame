@@ -18,7 +18,7 @@ void CreatePlayer(EntityMgr* entityMgr, ComponentMgr* componentMgr)
 	uint32_t entity = entityMgr->CreateEntity();
 	entityMgr->Player.EntityId = entity;
 
-	entityMgr->Player.Transform.Origin = { 8.0f, 8.0f };
+	//entityMgr->Player.Transform.Origin = { 8.0f, 8.0f };
 	//entityMgr->Player.Transform.Position = { -8.0f, -8.0f };
 	componentMgr->AddComponent(entity, entityMgr->Player.Transform);
 
@@ -41,6 +41,7 @@ void CreatePlayer(EntityMgr* entityMgr, ComponentMgr* componentMgr)
 
 	Attachable* torchAttachable = componentMgr->AddComponent(torch, Attachable{});
 	torchAttachable->EntityId = entity;
+	torchAttachable->EntityOrigin = { 8.0f, 8.0f };
 	torchAttachable->Local.Origin.x = 2.0f;
 	torchAttachable->Local.Origin.y = 2.0f;
 	torchAttachable->Local.Position.x = 4.0f;

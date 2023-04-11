@@ -353,7 +353,7 @@ GameUpdate(Game* game, GameApplication* gameApp)
 	WorldUpdate(&game->World, game);
 
 	//EntityMgrUpdate(&game->EntityMgr, game);
-
+	
 	PROFILE_END();
 }
 
