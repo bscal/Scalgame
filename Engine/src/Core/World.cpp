@@ -52,7 +52,7 @@ void WorldUpdate(World* world, Game* game)
 
 	//CTileMap::Update(&world->ChunkedTileMap, game);
 
-	GetGameApp()->NumOfLoadedChunks = (int)world->ChunkedTileMap.ChunksList.Count;
+	GetGameApp()->NumOfLoadedChunks = (int)world->ChunkedTileMap.Chunks.Size;
 	PROFILE_END();
 }
 

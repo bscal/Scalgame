@@ -460,16 +460,13 @@ Vector2 VecToTileCenter(Vector2 vec)
 	return { vec.x + HALF_TILE_SIZE, vec.y + HALF_TILE_SIZE };
 }
 
-Vector2 GetZoomedMousePos(const Camera2D& camera)
-{
-	Vector2 mouseWorld = GetScreenToWorld2D(GetMousePosition(), camera);
-	return Vector2Divide(mouseWorld, { GetScale(), GetScale() });
-}
-
 Vector2i GetTileFromMouse(Game* game)
 {
-	Vector2 mousePos = GetZoomedMousePos(game->ViewCamera);
-	return CTileMap::WorldToTile(mousePos);
+	Vector2 mouseWorld = GetScreenToWorld2D(GetMousePosition(), game->ViewCamera);
+	// Scales mouseWorld based on world scale
+	mouseWorld.x = mouseWorld.x / GetScale();
+	mouseWorld.y = mouseWorld.y / GetScale();
+	return CTileMap::WorldToTile(mouseWorld);
 }
 
 void SetCameraPosition(Game* game, Vector3 pos)

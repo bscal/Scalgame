@@ -31,7 +31,7 @@ global_var constexpr int CHUNK_DIMENSIONS = 64;
 global_var constexpr int CHUNK_SIZE = CHUNK_DIMENSIONS * CHUNK_DIMENSIONS;
 
 // TODO: move to settings struct?
-global_var constexpr Vector2i VIEW_DISTANCE = { 2, 2 };
+global_var constexpr Vector2i VIEW_DISTANCE = { 1, 1 };
 
 // EntityId 
 #define SetId(entity, id) (entity | (0x00ffffff & id))

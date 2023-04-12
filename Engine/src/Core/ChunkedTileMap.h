@@ -5,8 +5,9 @@
 #include "Vector2i.h"
 #include "Tile.h"
 
-#include "Structures/SList.h"
+#include "Structures/SHoodTable.h"
 #include "Structures/SLinkedList.h"
+#include "Structures/StaticArray.h"
 
 struct GameApp;
 struct Game;
@@ -34,15 +35,13 @@ struct TileMapChunk
 	Rectangle Bounds;
 	ChunkCoord ChunkCoord;
 	ChunkState State;
-	TileData Tiles[CHUNK_SIZE];
+	StaticArray<TileData, CHUNK_SIZE> Tiles;
 	//TileColor Colors[CHUNK_SIZE];
 };
 
 struct ChunkedTileMap
 {
-	// TODO temp removed map part, lookup speed
-	// in not that important yet
-	SList<TileMapChunk> ChunksList;
+	SHoodTable<Vector2i, TileMapChunk, Vector2iHasher, Vector2iEquals> Chunks;
 	SLinkedList<ChunkCoord> ChunksToUnload;
 
 	Vector2i ViewDistance;

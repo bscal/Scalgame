@@ -21,6 +21,7 @@ void MapGenGenerateChunk(MapGenerator* generator, ChunkedTileMap* tilemap, TileM
 		{
 			float worldX = (float)x + (float)chunk->ChunkCoord.x * (float)CHUNK_DIMENSIONS;
 			float worldY = (float)y + (float)chunk->ChunkCoord.y * (float)CHUNK_DIMENSIONS;
+
 			float noise = generator->Noise.GetNoise(worldX, worldY);
 
 			int tileTableIndex = (int)(((noise + 1.f) / 2.f) * ArrayLength(TILE_IDS));

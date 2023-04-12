@@ -95,7 +95,6 @@ SRandom* GetGlobalRandom();
 float GetDeltaTime();
 float GetScale();
 Vector2 VecToTileCenter(Vector2 vec);
-Vector2 GetZoomedMousePos(const Camera2D& camera);
 Vector2i GetTileFromMouse(Game* game);
 bool TileInsideCullRect(Vector2i coord);
 

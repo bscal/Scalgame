@@ -33,14 +33,18 @@ struct ComponentArray
 		return Values.Last();
 	}
 
-	inline void Remove(uint32_t entityId)
+	inline bool Remove(uint32_t entityId)
 	{
 		SASSERT(Values.IsAllocated());
 		SASSERT(Indices.IsAllocated());
 		uint32_t id = GetId(entityId);
 		uint32_t index = Indices.Remove(id);
 		if (index != SPARE_EMPTY_ID)
+		{
 			Values.RemoveAtFast(index);
+			return true;
+		}
+		return false;
 	}
 
 	inline T* Get(uint32_t entityId)
@@ -49,7 +53,8 @@ struct ComponentArray
 		SASSERT(Indices.IsAllocated());
 		uint32_t id = GetId(entityId);
 		uint32_t index = Indices.Get(id);
-		if (index == SPARE_EMPTY_ID) return nullptr;
+		if (index == SPARE_EMPTY_ID) 
+			return nullptr;
 		return &Values[index];
 	}
 
