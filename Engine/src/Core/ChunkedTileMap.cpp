@@ -28,7 +28,6 @@ ChunkStateToString(ChunkState state)
 void Initialize(ChunkedTileMap* tilemap)
 {
 	SASSERT(tilemap);
-	SASSERT(!tilemap->ChunksList.IsAllocated());
 
 	tilemap->ViewDistance.x = VIEW_DISTANCE.x;
 	tilemap->ViewDistance.y = VIEW_DISTANCE.y;
@@ -40,16 +39,17 @@ void Initialize(ChunkedTileMap* tilemap)
 
 	SASSERT(tilemap->ViewDistance.x > 0);
 	SASSERT(tilemap->ViewDistance.y > 0);
-	uint32_t capacity = (3u + tilemap->ViewDistance.x) * (3u + tilemap->ViewDistance.y) + 3u;
+	uint32_t padding = 1u;
+	uint32_t capacity = (padding + tilemap->ViewDistance.x * 2u) * (padding + tilemap->ViewDistance.y * 2u);
 	SASSERT(capacity > 0);
-	tilemap->ChunksList.Reserve(capacity);
+	tilemap->Chunks.Reserve(capacity);
 }
 
 void Free(ChunkedTileMap* tilemap)
 {
-	SASSERT(tilemap->ChunksList.IsAllocated());
+	SASSERT(tilemap->Chunks.IsAllocated());
 
-	tilemap->ChunksList.Free();
+	tilemap->Chunks.Free();
 	tilemap->ChunksToUnload.Free();
 }
 
@@ -75,21 +75,23 @@ void Update(ChunkedTileMap* tilemap, Game* game)
 	UpdateTileMap(tilemap, &game->TileMapRenderer);
 
 	constexpr float viewDistanceSqr = (VIEW_DISTANCE.x + 1) * (VIEW_DISTANCE.x + 1);
-	for (uint32_t i = 0; i < tilemap->ChunksList.Count; ++i)
+	for (uint32_t i = 0; i < tilemap->Chunks.Size; ++i)
 	{
-		TileMapChunk* chunk = tilemap->ChunksList.PeekAt(i);
-		float dist = Vector2DistanceSqr(playerChunkPos.AsVec2(), chunk->ChunkCoord.AsVec2());
+		auto& chunk = tilemap->Chunks[i];
+		if (!chunk.Occupied) continue;
+
+		float dist = Vector2DistanceSqr(playerChunkPos.AsVec2(), chunk.Value.ChunkCoord.AsVec2());
 
 		// TODO: revisit this, current chunks dont need to be updated outside
 		// view distance, but they might, or to handle rebuilds?
 		if (dist > viewDistanceSqr)
 		{
-			tilemap->ChunksToUnload.Push(&chunk->ChunkCoord);
+			tilemap->ChunksToUnload.Push(&chunk.Value.ChunkCoord);
 		}
 		else
 		{
 			GetGameApp()->NumOfChunksUpdated++;
-			UpdateChunk(tilemap, chunk);
+			UpdateChunk(tilemap, &chunk.Value);
 		}
 	}
 
@@ -111,20 +113,16 @@ void LateUpdate(ChunkedTileMap* tilemap, Game* game)
 		screen.y = GetGameApp()->ScreenXY.y;
 		screen.width = (float)GetScreenWidth();
 		screen.height = (float)GetScreenHeight();
-		for (uint32_t i = 0; i < tilemap->ChunksList.Count; ++i)
+		for (uint32_t i = 0; i < tilemap->Chunks.Size; ++i)
 		{
-			TileMapChunk* chunk = tilemap->ChunksList.PeekAt(i);
-			if (CheckCollisionRecs(screen, chunk->Bounds))
+			auto& chunk = tilemap->Chunks[i];
+			if (!chunk.Occupied) continue;
+			if (CheckCollisionRecs(screen, chunk.Value.Bounds))
 			{
-				DrawRectangleLinesEx(chunk->Bounds, 4, GREEN);
+				DrawRectangleLinesEx(chunk.Value.Bounds, 4, GREEN);
 			}
 		}
 	}
-}
-
-internal void RebuildLights()
-{
-
 }
 
 void 
@@ -137,9 +135,8 @@ TileMapChunk* LoadChunk(ChunkedTileMap* tilemap, ChunkCoord coord)
 	if (!IsChunkInBounds(tilemap, coord)) return nullptr;
 	if (IsChunkLoaded(tilemap, coord)) return nullptr;
 
-	TileMapChunk* chunk = tilemap->ChunksList.PushNew();
+	TileMapChunk* chunk = tilemap->Chunks.InsertKey(&coord);
 	SASSERT(chunk);
-
 	chunk->ChunkCoord = coord;
 
 	constexpr float chunkDimensionsPixel = (float)CHUNK_DIMENSIONS * TILE_SIZE_F;
@@ -158,15 +155,9 @@ TileMapChunk* LoadChunk(ChunkedTileMap* tilemap, ChunkCoord coord)
 
 void UnloadChunk(ChunkedTileMap* tilemap, ChunkCoord coord)
 {
-	for (uint32_t i = 0; i < tilemap->ChunksList.Count; ++i)
-	{
-		if (tilemap->ChunksList[i].ChunkCoord.Equals(coord))
-		{
-			tilemap->ChunksList.RemoveAtFast(i);
-			SLOG_INFO("[ Chunk ] Unloaded chunk (%s)", FMT_VEC2I(coord));
-			break;
-		}
-	}
+	bool removed = tilemap->Chunks.Remove(&coord);
+	if (removed)
+		SLOG_INFO("[ Chunk ] Unloaded chunk (%s)", FMT_VEC2I(coord));
 }
 
 bool IsChunkLoaded(ChunkedTileMap* tilemap,
@@ -195,26 +186,14 @@ bool IsChunkInBounds(ChunkedTileMap* tilemap, ChunkCoord chunkPos)
 TileMapChunk* 
 GetChunk(ChunkedTileMap* tilemap, ChunkCoord coord)
 {
-	for (size_t i = 0; i < tilemap->ChunksList.Count; ++i)
-	{
-		const auto& chunk = tilemap->ChunksList[i];
-		if (chunk.ChunkCoord.Equals(coord))
-			return &tilemap->ChunksList.Memory[i];
-	}
-	return nullptr;
+	return tilemap->Chunks.Get(&coord);
 }
 
 TileMapChunk* 
 GetChunkByTile(ChunkedTileMap* tilemap, TileCoord tileCoord)
 {
 	ChunkCoord coord = TileToChunkCoord(tileCoord);
-	for (size_t i = 0; i < tilemap->ChunksList.Count; ++i)
-	{
-		const auto& chunk = tilemap->ChunksList[i];
-		if (chunk.ChunkCoord.Equals(coord))
-			return &tilemap->ChunksList.Memory[i];
-	}
-	return nullptr;
+	return GetChunk(tilemap, coord);
 }
 
 ChunkCoord 
@@ -241,7 +220,7 @@ SetTile(ChunkedTileMap* tilemap, const TileData* tile, TileCoord tilePos)
 {
 	SASSERT(tilemap);
 	SASSERT(tile);
-	SASSERT(tilemap->ChunksList.IsAllocated());
+	SASSERT(tilemap->Chunks.IsAllocated());
 	SASSERT(IsTileInBounds(tilemap, tilePos));
 
 	ChunkCoord chunkCoord = TileToChunkCoord(tilePos);
@@ -264,7 +243,7 @@ TileData*
 GetTile(ChunkedTileMap* tilemap, TileCoord tilePos)
 {
 	SASSERT(tilemap);
-	SASSERT(tilemap->ChunksList.IsAllocated());
+	SASSERT(tilemap->Chunks.IsAllocated());
 	SASSERT(IsTileInBounds(tilemap, tilePos));
 
 	ChunkCoord chunkCoord = TileToChunkCoord(tilePos);
@@ -282,8 +261,8 @@ GetTile(ChunkedTileMap* tilemap, TileCoord tilePos)
 TileCoord WorldToTile(Vector2 pos)
 {
 	Vector2i v;
-	v.x = (int)(floorf(pos.x) / TILE_SIZE_F);
-	v.y = (int)(floorf(pos.y) / TILE_SIZE_F);
+	v.x = (int)(floorf(pos.x / TILE_SIZE_F));
+	v.y = (int)(floorf(pos.y / TILE_SIZE_F));
 	return v;
 }
 

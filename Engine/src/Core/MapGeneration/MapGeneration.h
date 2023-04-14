@@ -7,10 +7,6 @@
 struct ChunkedTileMap;
 struct TileMapChunk;
 
-struct GeneratorState
-{
-};
-
 struct MapGenerator
 {
 	FastNoiseLite Noise;
