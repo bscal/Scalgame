@@ -115,6 +115,7 @@ internal bool GameInitialize(Game* game, GameApplication* gameApp)
 
 	InitializeEntities(&game->EntityMgr, &game->ComponentMgr);
 	TileMgrInitialize(&game->Resources.TileSheet);
+	game->InventoryMgr.Initialize();
 
 	game->WorldCamera.zoom = 1.0f;
 	game->ViewCamera.zoom = 1.0f;

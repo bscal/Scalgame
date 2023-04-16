@@ -22,6 +22,9 @@ void main()
 	vec3 color = lightColor.rgb * fragColor.a;
 	color += fragColor.rgb;
 	color += sunlightColor * hasCeilingFactor;
+	color *= losFactor;
+	//color += losColor * (1.0 - losFactor);
+	finalColor = vec4(color, 1.0);
 
 	if (losFactor > 0)
 		finalColor.rgb = color;

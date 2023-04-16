@@ -2,10 +2,10 @@
 
 #define BoundsCheck(data, idx, size) \
 SASSERT(idx < size); \
-T* dataPtr = data; \
+T* dataPtr = (T*)data; \
 T* dataOffsetPtr = (T*)(data) + idx; \
-SASSERT(dataOffsetPtr >= dataPtr); \
-SASSERT(dataOffsetPtr < dataPtr + size); \
+SASSERT(dataOffsetPtr >= (T*)dataPtr); \
+SASSERT(dataOffsetPtr < (T*)dataPtr + size); \
 
 template<typename T, size_t ElementCount>
 struct SStaticArray

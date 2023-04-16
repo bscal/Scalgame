@@ -3,6 +3,8 @@
 #include "Game.h"
 #include "ComponentTypes.h"
 
+#include "Inventory.h"
+
 #include "raylib/src/raymath.h"
 
 void InitializeEntities(EntityMgr* entityMgr, ComponentMgr* componentMgr)
@@ -11,6 +13,7 @@ void InitializeEntities(EntityMgr* entityMgr, ComponentMgr* componentMgr)
 	componentMgr->Register<Renderable>();
 	componentMgr->Register<Attachable>();
 	componentMgr->Register<UpdatingLightSource>();
+	componentMgr->Register<CreatureEntity>();
 }
 
 void CreatePlayer(EntityMgr* entityMgr, ComponentMgr* componentMgr)
@@ -53,6 +56,17 @@ void CreatePlayer(EntityMgr* entityMgr, ComponentMgr* componentMgr)
 	torchLight->MaxRadius = 7;
 	torchLight->Colors[0] = { 250, 190, 200, 200 };
 	torchLight->Colors[1] = { 255, 200, 210, 200 };
+
+	Inventory* inv = GetGame()->InventoryMgr.CreateInvetory(entity);
+	Equipment* equipment = GetGame()->InventoryMgr.CreateEquipment();
+
+	CreatureEntity* creature = componentMgr->AddComponent(torch, CreatureEntity{});
+	creature->InventoryId = inv->InventoryId;
+	creature->EquipmentId = equipment->EquipmentId;
+
+	ItemStack stack = {};
+	stack.ItemId = Items::TORCH;
+	equipment->EquipItem(entity, creature, 0, &stack);
 }
 
 uint32_t EntityMgr::CreateEntity()

@@ -8,6 +8,7 @@
 #include "SMemory.h"
 #include "SRandom.h"
 #include "Entity.h"
+#include "Inventory.h"
 
 #include "MapGeneration/MapGeneration.h"
 
@@ -29,6 +30,7 @@ struct Game
 
     EntityMgr EntityMgr;
     ComponentMgr ComponentMgr;
+    InventoryMgr InventoryMgr;
 
     MapGenerator MapGen;
     World World;

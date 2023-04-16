@@ -3,6 +3,7 @@
 #include "Core.h"
 #include "Globals.h"
 #include "ComponentTypes.h"
+#include "Inventory.h"
 
 #include "Structures/ComponentArray.h"
 #include "Structures/SHoodSet.h"

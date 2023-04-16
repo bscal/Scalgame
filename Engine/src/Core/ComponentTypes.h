@@ -65,3 +65,10 @@ struct SpriteRenderer : Component<SpriteRenderer>
 	SList<Renderable> Renderables;
 };
 
+struct CreatureEntity : Component<CreatureEntity>
+{
+	uint32_t InventoryId;
+	uint32_t EquipmentId;
+};
+
+
