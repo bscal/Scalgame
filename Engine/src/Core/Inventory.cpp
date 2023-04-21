@@ -17,7 +17,11 @@ bool Equipment::EquipItem(uint32_t entity, CreatureEntity* creature, uint16_t sl
 	SASSERT(slot < EQUIPMENT_MAX_SLOTS);
 	SASSERT(stack);
 	EquipmentSlots[slot] = *stack;
-	stack->GetItem(&GetGame()->InventoryMgr)->OnEquip(entity, creature, slot, stack);
+
+	Item* item = stack->GetItem(&GetGame()->InventoryMgr);
+	if (item->OnEquip)
+		item->OnEquip(entity, creature, slot, stack);
+
 	return true;
 }
 
@@ -28,6 +32,7 @@ void OnEquipTorch(uint32_t entityId, CreatureEntity* creature, uint16_t slot, It
 
 void InventoryMgr::Initialize()
 {
+	Items::AIR = RegisterItem({ 0 });
 	Items::TORCH = RegisterItem({ 1, OnEquipTorch });
 }
 

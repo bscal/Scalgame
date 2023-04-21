@@ -1,158 +1,126 @@
 #include "SString.h"
 
 #include <string.h>
+#include <utility>
 
 static_assert(sizeof(char) == 1, "SString does not support char size > 1.");
-static_assert(sizeof(SString) == 24, "SString should equal 24.");
+static_assert(sizeof(SString) == 32, "SString should equal 32.");
 
 // *****************
 // *    SString    *
 // *****************
 
-// Info: Most constructors or functions that create/assign strings,
-// will add a null terminator to the end just to be safe.
-//
-// - SString and STempString ARE null terminated strings.
-// - SStringView ARE NOT null terminated
-//
-
-SString::SString(const char* str)
-	: SString(str, strlen(str) + 1)
+SString::SString(SAllocator::Type allocator) 
+	: m_Buffer({}), Length(0), Capacity(0), Allocator(allocator)
 {
 }
 
 SString::SString(const char* str, uint32_t length)
+	: Length(length), Capacity(SSTR_SSO_ARRAY_SIZE), Allocator(SAllocator::Game)
 {
 	SASSERT(length != 0);
-	SASSERT_MSG(str[length - 1] == 0, "str should be null terminated.");
-	Length = length;
-	DoNotFree = false;
-	Capacity = SSTR_SSO_LENGTH;
-	if (Length > Capacity)
+	uint32_t terminatedLength = length + 1;
+	if (terminatedLength > Capacity)
 	{
-		Capacity = Length;
-		m_Buffer.StrMemory = (char*)SAlloc(SAllocator::Game, Capacity, MemoryTag::Strings);
+		Capacity = terminatedLength;
+		m_Buffer.StrMemory = (char*)SAlloc(Allocator, Capacity, MemoryTag::Strings);
 	}
-	SMemCopy(Data(), str, End());
-	Data()[End()] = '\0';
+	SMemCopy(Data(), str, Length);
+	Data()[Length] = '\0';
+}
+
+SString::SString(const char* str)
+	: SString(str, strlen(str))
+{
 }
 
 SString::SString(const SString& other)
 	: SString(other.Data(), other.Length)
 {
-	DoNotFree = other.DoNotFree;
+}
+
+SString::SString(SString&& other) noexcept
+{
+	Length = other.Length;
+	Capacity = other.Capacity;
+	Allocator = other.Allocator;
+	m_Buffer = other.m_Buffer;
+
+	SMemClear(&other.m_Buffer, sizeof(StringMemory));
+	other.Length = 0;
+	other.Capacity = 0;
 }
 
 SString::~SString()
 {
-	if (!DoNotFree && Capacity > SSTR_SSO_LENGTH)
-		SFree(SAllocator::Game, m_Buffer.StrMemory, Capacity, MemoryTag::Strings);
-}
-
-SString SString::CreateFake(const STempString* tempStr)
-{
-	SASSERT(tempStr);
-	SASSERT(tempStr->Str);
-
-	SString string;
-	string.Length = tempStr->Length;
-	string.DoNotFree = true;
-	if (string.Length > SSTR_SSO_LENGTH)
-	{
-		string.Capacity = string.Length;
-		string.m_Buffer.StrMemory = tempStr->Str;
-	}
-	else
-	{
-		string.Capacity = SSTR_SSO_LENGTH;
-		SMemCopy(string.Data(), tempStr->Str, string.Length);
-		SASSERT(string.Data()[SSTR_SSO_LENGTH] == 0);
-		string.Data()[SSTR_SSO_LENGTH] = '\0';
-	}
-	return string;
-}
-
-SString SString::CreateFake(const SStringView* tempStr)
-{
-	SASSERT(tempStr);
-	SASSERT(tempStr->Str);
-
-	SString string;
-	string.Length = tempStr->Length + 1;
-	string.DoNotFree = true;
-	if (string.Length > SSTR_SSO_LENGTH)
-	{
-		string.Capacity = string.Length;
-		// Note: const -> unconst, this points to another
-		// strin's memory a not a unique memory
-		string.m_Buffer.StrMemory = (char*)tempStr->Str;
-	}
-	else
-	{
-		string.Capacity = SSTR_SSO_LENGTH;
-		SMemCopy(string.Data(), tempStr->Str, string.Length - 1);
-	}
-	string.Data()[string.End()] = '\0';
-	string.Data()[SSTR_SSO_LENGTH] = '\0';
-	SASSERT(string.Data()[SSTR_SSO_LENGTH] == 0);
-	return string;
+	if (Capacity > SSTR_SSO_ARRAY_SIZE)
+		SFree(Allocator, m_Buffer.StrMemory, Capacity, MemoryTag::Strings);
 }
 
 void SString::SetCapacity(uint32_t capacity)
 {
-	if (capacity < Capacity) return;
-	if (capacity > SSTR_SSO_LENGTH)
+	if (Capacity >= capacity)
+		return;
+
+	if (capacity <= SSTR_SSO_ARRAY_SIZE)
 	{
-		if (Capacity > SSTR_SSO_LENGTH)
+		Capacity = SSTR_SSO_ARRAY_SIZE;
+	}
+	else
+	{
+		if (IsAllocated())
 		{
 			SRealloc(SAllocator::Game, m_Buffer.StrMemory, Capacity, capacity, MemoryTag::Strings);
 		}
 		else
 		{
-			char* memory = (char*)SAlloc(SAllocator::Game, capacity, MemoryTag::Strings);
-			SMemCopy(memory, Data(), SSTR_SSO_LENGTH);
+			char* memory = (char*)SAlloc(Allocator, capacity, MemoryTag::Strings);
+			SMemCopy(memory, m_Buffer.ShortStringBuf, SSTR_SSO_ARRAY_SIZE);
 			m_Buffer.StrMemory = memory;
 		}
 		Capacity = capacity;
 	}
-	else
+}
+
+void
+SString::Assign(const char* cStr, uint32_t length)
+{
+	SASSERT(cStr);
+
+	if (Capacity > SSTR_SSO_ARRAY_SIZE)
+		SFree(Allocator, m_Buffer.StrMemory, Capacity, MemoryTag::Strings);
+
+	if (length == 0)
 	{
-		Capacity = SSTR_SSO_LENGTH;
+		SMemClear(&m_Buffer, sizeof(SString::StringMemory));
+		Length = 0;
+		Capacity = 0;
+		return;
 	}
+
+	if (Data() == cStr)
+		return;
+
+	Length = length;
+	uint32_t terminatedLength = Length + 1;
+	Capacity = SSTR_SSO_ARRAY_SIZE;
+	if (terminatedLength > Capacity)
+	{
+		Capacity = terminatedLength;
+		m_Buffer.StrMemory = (char*)SAlloc(Allocator, Capacity, MemoryTag::Strings);
+	}
+	SMemCopy(Data(), cStr, Length);
+	Data()[Length] = '\0';
 }
 
 void SString::Assign(const char* cStr)
 {
-	SASSERT(cStr);
-	Assign(cStr, strlen(cStr) + 1);
+	Assign(cStr, strlen(cStr));
 }
 
-void SString::Assign(const char* cStr, uint32_t length)
+void SString::Assign(const SString& other)
 {
-	SASSERT(cStr);
-	if (Data() == cStr) return;
-	if (length == 0)
-	{
-		Data()[0] = '\0';
-		Length = 0;
-		return;
-	}
-	if (cStr[length - 1] != '\0') ++length;
-	if (length > SSTR_SSO_LENGTH)
-	{
-		if (Capacity > SSTR_SSO_LENGTH)
-			m_Buffer.StrMemory = (char*)SRealloc(SAllocator::Game, m_Buffer.StrMemory, Capacity, length, MemoryTag::Strings);
-		else
-			m_Buffer.StrMemory = (char*)SAlloc(SAllocator::Game, length, MemoryTag::Strings);
-		Capacity = length;
-	}
-	else if (Capacity == 0)
-		Capacity = SSTR_SSO_LENGTH;
-
-	Length = length;
-	DoNotFree = false;
-	SMemCopy(Data(), cStr, End());
-	Data()[End()] = '\0';
+	Assign(other.Data(), other.Length);
 }
 
 uint32_t SString::FindChar(char c) const
@@ -176,7 +144,15 @@ uint32_t SString::Find(const char* cString) const
 
 SString& SString::operator=(const SString& other)
 {
-	if (this != &other) Assign(other.Data(), other.Length);
+	if (this != &other)
+		Assign(other);
+	return *this;
+}
+
+SString& SString::operator=(const SStringView& other)
+{
+	if (Data() != other.Str)
+		Assign(other.Str);
 	return *this;
 }
 
@@ -186,66 +162,22 @@ SString& SString::operator=(const char* cString)
 	return *this;
 }
 
-bool SString::operator==(const STempString& other) const { return SStrEquals(Data(), other.Str); }
-bool SString::operator!=(const STempString& other) const { return !SStrEquals(Data(), other.Str); }
-
 void SString::Append(const char* str)
 {
-	Append(str, strlen(str) + 1);
+	Append(str, strlen(str));
 }
 
 void SString::Append(const char* str, uint32_t length)
 {
-	if (Length + length > Capacity)
-	{
-		SetCapacity(Length + length);
-	}
-	uint32_t offset = (Length == 0) ? 0 : Length - 1;
-	SMemMove(Data() + offset, str, length);
-	Length = offset + length;
-}
+	uint32_t newLength = Length + length + 1;
+	if (newLength > Capacity)
+		SetCapacity(newLength);
 
-// *********************
-// *    STempString    *
-// *********************
+	char* offsetData = Data() + Length;
+	SMemMove(offsetData, str, length);
+	Length += length;
 
-STempString::STempString(const char* str)
-	: STempString(str, strlen(str) + 1)
-{
-}
-
-STempString::STempString(const char* str, uint32_t length)
-{
-	Length = length;
-	Str = (char*)SMemTempAlloc(Length);
-	SMemCopy(Str, str, Length - 1);
-	Str[End()] = '\0';
-}
-
-STempString::STempString(const STempString& other)
-	: STempString(other.Str, other.Length)
-{
-}
-
-STempString& STempString::operator=(const STempString& other)
-{
-	if (this == &other) return *this;
-
-	Length = other.Length;
-	Str = (char*)SMemTempAlloc(Length);
-	SMemCopy(Str, other.Str, Length);
-	Str[Length - 1] = '\0';
-
-	return *this;
-}
-
-STempString& STempString::operator=(const char* cString)
-{
-	Length = strlen(cString) + 1;
-	Str = (char*)SMemTempAlloc(Length);
-	SMemCopy(Str, cString, Length);
-	Str[Length - 1] = '\0';
-	return *this;
+	Data()[Length] = '\0';
 }
 
 // *********************
@@ -320,6 +252,20 @@ uint32_t SStringView::Find(const char* cString) const
 // **************************
 // *    String Functions    *
 // **************************
+
+SRawString RawStringNew(const char* cStr)
+{
+	SRawString res;
+	res.Length = strlen(cStr);
+	res.Data = (char*)SAlloc(SAllocator::Game, res.Length + 1, MemoryTag::Strings);
+	res.Data[res.Length] = '\0';
+	return res;
+}
+
+void RawStringFree(SRawString string)
+{
+	SFree(SAllocator::Game, string.Data, string.Length + 1, MemoryTag::Strings);
+}
 
 bool SStrEquals(const char* str1, const char* str2)
 {

@@ -34,7 +34,7 @@ struct DefaultHasher
 template<typename T>
 struct DefaultEquals
 {
-	[[nodiscard]] constexpr bool operator()(const T* k1, const T* k2) const noexcept
+	[[nodiscard]] bool operator()(const T* k1, const T* k2) const noexcept
 	{
 		return *k1 == *k2;
 	}

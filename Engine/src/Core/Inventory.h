@@ -54,18 +54,21 @@ enum Type
 
 struct Inventory
 {
+	inline static const uint32_t NOT_FOUND = UINT32_MAX;
+	
 	SList<ItemStack> Contents;
 	InventoryType::Type Type;
 	uint32_t OwningEntity;
 	uint32_t InventoryId;
 
-	uint32_t FindItem(uint32_t item) const
+	inline uint32_t FindItem(uint32_t item) const
 	{
 		for (uint32_t i = 0; i < Contents.Count; ++i)
 		{
 			if (Contents[i].ItemId == item)
 				return i;
 		}
+		return NOT_FOUND;
 	}
 
 };
@@ -81,6 +84,7 @@ struct Equipment
 
 namespace Items
 {
+inline uint32_t AIR;
 inline uint32_t TORCH;
 };
 

@@ -1,0 +1,47 @@
+#version 430
+
+layout (local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+
+layout(binding = 1) uniform sampler2D worldMap;
+//layout(binding = 2) uniform image2D lightMap;
+
+struct Light
+{
+    vec2 pos;
+    vec3 color;
+    float radius;
+};
+
+
+layout(std430, binding = 4) readonly restrict buffer lightLayout
+{
+    Light lights[];
+};
+
+void main()
+{
+    ivec2 pixelCoord = ivec2(gl_GlobalInvocationID.xy);
+    vec2 pixelPos = pixelCoord;
+
+    uint index = 0;
+    Light light = lights[index];
+
+    float distance = distance(light.pos, pixelPos);
+    const float a = 0.0;
+	const float b = 0.1;
+	float attenuation = 1.0 / (1.0 + a * distance + b * distance * distance);
+
+    vec4 worldData = texelFetch(worldMap, pixelCoord, 0);
+
+    vec4 color;
+    if (worldData.a != 0.0)
+    {
+        color = vec4(light.color * attenuation, 1.0);
+    }
+    else
+    {
+        color = vec4(0.0);
+    }
+    
+    //imageStore(lightMap, pixelCoord, imageColor + color);
+}

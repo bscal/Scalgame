@@ -348,7 +348,7 @@ DrawConsole(UIState* state)
 				}
 
 				SString* string = state->ConsoleEntries.PushNew();
-				string->Assign(cmdMgr->TextInputMemory, cmdMgr->Length);
+				string->Assign(cmdMgr->TextInputMemory);
 
 				cmdMgr->TryExecuteCommand(SStringView(cmdMgr->TextInputMemory, cmdMgr->Length));
 

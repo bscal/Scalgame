@@ -54,9 +54,6 @@ internal int TestExecute2(const SStringView cmd, const SList<SStringView>& args)
 
 CommandMgr::CommandMgr()
 {
-	Commands.KeyEqualsFunction = STableDefaultKeyEquals;
-	Commands.KeyHashFunction = SStringViewHash;
-
 	Suggestions.Reserve(MAX_SUGGESTIONS);
 	InputArgs.Reserve(5);
 
@@ -76,12 +73,13 @@ CommandMgr::CommandMgr()
 
 void CommandMgr::RegisterCommand(const char* cmdName, const Command& cmd)
 {
-	SStringView cmdNameStringView(cmdName);
+	//SString name(cmdName);
+	//Commands.Insert(&name, &cmd);
 
-	CommandNames.Push(&cmdNameStringView);
-	Commands.Put(&cmdNameStringView, &cmd);
+	//SStringView cmdNameView(cmdName);
+	//CommandNames.Push(&cmdNameView);
 
-	SLOG_INFO("[ Commands ] Registered command %s", cmdNameStringView.Str);
+	SLOG_INFO("[ Commands ] Registered command %s", cmdName);
 }
 
 void CommandMgr::TryExecuteCommand(const SStringView input)
@@ -101,18 +99,20 @@ void CommandMgr::TryExecuteCommand(const SStringView input)
 		InputArgs.Push(&subStr);
 		start = end + 1;
 	}
-	SStringView subStr = input.SubString(start, input.End());
+	SStringView subStr = input.SubString(start, input.LastCharIdx());
 	InputArgs.Push(&subStr);
 
 	// NOTE: The command name is the 1st
 	// argument, so we remove and set
 	// InputCommandStr as it
-	STempString commandStr = InputArgs[0].ToTempString();
-	SStringView commandStrView(commandStr.Str, commandStr.Length);
+	
+	SStringView commandStrView = InputArgs[0];
+	SString commandStr(SAllocator::Temp);
+	commandStr.Assign(commandStrView.Str);
 
 	InputArgs.RemoveAt(0);
 
-	Command* foundCommand = Commands.Get(&commandStrView);
+	Command* foundCommand = Commands.Get(&commandStr);
 	if (foundCommand)
 	{		
 		int ret = foundCommand->Execute(commandStrView, InputArgs);

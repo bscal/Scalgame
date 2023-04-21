@@ -138,8 +138,9 @@ void SpriteAtlas::Unload()
 
 Rectangle SpriteAtlas::GetRectByName(SStringView tileName) const
 {
-	SString tempSStr = SString::CreateFake(&tileName);
-	uint32_t* index = SpritesByName.Get(&tempSStr);
+	SString name(SAllocator::Temp);
+	name = tileName;
+	uint32_t* index = SpritesByName.Get(&name);
 	if (index) return SpritesArray[*index];
 	// TODO probably want some type of pink tile to be more ERRORY
 	return {};
