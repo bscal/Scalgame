@@ -67,6 +67,7 @@ struct SpriteRenderer : Component<SpriteRenderer>
 
 struct CreatureEntity : Component<CreatureEntity>
 {
+	AttributesContainer Attributes;
 	uint32_t InventoryId;
 	uint32_t EquipmentId;
 };

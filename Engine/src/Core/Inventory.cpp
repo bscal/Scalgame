@@ -12,17 +12,33 @@ Item* ItemStack::GetItem(InventoryMgr* invMgr)
 	return &item;
 }
 
-bool Equipment::EquipItem(uint32_t entity, CreatureEntity* creature, uint16_t slot, ItemStack* stack)
+bool Equipment::EquipItem(uint32_t entity, CreatureEntity* creature, ItemStack* stack, uint8_t slot)
 {
-	SASSERT(slot < EQUIPMENT_MAX_SLOTS);
+	SASSERT(creature);
 	SASSERT(stack);
-	EquipmentSlots[slot] = *stack;
+	SASSERT(slot < (uint8_t)EquipmentSlots::MAX_SLOTS);
+
+	Slots[slot] = *stack;
 
 	Item* item = stack->GetItem(&GetGame()->InventoryMgr);
 	if (item->OnEquip)
 		item->OnEquip(entity, creature, slot, stack);
 
 	return true;
+}
+
+bool Equipment::UnequipItem(uint32_t entity, CreatureEntity* creature, ItemStack* stack, uint8_t slot)
+{
+	SASSERT(creature);
+	SASSERT(stack);
+	SASSERT(slot < (uint8_t)EquipmentSlots::MAX_SLOTS);
+
+	ItemStack* stack = &Slots[slot];
+	// TODO unequip callback
+	
+	bool hadStack = (stack);
+	SMemClear(stack, sizeof(ItemStack));	
+	return hadStack;
 }
 
 void OnEquipTorch(uint32_t entityId, CreatureEntity* creature, uint16_t slot, ItemStack* itemStack)

@@ -73,13 +73,21 @@ struct Inventory
 
 };
 
+enum class EquipmentSlots : uint8_t
+{
+	MAIN_HAND = 0,
+	OFF_HAND,
+
+	MAX_SLOTS
+};
 
 struct Equipment
 {
 	uint32_t EquipmentId;
-	StaticArray<ItemStack, EQUIPMENT_MAX_SLOTS> EquipmentSlots;
+	StaticArray<ItemStack, (uint8_t)EquipmentSlots::MAX_SLOTS> Slots;
 
-	bool EquipItem(uint32_t entity, CreatureEntity* creature, uint16_t slot, ItemStack* stack);
+	bool EquipItem(uint32_t entity, CreatureEntity* creature, ItemStack* stack, uint8_t slot);
+	bool UnequipItem(uint32_t entity, CreatureEntity* creature, ItemStack* stack, uint8_t slot);
 };
 
 namespace Items

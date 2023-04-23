@@ -161,6 +161,78 @@ struct ComponentMgr
 void CreatePlayer(EntityMgr* entityMgr, ComponentMgr* componentMgr);
 void InitializeEntities(EntityMgr* entityMgr, ComponentMgr* componentMgr);
 
+enum class AttributeType : uint8_t
+{
+	STRENGTH = 0,
+
+	MAX_VALUE,
+};
+
+enum class AttributeModifierType : uint8_t
+{
+	ADD,
+	MULTIPLY
+};
+
+struct AttributeModifier
+{
+	float Value;
+	AttributeModifierType Type;
+};
+
+struct AttributesContainer
+{
+	StaticArray<float, (uint8_t)AttributeType::MAX_VALUE> BaseAttributes;
+	StaticArray<float, (uint8_t)AttributeType::MAX_VALUE> PlusAttributes;
+
+	inline void ResetAttributes()
+	{
+		PlusAttributes.Fill(0.0f);
+	}
+
+	inline float GetAttribute(AttributeType attribute)
+	{
+		return BaseAttributes[(uint8_t)attribute] + PlusAttributes[(uint8_t)attribute];
+	}
+
+	inline void AddAttribute(AttributeType attribute, AttributeModifier modifier)
+	{
+		switch (modifier.Type)
+		{
+			case (AttributeModifierType::ADD):
+			{
+				PlusAttributes[(uint8_t)attribute] += modifier.Value;
+			} break;
+			case (AttributeModifierType::MULTIPLY):
+			{
+				PlusAttributes[(uint8_t)attribute] += BaseAttributes[(uint8_t)attribute] * modifier.Value;
+			} break;
+
+			default:
+				SASSERT(false); break;
+		}
+	}
+
+	inline void RemoveAttribute(AttributeType attribute, AttributeModifier modifier)
+	{
+		switch (modifier.Type)
+		{
+			case (AttributeModifierType::ADD):
+			{
+				PlusAttributes[(uint8_t)attribute] -= modifier.Value;
+			} break;
+			case (AttributeModifierType::MULTIPLY):
+			{
+				PlusAttributes[(uint8_t)attribute] -= BaseAttributes[(uint8_t)attribute] * modifier.Value;
+			} break;
+
+			default:
+				SASSERT(false); break;
+		}
+	}
+
+};
+
 inline bool TestEntityId()
 {
 	uint32_t ent1 = 0;
