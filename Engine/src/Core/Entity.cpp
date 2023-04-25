@@ -64,9 +64,8 @@ void CreatePlayer(EntityMgr* entityMgr, ComponentMgr* componentMgr)
 	creature->InventoryId = inv->InventoryId;
 	creature->EquipmentId = equipment->EquipmentId;
 
-	ItemStack stack = {};
-	stack.ItemId = Items::TORCH;
-	equipment->EquipItem(entity, creature, 0, &stack);
+	ItemStack stack = ItemStack::New(Items::TORCH, 1);
+	equipment->EquipItem(entity, creature, &stack, 0);
 }
 
 uint32_t EntityMgr::CreateEntity()

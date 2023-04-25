@@ -1,5 +1,8 @@
 #pragma once
 
+#include "Core/Core.h"
+#include "Core/SMemory.h"
+
 #define BoundsCheck(data, idx, size) \
 SASSERT(idx < size); \
 T* dataPtr = (T*)data; \
@@ -28,7 +31,7 @@ struct SStaticArray
 	{
 		for (size_t i = 0; i < ElementCount; ++i)
 		{
-			memcpy(&Data[i], &value, sizeof(T));
+			SMemCopy(&Data[i], &value, sizeof(T));
 		}
 	}
 

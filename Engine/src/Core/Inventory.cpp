@@ -12,6 +12,14 @@ Item* ItemStack::GetItem(InventoryMgr* invMgr)
 	return &item;
 }
 
+ItemStack ItemStack::New(uint16_t itemId, uint16_t itemCount)
+{
+	ItemStack res = {};
+	res.ItemId = itemId;
+	res.ItemCount = itemCount;
+	return res;
+}
+
 bool Equipment::EquipItem(uint32_t entity, CreatureEntity* creature, ItemStack* stack, uint8_t slot)
 {
 	SASSERT(creature);
@@ -27,10 +35,9 @@ bool Equipment::EquipItem(uint32_t entity, CreatureEntity* creature, ItemStack* 
 	return true;
 }
 
-bool Equipment::UnequipItem(uint32_t entity, CreatureEntity* creature, ItemStack* stack, uint8_t slot)
+bool Equipment::UnequipItem(uint32_t entity, CreatureEntity* creature, uint8_t slot)
 {
 	SASSERT(creature);
-	SASSERT(stack);
 	SASSERT(slot < (uint8_t)EquipmentSlots::MAX_SLOTS);
 
 	ItemStack* stack = &Slots[slot];

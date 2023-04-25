@@ -40,7 +40,13 @@ struct ItemStack
 	uint16_t MaxDurablity;
 
 	Item* GetItem(InventoryMgr* invMgr);
+
+	bool Increment();
+	bool Deincrement();
+
+	static ItemStack New(uint16_t itemId, uint16_t itemCount);
 };
+global_var constexpr ItemStack AIR_ITEMSTACK = {};
 
 namespace InventoryType
 {
@@ -50,7 +56,6 @@ enum Type
 	MAX_TYPES
 };
 }
-
 
 struct Inventory
 {
@@ -87,7 +92,7 @@ struct Equipment
 	StaticArray<ItemStack, (uint8_t)EquipmentSlots::MAX_SLOTS> Slots;
 
 	bool EquipItem(uint32_t entity, CreatureEntity* creature, ItemStack* stack, uint8_t slot);
-	bool UnequipItem(uint32_t entity, CreatureEntity* creature, ItemStack* stack, uint8_t slot);
+	bool UnequipItem(uint32_t entity, CreatureEntity* creature, uint8_t slot);
 };
 
 namespace Items

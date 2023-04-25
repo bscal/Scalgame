@@ -7,6 +7,13 @@
 struct ChunkedTileMap;
 struct TileMapChunk;
 
+struct TileGenData
+{
+	float Height;
+	float Temperature;
+	float Rainfall;
+};
+
 struct MapGenerator
 {
 	FastNoiseLite Noise;

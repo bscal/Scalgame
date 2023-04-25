@@ -1,6 +1,8 @@
 #pragma once
 
 #include "Core.h"
+#include "Attributes.h"
+
 #include "Structures/SList.h"
 
 typedef uint32_t Entity;
