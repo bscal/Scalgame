@@ -219,7 +219,7 @@ void LightingRenderer::Initialize(Game* game)
 	UniformLOSColor = GetShaderLocation(LightingShader, "losColor");
 	UniformWorldMap = GetShaderLocation(LightingShader, "tileDataMap");
 
-	AmbientLightColor = { 25.0f / 255, 20.0 / 255, 45.0f / 255 };
+	AmbientLightColor = { 25.0f / 255.0f, 20.0f / 255.0f, 45.0f / 255.0f };
 	SunlightColor = { 0.0f, 0.0f, 0.0f };
 	LOSColor = { 0.0f, 0.0f, 0.0f };
 	LightIntensity = 1.0f;
@@ -243,14 +243,14 @@ void LightingRenderer::Draw()
 	Rectangle src;
 	src.x = 0;
 	src.y = 0;
-	src.width = ColorsTexture.texture.width;
-	src.height = ColorsTexture.texture.height;
+	src.width = (float)ColorsTexture.texture.width;
+	src.height = (float)ColorsTexture.texture.height;
 
 	Rectangle dst;
 	dst.x = GetGameApp()->CullXY.x - HALF_TILE_SIZE;
 	dst.y = GetGameApp()->CullXY.y - HALF_TILE_SIZE;
-	dst.width = LightingTexture.texture.width;
-	dst.height = LightingTexture.texture.height;
+	dst.width = (float)LightingTexture.texture.width;
+	dst.height = (float)LightingTexture.texture.height;
 
 	SASSERT(sizeof(Tiles[0]) == (sizeof(float) * 4));
 

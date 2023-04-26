@@ -124,7 +124,8 @@ IsPowerOf2_32(uint32_t num)
 inline constexpr size_t
 AlignSize(size_t size, size_t alignment)
 {
-	return (size + (alignment - 1ULL)) & -alignment;
+	size_t res = (size + static_cast<size_t>(alignment - 1)) & static_cast<size_t>(~(alignment - 1));
+	return res;
 }
 
 inline constexpr bool

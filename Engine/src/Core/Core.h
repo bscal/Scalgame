@@ -56,8 +56,8 @@ ReportAssertFailure(const char* expression, const char* msg, const char* file, i
 #endif
 
 #define SLOG_DEBUG(msg, ...) TraceLog(LOG_DEBUG, msg, __VA_ARGS__)
-#define SASSERT(expr) if (!(expr)) { ReportAssertFailure(#expr, "", __FILE__, __LINE__); DEBUG_BREAK(); }
-#define SASSERT_MSG(expr, msg) if (!(expr)) { ReportAssertFailure(#expr, msg, __FILE__, __LINE__); DEBUG_BREAK(); }
+#define SASSERT(expr) if (!(expr)) { ReportAssertFailure(#expr, "", __FILE__, __LINE__); DEBUG_BREAK(void); }
+#define SASSERT_MSG(expr, msg) if (!(expr)) { ReportAssertFailure(#expr, msg, __FILE__, __LINE__); DEBUG_BREAK(void); }
 
 #else
 

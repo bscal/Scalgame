@@ -293,7 +293,7 @@ DrawConsole(UIState* state)
 		constexpr int TEXT_ENTRY_HEIGHT_WITH_PADDING = (int)TEXT_ENTRY_HEIGHT + 4;
 
 		int w = GetScreenWidth();
-		int h = (float)GetScreenHeight() * .75f + SuggestionPanelSize;
+		int h = int((float)GetScreenHeight() * .75f + SuggestionPanelSize);
 		if (heightAnimValue < h)
 		{
 			h = heightAnimValue;
@@ -316,7 +316,7 @@ DrawConsole(UIState* state)
 			if (nk_group_begin(ctx, "Messages", 0))
 			{
 				nk_layout_row_dynamic(ctx, TEXT_ENTRY_HEIGHT, 1);
-				for (int i = 0; i < state->ConsoleEntries.Count; ++i)
+				for (uint32_t i = 0; i < state->ConsoleEntries.Count; ++i)
 				{
 					nk_label(ctx, state->ConsoleEntries[i].Data(), NK_TEXT_LEFT);
 				}
@@ -352,7 +352,7 @@ DrawConsole(UIState* state)
 
 				cmdMgr->TryExecuteCommand(SStringView(cmdMgr->TextInputMemory, cmdMgr->Length));
 
-				if (state->ConsoleEntries.Count >= h / TEXT_ENTRY_HEIGHT_WITH_PADDING)
+				if (state->ConsoleEntries.Count >= uint32_t(h / TEXT_ENTRY_HEIGHT_WITH_PADDING))
 				{
 					nk_group_set_scroll(ctx, "Messages", 0, state->ConsoleEntries.Count * TEXT_ENTRY_HEIGHT_WITH_PADDING);
 				}
@@ -367,7 +367,7 @@ DrawConsole(UIState* state)
 			{
 				SuggestionPanelSize = (float)(24.0f * cmdMgr->Suggestions.Count);
 				nk_layout_row_dynamic(ctx, TEXT_ENTRY_HEIGHT, 1);
-				for (int i = 0; i < cmdMgr->Suggestions.Count; ++i)
+				for (uint32_t i = 0; i < cmdMgr->Suggestions.Count; ++i)
 				{
 					nk_label(ctx, cmdMgr->Suggestions[i].Str, NK_TEXT_LEFT);
 				}

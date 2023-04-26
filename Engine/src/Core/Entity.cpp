@@ -30,42 +30,6 @@ void CreatePlayer(EntityMgr* entityMgr, ComponentMgr* componentMgr)
 	renderable->SrcHeight = 16;
 	renderable->DstWidth = 16;
 	renderable->DstHeight = 16;
-
-	uint32_t torch = entityMgr->CreateEntity();
-	componentMgr->AddComponent(torch, TransformComponent{});
-
-	Renderable* torchRenderable = componentMgr->AddComponent(torch, Renderable{});
-	torchRenderable->x = 0;
-	torchRenderable->y = 32;
-	torchRenderable->SrcWidth = 4;
-	torchRenderable->SrcHeight = 4;
-	torchRenderable->DstWidth = 4;
-	torchRenderable->DstHeight = 4;
-
-	Attachable* torchAttachable = componentMgr->AddComponent(torch, Attachable{});
-	torchAttachable->EntityId = entity;
-	torchAttachable->EntityOrigin = { 8.0f, 8.0f };
-	torchAttachable->Local.Origin.x = 2.0f;
-	torchAttachable->Local.Origin.y = 2.0f;
-	torchAttachable->Local.Position.x = 4.0f;
-	torchAttachable->Local.Position.y = -3.0f;
-	torchAttachable->Local.Rotation = 0.0f;
-
-	UpdatingLightSource* torchLight = componentMgr->AddComponent(torch, UpdatingLightSource{});
-	torchLight->MinRadius = 6;
-	torchLight->MaxRadius = 7;
-	torchLight->Colors[0] = { 250, 190, 200, 200 };
-	torchLight->Colors[1] = { 255, 200, 210, 200 };
-
-	Inventory* inv = GetGame()->InventoryMgr.CreateInvetory(entity);
-	Equipment* equipment = GetGame()->InventoryMgr.CreateEquipment();
-
-	CreatureEntity* creature = componentMgr->AddComponent(torch, CreatureEntity{});
-	creature->InventoryId = inv->InventoryId;
-	creature->EquipmentId = equipment->EquipmentId;
-
-	ItemStack stack = ItemStack::New(Items::TORCH, 1);
-	equipment->EquipItem(entity, creature, &stack, 0);
 }
 
 uint32_t EntityMgr::CreateEntity()

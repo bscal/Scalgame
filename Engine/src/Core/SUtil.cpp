@@ -49,10 +49,10 @@ QueryTilesRadius(World* world, Vector2i center, float radius)
 {
 	SASSERT(radius > 0.0f);
 
-	int startX = center.x - radius;
-	int startY = center.y - radius;
-	int endX = center.x + radius;
-	int endY = center.y + radius;
+	int startX = center.x - (int)radius;
+	int startY = center.y - (int)radius;
+	int endX = center.x + (int)radius;
+	int endY = center.y + (int)radius;
 	float sqrRadius = radius * radius;
 
 	uint32_t size = (endX - startX) + (endY - startY);

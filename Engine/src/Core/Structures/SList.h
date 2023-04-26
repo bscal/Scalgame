@@ -292,10 +292,10 @@ SList<T>& SList<T>::Assign(T* inList, size_t listCount)
 	SASSERT(listCount > 0);
 	SASSERT(!IsAllocated());
 	SASSERT(Count == 0);
-
-	EnsureSize(listCount);
+	SASSERT(listCount < UINT32_MAX)
+	EnsureSize((uint32_t)listCount);
 	SMemCopy(Memory, inList, listCount * sizeof(T));
-	Count = listCount;
+	Count = (uint32_t)listCount;
 
 	return *this;
 }
@@ -304,7 +304,7 @@ template<typename T>
 bool SList<T>::Contains(const T* value) const
 {
 	SASSERT(value);
-	for (int i = 0; i < Count; ++i)
+	for (uint32_t i = 0; i < Count; ++i)
 	{
 		if (Memory[i] == *value) return true;
 	}

@@ -795,8 +795,8 @@ void FloodFillScanline(const Light* light, int x, int y, int width, int height, 
 		bool down = data.r[3] == 1;
 		bool up = data.r[3] == 0;
 
-		int startX = x - light->Radius;
-		int startY = y - light->Radius;
+		int startX = x - (int)light->Radius;
+		int startY = y - (int)light->Radius;
 
 		// extendLeft
 		int minX = data.r[0];

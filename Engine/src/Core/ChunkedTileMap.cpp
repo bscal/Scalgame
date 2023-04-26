@@ -74,7 +74,7 @@ void Update(ChunkedTileMap* tilemap, Game* game)
 	
 	UpdateTileMap(tilemap, &game->TileMapRenderer);
 
-	constexpr float viewDistanceSqr = (VIEW_DISTANCE.x + 1) * (VIEW_DISTANCE.x + 1);
+	constexpr float viewDistanceSqr = ((float)VIEW_DISTANCE.x + 1.0f) * ((float)VIEW_DISTANCE.x + 1.0f);
 	for (uint32_t i = 0; i < tilemap->Chunks.Size; ++i)
 	{
 		auto& chunk = tilemap->Chunks[i];

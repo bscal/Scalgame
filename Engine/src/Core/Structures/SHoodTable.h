@@ -48,7 +48,7 @@ struct SHoodTable
 	SHoodBucket<K, V>& operator[](size_t i) { SASSERT(i < Capacity); return Buckets[i]; }
 
 private:
-	inline uint64_t Hash(const K* key) const;
+	inline uint32_t Hash(const K* key) const;
 };
 
 template<
@@ -56,13 +56,16 @@ template<
 	typename V,
 	typename HashFunc,
 	typename EqualsFunc>
-inline uint64_t 
+inline uint32_t 
 SHoodTable<K, V, HashFunc, EqualsFunc>::Hash(const K* key) const
 {
 	SASSERT(IsPowerOf2_32(Capacity));
 	uint64_t hash = HashFunc{}(key);
+	// Fast mod of power of 2s
 	hash &= ((uint64_t)(Capacity - 1));
-    return hash;
+	// Since we mod by capacity is will not be larger then capacity and cast to u32
+	SASSERT(hash < Capacity);
+    return static_cast<uint32_t>(hash);
 }
 
 template<
@@ -339,8 +342,8 @@ bool SHoodTable<K, V, HashFunc, EqualsFunc>::Remove(const K* key)
 	SASSERT(EqualsFunc{}(key, key));
 	SASSERT(key);
 
-	uint64_t hash = Hash(key);
-	uint64_t index = hash;
+	uint32_t hash = Hash(key);
+	uint32_t index = hash;
 	while (true)
 	{
 		if (index == Capacity) index = 0;

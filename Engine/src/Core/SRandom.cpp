@@ -81,7 +81,7 @@ double SRandNextDouble(SRandom* state)
 
 int SRandNextInt(SRandom* state)
 {
-	return int((uint32_t)SRandNext(state));
+	return static_cast<int>((uint32_t)SRandNext(state));
 }
 
 float SRandNextFloat(SRandom* state)

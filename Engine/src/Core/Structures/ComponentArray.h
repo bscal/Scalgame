@@ -2,7 +2,7 @@
 
 #include "Core/Core.h"
 #include "Core/Globals.h"
-#include "Core/Structures/SList.h";
+#include "Core/Structures/SList.h"
 #include "Core/Structures/SparseSet.h"
 
 template<typename T>
@@ -14,7 +14,7 @@ struct ComponentArray
 
 	inline uint32_t Size() const
 	{
-		return Indices.DenseCapacity;
+		return Values.Count;
 	}
 
 	inline void Initialize()
@@ -39,7 +39,7 @@ struct ComponentArray
 		SASSERT(Indices.IsAllocated());
 		uint32_t id = GetId(entityId);
 		uint32_t index = Indices.Remove(id);
-		if (index != SPARE_EMPTY_ID)
+		if (index != SPARSE_EMPTY_ID)
 		{
 			Values.RemoveAtFast(index);
 			return true;
@@ -53,7 +53,7 @@ struct ComponentArray
 		SASSERT(Indices.IsAllocated());
 		uint32_t id = GetId(entityId);
 		uint32_t index = Indices.Get(id);
-		if (index == SPARE_EMPTY_ID) 
+		if (index == SPARSE_EMPTY_ID) 
 			return nullptr;
 		return &Values[index];
 	}
@@ -64,7 +64,7 @@ struct ComponentArray
 		SASSERT(Indices.IsAllocated());
 		uint32_t id = GetId(entityId);
 		uint32_t index = Indices.Get(id);
-		return (index != SPARE_EMPTY_ID);
+		return (index != SPARSE_EMPTY_ID);
 	}
 
 };

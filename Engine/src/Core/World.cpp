@@ -90,7 +90,7 @@ void AddAction(World* world, Action* action)
 	}
 
 	bool added = false;
-	for (int i = 0; i < length; ++i)
+	for (uint32_t i = 0; i < length; ++i)
 	{
 		Action* at = world->EntityActionsList.PeekAt(i);
 		if (at->Cost > action->Cost)
@@ -109,7 +109,7 @@ void AddAction(World* world, Action* action)
 
 void ProcessActions(World* world)
 {
-	for (int i = 0; i < world->EntityActionsList.Count; ++i)
+	for (uint32_t i = 0; i < world->EntityActionsList.Count; ++i)
 	{
 		Action* at = world->EntityActionsList.PeekAt(i);
 		at->ActionFunction(world, at);

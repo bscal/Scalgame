@@ -30,7 +30,7 @@ SString::SString(const char* str, uint32_t length)
 }
 
 SString::SString(const char* str)
-	: SString(str, strlen(str))
+	: SString(str, (uint32_t)strlen(str))
 {
 }
 
@@ -115,7 +115,7 @@ SString::Assign(const char* cStr, uint32_t length)
 
 void SString::Assign(const char* cStr)
 {
-	Assign(cStr, strlen(cStr));
+	Assign(cStr, (uint32_t)strlen(cStr));
 }
 
 void SString::Assign(const SString& other)
@@ -139,7 +139,7 @@ uint32_t SString::Find(const char* cString) const
 {
 	SASSERT(cString);
 	const char* foundPtr = strstr(Data(), cString);
-	return (foundPtr) ? foundPtr - Data() : SSTR_NO_POS;
+	return (foundPtr) ? static_cast<uint32_t>(foundPtr - Data()) : SSTR_NO_POS;
 }
 
 SString& SString::operator=(const SString& other)
@@ -164,7 +164,7 @@ SString& SString::operator=(const char* cString)
 
 void SString::Append(const char* str)
 {
-	Append(str, strlen(str));
+	Append(str, (uint32_t)strlen(str));
 }
 
 void SString::Append(const char* str, uint32_t length)
@@ -185,7 +185,7 @@ void SString::Append(const char* str, uint32_t length)
 // *********************
 
 SStringView::SStringView(const char* str)
-	: SStringView(str, strlen(str))
+	: SStringView(str, (uint32_t)strlen(str))
 {
 }
 
@@ -246,7 +246,8 @@ uint32_t SStringView::Find(const char* cString) const
 {
 	SASSERT(cString);
 	const char* foundPtr = strstr(Str, cString);
-	return (foundPtr) ? foundPtr - Str : SSTR_NO_POS;
+	SASSERT(foundPtr || ((foundPtr - Str) >= 0 && (foundPtr - Str) < UINT32_MAX))
+	return (foundPtr) ? uint32_t(foundPtr - Str) : SSTR_NO_POS;
 }
 
 // **************************
@@ -256,7 +257,7 @@ uint32_t SStringView::Find(const char* cString) const
 SRawString RawStringNew(const char* cStr)
 {
 	SRawString res;
-	res.Length = strlen(cStr);
+	res.Length = (uint32_t)strlen(cStr);
 	res.Data = (char*)SAlloc(SAllocator::Game, res.Length + 1, MemoryTag::Strings);
 	res.Data[res.Length] = '\0';
 	return res;

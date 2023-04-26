@@ -104,7 +104,7 @@ struct InternalState
 		// NOTE: bscal, this was edited, it created a thread to notify_all() but this caused
 		// some error in thread constructor, hopefully removing it is fine
 		
-		for (int i = 0; i < threads.Count; ++i)
+		for (uint32_t i = 0; i < threads.Count; ++i)
 		{
 			threads[i].join();
 		}

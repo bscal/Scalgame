@@ -2,6 +2,8 @@
 
 #include "Game.h"
 #include "ComponentTypes.h"
+#include "Entity.h"
+
 
 #include <utility>
 
@@ -51,6 +53,33 @@ bool Equipment::UnequipItem(uint32_t entity, CreatureEntity* creature, uint8_t s
 void OnEquipTorch(uint32_t entityId, CreatureEntity* creature, uint16_t slot, ItemStack* itemStack)
 {
 	SLOG_INFO("EQUIPED");
+
+	uint32_t torch = GetGame()->EntityMgr.CreateEntity();
+	GetGame()->ComponentMgr.AddComponent(torch, TransformComponent{});
+
+	Renderable* torchRenderable = GetGame()->ComponentMgr.AddComponent(torch, Renderable{});
+	torchRenderable->x = 0;
+	torchRenderable->y = 32;
+	torchRenderable->SrcWidth = 4;
+	torchRenderable->SrcHeight = 4;
+	torchRenderable->DstWidth = 4;
+	torchRenderable->DstHeight = 4;
+
+	Attachable* torchAttachable = GetGame()->ComponentMgr.AddComponent(torch, Attachable{});
+	torchAttachable->EntityId = GetGame()->EntityMgr.Player.EntityId;
+	torchAttachable->EntityOrigin = { 8.0f, 8.0f };
+	torchAttachable->Local.Origin.x = 2.0f;
+	torchAttachable->Local.Origin.y = 2.0f;
+	torchAttachable->Local.Position.x = 4.0f;
+	torchAttachable->Local.Position.y = -3.0f;
+	torchAttachable->Local.Rotation = 0.0f;
+
+	UpdatingLightSource* torchLight = GetGame()->ComponentMgr.AddComponent(torch, UpdatingLightSource{});
+	torchLight->MinRadius = 6;
+	torchLight->MaxRadius = 7;
+	torchLight->Colors[0] = { 250, 190, 200, 200 };
+	torchLight->Colors[1] = { 255, 200, 210, 200 };
+
 }
 
 void InventoryMgr::Initialize()

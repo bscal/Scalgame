@@ -3,9 +3,9 @@
 #include "Core/Core.h"
 #include "Core/SMemory.h"
 
-#define SPARE_EMPTY_ID UINT32_MAX
+#define SPARSE_EMPTY_ID UINT32_MAX
 
-#define BoundsCheck(ptr, cap, index) SASSERT(ptr + index >= ptr); SASSERT(ptr + index < ptr + cap)
+#define SparseBoundsCheck(ptr, cap, index) SASSERT(ptr + index >= ptr); SASSERT(ptr + index < ptr + cap)
 
 struct SparseSet
 {
@@ -39,7 +39,7 @@ struct SparseSet
 
 	void Clear()
 	{
-		SMemSet(Sparse, SPARE_EMPTY_ID, SparseCapacity * sizeof(uint32_t));
+		SMemSet(Sparse, SPARSE_EMPTY_ID, SparseCapacity * sizeof(uint32_t));
 		Count = 0;
 	}
 
@@ -52,7 +52,7 @@ struct SparseSet
 		size_t newSize = capacity * sizeof(uint32_t);
 		Sparse = (uint32_t*)SRealloc(Allocator, Sparse, oldSize, newSize, MemoryTag::Lists);
 		SASSERT(Sparse);
-		SMemSet((void*)(Sparse + Count), SPARE_EMPTY_ID, newSize - oldSize);
+		SMemSet((void*)(Sparse + Count), SPARSE_EMPTY_ID, newSize - oldSize);
 
 		SparseCapacity = capacity;
 		MaxValue = capacity - 1;
@@ -81,10 +81,10 @@ struct SparseSet
 
 		uint32_t index = Count;
 
-		BoundsCheck(Dense, DenseCapacity, index);
+		SparseBoundsCheck(Dense, DenseCapacity, index);
 		Dense[index] = id;
 
-		BoundsCheck(Sparse, SparseCapacity, id);
+		SparseBoundsCheck(Sparse, SparseCapacity, id);
 		Sparse[id] = index;
 
 		++Count;
@@ -95,19 +95,19 @@ struct SparseSet
 		SASSERT(id <= MaxValue);
 
 		if (id >= SparseCapacity) 
-			return SPARE_EMPTY_ID;
+			return SPARSE_EMPTY_ID;
 
-		BoundsCheck(Sparse, SparseCapacity, id);
+		SparseBoundsCheck(Sparse, SparseCapacity, id);
 		uint32_t index = Sparse[id];
 		if (index < Count - 1)
 		{
-			BoundsCheck(Dense, DenseCapacity, index);
+			SparseBoundsCheck(Dense, DenseCapacity, index);
 			Dense[index] = Dense[Count - 1];
 			uint32_t moved = Dense[index];
-			BoundsCheck(Sparse, SparseCapacity, moved);
+			SparseBoundsCheck(Sparse, SparseCapacity, moved);
 			Sparse[moved] = index;
 		}
-		Sparse[id] = SPARE_EMPTY_ID;
+		Sparse[id] = SPARSE_EMPTY_ID;
 		--Count;
 		return index;
 	}
@@ -115,7 +115,7 @@ struct SparseSet
 	uint32_t Get(uint32_t id) const
 	{
 		SASSERT(id <= MaxValue);
-		BoundsCheck(Sparse, SparseCapacity, id);
+		SparseBoundsCheck(Sparse, SparseCapacity, id);
 		return Sparse[id];
 	}
 };
@@ -137,7 +137,7 @@ inline bool TestSparseSet()
 	auto i1 = arr.Get(2);
 	SASSERT(i1 == 0);
 	auto i2 = arr.Get(1);
-	SASSERT(i2 == SPARE_EMPTY_ID);
+	SASSERT(i2 == SPARSE_EMPTY_ID);
 
 	arr.Add(10);
 	SASSERT(arr.SparseCapacity == 11);
@@ -145,7 +145,7 @@ inline bool TestSparseSet()
 	SASSERT(arr.MaxValue == 10);
 
 	auto i3 = arr.Get(7);
-	SASSERT(i3 == SPARE_EMPTY_ID);
+	SASSERT(i3 == SPARSE_EMPTY_ID);
 
 	auto i4 = arr.Get(10);
 	SASSERT(i4 == 2);
@@ -156,7 +156,7 @@ inline bool TestSparseSet()
 	arr.Remove(0);
 
 	auto i6 = arr.Get(0);
-	SASSERT(i6 == SPARE_EMPTY_ID);
+	SASSERT(i6 == SPARSE_EMPTY_ID);
 
 	auto i7 = arr.Get(10);
 	SASSERT(i7 == 1);

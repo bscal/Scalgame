@@ -47,13 +47,13 @@ struct Argument
 /// This means that the string is temporary and the null 
 /// terminator is at the end of the command not the string!
 Argument<SStringView>
-GetArgString(int index, const SList<SStringView>& args);
+GetArgString(uint32_t index, const SList<SStringView>& args);
 
 Argument<int>
-GetArgInt(int index, const SList<SStringView>& args);
+GetArgInt(uint32_t index, const SList<SStringView>& args);
 
 Argument<float>
-GetArgFloat(int index, const SList<SStringView>& args);
+GetArgFloat(uint32_t index, const SList<SStringView>& args);
 
 Argument<Vector2>
-GetArgVec2(int index, const SList<SStringView>& args);
+GetArgVec2(uint32_t index, const SList<SStringView>& args);

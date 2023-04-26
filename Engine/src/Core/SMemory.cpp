@@ -215,8 +215,7 @@ void SMemCopy(void* dst, const void* src, size_t size)
     SASSERT(dst);
     SASSERT(src);
     SASSERT(size > 0);
-    SASSERT(dst != src);
-    memcpy(dst, src, size);
+    memmove(dst, src, size);
 }
 
 void SMemMove(void* dst, const void* src, size_t size)
@@ -224,7 +223,6 @@ void SMemMove(void* dst, const void* src, size_t size)
     SASSERT(dst);
     SASSERT(src);
     SASSERT(size > 0);
-    SASSERT(dst != src);
     memmove(dst, src, size);
 }
 

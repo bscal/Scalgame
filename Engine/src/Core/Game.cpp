@@ -257,6 +257,19 @@ SAPI void GameApplication::Run()
 				else
 					Game->ViewCamera.zoom = 1.f;
 			}
+
+			if (IsKeyPressed(KEY_NINE))
+			{
+				Inventory* inv = GetGame()->InventoryMgr.CreateInvetory(GetClientPlayer()->EntityId);
+				Equipment* equipment = GetGame()->InventoryMgr.CreateEquipment();
+
+				CreatureEntity* creature = Game->ComponentMgr.AddComponent(GetClientPlayer()->EntityId, CreatureEntity{});
+				creature->InventoryId = inv->InventoryId;
+				creature->EquipmentId = equipment->EquipmentId;
+
+				ItemStack stack = ItemStack::New(Items::TORCH, 1);
+				equipment->EquipItem(GetClientPlayer()->EntityId, creature, &stack, 0);
+			}
 		}
 
 		// **************************

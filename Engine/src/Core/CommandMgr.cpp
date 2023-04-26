@@ -92,7 +92,7 @@ void CommandMgr::TryExecuteCommand(const SStringView input)
 	// splitting arguments
 	const char delim = ' ';
 	uint32_t start = 0;
-	size_t end = 0;
+	uint32_t end = 0;
 	while ((end = input.FindChar(delim, start)) != SSTR_NO_POS)
 	{
 		SStringView subStr = input.SubString(start, end);
@@ -137,7 +137,7 @@ void CommandMgr::PopulateSuggestions(const SStringView input)
 	if (Length <= 0) return;
 
 	Suggestions.Clear();
-	for (int i = 0; i < CommandNames.Count; ++i)
+	for (uint32_t i = 0; i < CommandNames.Count; ++i)
 	{
 		if (Suggestions.Count == MAX_SUGGESTIONS) break;
 		if (CommandNames[i].Find(input.Str) != SSTR_NO_POS)
@@ -148,7 +148,7 @@ void CommandMgr::PopulateSuggestions(const SStringView input)
 }
 
 Argument<SStringView>
-GetArgString(int index, const SList<SStringView>& args)
+GetArgString(uint32_t index, const SList<SStringView>& args)
 {
 	Argument<SStringView> arg = {};
 	if (index < args.Count)
@@ -160,7 +160,7 @@ GetArgString(int index, const SList<SStringView>& args)
 }
 
 Argument<int>
-GetArgInt(int index, const SList<SStringView>& args)
+GetArgInt(uint32_t index, const SList<SStringView>& args)
 {
 	Argument<int> arg = {};
 	if (index >= args.Count) return arg;
@@ -175,7 +175,7 @@ GetArgInt(int index, const SList<SStringView>& args)
 }
 
 Argument<float>
-GetArgFloat(int index, const SList<SStringView>& args)
+GetArgFloat(uint32_t index, const SList<SStringView>& args)
 {
 	Argument<float> arg = {};
 	if (index >= args.Count) return arg;
@@ -190,7 +190,7 @@ GetArgFloat(int index, const SList<SStringView>& args)
 }
 
 Argument<Vector2>
-GetArgVec2(int index, const SList<SStringView>& args)
+GetArgVec2(uint32_t index, const SList<SStringView>& args)
 {
 	Argument<Vector2> arg = {};
 	if (index >= args.Count) return arg;

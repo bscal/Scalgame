@@ -22,14 +22,14 @@ void EntityMgrUpdate(EntityMgr* entMgr, Game* game)
 {
 	PROFILE_BEGIN();
 
-	for (size_t i = 0; i < entMgr->Players.Count; ++i)
+	for (uint32_t i = 0; i < entMgr->Players.Count; ++i)
 	{
 		auto player = entMgr->Players.PeekAt(i);
 		player->UpdatePlayer(game);
 		player->Update(game);
 	}
 
-	for (size_t i = 0; i < entMgr->Creatures.Count; ++i)
+	for (uint32_t i = 0; i < entMgr->Creatures.Count; ++i)
 	{
 		auto creature = entMgr->Creatures.PeekAt(i);
 		if (!creature->IsFrozen) creature->Update(game);

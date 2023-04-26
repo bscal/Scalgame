@@ -83,7 +83,7 @@ struct ComponentMgr
 			{
 				const ComponentArray<void*>* arr = Components[ids[nextComponentId]];
 				containsEntity = entityId < arr->Indices.SparseCapacity
-					&& arr->Indices.Sparse[entityId] != SPARE_EMPTY_ID;
+					&& arr->Indices.Sparse[entityId] != SPARSE_EMPTY_ID;
 				if (!containsEntity) 
 					break;
 			}

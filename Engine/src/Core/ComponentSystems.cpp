@@ -41,7 +41,7 @@ UpdateEntities(EntityMgr* entityMgr, ComponentMgr* componentMgr)
 		if (light.UpdateCounter < 0)
 		{
 			light.UpdateCounter = 0.2;
-			int rand = SRandNextRange(GetGlobalRandom(), 0, 1);
+			int rand = (int)SRandNextRange(GetGlobalRandom(), 0, 1);
 			light.FinalColor = light.Colors[rand];
 			light.Radius = SRandNextFloatRange(GetGlobalRandom(), light.MinRadius, light.MaxRadius);
 		}
