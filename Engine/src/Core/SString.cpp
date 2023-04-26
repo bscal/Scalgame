@@ -195,22 +195,12 @@ SStringView::SStringView(const char* str, uint32_t length)
 }
 
 SStringView::SStringView(const char* str, uint32_t length, uint32_t offset)
+	: Str(str + offset), Length(length)
 {
-	if (length == 0)
-	{
-		Str = (char*)str;
-		Length = length;
-	}
-	else
-	{
-		Str = (char*)str + offset;
-		Length = (Str[length - 1] == '\0') ? length - 1 : length;
-		SASSERT(Str < Str + Length);
-	}
 }
 
 SStringView::SStringView(const SStringView* string, uint32_t offset)
-	: SStringView(string->Str, string->Length - 1, offset)
+	: SStringView(string->Str, string->Length, offset)
 {
 }
 
@@ -236,7 +226,7 @@ uint32_t SStringView::FindChar(char c, uint32_t start) const
 	for (uint32_t i = start; i < Length; ++i)
 	{
 		char character = Str[i];
-		if (!character) break;
+		if (character == '\0') break;
 		if (character == c) return i;
 	}
 	return SSTR_NO_POS;
@@ -246,7 +236,7 @@ uint32_t SStringView::Find(const char* cString) const
 {
 	SASSERT(cString);
 	const char* foundPtr = strstr(Str, cString);
-	SASSERT(foundPtr || ((foundPtr - Str) >= 0 && (foundPtr - Str) < UINT32_MAX))
+	SASSERT(!foundPtr || ((foundPtr - Str) >= 0 && (foundPtr - Str) < UINT32_MAX))
 	return (foundPtr) ? uint32_t(foundPtr - Str) : SSTR_NO_POS;
 }
 
@@ -259,13 +249,26 @@ SRawString RawStringNew(const char* cStr)
 	SRawString res;
 	res.Length = (uint32_t)strlen(cStr);
 	res.Data = (char*)SAlloc(SAllocator::Game, res.Length + 1, MemoryTag::Strings);
+	SMemCopy(res.Data, cStr, res.Length);
 	res.Data[res.Length] = '\0';
 	return res;
 }
 
-void RawStringFree(SRawString string)
+SRawString TempRawString(const char* cStr, uint32_t length)
 {
-	SFree(SAllocator::Game, string.Data, string.Length + 1, MemoryTag::Strings);
+	SRawString res;
+	res.Length = length;
+	res.Data = (char*)SAlloc(SAllocator::Temp, res.Length + 1, MemoryTag::Strings);
+	SMemCopy(res.Data, cStr, res.Length);
+	res.Data[res.Length] = '\0';
+	return res;
+}
+
+void RawStringFree(SRawString* string)
+{
+	SFree(SAllocator::Game, string->Data, string->Length + 1, MemoryTag::Strings);
+	string->Data = nullptr;
+	string->Length = 0;
 }
 
 bool SStrEquals(const char* str1, const char* str2)

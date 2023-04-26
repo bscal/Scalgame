@@ -16,7 +16,7 @@ struct Command
 
 struct CommandMgr
 {
-	SHoodTable<SString, Command, SStringHasher> Commands;
+	SHoodTable<SRawString, Command, SRawStringHasher> Commands;
 	SList<SStringView> CommandNames;
 	SList<SStringView> Suggestions;
 	SList<SStringView> InputArgs;
@@ -46,7 +46,7 @@ struct Argument
 /// NOTE: This returns a string view from the command input string!
 /// This means that the string is temporary and the null 
 /// terminator is at the end of the command not the string!
-Argument<SStringView>
+Argument<SRawString>
 GetArgString(uint32_t index, const SList<SStringView>& args);
 
 Argument<int>

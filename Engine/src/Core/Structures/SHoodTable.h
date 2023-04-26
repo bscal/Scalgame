@@ -34,9 +34,10 @@ struct SHoodTable
 	void Clear();
 	void Free();
 
-	void Insert(const K* key, const V* val);	// Inserts Key/Value
-	V* InsertKey(const K* key);					// Inserts Key, returns ptr to value
-	V* Get(const K* key) const;					// Returns ptr to value
+	void Insert(const K* key, const V* val);						// Inserts Key/Value
+	SHoodBucket<K, V>* InsertAndGet(const K* key, const V* val);	// Inserts Key/Value returns bucket
+	V* InsertKey(const K* key);										// Inserts Key, returns ptr to value
+	V* Get(const K* key) const;										// Returns ptr to value
 	bool Contains(const K* key) const;
 	bool Remove(const K* key);
 
@@ -178,7 +179,7 @@ void SHoodTable<K, V, HashFunc, EqualsFunc>::Insert(const K* key, const V* value
 		if (bucket->Occupied == 1) // Bucket is being used
 		{
 			// Duplicate
-			if (EqualsFunc{}(&bucket->Key, key)) return;
+			if (EqualsFunc{}(&bucket->Key, &swapBucket.Key)) return;
 			
 			if (probeLength > bucket->ProbeLength)
 			{
@@ -203,6 +204,75 @@ void SHoodTable<K, V, HashFunc, EqualsFunc>::Insert(const K* key, const V* value
 			break;
 		}
 	}
+}
+
+template<
+	typename K,
+	typename V,
+	typename HashFunc,
+	typename EqualsFunc>
+SHoodBucket<K, V>* SHoodTable<K, V, HashFunc, EqualsFunc>::InsertAndGet(const K* key, const V* value)
+{
+	SASSERT(EqualsFunc{}(key, key));
+
+	if (Size >= MaxSize)
+	{
+		Reserve(Capacity * SHOOD_RESIZE);
+	}
+
+	SASSERT(Buckets);
+
+	uint64_t hash = Hash(key);
+
+	SHoodBucket<K, V>* result = nullptr;
+
+	SHoodBucket<K, V> swapBucket;
+	swapBucket.Key = *key;
+	swapBucket.Value = *value;
+	swapBucket.Occupied = true;
+
+	uint64_t index = hash;
+	uint32_t probeLength = 0;
+	while (true)
+	{
+		if (index == Capacity) index = 0; // Wrap
+
+		SHoodBucket<K, V>* bucket = &Buckets[index];
+		if (bucket->Occupied == 1) // Bucket is being used
+		{
+			// Duplicate
+			if (EqualsFunc{}(&bucket->Key, &swapBucket.Key)) return bucket;
+
+			if (probeLength > bucket->ProbeLength)
+			{
+				// Note: Swap out current insert with bucket
+				SHoodBucket<K, V> tmpBucket = *bucket;
+				*bucket = swapBucket;
+				swapBucket = tmpBucket;
+
+				bucket->ProbeLength = probeLength;
+				probeLength = swapBucket.ProbeLength;
+
+				if (!result)
+					result = bucket;
+			}
+			// Continues searching
+			++index;
+			++probeLength;
+		}
+		else
+		{
+			// Note: Found open spot, finish inserting
+			swapBucket.ProbeLength = probeLength;
+			*bucket = swapBucket;
+			++Size;
+
+			if (!result)
+				result = bucket;
+			break;
+		}
+	}
+	return result;
 }
 
 template<
@@ -240,7 +310,7 @@ V* SHoodTable<K, V, HashFunc, EqualsFunc>::InsertKey(const K* key)
 		if (bucket->Occupied) // Bucket is being used
 		{
 			// Duplicate
-			if (EqualsFunc{}(&bucket->Key, key)) return nullptr;
+			if (EqualsFunc{}(&bucket->Key, &swapBucket.Key)) return nullptr;
 
 			if (probeLength > bucket->ProbeLength)
 			{

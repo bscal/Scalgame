@@ -132,7 +132,7 @@ bool SHoodSet<K, HashFunc, EqualsFunc>::Insert(const K* key)
 		if (bucket->Occupied) // Bucket is being used
 		{
 			// Duplicate
-			if (EqualsFunc{}(&bucket->Key, key)) return false;
+			if (EqualsFunc{}(&bucket->Key, &swapBucket.Key)) return false;
 
 			if (probeLength > bucket->ProbeLength)
 			{

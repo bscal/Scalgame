@@ -136,8 +136,16 @@ struct SRawString
 };
 
 SRawString RawStringNew(const char* cStr);
-void RawStringFree(SRawString string);
+SRawString TempRawString(const char* cStr, uint32_t length);
+void RawStringFree(SRawString* string);
 
+struct SRawStringHasher
+{
+	[[nodiscard]] constexpr uint64_t operator()(const SRawString* key) const noexcept
+	{
+		return CrcHash(key->Data);
+	}
+};
 
 struct SStringHasher
 {

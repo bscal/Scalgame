@@ -19,14 +19,14 @@ internal int TestStringExecute(const SStringView cmd, const SList<SStringView>& 
 {
 	SLOG_INFO("TEST COMMAND EXECUTE!");
 
-	Argument<SStringView> arg0 = GetArgString(0, args);
+	Argument<SRawString> arg0 = GetArgString(0, args);
 	if (!arg0.IsPresent) return SetCmdError("Argument 0 not specified");
 
 	auto arg1 = GetArgVec2(1, args);
 	if (!arg1.IsPresent) return SetCmdError("Arg 1 not set");
 
 	TraceLog(LOG_DEBUG, "TestStringCommand = %s, x = %f, y = %f",
-		arg0.Value.Str , arg1.Value.x, arg1.Value.y);
+		arg0.Value.Data , arg1.Value.x, arg1.Value.y);
 
 	return CMD_SUCCESS;
 }
@@ -73,11 +73,11 @@ CommandMgr::CommandMgr()
 
 void CommandMgr::RegisterCommand(const char* cmdName, const Command& cmd)
 {
-	//SString name(cmdName);
-	//Commands.Insert(&name, &cmd);
+	SRawString string = RawStringNew(cmdName);
+	Commands.Insert(&string, &cmd);
 
-	//SStringView cmdNameView(cmdName);
-	//CommandNames.Push(&cmdNameView);
+	SStringView cmdNameView(string.Data, string.Length);
+	CommandNames.Push(&cmdNameView);
 
 	SLOG_INFO("[ Commands ] Registered command %s", cmdName);
 }
@@ -99,7 +99,7 @@ void CommandMgr::TryExecuteCommand(const SStringView input)
 		InputArgs.Push(&subStr);
 		start = end + 1;
 	}
-	SStringView subStr = input.SubString(start, input.LastCharIdx());
+	SStringView subStr = input.SubString(start, input.EndIdx());
 	InputArgs.Push(&subStr);
 
 	// NOTE: The command name is the 1st
@@ -107,12 +107,10 @@ void CommandMgr::TryExecuteCommand(const SStringView input)
 	// InputCommandStr as it
 	
 	SStringView commandStrView = InputArgs[0];
-	SString commandStr(SAllocator::Temp);
-	commandStr.Assign(commandStrView.Str);
-
 	InputArgs.RemoveAt(0);
 
-	Command* foundCommand = Commands.Get(&commandStr);
+	SRawString tempString = TempRawString(commandStrView.Str, commandStrView.Length);
+	Command* foundCommand = Commands.Get(&tempString);
 	if (foundCommand)
 	{		
 		int ret = foundCommand->Execute(commandStrView, InputArgs);
@@ -126,7 +124,6 @@ void CommandMgr::TryExecuteCommand(const SStringView input)
 		}
 	}
 	SMemClear(TextInputMemory, sizeof(TextInputMemory));
-	TextInputMemory[sizeof(TextInputMemory) - 1] = '\0';
 	Length = 0;
 	LastLength = 0;
 	Suggestions.Clear();
@@ -147,13 +144,13 @@ void CommandMgr::PopulateSuggestions(const SStringView input)
 	}
 }
 
-Argument<SStringView>
+Argument<SRawString>
 GetArgString(uint32_t index, const SList<SStringView>& args)
 {
-	Argument<SStringView> arg = {};
+	Argument<SRawString> arg = {};
 	if (index < args.Count)
 	{
-		arg.Value = args[index];
+		arg.Value = TempRawString(args[index].Str, args[index].Length);
 		arg.IsPresent = true;
 	}
 	return arg;
