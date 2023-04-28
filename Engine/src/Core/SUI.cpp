@@ -12,6 +12,7 @@ global_var const int CONSOLE_MAX_LENGTH = 128;
 global_var const struct nk_color BG_COLOR = ColorToNuklear({ 17, 17, 17, 155 });
 
 internal void DrawFPS(struct nk_context* ctx);
+internal void DrawInventory(struct nk_context* ctx);
 internal struct nk_colorf Vec4ToColorf(Vector4 color);
 internal Vector4 ColorFToVec4(struct nk_colorf color);
 internal struct nk_color ColorFToColor(struct nk_colorf* color);
@@ -36,7 +37,7 @@ bool InitializeUI(UIState* state, GameApplication* gameApp)
 }
 
 
-void UpdateUI(UIState* state)
+void UpdateUI(UIState* state, Game* game)
 {
 	PROFILE_BEGIN();
 	SASSERT_MSG(state->Ctx.memory.needed < state->Ctx.memory.size, 
@@ -51,6 +52,9 @@ void UpdateUI(UIState* state)
 
 	if (state->IsDebugPanelOpen)
 		DrawDebugPanel(state);
+
+	if (game->IsInventoryOpen)
+		DrawInventory(&state->Ctx);
 
 	DrawConsole(state);
 	PROFILE_END();
@@ -393,6 +397,35 @@ DrawFPS(struct nk_context* ctx)
 		ctx->style.window.fixed_background.data.color = {};
 		nk_layout_row_dynamic(ctx, 24.0f, 1);
 		nk_label(ctx, TextFormat("FPS: %d", GetFPS()), NK_TEXT_LEFT);
+	}
+	nk_end(ctx);
+}
+
+internal void
+DrawInventory(struct nk_context* ctx)
+{
+	float w = (float)GetScreenWidth();
+	float h = (float)GetScreenHeight();
+
+	struct nk_rect bounds;
+	bounds.x = 256.0f;
+	bounds.y = 256.0f;
+	bounds.w = 256.0f;
+	bounds.h = 256.0f;
+
+	if (nk_begin(ctx, "Inventory", bounds, NK_WINDOW_NO_INPUT))
+	{
+		struct nk_image img;
+		img.handle.ptr = &GetGame()->Resources.EntitySpriteSheet;
+		img.w = 0;
+		img.h = 0;
+		img.region[0] = 0;
+		img.region[1] = 0;
+		img.region[2] = 16;
+		img.region[3] = 16;
+
+		nk_layout_row_static(ctx, 16, 16, 1);
+		nk_image(ctx, img);
 	}
 	nk_end(ctx);
 }

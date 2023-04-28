@@ -33,6 +33,10 @@
 *
 **********************************************************************************************/
 
+/*
+* This source is altered from the original
+*/
+
 #ifndef RAYLIB_NUKLEAR_H
 #define RAYLIB_NUKLEAR_H
 
@@ -532,7 +536,7 @@ DrawNuklear(struct nk_context * ctx)
             case NK_COMMAND_IMAGE: {
                 const struct nk_command_image *i = (const struct nk_command_image *)cmd;
                 Texture texture = *(Texture*)i->img.handle.ptr;
-                Rectangle source = {0, 0, (float)texture.width, (float)texture.height};
+                Rectangle source = { (float)i->img.region[0], (float)i->img.region[1], (float)i->img.region[2], (float)i->img.region[3] };
                 Rectangle dest = {(float)i->x * scale, (float)i->y * scale, (float)i->w * scale, (float)i->h * scale};
                 Vector2 origin = {0, 0};
                 Color tint = ColorFromNuklear(i->col);

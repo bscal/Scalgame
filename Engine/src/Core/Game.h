@@ -41,7 +41,8 @@ struct Game
     float CameraLerpTime;
 
     bool IsFreeCam;
- 
+    bool IsInventoryOpen;
+
     bool DebugDisableDarkess;
     bool DebugDisableFOV;
     bool DebugTileView;

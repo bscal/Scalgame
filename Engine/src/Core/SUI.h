@@ -7,6 +7,7 @@
 #include "Structures/SList.h"
 
 struct GameApplication;
+struct Game;
 struct Font;
 
 struct UIUserData
@@ -29,5 +30,5 @@ struct UIState
 };
 
 bool InitializeUI(UIState* state, GameApplication* gameApp);
-void UpdateUI(UIState* state);
+void UpdateUI(UIState* state, Game* game);
 void DrawUI(UIState* state);

@@ -258,6 +258,9 @@ SAPI void GameApplication::Run()
 					Game->ViewCamera.zoom = 1.f;
 			}
 
+			if (IsKeyPressed(KEY_EIGHT))
+				Game->IsInventoryOpen = !Game->IsInventoryOpen;
+
 			if (IsKeyPressed(KEY_NINE))
 			{
 				Inventory* inv = GetGame()->InventoryMgr.CreateInvetory(GetClientPlayer()->EntityId);
@@ -276,7 +279,7 @@ SAPI void GameApplication::Run()
 		// Updates UI logic, draws to
 		// screen later in frame
 		// **************************
-		UpdateUI(UIState);
+		UpdateUI(UIState, Game);
 		// TODO maybe add a non drawing preupdate?
 
 		// *****************

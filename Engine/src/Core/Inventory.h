@@ -28,6 +28,8 @@ union UID
 struct Item
 {
 	uint16_t MaxStackSize;
+	uint8_t Width;
+	uint8_t Height;
 
 	void(*OnEquip)(uint32_t entity, CreatureEntity* creature, uint16_t slot, ItemStack* itemStack);
 };
@@ -39,6 +41,8 @@ struct ItemStack
 	uint16_t Durability;
 	uint16_t MaxDurablity;
 
+	void Remove();
+
 	Item* GetItem(InventoryMgr* invMgr);
 
 	bool Increment();
@@ -48,21 +52,25 @@ struct ItemStack
 };
 global_var constexpr ItemStack AIR_ITEMSTACK = {};
 
-namespace InventoryType
+enum class InventorySlotState : uint8_t
 {
-enum Type
-{
-	BASIC,
-	MAX_TYPES
+	EMPTY = 0,
+	NOT_USED,
+	FILLED
 };
-}
+
+struct InventorySlot
+{
+	uint32_t Index : 24;
+	uint32_t State : 8;
+};
 
 struct Inventory
 {
 	inline static const uint32_t NOT_FOUND = UINT32_MAX;
 	
+	SList<InventorySlot> Slots;
 	SList<ItemStack> Contents;
-	InventoryType::Type Type;
 	uint32_t OwningEntity;
 	uint32_t InventoryId;
 
@@ -75,6 +83,10 @@ struct Inventory
 		}
 		return NOT_FOUND;
 	}
+
+	ItemStack* GetStack(uint16_t x, uint16_t y);
+	void SetStack(uint16_t x, uint16_t y, const ItemStack* stack);
+	bool CanInsertStack(uint16_t x, uint16_t y, const Item* item);
 
 };
 

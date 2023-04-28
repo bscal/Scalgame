@@ -4,14 +4,40 @@
 #include "ComponentTypes.h"
 #include "Entity.h"
 
-
 #include <utility>
+
+void ItemStack::Remove()
+{
+	ItemId = 0;
+	ItemCount = 0;
+}
 
 Item* ItemStack::GetItem(InventoryMgr* invMgr)
 {
 	SASSERT(ItemId < INV_MAX_ITEMS);
 	Item& item = invMgr->Items[ItemId];
 	return &item;
+}
+
+bool ItemStack::Increment()
+{
+	if (ItemCount != GetItem(&GetGame()->InventoryMgr)->MaxStackSize)
+	{
+		++ItemCount;
+		return true;
+	}
+	return false;
+}
+
+bool ItemStack::Deincrement()
+{
+	--ItemCount;
+	if (ItemCount == 0)
+	{
+		Remove();
+		return false;
+	}
+	return true;
 }
 
 ItemStack ItemStack::New(uint16_t itemId, uint16_t itemCount)
@@ -85,7 +111,7 @@ void OnEquipTorch(uint32_t entityId, CreatureEntity* creature, uint16_t slot, It
 void InventoryMgr::Initialize()
 {
 	Items::AIR = RegisterItem({ 0 });
-	Items::TORCH = RegisterItem({ 1, OnEquipTorch });
+	Items::TORCH = RegisterItem({ 1, 16, 16, OnEquipTorch });
 }
 
 uint32_t InventoryMgr::RegisterItem(Item&& item)
