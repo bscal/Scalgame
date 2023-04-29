@@ -4,7 +4,69 @@
 #include "ComponentTypes.h"
 #include "Entity.h"
 
-#include <utility>
+uint32_t Inventory::FindItem(uint32_t item) const
+{
+	for (uint32_t i = 0; i < Contents.Count; ++i)
+	{
+		if (Contents[i].ItemId == item)
+			return i;
+	}
+	return NOT_FOUND;
+}
+
+ItemStack* Inventory::GetStack(uint16_t x, uint16_t y)
+{
+	uint32_t idx = x + y * Width;
+	InventorySlot slot = Slots[idx];
+
+	if (static_cast<InventorySlotState>(slot.State) == InventorySlotState::FILLED)
+		return &Contents[slot.Index];
+	else
+		return nullptr;
+}
+
+void Inventory::SetStack(uint16_t x, uint16_t y, ItemStack* stack)
+{
+	const Item* item = stack->GetItem(&GetGame()->InventoryMgr);
+	if (CanInsertStack(x, y, item))
+	{
+		uint16_t xEnd = x + (item->Width - 1);
+		uint16_t yEnd = y + (item->Height - 1);
+		for (uint16_t yPos = y; yPos < yEnd; ++yPos)
+		{
+			for (uint16_t xPos = x; xPos < xEnd; ++xPos)
+			{
+				uint32_t idx = xPos + yPos * Width;
+				InventorySlot slot = Slots[idx];
+				Slots[idx].State = (uint32_t)InventorySlotState::FILLED;
+				Contents[slot.Index] = *stack;
+			}
+		}
+	}
+}
+
+bool Inventory::CanInsertStack(uint16_t x, uint16_t y, const Item* item) const
+{
+	uint16_t xEnd = x + (item->Width - 1);
+	uint16_t yEnd = y + (item->Height - 1);
+	SASSERT(xEnd >= 0);
+	SASSERT(yEnd >= 0);
+
+	for (uint16_t yPos = y; yPos < yEnd; ++yPos)
+	{
+		for (uint16_t xPos = x; xPos < xEnd; ++xPos)
+		{
+			if (xPos >= Width || yPos >= Height)
+				return false;
+
+			uint32_t idx = xPos + yPos * Width;
+			InventorySlot slot = Slots[idx];
+			if (static_cast<InventorySlotState>(slot.State) != InventorySlotState::EMPTY)
+				return false;
+		}
+	}
+	return true;
+}
 
 void ItemStack::Remove()
 {
@@ -111,13 +173,18 @@ void OnEquipTorch(uint32_t entityId, CreatureEntity* creature, uint16_t slot, It
 void InventoryMgr::Initialize()
 {
 	Items::AIR = RegisterItem({ 0 });
-	Items::TORCH = RegisterItem({ 1, 16, 16, OnEquipTorch });
+	Items::TORCH = RegisterItem({ 1, 1, 1, OnEquipTorch });
 }
 
-uint32_t InventoryMgr::RegisterItem(Item&& item)
+uint32_t InventoryMgr::RegisterItem(const Item& item)
 {
+	SASSERT(NextItemId < INV_MAX_ITEMS);
+
+	if (NextItemId >= INV_MAX_ITEMS)
+		return UINT32_MAX;
+
 	uint32_t id = NextItemId++;
-	Items.Data[id] = std::move(item);
+	Items.Data[id] = item;
 	return id;
 }
 

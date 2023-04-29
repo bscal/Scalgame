@@ -73,20 +73,13 @@ struct Inventory
 	SList<ItemStack> Contents;
 	uint32_t OwningEntity;
 	uint32_t InventoryId;
+	uint16_t Width;
+	uint16_t Height;
 
-	inline uint32_t FindItem(uint32_t item) const
-	{
-		for (uint32_t i = 0; i < Contents.Count; ++i)
-		{
-			if (Contents[i].ItemId == item)
-				return i;
-		}
-		return NOT_FOUND;
-	}
-
+	uint32_t FindItem(uint32_t item) const;
 	ItemStack* GetStack(uint16_t x, uint16_t y);
-	void SetStack(uint16_t x, uint16_t y, const ItemStack* stack);
-	bool CanInsertStack(uint16_t x, uint16_t y, const Item* item);
+	void SetStack(uint16_t x, uint16_t y, ItemStack* stack);
+	bool CanInsertStack(uint16_t x, uint16_t y, const Item* item) const;
 
 };
 
@@ -126,7 +119,7 @@ struct InventoryMgr
 
 	void Initialize();
 
-	uint32_t RegisterItem(Item&& item);
+	uint32_t RegisterItem(const Item& item);
 
 	Inventory* CreateInvetory(uint32_t entity);
 

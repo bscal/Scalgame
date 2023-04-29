@@ -2,6 +2,7 @@
 #include "SUI.h"
 
 #include "Game.h"
+#include "Inventory.h"
 #include "Vector2i.h"
 #include "ResourceManager.h"
 #include "CommandMgr.h"
@@ -12,7 +13,7 @@ global_var const int CONSOLE_MAX_LENGTH = 128;
 global_var const struct nk_color BG_COLOR = ColorToNuklear({ 17, 17, 17, 155 });
 
 internal void DrawFPS(struct nk_context* ctx);
-internal void DrawInventory(struct nk_context* ctx);
+internal void DrawInventory(struct nk_context* ctx, const Inventory* inv);
 internal struct nk_colorf Vec4ToColorf(Vector4 color);
 internal Vector4 ColorFToVec4(struct nk_colorf color);
 internal struct nk_color ColorFToColor(struct nk_colorf* color);
@@ -53,8 +54,15 @@ void UpdateUI(UIState* state, Game* game)
 	if (state->IsDebugPanelOpen)
 		DrawDebugPanel(state);
 
+	Inventory inv = {};
+	inv.Width = 5;
+	inv.Height = 5;
+	inv.Slots.EnsureSize(5 * 5);
+	for (uint32_t i = 0; i < 5 * 5; ++i)
+		inv.Slots[i] = { i, (uint32_t)InventorySlotState::EMPTY };
+
 	if (game->IsInventoryOpen)
-		DrawInventory(&state->Ctx);
+		DrawInventory(&state->Ctx, &inv);
 
 	DrawConsole(state);
 	PROFILE_END();
@@ -402,7 +410,7 @@ DrawFPS(struct nk_context* ctx)
 }
 
 internal void
-DrawInventory(struct nk_context* ctx)
+DrawInventory(struct nk_context* ctx, const Inventory* inv)
 {
 	float w = (float)GetScreenWidth();
 	float h = (float)GetScreenHeight();
@@ -424,8 +432,32 @@ DrawInventory(struct nk_context* ctx)
 		img.region[2] = 16;
 		img.region[3] = 16;
 
-		nk_layout_row_static(ctx, 16, 16, 1);
-		nk_image(ctx, img);
+		nk_layout_row_static(ctx, 32, 32, (int)inv->Width);
+
+		uint16_t idx = 0;
+		for (uint16_t h = 0; h < inv->Height; ++h)
+		{
+			for (uint16_t w = 0; w < inv->Width; ++w)
+			{
+				InventorySlot slot = inv->Slots[idx];
+				++idx;
+
+				switch ((InventorySlotState)slot.State)
+				{
+					case InventorySlotState::EMPTY:
+					{
+						ctx->style.window.background = nk_color{22, 22, 22, 255};
+						nk_image(ctx, img);
+					} break;
+					case InventorySlotState::FILLED:
+					{
+						nk_image(ctx, img);
+					} break;
+					default:
+						break;
+				}
+			}
+		}
 	}
 	nk_end(ctx);
 }
