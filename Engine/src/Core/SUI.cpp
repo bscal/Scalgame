@@ -54,15 +54,20 @@ void UpdateUI(UIState* state, Game* game)
 	if (state->IsDebugPanelOpen)
 		DrawDebugPanel(state);
 
-	Inventory inv = {};
-	inv.Width = 5;
-	inv.Height = 5;
-	inv.Slots.EnsureSize(5 * 5);
-	for (uint32_t i = 0; i < 5 * 5; ++i)
-		inv.Slots[i] = { i, (uint32_t)InventorySlotState::EMPTY };
-
 	if (game->IsInventoryOpen)
+	{
+		Inventory inv = {};
+		inv.Width = 5;
+		inv.Height = 5;
+		inv.Slots.EnsureSize(5 * 5);
+		for (uint32_t i = 0; i < 5 * 5; ++i)
+			inv.Slots[i] = { i, (uint32_t)InventorySlotState::EMPTY };
 		DrawInventory(&state->Ctx, &inv);
+		inv.Slots.Free();
+	}
+		
+
+	
 
 	DrawConsole(state);
 	PROFILE_END();
@@ -412,16 +417,23 @@ DrawFPS(struct nk_context* ctx)
 internal void
 DrawInventory(struct nk_context* ctx, const Inventory* inv)
 {
-	float w = (float)GetScreenWidth();
-	float h = (float)GetScreenHeight();
+	constexpr float SLOT_SIZE = 32.0f;
 
-	struct nk_rect bounds;
-	bounds.x = 256.0f;
-	bounds.y = 256.0f;
-	bounds.w = 256.0f;
-	bounds.h = 256.0f;
+	float width = SLOT_SIZE * (inv->Width);
+	float height = SLOT_SIZE * (inv->Height);
 
-	if (nk_begin(ctx, "Inventory", bounds, NK_WINDOW_NO_INPUT))
+	struct nk_rect windowRect;
+	windowRect.x = 256.0f;
+	windowRect.y = 256.0f;
+	windowRect.w = width;
+	windowRect.h = height;
+
+	ctx->style.window.padding = nk_vec2(0.0f, 0.0f);
+	ctx->style.window.border = 0.0f;
+	ctx->style.window.spacing.x = 0.0f;
+	ctx->style.window.spacing.y = 0.0f;
+
+	if (nk_begin(ctx, "Inventory", windowRect, NK_WINDOW_NO_SCROLLBAR))
 	{
 		struct nk_image img;
 		img.handle.ptr = &GetGame()->Resources.EntitySpriteSheet;
@@ -432,8 +444,12 @@ DrawInventory(struct nk_context* ctx, const Inventory* inv)
 		img.region[2] = 16;
 		img.region[3] = 16;
 
-		nk_layout_row_static(ctx, 32, 32, (int)inv->Width);
+		ctx->style.window.spacing.x = 0.0f;
+		ctx->style.window.spacing.y = 0.0f;
 
+		nk_layout_space_begin(ctx, NK_STATIC, height, INT_MAX);
+
+		// Slots
 		uint16_t idx = 0;
 		for (uint16_t h = 0; h < inv->Height; ++h)
 		{
@@ -442,12 +458,29 @@ DrawInventory(struct nk_context* ctx, const Inventory* inv)
 				InventorySlot slot = inv->Slots[idx];
 				++idx;
 
+				struct nk_rect rect;
+				rect.x = w * SLOT_SIZE;
+				rect.y = h * SLOT_SIZE;
+				rect.w = SLOT_SIZE;
+				rect.h = SLOT_SIZE;
+				nk_layout_space_push(ctx, rect);
+
 				switch ((InventorySlotState)slot.State)
 				{
 					case InventorySlotState::EMPTY:
 					{
-						ctx->style.window.background = nk_color{22, 22, 22, 255};
-						nk_image(ctx, img);
+						nk_window* win = ctx->current;
+						SASSERT(win);
+
+						struct nk_rect bounds;
+						enum nk_widget_layout_states state;
+						state = nk_widget(&bounds, ctx);
+
+						struct nk_color fillColor = { 22, 22, 22, 255 };
+						nk_fill_rect(&win->buffer, bounds, 0.0f, fillColor);
+
+						struct nk_color strokeColor = { 88, 88, 88, 255 };
+						nk_stroke_rect(&win->buffer, bounds, 0.0f, 1.0f, strokeColor);
 					} break;
 					case InventorySlotState::FILLED:
 					{
@@ -458,6 +491,22 @@ DrawInventory(struct nk_context* ctx, const Inventory* inv)
 				}
 			}
 		}
+
+		// Border
+		nk_layout_space_push(ctx, nk_rect(0, 0, width, height));
+		{
+			nk_window* win = ctx->current;
+			SASSERT(win);
+
+			struct nk_rect bounds;
+			enum nk_widget_layout_states state;
+			state = nk_widget(&bounds, ctx);
+
+			struct nk_color strokeColor = { 88, 88, 88, 255 };
+			nk_stroke_rect(&win->buffer, bounds, 0.0f, 2.0f, strokeColor);
+		}
+
+		nk_layout_space_end(ctx);
 	}
 	nk_end(ctx);
 }
