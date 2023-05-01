@@ -118,7 +118,7 @@ void SMemTempReset()
     BiStackResetFront(&GameAppPtr->TemporaryMemory);
 }
 
-void* SMemAllocTag(int allocator, size_t size, MemoryTag tag)
+void* SMemAllocTag(uint8_t allocator, size_t size, MemoryTag tag)
 {
     SASSERT(size > 0);
     SASSERT(tag != MemoryTag::Unknown);
@@ -126,7 +126,7 @@ void* SMemAllocTag(int allocator, size_t size, MemoryTag tag)
     void* memory;
     switch (allocator)
     {
-        case(SAllocator::Game):
+        case((uint8_t)SAllocator::Game):
         {
             #if SMEM_USE_TAGS
                 MemoryTagUsage[(uint8_t)tag] += size;
@@ -134,7 +134,7 @@ void* SMemAllocTag(int allocator, size_t size, MemoryTag tag)
             memory = SMemAlloc(size);
             break;
         };
-        case(SAllocator::Temp):
+        case((uint8_t)SAllocator::Temp):
         {
             memory = SMemTempAlloc(size);
             break;
@@ -150,7 +150,7 @@ void* SMemAllocTag(int allocator, size_t size, MemoryTag tag)
     return memory;
 }
 
-void* SMemReallocTag(int allocator, void* ptr, size_t oldSize, size_t newSize, MemoryTag tag)
+void* SMemReallocTag(uint8_t allocator, void* ptr, size_t oldSize, size_t newSize, MemoryTag tag)
 {
     SASSERT(newSize > 0);
     SASSERT(tag != MemoryTag::Unknown);
@@ -158,7 +158,7 @@ void* SMemReallocTag(int allocator, void* ptr, size_t oldSize, size_t newSize, M
     void* memory;
     switch (allocator)
     {
-        case(SAllocator::Game):
+        case((uint8_t)SAllocator::Game):
         {
             #if SMEM_USE_TAGS
                 MemoryTagUsage[(uint8_t)tag] -= oldSize;
@@ -167,7 +167,7 @@ void* SMemReallocTag(int allocator, void* ptr, size_t oldSize, size_t newSize, M
             memory = SMemRealloc(ptr, newSize);
             break;
         };
-        case(SAllocator::Temp):
+        case((uint8_t)SAllocator::Temp):
         {
             memory = SMemTempAlloc(newSize);
             if (oldSize > 0)
@@ -184,13 +184,13 @@ void* SMemReallocTag(int allocator, void* ptr, size_t oldSize, size_t newSize, M
     return memory;
 }
 
-void  SMemFreeTag(int allocator, void* ptr, size_t size, MemoryTag tag)
+void  SMemFreeTag(uint8_t allocator, void* ptr, size_t size, MemoryTag tag)
 {
     SASSERT(tag != MemoryTag::Unknown);
 
     switch (allocator)
     {
-        case(SAllocator::Game):
+        case((uint8_t)SAllocator::Game):
         {
             #if SMEM_USE_TAGS
                 MemoryTagUsage[(uint8_t)tag] -= size;
@@ -198,7 +198,7 @@ void  SMemFreeTag(int allocator, void* ptr, size_t size, MemoryTag tag)
             SMemFree(ptr);
             break;
         };
-        case(SAllocator::Temp):
+        case((uint8_t)SAllocator::Temp):
         {
             break;
         };

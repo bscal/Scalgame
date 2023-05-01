@@ -263,14 +263,14 @@ SAPI void GameApplication::Run()
 
 			if (IsKeyPressed(KEY_NINE))
 			{
-				Inventory* inv = GetGame()->InventoryMgr.CreateInvetory(GetClientPlayer()->EntityId);
+				Inventory* inv = GetGame()->InventoryMgr.CreateInventory(GetClientPlayer()->EntityId, 10, 6);
 				Equipment* equipment = GetGame()->InventoryMgr.CreateEquipment();
 
 				CreatureEntity* creature = Game->ComponentMgr.AddComponent(GetClientPlayer()->EntityId, CreatureEntity{});
 				creature->InventoryId = inv->InventoryId;
 				creature->EquipmentId = equipment->EquipmentId;
 
-				ItemStack stack = ItemStack::New(Items::TORCH, 1);
+				ItemStack stack = ItemStackNew(Items::TORCH, 1);
 				equipment->EquipItem(GetClientPlayer()->EntityId, creature, &stack, 0);
 			}
 		}

@@ -47,8 +47,6 @@ struct ItemStack
 
 	bool Increment();
 	bool Deincrement();
-
-	static ItemStack New(uint16_t itemId, uint16_t itemCount);
 };
 global_var constexpr ItemStack AIR_ITEMSTACK = {};
 
@@ -61,16 +59,23 @@ enum class InventorySlotState : uint8_t
 
 struct InventorySlot
 {
-	uint32_t Index : 24;
-	uint32_t State : 8;
+	uint16_t InventoryStackIndex : 12;
+	uint16_t State : 4;
+};
+
+struct InventoryStack
+{
+	ItemStack Stack;
+	uint8_t SlotX;
+	uint8_t SlotY;
 };
 
 struct Inventory
 {
 	inline static const uint32_t NOT_FOUND = UINT32_MAX;
-	
+
 	SList<InventorySlot> Slots;
-	SList<ItemStack> Contents;
+	SList<InventoryStack> Contents;
 	uint32_t OwningEntity;
 	uint32_t InventoryId;
 	uint16_t Width;
@@ -79,6 +84,7 @@ struct Inventory
 	uint32_t FindItem(uint32_t item) const;
 	ItemStack* GetStack(uint16_t x, uint16_t y);
 	void SetStack(uint16_t x, uint16_t y, ItemStack* stack);
+	bool RemoveStack(uint16_t x, uint16_t y);
 	bool CanInsertStack(uint16_t x, uint16_t y, const Item* item) const;
 
 };
@@ -121,7 +127,10 @@ struct InventoryMgr
 
 	uint32_t RegisterItem(const Item& item);
 
-	Inventory* CreateInvetory(uint32_t entity);
+	Inventory* CreateInventory(uint32_t entity, uint16_t width, uint16_t height);
+	void RemoveInventory(Inventory* inventory);
 
 	Equipment* CreateEquipment();
 };
+
+ItemStack ItemStackNew(uint16_t itemId, uint16_t itemCount);

@@ -24,11 +24,11 @@ template<
 	typename EqualsFunc = DefaultEquals<K>>
 struct SHoodTable
 {
-	SAllocator::Type Allocator;
 	SHoodBucket<K, V>* Buckets;
 	uint32_t Capacity;
 	uint32_t Size;
 	uint32_t MaxSize;
+	SAllocator Allocator;
 
 	void Reserve(uint32_t newCapacity);
 	void Clear();

@@ -8,7 +8,7 @@ uint32_t Inventory::FindItem(uint32_t item) const
 {
 	for (uint32_t i = 0; i < Contents.Count; ++i)
 	{
-		if (Contents[i].ItemId == item)
+		if (Contents[i].Stack.ItemId == item)
 			return i;
 	}
 	return NOT_FOUND;
@@ -20,7 +20,7 @@ ItemStack* Inventory::GetStack(uint16_t x, uint16_t y)
 	InventorySlot slot = Slots[idx];
 
 	if (static_cast<InventorySlotState>(slot.State) == InventorySlotState::FILLED)
-		return &Contents[slot.Index];
+		return &Contents[slot.InventoryStackIndex].Stack;
 	else
 		return nullptr;
 }
@@ -30,16 +30,68 @@ void Inventory::SetStack(uint16_t x, uint16_t y, ItemStack* stack)
 	const Item* item = stack->GetItem(&GetGame()->InventoryMgr);
 	if (CanInsertStack(x, y, item))
 	{
-		uint16_t xEnd = x + (item->Width - 1);
-		uint16_t yEnd = y + (item->Height - 1);
+		InventoryStack* invStack = Contents.PushNew();
+		invStack->Stack = *stack;
+		invStack->SlotX = x;
+		invStack->SlotY = y;
+
+		uint16_t invStackIndex = Contents.LastIndex();
+
+		uint16_t xEnd = x + item->Width;
+		uint16_t yEnd = y + item->Height;
 		for (uint16_t yPos = y; yPos < yEnd; ++yPos)
 		{
 			for (uint16_t xPos = x; xPos < xEnd; ++xPos)
 			{
 				uint32_t idx = xPos + yPos * Width;
-				InventorySlot slot = Slots[idx];
 				Slots[idx].State = (uint32_t)InventorySlotState::FILLED;
-				Contents[slot.Index] = *stack;
+				Slots[idx].InventoryStackIndex = invStackIndex;
+			}
+		}
+	}
+}
+
+bool Inventory::RemoveStack(uint16_t x, uint16_t y)
+{
+	SASSERT(x < Width);
+	SASSERT(y < Height);
+	if (x >= Width || y >= Height)
+		return false;
+
+	uint16_t slotIdx = x + y * Width;
+	InventorySlot slot = Slots[slotIdx];
+
+	if (static_cast<InventorySlotState>(Slots[slotIdx].State) != InventorySlotState::FILLED)
+		return false;
+
+	SASSERT(slot.InventoryStackIndex != 0xfff)
+
+	InventoryStack& invStack = Contents[slot.InventoryStackIndex];
+	Item* item = invStack.Stack.GetItem(&GetGame()->InventoryMgr);
+
+	for (uint16_t y = invStack.SlotY; y < invStack.SlotY + item->Height; ++y)
+	{
+		for (uint16_t x = invStack.SlotX; x < invStack.SlotX + item->Width; ++x)
+		{
+			uint32_t idx = x + y * Width;
+			Slots[idx].InventoryStackIndex = UINT16_MAX;
+			Slots[idx].State = (uint16_t)InventorySlotState::EMPTY;
+		}
+	}
+	
+	InventorySlot lastSlot = Slots[Contents.LastIndex()];
+	Contents.RemoveAtFast(slot.InventoryStackIndex);
+	if (Contents.Count > 0)
+	{
+		InventoryStack& lastInvStack = Contents[lastSlot.InventoryStackIndex];
+		Item* lastItem = lastInvStack.Stack.GetItem(&GetGame()->InventoryMgr);
+
+		for (uint16_t y = lastInvStack.SlotY; y < lastInvStack.SlotY + item->Height; ++y)
+		{
+			for (uint16_t x = lastInvStack.SlotX; x < lastInvStack.SlotX + item->Width; ++x)
+			{
+				uint32_t idx = x + y * Width;
+				Slots[idx].InventoryStackIndex = lastSlot.InventoryStackIndex;
 			}
 		}
 	}
@@ -47,8 +99,8 @@ void Inventory::SetStack(uint16_t x, uint16_t y, ItemStack* stack)
 
 bool Inventory::CanInsertStack(uint16_t x, uint16_t y, const Item* item) const
 {
-	uint16_t xEnd = x + (item->Width - 1);
-	uint16_t yEnd = y + (item->Height - 1);
+	uint16_t xEnd = x + item->Width;
+	uint16_t yEnd = y + item->Height;
 	SASSERT(xEnd >= 0);
 	SASSERT(yEnd >= 0);
 
@@ -60,8 +112,7 @@ bool Inventory::CanInsertStack(uint16_t x, uint16_t y, const Item* item) const
 				return false;
 
 			uint32_t idx = xPos + yPos * Width;
-			InventorySlot slot = Slots[idx];
-			if (static_cast<InventorySlotState>(slot.State) != InventorySlotState::EMPTY)
+			if (static_cast<InventorySlotState>(Slots[idx].State) != InventorySlotState::EMPTY)
 				return false;
 		}
 	}
@@ -100,14 +151,6 @@ bool ItemStack::Deincrement()
 		return false;
 	}
 	return true;
-}
-
-ItemStack ItemStack::New(uint16_t itemId, uint16_t itemCount)
-{
-	ItemStack res = {};
-	res.ItemId = itemId;
-	res.ItemCount = itemCount;
-	return res;
 }
 
 bool Equipment::EquipItem(uint32_t entity, CreatureEntity* creature, ItemStack* stack, uint8_t slot)
@@ -188,13 +231,23 @@ uint32_t InventoryMgr::RegisterItem(const Item& item)
 	return id;
 }
 
-Inventory* InventoryMgr::CreateInvetory(uint32_t entity)
+Inventory* InventoryMgr::CreateInventory(uint32_t entity, uint16_t width, uint16_t height)
 {
 	uint32_t id = NextInventoryId++;
 	Inventory* inv = Inventories.InsertKey(&id);
+	inv->Width = width;
+	inv->Height = height;
 	inv->InventoryId = id;
 	inv->OwningEntity = entity;
+	inv->Slots.EnsureSize(width * height);
 	return inv;
+}
+
+void InventoryMgr::RemoveInventory(Inventory* inventory)
+{
+	inventory->Slots.Free();
+	inventory->Contents.Free();
+	inventory->InventoryId = UINT32_MAX;
 }
 
 Equipment* InventoryMgr::CreateEquipment()
@@ -203,4 +256,12 @@ Equipment* InventoryMgr::CreateEquipment()
 	Equipment* equipment = Equipments.InsertKey(&id);
 	equipment->EquipmentId = id;
 	return equipment;
+}
+
+ItemStack ItemStackNew(uint16_t itemId, uint16_t itemCount)
+{
+	ItemStack res = {};
+	res.ItemId = itemId;
+	res.ItemCount = itemCount;
+	return res;
 }

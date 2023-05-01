@@ -9,7 +9,7 @@
 
 struct SparseSet
 {
-	SAllocator::Type Allocator;
+	SAllocator Allocator;
 	uint32_t* Sparse;
 	uint32_t* Dense;
 	uint32_t Count;

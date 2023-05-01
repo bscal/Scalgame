@@ -25,10 +25,10 @@ struct SString
 
 	uint32_t Length;
 	uint32_t Capacity;
-	SAllocator::Type Allocator;
+	SAllocator Allocator;
 
 	SString() = default;
-	SString(SAllocator::Type allocator);
+	SString(SAllocator allocator);
 	SString(const char* str);
 	SString(const char* str, uint32_t length);
 	SString(const SString& other);

@@ -4,17 +4,14 @@
 
 struct GameApplication;
 
-namespace SAllocator
+enum class SAllocator : uint8_t
 {
-enum Type
-{
-	Invalid = -1,
 	Game = 0,
 	Temp,
 
-	MaxTypes
+	MaxTypes,
+	Invalid = 0xff,
 };
-}
 
 enum class MemoryTag : uint8_t
 {
@@ -57,9 +54,9 @@ void  SMemFree(void* block);
 void* SMemTempAlloc(size_t size);
 void  SMemTempReset();
 
-void* SMemAllocTag(int allocator, size_t size, MemoryTag tag);
-void* SMemReallocTag(int allocator, void* ptr, size_t oldSize, size_t newSize, MemoryTag tag);
-void  SMemFreeTag(int allocator, void* ptr, size_t size, MemoryTag tag);
+void* SMemAllocTag(uint8_t allocator, size_t size, MemoryTag tag);
+void* SMemReallocTag(uint8_t allocator, void* ptr, size_t oldSize, size_t newSize, MemoryTag tag);
+void  SMemFreeTag(uint8_t allocator, void* ptr, size_t size, MemoryTag tag);
 
 void SMemCopy(void* dst, const void* src, size_t size);
 void SMemMove(void* dst, const void* src, size_t size);
@@ -71,10 +68,10 @@ uint64_t SMemGetAllocated();
 
 #define SMEM_USE_TAGS 1
 #if SMEM_USE_TAGS
-#define SAlloc(allocator, sz, tag) SMemAllocTag(allocator, sz, tag)
-#define SCalloc(allocator, n, sz, tag) SMemAllocTag(allocator, n * sz, tag)
-#define SRealloc(allocator, ptr, oldSz, newSz, tag) SMemReallocTag(allocator, ptr, oldSz, newSz, tag)
-#define SFree(allocator, ptr, sz, tag) SMemFreeTag(allocator, ptr, sz, tag);
+#define SAlloc(allocator, sz, tag) SMemAllocTag((uint8_t)allocator, sz, tag)
+#define SCalloc(allocator, n, sz, tag) SMemAllocTag((uint8_t)allocator, n * sz, tag)
+#define SRealloc(allocator, ptr, oldSz, newSz, tag) SMemReallocTag((uint8_t)allocator, ptr, oldSz, newSz, tag)
+#define SFree(allocator, ptr, sz, tag) SMemFreeTag((uint8_t)allocator, ptr, sz, tag);
 #else
 #define SAlloc(allocator, sz, tag)
 #define SCalloc(allocator, n, sz, tag)

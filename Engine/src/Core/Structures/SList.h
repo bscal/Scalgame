@@ -8,10 +8,10 @@
 template<typename T>
 struct SList
 {
-	SAllocator::Type Allocator;
 	T* Memory;
 	uint32_t Capacity;
 	uint32_t Count; // Number of elements or last index to insert
+	SAllocator Allocator;
 
 	void EnsureSize(uint32_t ensuredCount); // ensures capacity and count elements
 	void Free();

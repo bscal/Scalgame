@@ -56,18 +56,12 @@ void UpdateUI(UIState* state, Game* game)
 
 	if (game->IsInventoryOpen)
 	{
-		Inventory inv = {};
-		inv.Width = 5;
-		inv.Height = 5;
-		inv.Slots.EnsureSize(5 * 5);
-		for (uint32_t i = 0; i < 5 * 5; ++i)
-			inv.Slots[i] = { i, (uint32_t)InventorySlotState::EMPTY };
-		DrawInventory(&state->Ctx, &inv);
-		inv.Slots.Free();
+		Inventory* inv = game->InventoryMgr.CreateInventory(UINT32_MAX, 4, 4);
+		ItemStack itemStack = ItemStackNew(Items::TORCH, 1);
+		inv->SetStack(1, 1, &itemStack);
+		DrawInventory(&state->Ctx, inv);
+		game->InventoryMgr.RemoveInventory(inv);
 	}
-		
-
-	
 
 	DrawConsole(state);
 	PROFILE_END();

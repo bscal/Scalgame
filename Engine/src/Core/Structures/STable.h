@@ -38,10 +38,10 @@ template<typename K, typename V>
 struct STable
 {
 	STableEntry<K, V>** Entries;
-	SAllocator::Type Allocator;
 	uint32_t Size;
 	uint32_t Capacity;
 	uint32_t MaxSize;
+	SAllocator Allocator;
 
 	// TODO maybe just template these idk
 	bool (*KeyEqualsFunction)(const K* v0, const K* v1);

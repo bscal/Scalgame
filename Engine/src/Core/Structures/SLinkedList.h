@@ -13,7 +13,7 @@ struct SLinkedListEntry
 template<typename T>
 struct SLinkedList
 {
-	SAllocator::Type Allocator;
+	SAllocator Allocator;
 	SLinkedListEntry<T>* First;
 	uint32_t Size;
 
