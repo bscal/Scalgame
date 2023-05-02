@@ -10,7 +10,7 @@
 void InitializeEntities(EntityMgr* entityMgr, ComponentMgr* componentMgr)
 {
 	componentMgr->Register<TransformComponent>();
-	componentMgr->Register<Renderable>();
+	componentMgr->Register<SpriteRenderer>();
 	componentMgr->Register<Attachable>();
 	componentMgr->Register<UpdatingLightSource>();
 	componentMgr->Register<CreatureEntity>();
@@ -25,9 +25,8 @@ void CreatePlayer(EntityMgr* entityMgr, ComponentMgr* componentMgr)
 	//entityMgr->Player.Transform.Position = { -8.0f, -8.0f };
 	componentMgr->AddComponent(entity, entityMgr->Player.Transform);
 
-	Renderable* renderable = componentMgr->AddComponent(entity, Renderable{});
-	renderable->SrcWidth = 16;
-	renderable->SrcHeight = 16;
+	SpriteRenderer* renderable = componentMgr->AddComponent(entity, SpriteRenderer{});
+	renderable->Sprite = Sprites::PLAYER_SPRITE;
 	renderable->DstWidth = 16;
 	renderable->DstHeight = 16;
 }

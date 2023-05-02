@@ -434,9 +434,9 @@ DrawInventory(struct nk_context* ctx, const Inventory* inv)
 		img.w = 0;
 		img.h = 0;
 		img.region[0] = 0;
-		img.region[1] = 0;
-		img.region[2] = 16;
-		img.region[3] = 16;
+		img.region[1] = 32;
+		img.region[2] = 4;
+		img.region[3] = 4;
 
 		ctx->style.window.spacing.x = 0.0f;
 		ctx->style.window.spacing.y = 0.0f;
@@ -449,8 +449,7 @@ DrawInventory(struct nk_context* ctx, const Inventory* inv)
 		{
 			for (uint16_t w = 0; w < inv->Width; ++w)
 			{
-				InventorySlot slot = inv->Slots[idx];
-				++idx;
+				InventorySlot slot = inv->Slots[idx++];
 
 				struct nk_rect rect;
 				rect.x = w * SLOT_SIZE;
@@ -478,6 +477,25 @@ DrawInventory(struct nk_context* ctx, const Inventory* inv)
 					} break;
 					case InventorySlotState::FILLED:
 					{
+						nk_window* win = ctx->current;
+						SASSERT(win);
+
+						struct nk_rect bounds;
+						enum nk_widget_layout_states state;
+						state = nk_widget(&bounds, ctx);
+
+						struct nk_color fillColor = { 22, 22, 22, 255 };
+						nk_fill_rect(&win->buffer, bounds, 0.0f, fillColor);
+
+						struct nk_color strokeColor = { 88, 88, 88, 255 };
+						nk_stroke_rect(&win->buffer, bounds, 0.0f, 1.0f, strokeColor);
+
+						struct nk_rect imgRect;
+						imgRect.x = rect.x + 4;
+						imgRect.y = rect.y + 4;
+						imgRect.w = SLOT_SIZE - 8;
+						imgRect.h = SLOT_SIZE - 8;
+						nk_layout_space_push(ctx, imgRect);
 						nk_image(ctx, img);
 					} break;
 					default:

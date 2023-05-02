@@ -38,6 +38,9 @@ SMemInitialize(GameApplication* gameApp,
     TemporaryMemSize = temporaryMemSize;
     TotalMemoryAllocated = GameMemSize + TemporaryMemSize;
 
+    int status = rpmalloc_initialize();
+    SASSERT(status == 0);
+
     uint8_t* memoryLocation = (uint8_t*)malloc(TotalMemoryAllocated);
     SASSERT(memoryLocation);
     SMemClear(memoryLocation, TotalMemoryAllocated);
@@ -48,9 +51,6 @@ SMemInitialize(GameApplication* gameApp,
     gameApp->TemporaryMemory = CreateBiStackFromBuffer(memoryLocation + GameMemSize, TemporaryMemSize);
     SASSERT(gameApp->TemporaryMemory.mem);
 
-
-    int status = rpmalloc_initialize();
-
     // Sets Raylibs RL memory allocator functions
     // Raylib usually doesnt use too much memory,
     // mostly loading of assets and files
@@ -59,10 +59,10 @@ SMemInitialize(GameApplication* gameApp,
     SetRLRealloc(SMemRealloc);
     SetRLFree(SMemFree);
 
-    SASSERT(GetRLMalloc());
-    SASSERT(GetRLCalloc());
-    SASSERT(GetRLRealloc());
-    SASSERT(GetRLFree());
+    //SASSERT(GetRLMalloc());
+    //SASSERT(GetRLCalloc());
+    //SASSERT(GetRLRealloc());
+    //SASSERT(GetRLFree());
 
     SLOG_INFO("[ Memory ] Initialized! Total Mem: %d bytes.", TotalMemoryAllocated);
 
@@ -194,6 +194,107 @@ void  SMemFreeTag(uint8_t allocator, void* ptr, size_t size, MemoryTag tag)
         {
             #if SMEM_USE_TAGS
                 MemoryTagUsage[(uint8_t)tag] -= size;
+            #endif
+            SMemFree(ptr);
+            break;
+        };
+        case((uint8_t)SAllocator::Temp):
+        {
+            break;
+        };
+        default:
+        {
+            SLOG_ERR("Using an invalid allocator!");
+            SASSERT(false);
+        }
+    }
+}
+
+void* SMemAllocTagPrint(uint8_t allocator, size_t size, MemoryTag tag, int line, const char* file, const char* function)
+{
+    SASSERT(size > 0);
+    SASSERT(tag != MemoryTag::Unknown);
+
+    SLOG_DEBUG("[ Memory ] Allocating %d bytes. Allocator = %u, Tag = %u. \nFile: %s \nFunction: %s \nLine: %d",
+        size, allocator, (uint8_t)tag, file, function, line);
+
+    void* memory;
+    switch (allocator)
+    {
+        case((uint8_t)SAllocator::Game):
+        {
+            #if SMEM_USE_TAGS
+            MemoryTagUsage[(uint8_t)tag] += size;
+            #endif
+            memory = SMemAlloc(size);
+            break;
+        };
+        case((uint8_t)SAllocator::Temp):
+        {
+            memory = SMemTempAlloc(size);
+            break;
+        };
+        default:
+        {
+            memory = nullptr;
+            SLOG_ERR("Using an invalid allocator!");
+            SASSERT(false);
+        }
+    }
+    SASSERT(memory);
+    return memory;
+}
+
+void* SMemReallocTagPrint(uint8_t allocator, void* ptr, size_t oldSize, size_t newSize, MemoryTag tag, int line, const char* file, const char* function)
+{
+    SASSERT(newSize > 0);
+    SASSERT(tag != MemoryTag::Unknown);
+
+    SLOG_DEBUG("[ Memory ] Reallocating %d bytes at %p. Allocator = %u, Tag = %u. \nFile: %s \nFunction: %s \nLine: %d",
+        newSize, ptr, allocator, (uint8_t)tag, file, function, line);
+
+    void* memory;
+    switch (allocator)
+    {
+        case((uint8_t)SAllocator::Game):
+        {
+            #if SMEM_USE_TAGS
+            MemoryTagUsage[(uint8_t)tag] -= oldSize;
+            MemoryTagUsage[(uint8_t)tag] += newSize;
+            #endif
+            memory = SMemRealloc(ptr, newSize);
+            break;
+        };
+        case((uint8_t)SAllocator::Temp):
+        {
+            memory = SMemTempAlloc(newSize);
+            if (oldSize > 0)
+                SMemCopy(memory, ptr, oldSize);
+            break;
+        };
+        default:
+        {
+            memory = nullptr;
+            SLOG_ERR("Using an invalid allocator!");
+            SASSERT(false);
+        }
+    }
+    return memory;
+}
+
+void  SMemFreeTagPrint(uint8_t allocator, void* ptr, size_t size, MemoryTag tag, int line, const char* file, const char* function)
+{
+    SASSERT(tag != MemoryTag::Unknown);
+
+    SLOG_DEBUG("[ Memory ] Freeing %d bytes at %p. Allocator = %u, Tag = %u. \nFile: %s \nFunction: %s \nLine: %d",
+        size, ptr, allocator, (uint8_t)tag, file, function, line);
+
+    switch (allocator)
+    {
+        case((uint8_t)SAllocator::Game):
+        {
+            #if SMEM_USE_TAGS
+            MemoryTagUsage[(uint8_t)tag] -= size;
             #endif
             SMemFree(ptr);
             break;

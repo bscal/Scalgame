@@ -400,21 +400,16 @@ SDrawTextureF(const Texture2D& texture, const Rectangle& source,
 }
 
 void
-SDrawSprite(const Texture2D* texture, const TransformComponent* transform, Renderable renderable)
+SDrawSprite(const Texture2D* texture, const TransformComponent* transform, SpriteRenderer renderable, bool flipX)
 {
 	SASSERT(texture->id);
 
 	float width = (float)texture->width;
 	float height = (float)texture->height;
-	float srcWidth = (float)renderable.SrcWidth;
-	float srcHeight = (float)renderable.SrcHeight;
-	float dstWidth = (float)renderable.DstWidth;
-	float dstHeight = (float)renderable.DstHeight;
+	Rectangle source = { (float)renderable.Sprite.x, (float)renderable.Sprite.y, (float)renderable.Sprite.w, (float)renderable.Sprite.h };
+	Rectangle dest = { transform->Position.x, transform->Position.y, (float)renderable.DstWidth, (float)renderable.DstHeight };
 
-	bool flipX = false;
-
-	if (srcWidth < 0) { flipX = true; srcWidth *= -1; }
-	if (srcHeight < 0) renderable.y -= srcHeight;
+	if (source.height < 0) source.y -= source.height;
 
 	Vector2 topLeft = { 0 };
 	Vector2 topRight = { 0 };
@@ -424,61 +419,64 @@ SDrawSprite(const Texture2D* texture, const TransformComponent* transform, Rende
 	// Only calculate rotation if needed
 	if (transform->Rotation == 0.0f)
 	{
-		float x = transform->Position.x - transform->Origin.x;
-		float y = transform->Position.y - transform->Origin.y;
+		float x = dest.x - transform->Origin.x;
+		float y = dest.y - transform->Origin.y;
 		topLeft = Vector2{ x, y };
-		topRight = Vector2{ x + dstWidth, y };
-		bottomLeft = Vector2{ x, y + dstHeight };
-		bottomRight = Vector2{ x + dstWidth, y + dstHeight };
+		topRight = Vector2{ x + dest.width, y };
+		bottomLeft = Vector2{ x, y + dest.height };
+		bottomRight = Vector2{ x + dest.width, y + dest.height };
 	}
 	else
 	{
 		float sinRotation = sinf(transform->Rotation * DEG2RAD);
 		float cosRotation = cosf(transform->Rotation * DEG2RAD);
-		float x = transform->Position.x;
-		float y = transform->Position.y;
+		float x = dest.x;
+		float y = dest.y;
 		float dx = -transform->Origin.x;
 		float dy = -transform->Origin.y;
 
 		topLeft.x = x + dx * cosRotation - dy * sinRotation;
 		topLeft.y = y + dx * sinRotation + dy * cosRotation;
 
-		topRight.x = x + (dx + dstWidth) * cosRotation - dy * sinRotation;
-		topRight.y = y + (dx + dstWidth) * sinRotation + dy * cosRotation;
+		topRight.x = x + (dx + dest.width) * cosRotation - dy * sinRotation;
+		topRight.y = y + (dx + dest.width) * sinRotation + dy * cosRotation;
 
-		bottomLeft.x = x + dx * cosRotation - (dy + dstHeight) * sinRotation;
-		bottomLeft.y = y + dx * sinRotation + (dy + dstHeight) * cosRotation;
+		bottomLeft.x = x + dx * cosRotation - (dy + dest.height) * sinRotation;
+		bottomLeft.y = y + dx * sinRotation + (dy + dest.height) * cosRotation;
 
-		bottomRight.x = x + (dx + dstWidth) * cosRotation - (dy + dstHeight) * sinRotation;
-		bottomRight.y = y + (dx + dstWidth) * sinRotation + (dy + dstHeight) * cosRotation;
+		bottomRight.x = x + (dx + dest.width) * cosRotation - (dy + dest.height) * sinRotation;
+		bottomRight.y = y + (dx + dest.width) * sinRotation + (dy + dest.height) * cosRotation;
 	}
 
 	rlSetTexture(texture->id);
 	rlBegin(RL_QUADS);
+
 	rlColor4f(1.0f, 1.0f, 1.0f, 1.0f);
 	rlNormal3f(0.0f, 0.0f, 1.0f);                          // Normal vector pointing towards viewer
 
 	// Top-left corner for texture and quad
-	if (flipX) rlTexCoord2f((renderable.x + srcWidth) / width, renderable.y / height);
-	else rlTexCoord2f(renderable.x / width, renderable.y / height);
+	if (flipX) rlTexCoord2f((source.x + source.width) / width, source.y / height);
+	else rlTexCoord2f(source.x / width, source.y / height);
 	rlVertex2f(topLeft.x, topLeft.y);
 
 	// Bottom-left corner for texture and quad
-	if (flipX) rlTexCoord2f((renderable.x + srcWidth) / width, (renderable.y + srcHeight) / height);
-	else rlTexCoord2f(renderable.x / width, (renderable.y + srcHeight) / height);
+	if (flipX) rlTexCoord2f((source.x + source.width) / width, (source.y + source.height) / height);
+	else rlTexCoord2f(source.x / width, (source.y + source.height) / height);
 	rlVertex2f(bottomLeft.x, bottomLeft.y);
 
 	// Bottom-right corner for texture and quad
-	if (flipX) rlTexCoord2f(renderable.x / width, (renderable.y + srcHeight) / height);
-	else rlTexCoord2f((renderable.x + srcWidth) / width, (renderable.y + srcHeight) / height);
+	if (flipX) rlTexCoord2f(source.x / width, (source.y + source.height) / height);
+	else rlTexCoord2f((source.x + source.width) / width, (source.y + source.height) / height);
 	rlVertex2f(bottomRight.x, bottomRight.y);
 
 	// Top-right corner for texture and quad
-	if (flipX) rlTexCoord2f(renderable.x / width, renderable.y / height);
-	else rlTexCoord2f((renderable.x + srcWidth) / width, renderable.y / height);
+	if (flipX) rlTexCoord2f(source.x / width, source.y / height);
+	else rlTexCoord2f((source.x + source.width) / width, source.y / height);
 	rlVertex2f(topRight.x, topRight.y);
+
 	rlEnd();
 	rlSetTexture(0);
+
 }
 
 // Draw a color-filled rectangle with pro parameters

@@ -2,6 +2,7 @@
 
 #include "Core.h"
 #include "Attributes.h"
+#include "Sprite.h"
 
 #include "Structures/SList.h"
 
@@ -35,14 +36,11 @@ struct TransformComponent : Component<TransformComponent>
 	}
 };
 
-struct Renderable : Component<Renderable>
+struct SpriteRenderer : Component<SpriteRenderer>
 {
-	float x;
-	float y;
-	int8_t SrcWidth;
-	int8_t SrcHeight;
-	int8_t DstWidth;
-	int8_t DstHeight;
+	Sprite Sprite;
+	uint16_t DstWidth;
+	uint16_t DstHeight;
 };
 
 struct Attachable : Component<Attachable>
@@ -62,16 +60,9 @@ struct UpdatingLightSource : Component<UpdatingLightSource>
 	float UpdateCounter;
 };
 
-struct SpriteRenderer : Component<SpriteRenderer>
-{
-	SList<Renderable> Renderables;
-};
-
 struct CreatureEntity : Component<CreatureEntity>
 {
 	AttributesContainer Attributes;
 	uint32_t InventoryId;
 	uint32_t EquipmentId;
 };
-
-

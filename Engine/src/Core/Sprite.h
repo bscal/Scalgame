@@ -1,58 +1,50 @@
 #pragma once
 
 #include "Core.h"
-#include "SHash.hpp"
 
-#include <string>
-#include <string_view>
-#include <unordered_map>
+#include "Structures/SHoodTable.h"
 
-struct Sprite;
-struct Animation;
+struct Game;
 
-struct Sprite
+typedef int AnimationId;
+
+union Sprite
 {
-    Rectangle TexCoord;
-};
-
-struct EntitySpriteSheet
-{
-    Texture2D Texture;
+    uint16_t Region[4];
+    struct
+    {
+        uint16_t x;
+        uint16_t y;
+        uint16_t w;
+        uint16_t h;
+    };
 };
 
 struct Animation
 {
-    const Rectangle* const Frames;
-    uint8_t FrameCount;
-    uint8_t FrameSpeed;
-    uint8_t FrameProgress;
-    uint8_t FrameIndex;
+    Sprite* Frames;
+    uint16_t FramesCount;
+    uint16_t CurrentIdx;
+    uint16_t TickSpeed;
 };
 
-struct AnimatedSprite
+struct Animator
 {
-    Animation CurrentAnimation;
-    bool Loop;
+    SHoodTable<AnimationId, Animation> Animations;
+    Animation* IdleAnimation;
+    Animation* CurrentAnimation;
+    uint16_t CurrentCycleTick;
 
-    inline const Rectangle& CurrentTextCoord() const
-    {
-        return CurrentAnimation.Frames[CurrentAnimation.FrameIndex];
-    }
-
-    void Update();
+    void Update(Game* game);
+    void SetAnimation(AnimationId animId);
+    Sprite GetAnimation() const;
 };
 
-inline constexpr Sprite AsSprite(const Rectangle& rect)
+Animation CreateAnimation(uint16_t framesCount, uint16_t tickSpeed, Sprite frames...);
+
+namespace Sprites
 {
-    Sprite sprite = {};
-    sprite.TexCoord = rect;
-    return sprite;
+constexpr global_var Sprite PLAYER_SPRITE = { 0, 0, 16, 16 };
+constexpr global_var Sprite RAT_SPRITE = { 16, 16, 16, 16 };
+constexpr global_var Sprite ROGUE_SPRITE = { 16, 0, 16, 16 };
 }
-
-//
-// Sprites
-//
-
-constexpr global_var Sprite PLAYER_SPRITE = AsSprite({ 0, 0, 16, 16 });
-constexpr global_var Sprite RAT_SPRITE = AsSprite({ 16, 16, 16, 16 });
-constexpr global_var Sprite ROGUE_SPRITE = AsSprite({ 16, 0, 16, 16 });

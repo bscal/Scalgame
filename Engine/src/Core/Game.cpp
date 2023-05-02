@@ -420,11 +420,10 @@ SAPI void GameApplication::Shutdown()
 	Game->TileMapRenderer.Free();
 	Game->LightingRenderer.Free();
 	GameUnload(Game);
-
-
-
 	ExitProfile();
+
 	CloseWindow();
+	SMemFree();
 }
 
 internal void GameUnload(Game* game)

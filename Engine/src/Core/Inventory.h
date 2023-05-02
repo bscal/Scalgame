@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core.h"
+#include "Sprite.h"
 #include "Structures/SList.h"
 #include "Structures/StaticArray.h"
 #include "Structures/SHoodTable.h"
@@ -27,6 +28,7 @@ union UID
 
 struct Item
 {
+	Sprite Sprite;
 	uint16_t MaxStackSize;
 	uint8_t Width;
 	uint8_t Height;

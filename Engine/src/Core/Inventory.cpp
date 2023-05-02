@@ -188,11 +188,11 @@ void OnEquipTorch(uint32_t entityId, CreatureEntity* creature, uint16_t slot, It
 	uint32_t torch = GetGame()->EntityMgr.CreateEntity();
 	GetGame()->ComponentMgr.AddComponent(torch, TransformComponent{});
 
-	Renderable* torchRenderable = GetGame()->ComponentMgr.AddComponent(torch, Renderable{});
-	torchRenderable->x = 0;
-	torchRenderable->y = 32;
-	torchRenderable->SrcWidth = 4;
-	torchRenderable->SrcHeight = 4;
+	SpriteRenderer* torchRenderable = GetGame()->ComponentMgr.AddComponent(torch, SpriteRenderer{});
+	torchRenderable->Sprite.x = 0;
+	torchRenderable->Sprite.y = 32;
+	torchRenderable->Sprite.w = 4;
+	torchRenderable->Sprite.h = 4;
 	torchRenderable->DstWidth = 4;
 	torchRenderable->DstHeight = 4;
 
@@ -201,8 +201,8 @@ void OnEquipTorch(uint32_t entityId, CreatureEntity* creature, uint16_t slot, It
 	torchAttachable->EntityOrigin = { 8.0f, 8.0f };
 	torchAttachable->Local.Origin.x = 2.0f;
 	torchAttachable->Local.Origin.y = 2.0f;
-	torchAttachable->Local.Position.x = 4.0f;
-	torchAttachable->Local.Position.y = -3.0f;
+	torchAttachable->Local.Position.x = 2.0f;
+	torchAttachable->Local.Position.y = -5.0f;
 	torchAttachable->Local.Rotation = 0.0f;
 
 	UpdatingLightSource* torchLight = GetGame()->ComponentMgr.AddComponent(torch, UpdatingLightSource{});
@@ -216,7 +216,7 @@ void OnEquipTorch(uint32_t entityId, CreatureEntity* creature, uint16_t slot, It
 void InventoryMgr::Initialize()
 {
 	Items::AIR = RegisterItem({ 0 });
-	Items::TORCH = RegisterItem({ 1, 1, 1, OnEquipTorch });
+	Items::TORCH = RegisterItem({ { 0, 32, 4, 4 }, 1, 1, 1, OnEquipTorch });
 }
 
 uint32_t InventoryMgr::RegisterItem(const Item& item)
