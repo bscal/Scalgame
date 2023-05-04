@@ -34,8 +34,8 @@ struct SList
 	inline T* PeekAt(uint32_t index) const;
 	inline T* Last() const;
 
-	const T& operator[](size_t i) const { SASSERT(i < Count); return Memory[i]; }
-	T& operator[](size_t i) { SASSERT(i < Count); return Memory[i]; }
+	constexpr T& operator[](size_t idx) { SASSERT(idx < Count); return Memory[idx]; }
+	constexpr const T& operator[](size_t idx) const { SASSERT(idx < Count); return Memory[idx]; }
 
 	T* begin() { return Memory; }
 	T* end() { return Memory + Count; }

@@ -63,6 +63,7 @@ struct UpdatingLightSource : Component<UpdatingLightSource>
 struct CreatureEntity : Component<CreatureEntity>
 {
 	AttributesContainer Attributes;
+	uint32_t OwningEntity;
 	uint32_t InventoryId;
 	uint32_t EquipmentId;
 };

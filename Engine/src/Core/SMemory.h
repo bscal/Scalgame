@@ -8,6 +8,7 @@ enum class SAllocator : uint8_t
 {
 	Game = 0,
 	Temp,
+	Malloc,
 
 	MaxTypes,
 	Invalid = 0xff,
@@ -16,7 +17,6 @@ enum class SAllocator : uint8_t
 enum class MemoryTag : uint8_t
 {
 	Unknown = 0,
-	Not_Tracked,
 	Arrays,
 	Lists,
 	Tables,
@@ -24,28 +24,28 @@ enum class MemoryTag : uint8_t
 	Game,
 	UI,
 	Profiling,
+	TrackedMalloc,
 
 	MaxTags
 };
 
-static constexpr const char* MemoryTagStrings[(uint8_t)MemoryTag::MaxTags] =
+constexpr static const char* MemoryTagStrings[(uint8_t)MemoryTag::MaxTags] =
 {
 	"Unknown",
-	"Not Tracked",
 	"Arrays",
 	"Lists",
 	"Tables",
 	"Strings",
 	"Game",
 	"UI",
-	"Profiling"
+	"Profiling",
+	"TrackedMalloc"
 };
 
 void
 SMemInitialize(GameApplication* gameApp, size_t gameMemorySize, size_t tempMemorySize);
 
 void SMemFree();
-
 
 void* SMemAlloc(size_t size);
 void* SMemRealloc(void* block, size_t size);

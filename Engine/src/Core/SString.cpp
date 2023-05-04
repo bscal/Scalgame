@@ -75,7 +75,7 @@ void SString::SetCapacity(uint32_t capacity)
 		else
 		{
 			char* memory = (char*)SAlloc(Allocator, capacity, MemoryTag::Strings);
-			SMemCopy(memory, m_Buffer.ShortStringBuf, SSTR_SSO_ARRAY_SIZE);
+			SMemMove(memory, m_Buffer.ShortStringBuf, SSTR_SSO_ARRAY_SIZE);
 			m_Buffer.StrMemory = memory;
 		}
 		Capacity = capacity;

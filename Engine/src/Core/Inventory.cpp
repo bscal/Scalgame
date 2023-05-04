@@ -27,7 +27,7 @@ ItemStack* Inventory::GetStack(uint16_t x, uint16_t y)
 
 void Inventory::SetStack(uint16_t x, uint16_t y, ItemStack* stack)
 {
-	const Item* item = stack->GetItem(&GetGame()->InventoryMgr);
+	const Item* item = stack->GetItem();
 	if (CanInsertStack(x, y, item))
 	{
 		InventoryStack* invStack = Contents.PushNew();
@@ -67,7 +67,7 @@ bool Inventory::RemoveStack(uint16_t x, uint16_t y)
 	SASSERT(slot.InventoryStackIndex != 0xfff)
 
 	InventoryStack& invStack = Contents[slot.InventoryStackIndex];
-	Item* item = invStack.Stack.GetItem(&GetGame()->InventoryMgr);
+	Item* item = invStack.Stack.GetItem();
 
 	for (uint16_t y = invStack.SlotY; y < invStack.SlotY + item->Height; ++y)
 	{
@@ -84,7 +84,7 @@ bool Inventory::RemoveStack(uint16_t x, uint16_t y)
 	if (Contents.Count > 0)
 	{
 		InventoryStack& lastInvStack = Contents[lastSlot.InventoryStackIndex];
-		Item* lastItem = lastInvStack.Stack.GetItem(&GetGame()->InventoryMgr);
+		Item* lastItem = lastInvStack.Stack.GetItem();
 
 		for (uint16_t y = lastInvStack.SlotY; y < lastInvStack.SlotY + item->Height; ++y)
 		{
@@ -125,16 +125,18 @@ void ItemStack::Remove()
 	ItemCount = 0;
 }
 
-Item* ItemStack::GetItem(InventoryMgr* invMgr)
+Item* ItemStack::GetItem() const
 {
 	SASSERT(ItemId < INV_MAX_ITEMS);
+	InventoryMgr* invMgr = &GetGame()->InventoryMgr;
+	SASSERT(invMgr);
 	Item& item = invMgr->Items[ItemId];
 	return &item;
 }
 
 bool ItemStack::Increment()
 {
-	if (ItemCount != GetItem(&GetGame()->InventoryMgr)->MaxStackSize)
+	if (ItemCount != GetItem()->MaxStackSize)
 	{
 		++ItemCount;
 		return true;
@@ -161,9 +163,9 @@ bool Equipment::EquipItem(uint32_t entity, CreatureEntity* creature, ItemStack* 
 
 	Slots[slot] = *stack;
 
-	Item* item = stack->GetItem(&GetGame()->InventoryMgr);
-	if (item->OnEquip)
-		item->OnEquip(entity, creature, slot, stack);
+	Item* item = stack->GetItem();
+	if (item->OnEquipCallback)
+		item->OnEquipCallback(entity, creature, slot, stack);
 
 	return true;
 }
@@ -216,7 +218,7 @@ void OnEquipTorch(uint32_t entityId, CreatureEntity* creature, uint16_t slot, It
 void InventoryMgr::Initialize()
 {
 	Items::AIR = RegisterItem({ 0 });
-	Items::TORCH = RegisterItem({ { 0, 32, 4, 4 }, 1, 1, 1, OnEquipTorch });
+	Items::TORCH = RegisterItem({ OnEquipTorch, { 0, 32, 4, 4 }, 1, 1, 1 });
 }
 
 uint32_t InventoryMgr::RegisterItem(const Item& item)

@@ -13,7 +13,7 @@ global_var const int CONSOLE_MAX_LENGTH = 128;
 global_var const struct nk_color BG_COLOR = ColorToNuklear({ 17, 17, 17, 155 });
 
 internal void DrawFPS(struct nk_context* ctx);
-internal void DrawInventory(struct nk_context* ctx, const Inventory* inv);
+internal void DrawInventory(struct nk_context* ctx, Inventory* inv);
 internal struct nk_colorf Vec4ToColorf(Vector4 color);
 internal Vector4 ColorFToVec4(struct nk_colorf color);
 internal struct nk_color ColorFToColor(struct nk_colorf* color);
@@ -58,7 +58,7 @@ void UpdateUI(UIState* state, Game* game)
 	{
 		Inventory* inv = game->InventoryMgr.CreateInventory(UINT32_MAX, 4, 4);
 		ItemStack itemStack = ItemStackNew(Items::TORCH, 1);
-		inv->SetStack(1, 1, &itemStack);
+		inv->SetStack(2, 2, &itemStack);
 		DrawInventory(&state->Ctx, inv);
 		game->InventoryMgr.RemoveInventory(inv);
 	}
@@ -177,14 +177,15 @@ DrawDebugPanel(UIState* state)
 			, GetGameApp()->NumOfLightsUpdated, GetNumOfLights());
 		nk_label(ctx, lightStr, NK_TEXT_LEFT);
 
-		nk_layout_row_dynamic(ctx, 16, 2);
-		const char* xy = TextFormat("%s", FMT_VEC2(p->Transform.Position));
+		const char* xy = TextFormat("Pos: %s", FMT_VEC2(p->Transform.Position));
 		nk_label(ctx, xy, NK_TEXT_LEFT);
 
 		Vector2i v = Vector2i::FromVec2(p->Transform.Position);
 		v = v.Divide({ TILE_SIZE, TILE_SIZE });
-		const char* tileXY = TextFormat("%s", FMT_VEC2I(v));
+		const char* tileXY = TextFormat("TilePos: %s", FMT_VEC2I(v));
 		nk_label(ctx, tileXY, NK_TEXT_LEFT);
+
+		nk_layout_row_dynamic(ctx, 16, 2);
 
 		nk_label(ctx, "Zoom: ", NK_TEXT_LEFT);
 		nk_label(ctx, TextFormat("%.3f", GetGameApp()->Scale), NK_TEXT_LEFT);
@@ -273,7 +274,7 @@ AppendMemoryUsage(UIState* state)
 	nk_label(&state->Ctx, TextFormat("UI Memory Needed: %.2f%cbs", memSizeNeed.Size, memSizeNeed.BytePrefix), NK_TEXT_LEFT);
 
 	// Start at 1, we dont allow allocatios to Unknown
-	for (int i = 1; i < (int)MemoryTag::MaxTags; ++i)
+	for (uint8_t i = 1; i < (uint8_t)MemoryTag::MaxTags; ++i)
 	{
 		const char* name = MemoryTagStrings[i];
 		size_t size = SMemGetTaggedUsages()[i];
@@ -281,8 +282,7 @@ AppendMemoryUsage(UIState* state)
 
 		nk_layout_row_dynamic(&state->Ctx, 16, 2);
 		nk_label(&state->Ctx, name, NK_TEXT_LEFT);
-		const char* str = TextFormat("%.3f%cbs",
-			memSize.Size, memSize.BytePrefix);
+		const char* str = TextFormat("%.3f%cbs", memSize.Size, memSize.BytePrefix);
 		nk_label(&state->Ctx, str, NK_TEXT_LEFT);
 	}
 }
@@ -409,12 +409,14 @@ DrawFPS(struct nk_context* ctx)
 }
 
 internal void
-DrawInventory(struct nk_context* ctx, const Inventory* inv)
+DrawInventory(struct nk_context* ctx, Inventory* inv)
 {
 	constexpr float SLOT_SIZE = 32.0f;
 
 	float width = SLOT_SIZE * (inv->Width);
 	float height = SLOT_SIZE * (inv->Height);
+
+	Texture2D* spriteSheet = &GetGame()->Resources.EntitySpriteSheet;
 
 	struct nk_rect windowRect;
 	windowRect.x = 256.0f;
@@ -429,15 +431,6 @@ DrawInventory(struct nk_context* ctx, const Inventory* inv)
 
 	if (nk_begin(ctx, "Inventory", windowRect, NK_WINDOW_NO_SCROLLBAR))
 	{
-		struct nk_image img;
-		img.handle.ptr = &GetGame()->Resources.EntitySpriteSheet;
-		img.w = 0;
-		img.h = 0;
-		img.region[0] = 0;
-		img.region[1] = 32;
-		img.region[2] = 4;
-		img.region[3] = 4;
-
 		ctx->style.window.spacing.x = 0.0f;
 		ctx->style.window.spacing.y = 0.0f;
 
@@ -475,6 +468,7 @@ DrawInventory(struct nk_context* ctx, const Inventory* inv)
 						struct nk_color strokeColor = { 88, 88, 88, 255 };
 						nk_stroke_rect(&win->buffer, bounds, 0.0f, 1.0f, strokeColor);
 					} break;
+
 					case InventorySlotState::FILLED:
 					{
 						nk_window* win = ctx->current;
@@ -496,8 +490,17 @@ DrawInventory(struct nk_context* ctx, const Inventory* inv)
 						imgRect.w = SLOT_SIZE - 8;
 						imgRect.h = SLOT_SIZE - 8;
 						nk_layout_space_push(ctx, imgRect);
+
+						const InventoryStack& invStack = inv->Contents[slot.InventoryStackIndex];
+
+						struct nk_image img;
+						img.handle.ptr = spriteSheet;
+						img.w = 0;
+						img.h = 0;
+						SMemCopy(img.region, &invStack.Stack.GetItem()->Sprite.Region, sizeof(nk_ushort) * 4);
 						nk_image(ctx, img);
 					} break;
+
 					default:
 						break;
 				}

@@ -267,6 +267,7 @@ SAPI void GameApplication::Run()
 				Equipment* equipment = GetGame()->InventoryMgr.CreateEquipment();
 
 				CreatureEntity* creature = Game->ComponentMgr.AddComponent(GetClientPlayer()->EntityId, CreatureEntity{});
+				creature->OwningEntity = GetClientPlayer()->EntityId;
 				creature->InventoryId = inv->InventoryId;
 				creature->EquipmentId = equipment->EquipmentId;
 

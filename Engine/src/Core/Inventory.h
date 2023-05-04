@@ -7,7 +7,6 @@
 #include "Structures/SHoodTable.h"
 
 struct CreatureEntity;
-struct InventoryMgr;
 struct ItemStack;
 
 constexpr global_var uint32_t INV_EMPTY = UINT32_MAX;
@@ -28,12 +27,17 @@ union UID
 
 struct Item
 {
+	typedef void(*OnEquip)(uint32_t entity, CreatureEntity* creature, uint16_t slot, ItemStack* itemStack);
+	typedef void(*OnUnequip)(uint32_t entity, CreatureEntity* creature, uint16_t slot, ItemStack* itemStack);
+	typedef void(*OnUpdate)(CreatureEntity* creature, ItemStack* itemStack);
+	typedef void(*OnUse)(CreatureEntity* creature, ItemStack* itemStack, int key);
+
+	OnEquip OnEquipCallback;
+
 	Sprite Sprite;
 	uint16_t MaxStackSize;
 	uint8_t Width;
 	uint8_t Height;
-
-	void(*OnEquip)(uint32_t entity, CreatureEntity* creature, uint16_t slot, ItemStack* itemStack);
 };
 
 struct ItemStack
@@ -45,7 +49,7 @@ struct ItemStack
 
 	void Remove();
 
-	Item* GetItem(InventoryMgr* invMgr);
+	Item* GetItem() const;
 
 	bool Increment();
 	bool Deincrement();

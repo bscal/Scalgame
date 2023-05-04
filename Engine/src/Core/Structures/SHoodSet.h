@@ -5,15 +5,15 @@
 #include "Core/SHash.hpp"
 #include "Core/SUtil.h"
 
-global_var constexpr float SSET_LOAD_FACTOR = 1.75f;
-global_var constexpr uint32_t SSET_RESIZE = 2;
+global_var constexpr float SSET_LOAD_FACTOR = 1.9f;
+global_var constexpr uint32_t SSET_RESIZE = 2u;
 
 template<typename K>
 struct SHoodSetBucket
 {
 	K Key;
-	uint32_t ProbeLength;
-	bool Occupied;
+	uint32_t ProbeLength : 31;
+	uint32_t Occupied : 1;
 };
 
 template<typename K,

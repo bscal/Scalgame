@@ -6,7 +6,7 @@
 #include "Core/SUtil.h"
 
 #define SHOOD_RESIZE 2u
-#define SHOOD_DEFAULT_LOAD_FACTOR 1.75f
+#define SHOOD_DEFAULT_LOAD_FACTOR 1.9f
 
 template<typename K, typename V>
 struct SHoodBucket
