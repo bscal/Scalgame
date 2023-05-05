@@ -1,9 +1,7 @@
 #include "Game.h"
 
 #include "Globals.h"
-//#include "Creature.h"
 #include "ResourceManager.h"
-#include "Lighting.h"
 #include "SpriteAtlas.h"
 #include "SUI.h"
 #include "SUtil.h"
@@ -26,7 +24,7 @@ global_var GameApplication* GameAppPtr;
 
 internal bool GameInitialize(Game* game, GameApplication* gameApp);
 internal void GameLoad(Game* game, GameApplication* gameApp);
-internal void GameUnload(Game* game);
+internal void GameUnload(Game* game, GameApplication* gameApp);
 internal void GameUpdate(Game* game, GameApplication* gameApp);
 internal void GameUpdateCamera(Game* game, GameApplication* gameApp);
 internal void GameLateUpdate(Game* game);
@@ -129,9 +127,10 @@ internal void GameLoad(Game* game, GameApplication* gameApp)
 {
 	PROFILE_BEGIN();
 
-	WorldInitialize(&game->World, gameApp);
+	LightsInitialize(&game->LightingState);
 
-	WorldLoad(&game->World, game);
+	UniverseInitialize(&game->Universe, gameApp);
+	UniverseLoad(&game->Universe, gameApp);
 	
 	PROFILE_END();
 }
@@ -196,18 +195,18 @@ SAPI void GameApplication::Run()
 			if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
 			{
 				Vector2i clickedTilePos = GetTileFromMouse(Game);
-				if (CTileMap::IsTileInBounds(&Game->World.ChunkedTileMap, clickedTilePos))
+				if (CTileMap::IsTileInBounds(&Game->Universe.World.ChunkedTileMap, clickedTilePos))
 				{
-					TileData* tile = CTileMap::GetTile(&Game->World.ChunkedTileMap, clickedTilePos);
+					TileData* tile = CTileMap::GetTile(&Game->Universe.World.ChunkedTileMap, clickedTilePos);
 					TileData newTile = TileMgrCreate(TileMgrToTileId(ROCKY_WALL));
-					CTileMap::SetTile(&Game->World.ChunkedTileMap, &newTile, clickedTilePos);
+					CTileMap::SetTile(&Game->Universe.World.ChunkedTileMap, &newTile, clickedTilePos);
 					SLOG_INFO("Clicked Tile[%d, %d] Id: %u", clickedTilePos.x, clickedTilePos.y, TileMgrToTileId(tile->AsCoord()));
 				}
 			}
 			if (IsMouseButtonPressed(MOUSE_BUTTON_RIGHT))
 			{
 				Vector2i clickedTilePos = GetTileFromMouse(Game);
-				if (CTileMap::IsTileInBounds(&Game->World.ChunkedTileMap, clickedTilePos))
+				if (CTileMap::IsTileInBounds(&Game->Universe.World.ChunkedTileMap, clickedTilePos))
 				{
 					UpdatingLight light = {};
 					light.Pos = clickedTilePos.AsVec2();
@@ -225,15 +224,15 @@ SAPI void GameApplication::Run()
 			if (IsMouseButtonPressed(MOUSE_BUTTON_MIDDLE))
 			{
 				Vector2i clickedTilePos = GetTileFromMouse(Game);
-				if (CTileMap::IsTileInBounds(&Game->World.ChunkedTileMap, clickedTilePos))
+				if (CTileMap::IsTileInBounds(&Game->Universe.World.ChunkedTileMap, clickedTilePos))
 				{
-					CTileMap::GetTile(&Game->World.ChunkedTileMap, clickedTilePos)->HasCeiling = true;
+					CTileMap::GetTile(&Game->Universe.World.ChunkedTileMap, clickedTilePos)->HasCeiling = true;
 				}
 			}
 			if (IsKeyPressed(KEY_SEMICOLON))
 			{
 				Vector2i clickedTilePos = GetTileFromMouse(Game);
-				if (CTileMap::IsTileInBounds(&Game->World.ChunkedTileMap, clickedTilePos))
+				if (CTileMap::IsTileInBounds(&Game->Universe.World.ChunkedTileMap, clickedTilePos))
 				{
 					StaticLight light = {};
 					light.Pos = clickedTilePos.AsVec2();
@@ -298,7 +297,7 @@ SAPI void GameApplication::Run()
 
 		Game->EntityMgr.Player.Update();
 
-		CTileMap::Update(&Game->World.ChunkedTileMap, Game);
+		CTileMap::Update(&Game->Universe.World.ChunkedTileMap, Game);
 
 		Game->TileMapRenderer.Draw();
 
@@ -367,8 +366,10 @@ internal void
 GameUpdate(Game* game, GameApplication* gameApp)
 {
 	PROFILE_BEGIN();
-
-	WorldUpdate(&game->World, game);
+	
+	UniverseUpdate(&game->Universe, game);
+	
+	LightsUpdate(&game->LightingState, game);
 
 	//EntityMgrUpdate(&game->EntityMgr, game);
 	
@@ -409,7 +410,7 @@ internal void GameUpdateCamera(Game* game, GameApplication* gameApp)
 internal void GameLateUpdate(Game* game)
 {
 	PROFILE_BEGIN();
-	WorldLateUpdate(&game->World, game);
+	WorldLateUpdate(&game->Universe.World, game);
 	PROFILE_END();
 }
 
@@ -420,16 +421,16 @@ SAPI void GameApplication::Shutdown()
 	Game->Renderer.Free();
 	Game->TileMapRenderer.Free();
 	Game->LightingRenderer.Free();
-	GameUnload(Game);
+	GameUnload(Game, this);
 	ExitProfile();
 
 	CloseWindow();
 	SMemFree();
 }
 
-internal void GameUnload(Game* game)
+internal void GameUnload(Game* game, GameApplication* gameApp)
 {
-	WorldFree(&game->World);
+	UniverseUnload(&game->Universe, gameApp);
 }
 
 GameApplication* GetGameApp()
@@ -452,7 +453,6 @@ PlayerEntity* GetClientPlayer()
 
 EntityMgr* GetEntityMgr()
 {
-	SASSERT(GetGame()->World.IsAllocated);
 	return &GetGame()->EntityMgr;
 }
 

@@ -56,7 +56,7 @@ SStringViewHash(const SStringView* key)
 
 struct Vector2iHasher
 {
-	inline size_t operator()(const Vector2i* v) const
+	inline size_t operator()(const Vector2i* v) const noexcept
 	{
 		return FNVHash64((const uint8_t*)v, sizeof(Vector2i));
 	}

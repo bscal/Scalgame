@@ -106,7 +106,7 @@ internal float Distance(float x0, float y0, float x1, float y1)
 void
 IsInCone(SList<Vector2i>* tilesInLos, Vector2 line0, Vector2 line1)
 {
-	ChunkedTileMap* tilemap = &GetGame()->World.ChunkedTileMap;
+	ChunkedTileMap* tilemap = &GetGame()->Universe.World.ChunkedTileMap;
 	for (uint32_t i = 0; i < tilesInLos->Count; ++i)
 	{
 		Vector2i tile = tilesInLos->Memory[i];

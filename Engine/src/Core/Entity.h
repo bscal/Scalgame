@@ -44,9 +44,29 @@ struct EntityMgr
 	bool IsAlive(Entity entityId) const;
 };
 
+struct ComponentQuery
+{
+	uint32_t ComponentIds[8];
+
+	inline bool operator==(const ComponentQuery& other) const
+	{
+		for (uint8_t i = 0; i < 8; ++i)
+			if (ComponentIds[i] != other.ComponentIds[i]) return false;
+		return true;
+	}
+
+	inline bool operator!=(const ComponentQuery& other) const
+	{
+		for (uint8_t i = 0; i < 8; ++i)
+			if (ComponentIds[i] != other.ComponentIds[i]) return true;
+		return false;
+	}
+};
+
 struct ComponentMgr
 {
 	SList<ComponentArray<void*>*> Components;
+	SHoodTable<ComponentQuery, SList<uint32_t>> CachedQueries;
 
 	template<typename ComponentType>
 	inline void Register()

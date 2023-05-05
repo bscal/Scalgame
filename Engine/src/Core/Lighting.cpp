@@ -11,24 +11,11 @@
 // Most of these implementations for lighting I have gotten
 // from http://www.adammil.net/blog/v125_roguelike_vision_algorithms.html
 
-struct LightingState
+void LightsInitialize(LightingState* lightingState)
 {
-	SList<UpdatingLight> UpdatingLights;
-	SList<StaticLight> StaticLights;
-	SList<StaticLightType> StaticLightTypes;
-
-	Vector2 PlayerLookVector; // TODO maybe move this
-	uint32_t NumOfLightsUpdatedThisFrame;
-
-	StaticArray<bool, CULL_TOTAL_TILES> CheckedTiles;
-};
-global_var LightingState State;
-
-void LightsInitialize(GameApplication* gameApp)
-{
-	State.UpdatingLights.Reserve(64);
-	State.StaticLights.Reserve(64);
-	State.StaticLightTypes.EnsureSize((uint8_t)StaticLightTypes::MaxTypes);
+	lightingState->UpdatingLights.Reserve(64);
+	lightingState->StaticLights.Reserve(64);
+	lightingState->StaticLightTypes.EnsureSize((uint8_t)StaticLightTypes::MaxTypes);
 
 	float table[] = {
 		0.0f, 0.0f, 0.1f, 0.0f, 0.0f,
@@ -37,11 +24,11 @@ void LightsInitialize(GameApplication* gameApp)
 		0.0f, 0.1f, 0.2f, 0.1f, 0.0f,
 		0.0f, 0.0f, 0.1f, 0.0f, 0.0f
 	};
-	State.StaticLightTypes[(uint8_t)StaticLightTypes::Basic].LightModifers.Assign(table, ArrayLength(table));
-	State.StaticLightTypes[(uint8_t)StaticLightTypes::Basic].x = -2;
-	State.StaticLightTypes[(uint8_t)StaticLightTypes::Basic].y = -2;
-	State.StaticLightTypes[(uint8_t)StaticLightTypes::Basic].Width = 5;
-	State.StaticLightTypes[(uint8_t)StaticLightTypes::Basic].Height = 5;
+	lightingState->StaticLightTypes[(uint8_t)StaticLightTypes::Basic].LightModifers.Assign(table, ArrayLength(table));
+	lightingState->StaticLightTypes[(uint8_t)StaticLightTypes::Basic].x = -2;
+	lightingState->StaticLightTypes[(uint8_t)StaticLightTypes::Basic].y = -2;
+	lightingState->StaticLightTypes[(uint8_t)StaticLightTypes::Basic].Width = 5;
+	lightingState->StaticLightTypes[(uint8_t)StaticLightTypes::Basic].Height = 5;
 
 	float lavaTable[] =
 	{
@@ -49,16 +36,16 @@ void LightsInitialize(GameApplication* gameApp)
 		0.2f, 0.25f, 0.2f,
 		0.0f, 0.2f, 0.0f,
 	};
-	State.StaticLightTypes[(uint8_t)StaticLightTypes::Lava].LightModifers.Assign(lavaTable, ArrayLength(lavaTable));
-	State.StaticLightTypes[(uint8_t)StaticLightTypes::Lava].x = -1;
-	State.StaticLightTypes[(uint8_t)StaticLightTypes::Lava].y = -1;
-	State.StaticLightTypes[(uint8_t)StaticLightTypes::Lava].Width = 3;
-	State.StaticLightTypes[(uint8_t)StaticLightTypes::Lava].Height = 3;
+	lightingState->StaticLightTypes[(uint8_t)StaticLightTypes::Lava].LightModifers.Assign(lavaTable, ArrayLength(lavaTable));
+	lightingState->StaticLightTypes[(uint8_t)StaticLightTypes::Lava].x = -1;
+	lightingState->StaticLightTypes[(uint8_t)StaticLightTypes::Lava].y = -1;
+	lightingState->StaticLightTypes[(uint8_t)StaticLightTypes::Lava].Width = 3;
+	lightingState->StaticLightTypes[(uint8_t)StaticLightTypes::Lava].Height = 3;
 }
 
 void DrawStaticLights(ChunkedTileMap* tilemap, const StaticLight* light)
 {
-	StaticLightType* lightType = &State.StaticLightTypes[(uint8_t)light->StaticLightType];
+	StaticLightType* lightType = &GetGame()->LightingState.StaticLightTypes[(uint8_t)light->StaticLightType];
 
 	Vector2i pos = Vector2i::FromVec2(light->Pos);
 	Vector2i startPos = pos + Vector2i{ lightType->x, lightType->y };
@@ -86,8 +73,8 @@ void DrawStaticLights(ChunkedTileMap* tilemap, const StaticLight* light)
 
 void DrawStaticTileLight(Vector2i tilePos, Color color, StaticLightTypes type)
 {
-	ChunkedTileMap* tilemap = &GetGame()->World.ChunkedTileMap;
-	StaticLightType* lightType = &State.StaticLightTypes[(uint8_t)type];
+	ChunkedTileMap* tilemap = &GetGame()->Universe.World.ChunkedTileMap;
+	StaticLightType* lightType = &GetGame()->LightingState.StaticLightTypes[(uint8_t)type];
 
 	Vector2i startPos = tilePos + Vector2i{ lightType->x, lightType->y };
 	startPos = WorldTileToCullTile(startPos);
@@ -130,7 +117,7 @@ constexpr global_var float LavaLightWeights[9] =
 };
 void DrawStaticLavaLight(Vector2i tilePos, Color color)
 {
-	ChunkedTileMap* tilemap = &GetGame()->World.ChunkedTileMap;
+	ChunkedTileMap* tilemap = &GetGame()->Universe.World.ChunkedTileMap;
 	LightingRenderer* lightRenderer = &GetGame()->LightingRenderer;
 
 	Vector2i cullPos = WorldTileToCullTile(tilePos);
@@ -149,17 +136,17 @@ void DrawStaticLavaLight(Vector2i tilePos, Color color)
 
 void LightsAddUpdating(const UpdatingLight& light)
 {
-	State.UpdatingLights.Push(&light);
+	GetGame()->LightingState.UpdatingLights.Push(&light);
 }
 
 void LightsAddStatic(const StaticLight& light)
 {
-	State.StaticLights.Push(&light);
+	GetGame()->LightingState.StaticLights.Push(&light);
 }
 
 uint32_t GetNumOfLights()
 {
-	return State.UpdatingLights.Count + State.StaticLights.Count;
+	return GetGame()->LightingState.UpdatingLights.Count + GetGame()->LightingState.StaticLights.Count;
 }
 
 void UpdatingLight::Update(Game* game)
@@ -229,7 +216,7 @@ ComputeLightShadowCast(ChunkedTileMap* tilemap, const Light* light,
 	uint8_t octant, int x, Slope top, Slope bottom);
 
 
-void LightsUpdate(Game* game)
+void LightsUpdate(LightingState* lightingState, Game* game)
 {
 	PROFILE_BEGIN();
 	
@@ -249,11 +236,11 @@ void LightsUpdate(Game* game)
 	//};
 	//wi::jobsystem::Dispatch(ctx, State.UpdatingLights.Count, 16, task, 0);
 
-	ChunkedTileMap* tilemap = &game->World.ChunkedTileMap;
+	ChunkedTileMap* tilemap = &game->Universe.World.ChunkedTileMap;
 	Vector2i playerPos = GetClientPlayer()->Transform.TilePos();
 	TileDirection playerDir = GetClientPlayer()->Transform.LookDir;
 	Vector2i lookDir = Vec2i_NEIGHTBORS[(uint8_t)playerDir];
-	State.PlayerLookVector = Vector2Normalize(lookDir.AsVec2());
+	lightingState->PlayerLookVector = Vector2Normalize(lookDir.AsVec2());
 
 
 	//std::chrono::milliseconds interval(1000);
@@ -292,13 +279,13 @@ void LightsUpdate(Game* game)
 	GetGameApp()->NumOfLightsUpdated = 0;
 	
 	double start = GetTime();
-	for (uint32_t i = 0; i < State.UpdatingLights.Count; ++i)
+	for (uint32_t i = 0; i < lightingState->UpdatingLights.Count; ++i)
 	{
-		UpdatingLight* light = &State.UpdatingLights[i];
+		UpdatingLight* light = &lightingState->UpdatingLights[i];
 		if (!TileInsideCullRect(Vector2i::FromVec2(light->Pos))) continue;
 		light->Update(game);
 		//FloodFillLighting(tilemap, light);
-		SMemSet(State.CheckedTiles.Data, 0, ArrayLength(State.CheckedTiles));
+		SMemSet(lightingState->CheckedTiles.Data, 0, ArrayLength(lightingState->CheckedTiles));
 		LightsUpdateTileColorTile(Vector2i::FromVec2(light->Pos), 1.0, light);
 		for (uint8_t octant = 0; octant < 8; ++octant)
 		{
@@ -308,9 +295,9 @@ void LightsUpdate(Game* game)
 	}
 	GetGameApp()->DebugLightTime = GetTime() - start;
 
-	for (uint32_t i = 0; i < State.StaticLights.Count; ++i)
+	for (uint32_t i = 0; i < lightingState->StaticLights.Count; ++i)
 	{
-		StaticLight* light = &State.StaticLights[i];
+		StaticLight* light = &lightingState->StaticLights[i];
 		DrawStaticLights(tilemap, light);
 		++GetGameApp()->NumOfLightsUpdated;
 	}
@@ -401,7 +388,7 @@ internal void SetVisible(ChunkedTileMap* tilemap, int x, int y, Vector2i origin,
 	constexpr float coneFov = (80.0f * DEG2RAD);
 	Vector2i length = newPos.Subtract(GetClientPlayer()->Transform.TilePos());
 	
-	float dot = Vector2LineAngle(State.PlayerLookVector, Vector2Normalize(length.AsVec2()));
+	float dot = Vector2LineAngle(GetGame()->LightingState.PlayerLookVector, Vector2Normalize(length.AsVec2()));
 	if (dot < coneFov)
 		CTileMap::SetVisible(tilemap, newPos);
 #else
@@ -616,9 +603,9 @@ ComputeLightShadowCast(ChunkedTileMap* tilemap, const Light* light,
 			{
 				TileCoord coord = WorldTileToCullTile(txty);
 				int index = coord.x + coord.y * CULL_WIDTH_TILES;
-				if (!State.CheckedTiles[index])
+				if (!GetGame()->LightingState.CheckedTiles[index])
 				{
-					State.CheckedTiles[index] = true;
+					GetGame()->LightingState.CheckedTiles[index] = true;
 					LightsUpdateTileColor(index, distance, light);
 				}
 			}
@@ -687,12 +674,12 @@ LightsUpdateTileColorTile(Vector2i tileCoord, float distance, const Light* light
 
 void DrawLightWithShadows(Vector2 pos, const UpdatingLightSource& src)
 {
-	ChunkedTileMap* tilemap = &GetGame()->World.ChunkedTileMap;
+	ChunkedTileMap* tilemap = &GetGame()->Universe.World.ChunkedTileMap;
 	Light light = {};
 	light.Pos = pos;
 	light.Radius = src.Radius;
 	light.Color = src.FinalColor;
-	SMemSet(State.CheckedTiles.Data, 0, ArrayLength(State.CheckedTiles));
+	SMemSet(GetGame()->LightingState.CheckedTiles.Data, 0, ArrayLength(GetGame()->LightingState.CheckedTiles));
 	LightsUpdateTileColorTile(Vector2i::FromVec2(pos), 1.0, &light);
 	for (uint8_t octant = 0; octant < 8; ++octant)
 	{
@@ -760,11 +747,9 @@ union FloodFillData
 	int r[6];
 };
 
-
-
 internal inline bool test(const Light* light, int x, int y)
 {
-	ChunkedTileMap* tilemap = &GetGame()->World.ChunkedTileMap;
+	ChunkedTileMap* tilemap = &GetGame()->Universe.World.ChunkedTileMap;
 	if (CTileMap::BlocksLight(tilemap, { x, y })) return false;
 	float distance = Vector2Distance(light->Pos, { (float)x, (float)y });
 	return distance < light->Radius;

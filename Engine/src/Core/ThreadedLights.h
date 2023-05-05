@@ -38,7 +38,7 @@ UpdateLightColor(const UpdatingLight* light, int index, float distance)
 internal inline void 
 ProcessLight(const UpdatingLight* light, uint8_t octant, int x, Slope top, Slope bottom, bool* checkedTiles)
 {
-	ChunkedTileMap* tilemap = &GetGame()->World.ChunkedTileMap;
+	ChunkedTileMap* tilemap = &GetGame()->Universe.World.ChunkedTileMap;
 	Vector2i origin = Vector2i::FromVec2(light->Pos);
 	int rangeLimit = (int)light->Radius;
 	for (; x <= rangeLimit; ++x) // rangeLimit < 0 || x <= rangeLimit

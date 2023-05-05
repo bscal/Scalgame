@@ -268,7 +268,7 @@ AppendMemoryUsage(UIState* state)
 	nk_label(&state->Ctx, TextFormat("Total Allocated Memory: %.2f%cbs", alloced.Size, alloced.BytePrefix), NK_TEXT_LEFT);
 	MemorySizeData game = FindMemSize(GetGameApp()->GameMemory.arena.size - freeMem);
 	nk_label(&state->Ctx, TextFormat("Game Memory: %.2f%cbs", game.Size, game.BytePrefix), NK_TEXT_LEFT);
-	MemorySizeData temp = FindMemSize(GetGameApp()->LastFrameTempMemoryUsage);
+	MemorySizeData temp = FindMemSize(SMemGetLastFrameTempUsage());
 	nk_label(&state->Ctx, TextFormat("Temp Memory: %.2f%cbs", temp.Size, temp.BytePrefix), NK_TEXT_LEFT); // last frames
 	MemorySizeData memSizeNeed = FindMemSize(state->Ctx.memory.needed);
 	nk_label(&state->Ctx, TextFormat("UI Memory Needed: %.2f%cbs", memSizeNeed.Size, memSizeNeed.BytePrefix), NK_TEXT_LEFT);

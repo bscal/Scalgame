@@ -53,24 +53,31 @@ struct StaticLight : public Light
     StaticLightTypes StaticLightType;
 };
 
+struct LightingState
+{
+    SList<UpdatingLight> UpdatingLights;
+    SList<StaticLight> StaticLights;
+    SList<StaticLightType> StaticLightTypes;
+
+    Vector2 PlayerLookVector; // TODO maybe move this
+    uint32_t NumOfLightsUpdatedThisFrame;
+
+    StaticArray<bool, CULL_TOTAL_TILES> CheckedTiles;
+};
+
 void DrawStaticLights(ChunkedTileMap* tilemap, const StaticLight* light);
 void DrawStaticTileLight(Vector2i tilePos, Color color, StaticLightTypes type);
 void DrawStaticLavaLight(Vector2i tilePos, Color color);
 
-void LightsInitialize(GameApplication* gameApp);
+void LightsInitialize(LightingState* lightingState);
 void LightsAddUpdating(const UpdatingLight& light);
 void LightsAddStatic(const StaticLight& light);
 
-void LightsUpdate(Game* game);
+void LightsUpdate(LightingState* lightingState, Game* game);
 uint32_t GetNumOfLights();
 
-void
-LightsUpdateTileColor(int index, float distance, const Light* light);
-
-void
-LightsUpdateTileColorTile(Vector2i tileCoord, float distance, const Light* light);
-
+void LightsUpdateTileColor(int index, float distance, const Light* light);
+void LightsUpdateTileColorTile(Vector2i tileCoord, float distance, const Light* light);
 void DrawLightWithShadows(Vector2 pos, const UpdatingLightSource& light);
-
 bool FloodFillLighting(ChunkedTileMap* tilemap, Light* light);
 void FloodFillScanline(const Light* light, int x, int y, int width, int height, bool diagonal);//, bool (*test)(int, int)), void (*paint)(int, int))

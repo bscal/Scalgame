@@ -301,8 +301,6 @@ V* SHoodTable<K, V, HashFunc, EqualsFunc>::InsertKey(const K* key)
 	uint32_t probeLength = 0;
 	while (true)
 	{
-		if (index == Capacity) index = 0; // Wrap
-
 		SHoodBucket<K, V>* bucket = &Buckets[index];
 		if (bucket->Occupied) // Bucket is being used
 		{
@@ -409,34 +407,35 @@ bool SHoodTable<K, V, HashFunc, EqualsFunc>::Remove(const K* key)
 	uint32_t index = hash;
 	while (true)
 	{
-		if (index == Capacity) index = 0;
-
 		SHoodBucket<K, V>* bucket = &Buckets[index];
 		if (bucket->Occupied == 1)
 		{
 			if (EqualsFunc{}(&bucket->Key, key))
 			{
-				uint32_t lastIndex = index;
-				while (true)
+				while (true) // Move any entries after index closer to their ideal probe length.
 				{
+					uint32_t lastIndex = index;
 					if (++index == Capacity) index = 0;
 
 					SHoodBucket<K, V>* nextBucket = &Buckets[index];
-					if (nextBucket->ProbeLength != 0)
-					{
-						Buckets[lastIndex] = *nextBucket;
-						Buckets[lastIndex].ProbeLength--;
-					}
-					else
+					if (nextBucket->Occupied == 0 || nextBucket->ProbeLength == 0) // No more entires to move
 					{
 						Buckets[lastIndex].ProbeLength = 0;
 						Buckets[lastIndex].Occupied = 0;
 						--Size;
 						return true;
 					}
+					else
+					{
+						--nextBucket->ProbeLength;
+						Buckets[lastIndex] = *nextBucket;
+					}
 				}
 			}
-			++index; // continue searching till 0 or found equals key
+			else
+			{
+				if (++index == Capacity) index = 0; // continue searching till 0 or found equals key
+			}
 		}
 		else
 		{

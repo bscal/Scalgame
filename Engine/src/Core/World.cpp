@@ -17,8 +17,6 @@ void WorldLoad(World* world, Game* game)
 {
 	CreatePlayer(&game->EntityMgr, &game->ComponentMgr);
 
-	LightsInitialize(GetGameApp());
-
 	// FIXME: find better location for this
 	MapGenInitialize(&game->MapGen, 0);
 
@@ -46,8 +44,6 @@ void WorldUpdate(World* world, Game* game)
 {
 	PROFILE_BEGIN();
 	GetGameApp()->NumOfChunksUpdated = 0;
-
-	LightsUpdate(game);
 
 	//CTileMap::Update(&world->ChunkedTileMap, game);
 

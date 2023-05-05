@@ -95,7 +95,7 @@ void PlayerEntity::Update()
 		Vector2 movePoint = Vector2Add(Transform.Position, moveAmount);
 
 		Vector2i tile = Vector2i::FromVec2(Vector2Scale(movePoint, INVERSE_TILE_SIZE));
-		if (CanMoveToTile(&GetGame()->World, tile))
+		if (CanMoveToTile(&GetGame()->Universe.World, tile))
 		{
 			TilePos = tile;
 			Transform.Position = movePoint;

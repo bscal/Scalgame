@@ -69,6 +69,7 @@ void SMemClear(void* block, size_t size);
 
 const size_t* SMemGetTaggedUsages();
 uint64_t SMemGetAllocated();
+uint64_t SMemGetLastFrameTempUsage();
 
 #define SMEM_USE_TAGS 1
 #define SMEM_PRINT_ALLOCATIONS 0

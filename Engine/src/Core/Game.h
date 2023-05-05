@@ -4,11 +4,12 @@
 #include "Renderer.h"
 #include "ResourceManager.h"
 #include "CommandMgr.h"
-#include "World.h"
+#include "Universe.h"
 #include "SMemory.h"
 #include "SRandom.h"
 #include "Entity.h"
 #include "Inventory.h"
+#include "Lighting.h"
 
 #include "MapGeneration/MapGeneration.h"
 
@@ -32,8 +33,11 @@ struct Game
     ComponentMgr ComponentMgr;
     InventoryMgr InventoryMgr;
 
+    LightingState LightingState;
+
     MapGenerator MapGen;
-    World World;
+    
+    Universe Universe;
 
     uint64_t Time;
     uint64_t CurrentDayProgress;
@@ -68,7 +72,6 @@ struct GameApplication
     double RenderTime;
     double UpdateWorldTime;
     double DebugLightTime;
-    size_t LastFrameTempMemoryUsage;
     int NumOfLoadedChunks;
     int NumOfChunksUpdated;
     int NumOfLightsUpdated;

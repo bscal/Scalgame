@@ -147,8 +147,7 @@ bool SHoodSet<K, HashFunc, EqualsFunc>::Insert(const K* key)
 				probeLength = swapBucket.ProbeLength;
 			}
 			// Continues searching
-			++index;
-			if (index == Capacity) index = 0; // Wrap
+			if (++index == Capacity) index = 0; // Wrap
 			++probeLength;
 		}
 		else
@@ -183,8 +182,8 @@ bool SHoodSet<K, HashFunc, EqualsFunc>::Contains(const K* key) const
 			return false;
 		if (EqualsFunc{}(&bucket->Key, key))
 			return true;
-
-		if (index++ == Capacity) index = 0; // wraps
+		else
+			if (index++ == Capacity) index = 0; // wraps
 	}
 	return false;
 }
@@ -199,10 +198,8 @@ bool SHoodSet<K, HashFunc, EqualsFunc>::Remove(const K* key)
 	uint64_t hash = HashFunc{}(key);
 	uint32_t index = hash & ((uint64_t)(Capacity - 1));
 	SASSERT(index < Capacity);
-	for (;; ++index)
+	while(true)
 	{
-		if (index == Capacity) index = 0; // wrap
-
 		SHoodBucket<K>* bucket = &Buckets[index];
 		if (!bucket->Occupied)
 			return false; // No key found
@@ -216,12 +213,12 @@ bool SHoodSet<K, HashFunc, EqualsFunc>::Remove(const K* key)
 				if (++index == Capacity) index = 0;
 
 				SHoodBucket<K, V>* nextBucket = &Buckets[index];
-				if (nextBucket->ProbeLength == 0)
+				if (nextBucket->ProbeLength == 0 || nextBucket->Occupied == 0)
 				{
 					// We do not need to shift anymore elements because we either
 					// found an empty spot or the element is in its ideal spot.
 					Buckets[lastIndex].ProbeLength = 0;
-					Buckets[lastIndex].Occupied = false;
+					Buckets[lastIndex].Occupied = 0;
 					--Size;
 					return true;
 				}
@@ -233,6 +230,10 @@ bool SHoodSet<K, HashFunc, EqualsFunc>::Remove(const K* key)
 					Buckets[lastIndex] = *nextBucket;
 				}
 			}
+		}
+		else
+		{
+			if (++index == Capacity) index = 0;
 		}
 	}
 	return false;

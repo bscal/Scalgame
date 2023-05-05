@@ -21,11 +21,13 @@
 #endif
 
 // TODO: maybe move this to an internal state struct?
-global_var GameApplication* GameAppPtr;
+global_var MemPool* GameMemoryPtr;
+global_var BiStack* TemporaryMemoryPtr;
 global_var uint64_t MemoryTagUsage[(uint8_t)MemoryTag::MaxTags];
 global_var uint64_t GameMemSize;
 global_var uint64_t TemporaryMemSize;
 global_var uint64_t TotalMemoryAllocated;
+global_var uint64_t LastFrameTempMemoryUsage;
 
 internal void* CMemAlloc(size_t n, size_t sz) { return SMemAlloc(n * sz); }
 
@@ -33,20 +35,18 @@ void
 SMemInitialize(GameApplication* gameApp,
 	size_t gameMemSize, size_t temporaryMemSize)
 {
-	GameAppPtr = gameApp;
-	GameMemSize = gameMemSize;
-	TemporaryMemSize = temporaryMemSize;
+	GameMemSize = AlignSize(gameMemSize, 64);
+	TemporaryMemSize = AlignSize(temporaryMemSize, 64);
 	TotalMemoryAllocated = GameMemSize + TemporaryMemSize;
 
-	uint8_t* memoryLocation = (uint8_t*)malloc(TotalMemoryAllocated);
+	uint8_t* memoryLocation = (uint8_t*)_aligned_malloc(TotalMemoryAllocated, 64);
 	SASSERT(memoryLocation);
 	SMemClear(memoryLocation, TotalMemoryAllocated);
 
 	gameApp->GameMemory = CreateMemPoolFromBuffer(memoryLocation, GameMemSize);
-	SASSERT(gameApp->GameMemory.arena.mem);
-
 	gameApp->TemporaryMemory = CreateBiStackFromBuffer(memoryLocation + GameMemSize, TemporaryMemSize);
-	SASSERT(gameApp->TemporaryMemory.mem);
+	GameMemoryPtr = &gameApp->GameMemory;
+	TemporaryMemoryPtr = &gameApp->TemporaryMemory;
 
 	// Sets Raylibs RL memory allocator functions
 	// Raylib usually doesnt use too much memory,
@@ -56,10 +56,11 @@ SMemInitialize(GameApplication* gameApp,
 	SetRLRealloc(SMemRealloc);
 	SetRLFree(SMemFree);
 
-	//SASSERT(GetRLMalloc());
-	//SASSERT(GetRLCalloc());
-	//SASSERT(GetRLRealloc());
-	//SASSERT(GetRLFree());
+	SASSERT(GameMemoryPtr);
+	SASSERT(TemporaryMemoryPtr);
+	SASSERT(gameApp->GameMemory.arena.mem);
+	SASSERT(gameApp->TemporaryMemory.mem);
+	SASSERT(TotalMemoryAllocated > 0);
 
 	SLOG_INFO("[ Memory ] Initialized! Total Mem: %d bytes.", TotalMemoryAllocated);
 
@@ -78,7 +79,7 @@ void SMemFree()
 
 void* SMemAlloc(size_t size)
 {
-	void* mem = MemPoolAlloc(&GameAppPtr->GameMemory, size);
+	void* mem = MemPoolAlloc(GameMemoryPtr, size);
 	SASSERT(mem);
 
 	SMEM_LOG_ALLOC("Allocated", size);
@@ -87,7 +88,7 @@ void* SMemAlloc(size_t size)
 
 void* SMemRealloc(void* block, size_t size)
 {
-	void* mem = MemPoolRealloc(&GameAppPtr->GameMemory, block, size);
+	void* mem = MemPoolRealloc(GameMemoryPtr, block, size);
 	SASSERT(mem);
 
 	SMEM_LOG_ALLOC("Reallocated", size);
@@ -96,13 +97,13 @@ void* SMemRealloc(void* block, size_t size)
 
 void SMemFree(void* block)
 {
-	MemPoolFree(&GameAppPtr->GameMemory, block);
+	MemPoolFree(GameMemoryPtr, block);
 	SMEM_LOG_FREE();
 }
 
 void* SMemTempAlloc(size_t size)
 {
-	void* ptr = BiStackAllocFront(&GameAppPtr->TemporaryMemory, size);
+	void* ptr = BiStackAllocFront(TemporaryMemoryPtr, size);
 	SASSERT(ptr);
 	SMemClear(ptr, size);
 	return ptr;
@@ -110,8 +111,9 @@ void* SMemTempAlloc(size_t size)
 
 void SMemTempReset()
 {
-	GameAppPtr->LastFrameTempMemoryUsage = GameAppPtr->TemporaryMemory.front - GameAppPtr->TemporaryMemory.mem;
-	BiStackResetFront(&GameAppPtr->TemporaryMemory);
+	SASSERT(TemporaryMemoryPtr);
+	LastFrameTempMemoryUsage = TemporaryMemoryPtr->front - TemporaryMemoryPtr->mem;
+	BiStackResetFront(TemporaryMemoryPtr);
 }
 
 void* SMemAllocTag(uint8_t allocator, size_t size, MemoryTag tag)
@@ -301,6 +303,11 @@ const size_t* SMemGetTaggedUsages()
 uint64_t SMemGetAllocated()
 {
 	return TotalMemoryAllocated;
+}
+
+uint64_t SMemGetLastFrameTempUsage()
+{
+	return LastFrameTempMemoryUsage;
 }
 
 void* operator new(size_t sz)

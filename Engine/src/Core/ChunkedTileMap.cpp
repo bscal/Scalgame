@@ -281,7 +281,10 @@ void SetVisible(ChunkedTileMap* tilemap, TileCoord coord)
 
 bool BlocksLight(ChunkedTileMap* tilemap, TileCoord coord)
 {
-	return IsTileInBounds(tilemap, coord) && GetTile(tilemap, coord)->GetTile()->Type == TileType::Solid;
+	if (!IsTileInBounds(tilemap, coord)) return true;
+	TileData* tileData = GetTile(tilemap, coord);
+	SASSERT(tileData);
+	return tileData->GetTile()->Type == TileType::Solid;
 }
 
 internal void
