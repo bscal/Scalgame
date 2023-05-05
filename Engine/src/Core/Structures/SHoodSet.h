@@ -5,8 +5,9 @@
 #include "Core/SHash.hpp"
 #include "Core/SUtil.h"
 
-global_var constexpr float SSET_LOAD_FACTOR = 1.9f;
-global_var constexpr uint32_t SSET_RESIZE = 2u;
+constexpr static uint32_t SSET_RESIZE = 2u;
+constexpr static float SSET_LOAD_FACTOR = 1.85f;
+constexpr static float SSET_LOAD_FACTOR_INVERSE = SSET_LOAD_FACTOR - 1.0f;
 
 template<typename K>
 struct SHoodSetBucket
@@ -59,7 +60,7 @@ void SHoodSet<K, HashFunc, EqualsFunc>::Reserve(uint32_t capacity)
 		size_t newSize = newCapacity * Stride();
 		Buckets = (SHoodSetBucket<K>*)(SRealloc(Allocator, Buckets, oldSize, newSize, MemoryTag::Tables));
 		Capacity = newCapacity;
-		MaxSize = (uint32_t)((float)newCapacity / SSET_LOAD_FACTOR);
+		MaxSize = (uint32_t)((float)newCapacity * SSET_LOAD_FACTOR_INVERSE);
 	}
 	else
 	{
@@ -67,7 +68,7 @@ void SHoodSet<K, HashFunc, EqualsFunc>::Reserve(uint32_t capacity)
 		tmpSet.Allocator = Allocator;
 		tmpSet.Size = 0;
 		tmpSet.Capacity = newCapacity;
-		tmpSet.MaxSize = (uint32_t)((float)newCapacity / SSET_LOAD_FACTOR);
+		tmpSet.MaxSize = (uint32_t)((float)newCapacity * SSET_LOAD_FACTOR_INVERSE);
 		tmpSet.Buckets = (SHoodSetBucket<K>*)(SAlloc(Allocator, tmpSet.Capacity * Stride(), MemoryTag::Tables));
 
 		for (uint32_t i = 0; i < Capacity; ++i)

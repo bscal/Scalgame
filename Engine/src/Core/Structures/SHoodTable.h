@@ -5,8 +5,9 @@
 #include "Core/SHash.hpp"
 #include "Core/SUtil.h"
 
-#define SHOOD_RESIZE 2u
-#define SHOOD_DEFAULT_LOAD_FACTOR 1.9f
+constexpr static uint32_t SHOOD_RESIZE = 2u;
+constexpr static float SHOOD_LOAD_FACTOR = 1.85f;
+constexpr static float SHOOD_LOAD_FACTOR_INVERSE = SHOOD_LOAD_FACTOR - 1.0f;
 
 template<typename K, typename V>
 struct SHoodBucket
@@ -41,7 +42,7 @@ struct SHoodTable
 	bool Contains(const K* key) const;
 	bool Remove(const K* key);
 
-	inline bool IsAllocated() const { return MemUsed() > 0; }
+	inline bool IsAllocated() const { return Buckets; }
 	inline size_t Stride() const { return sizeof(SHoodBucket<K, V>); }
 	inline size_t MemUsed() const { return Capacity * Stride(); }
 
@@ -76,7 +77,7 @@ template<
 	typename EqualsFunc>
 void SHoodTable<K, V, HashFunc, EqualsFunc>::Reserve(uint32_t capacity)
 {
-	uint32_t newCapacity = (uint32_t)((float)capacity * SHOOD_DEFAULT_LOAD_FACTOR);
+	uint32_t newCapacity = (uint32_t)((float)capacity * SHOOD_LOAD_FACTOR);
 	if (newCapacity == 0)
 		newCapacity = 2;
 	else if (!IsPowerOf2_32(newCapacity))
@@ -84,9 +85,9 @@ void SHoodTable<K, V, HashFunc, EqualsFunc>::Reserve(uint32_t capacity)
 
 	if (newCapacity <= Capacity) return;
 
+	MaxSize = (uint32_t)((float)newCapacity * SHOOD_LOAD_FACTOR_INVERSE);
 	uint32_t oldCapacity = Capacity;
 	Capacity = newCapacity;
-	MaxSize = (uint32_t)((float)Capacity / SHOOD_DEFAULT_LOAD_FACTOR);
 
 	if (Size == 0)
 	{
@@ -173,8 +174,6 @@ void SHoodTable<K, V, HashFunc, EqualsFunc>::Insert(const K* key, const V* value
 	uint32_t probeLength = 0;
 	while (true)
 	{
-		if (index == Capacity) index = 0; // Wrap
-
 		SHoodBucket<K, V>* bucket = &Buckets[index];
 		if (bucket->Occupied == 1) // Bucket is being used
 		{
@@ -192,7 +191,7 @@ void SHoodTable<K, V, HashFunc, EqualsFunc>::Insert(const K* key, const V* value
 				probeLength = swapBucket.ProbeLength;
 			}
 			// Continues searching
-			++index;
+			if (++index == Capacity) index = 0;
 			++probeLength;
 		}
 		else
@@ -235,8 +234,6 @@ SHoodBucket<K, V>* SHoodTable<K, V, HashFunc, EqualsFunc>::InsertAndGet(const K*
 	uint32_t probeLength = 0;
 	while (true)
 	{
-		if (index == Capacity) index = 0; // Wrap
-
 		SHoodBucket<K, V>* bucket = &Buckets[index];
 		if (bucket->Occupied == 1) // Bucket is being used
 		{
@@ -257,7 +254,7 @@ SHoodBucket<K, V>* SHoodTable<K, V, HashFunc, EqualsFunc>::InsertAndGet(const K*
 					result = bucket;
 			}
 			// Continues searching
-			++index;
+			if (++index == Capacity) index = 0;
 			++probeLength;
 		}
 		else
@@ -326,7 +323,7 @@ V* SHoodTable<K, V, HashFunc, EqualsFunc>::InsertKey(const K* key)
 					valuePointer = &bucket->Value;
 			}
 			// Continues searching
-			++index;
+			if (++index == Capacity) index = 0;
 			++probeLength;
 		}
 		else
@@ -357,18 +354,16 @@ V* SHoodTable<K, V, HashFunc, EqualsFunc>::Get(const K* key) const
 	SASSERT(key);
 
 	uint64_t hash = Hash(key);
-	uint64_t index = hash;
+	uint32_t index = hash;
 	while (true)
 	{
-		if (index == Capacity) index = 0;
-
 		SHoodBucket<K, V>* bucket = &Buckets[index];
 		if (bucket->Occupied == 0)
 			return nullptr;
 		else if (EqualsFunc{}(&bucket->Key, key))
 			return &bucket->Value;
 		else
-			++index;
+			if (++index == Capacity) index = 0;
 	}
 	return nullptr;
 }
@@ -385,18 +380,16 @@ bool SHoodTable<K, V, HashFunc, EqualsFunc>::Contains(const K* key) const
 	SASSERT(key);
 
 	uint64_t hash = Hash(key);
-	uint64_t index = hash;
+	uint32_t index = hash;
 	while (true)
 	{
-		if (index == Capacity) index = 0;
-
 		SHoodBucket<K, V>* bucket = &Buckets[index];
 		if (bucket->Occupied == 0)
 			return false;
 		else if (EqualsFunc{}(&bucket->Key, key))
 			return true;
 		else
-			++index;
+			if (++index == Capacity) index = 0;
 	}
 	return false;
 }
@@ -463,7 +456,7 @@ inline int TestSHoodTable()
 	table.Insert(&k0, &v1);
 
 	SASSERT(table.Size == 1);
-	SASSERT(table.MaxSize == uint32_t((float)table.Capacity / SHOOD_DEFAULT_LOAD_FACTOR));
+	SASSERT(table.MaxSize == uint32_t((float)table.Capacity * SHOOD_LOAD_FACTOR_INVERSE));
 	SASSERT(table.Capacity == 2);
 
 	int* get0 = table.Get(&k0);
@@ -482,7 +475,7 @@ inline int TestSHoodTable()
 	}
 
 	SASSERT(table.Size == 17);
-	SASSERT(table.MaxSize == uint32_t((float)table.Capacity / SHOOD_DEFAULT_LOAD_FACTOR));
+	SASSERT(table.MaxSize == uint32_t((float)table.Capacity * SHOOD_LOAD_FACTOR_INVERSE));
 	SASSERT(table.Capacity == 32);
 
 	int* get1 = table.Get(&k0);

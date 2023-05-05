@@ -18,7 +18,7 @@ struct SList
 	void Reserve(uint32_t capacity); // allocated memory based on capacity
 
 	void Push(const T* valueSrc); // Checks resize, inserts and end of array
-	T* PushNew(); // Checks resize, default constructs next element, and returns pointer. Useful if you dont want to copy large objects
+	T* PushNew(); // Checks resize, default constructs next element, and returns pointer
 	void PushAt(uint32_t index, const T* valueSrc);
 	void PushAtFast(uint32_t index, const T* valueSrc); // Checks resize, inserts at index, moving old index to end
 	bool PushUnique(const T* valueSrc);
@@ -34,8 +34,8 @@ struct SList
 	inline T* PeekAt(uint32_t index) const;
 	inline T* Last() const;
 
-	constexpr T& operator[](size_t idx) { SASSERT(idx < Count); return Memory[idx]; }
-	constexpr const T& operator[](size_t idx) const { SASSERT(idx < Count); return Memory[idx]; }
+	inline T& operator[](size_t idx) { SASSERT(idx < Count); return Memory[idx]; }
+	inline const T& operator[](size_t idx) const { SASSERT(idx < Count); return Memory[idx]; }
 
 	T* begin() { return Memory; }
 	T* end() { return Memory + Count; }
