@@ -2,7 +2,6 @@
 
 #include "Game.h"
 #include "ResourceManager.h"
-#include "Creature.h"
 #include "Sprite.h"
 #include "Lighting.h"
 

@@ -143,7 +143,7 @@ struct SRawStringHasher
 {
 	[[nodiscard]] constexpr uint64_t operator()(const SRawString* key) const noexcept
 	{
-		return CrcHash(key->Data);
+		return MurmurHash3_x64_128(0, key->Data, key->Length).v0;
 	}
 };
 
@@ -160,7 +160,7 @@ struct CStrHasher
 {
 	[[nodiscard]] constexpr uint64_t operator()(const char* key) const noexcept
 	{
-		return CrcHash(key);
+		return MurmurHash3_x64_128(0, key, strlen(key)).v0;
 	}
 };
 
