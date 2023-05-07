@@ -176,8 +176,7 @@ void* SMemReallocTag(uint8_t allocator, void* ptr, size_t oldSize, size_t newSiz
 		case((uint8_t)SAllocator::Temp):
 		{
 			memory = SMemTempAlloc(newSize);
-			if (oldSize > 0)
-				SMemCopy(memory, ptr, oldSize);
+			SMemCopy(memory, ptr, oldSize);
 		} break;
 
 		case((uint8_t)SAllocator::Malloc):

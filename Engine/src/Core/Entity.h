@@ -5,10 +5,13 @@
 #include "ComponentTypes.h"
 #include "Inventory.h"
 
+#include "Structures/SArray.h"
 #include "Structures/ComponentArray.h"
 #include "Structures/SHoodSet.h"
 #include "Structures/SLinkedList.h"
 #include "Structures/StaticArray.h"
+
+#include <typeinfo>
 
 #define ENT_MAX_ENTITIES UINT16_MAX
 #define ENT_MAX_COMPONENTS 64
@@ -65,19 +68,21 @@ struct ComponentQuery
 
 struct ComponentMgr
 {
-	SList<ComponentArray<void*>*> Components;
+	SList<ComponentArray> Components;
 	SHoodTable<ComponentQuery, SList<uint32_t>> CachedQueries;
 
 	template<typename ComponentType>
 	inline void Register()
 	{
-		ComponentArray<ComponentType>* componentArray;
-		componentArray = (ComponentArray<ComponentType>*)SMemAlloc(sizeof(ComponentArray<ComponentType>));
-		componentArray->Initialize(); // Default reserve 1 slot, this is so we never has 
-		Components.EnsureSize(ComponentType::Id + 1);
-		Components[ComponentType::Id] = (ComponentArray<void*>*)componentArray;
+		uint32_t componentId = ComponentType::Id;
+		Components.EnsureSize(componentId + 1);
+		Components[componentId] = {};
+		Components[componentId].Initialize<ComponentType>();
 
-		SLOG_INFO("Registered Component: %u", ComponentType::Id);
+		#if SCAL_DEBUG
+		const std::type_info& typeInfo = typeid(ComponentType);
+		SLOG_INFO("Registered Component: %u, Name: %s", componentId, typeInfo.name());
+		#endif
 	}
 
 
@@ -89,21 +94,21 @@ struct ComponentMgr
 		SList<uint32_t> result = {};
 		result.Allocator = SAllocator::Temp;
 
-		const ComponentArray<void*>* firstArr = Components[ids[0]];
+		const ComponentArray& firstArr = Components[ids[0]];
 
-		uint32_t count = firstArr->Indices.DenseCapacity;
+		uint32_t count = firstArr.Indices.DenseCapacity;
 		result.Reserve(count);
 
 		for (uint32_t i = 0; i < count; ++i)
 		{
-			uint32_t entity = firstArr->Indices.Dense[i];
+			uint32_t entity = firstArr.Indices.Dense[i];
 			uint32_t entityId = GetId(entity);
 			bool containsEntity = true;
 			for (size_t nextComponentId = 1; nextComponentId < idsCount; ++nextComponentId)
 			{
-				const ComponentArray<void*>* arr = Components[ids[nextComponentId]];
-				containsEntity = entityId < arr->Indices.SparseCapacity
-					&& arr->Indices.Sparse[entityId] != SPARSE_EMPTY_ID;
+				const ComponentArray& arr = Components[ids[nextComponentId]];
+				containsEntity = entityId < arr.Indices.SparseCapacity
+					&& arr.Indices.Sparse[entityId] != SPARSE_EMPTY_ID;
 				if (!containsEntity) 
 					break;
 			}
@@ -116,9 +121,9 @@ struct ComponentMgr
 	}
 
 	template<typename ComponentType>
-	inline ComponentArray<ComponentType>* GetArray() const
+	inline ComponentArray* GetArray()
 	{
-		return (ComponentArray<ComponentType>*)Components[ComponentType::Id];
+		return &Components[ComponentType::Id];
 	}
 
 	template<typename ComponentType>
@@ -127,11 +132,9 @@ struct ComponentMgr
 		uint32_t componentId = ComponentType::Id;
 		SASSERT(componentId < Components.Count);
 
-		using ArrayType = ComponentArray<ComponentType>;
-		ArrayType* componentArray = (ArrayType*)Components[componentId];
-		SASSERT(componentArray);
-
-		ComponentType* component = componentArray->Get(entity);
+		ComponentArray& componentArray = Components[componentId];
+		ComponentType* component = componentArray.Get<ComponentType>(entity);
+		SASSERT(component);
 		return component;
 	}
 
@@ -141,12 +144,15 @@ struct ComponentMgr
 		uint32_t componentId = ComponentType::Id;
 		SASSERT(componentId < Components.Count);
 
-		using ArrayType = ComponentArray<ComponentType>;
-		ArrayType* componentArray = (ArrayType*)Components[componentId];
-		SASSERT(componentArray);
+		ComponentArray& componentArray = Components[componentId];
 
-		ComponentType* result = componentArray->Add(entity, component);
-		SLOG_INFO("Added Component(%u) to Entity(%u,%u)", ComponentType::Id, GetId(entity), GetGen(entity));
+		ComponentType* result = componentArray.Add(entity, component);
+
+		#if SCAL_DEBUG
+		const std::type_info& typeInfo = typeid(ComponentType);
+		SLOG_INFO("Added Component(%u, %s) to Entity(%u,%u)", ComponentType::Id, typeInfo.name(), GetId(entity), GetGen(entity));
+		#endif
+
 		return result;
 	}
 
@@ -156,12 +162,15 @@ struct ComponentMgr
 		uint32_t componentId = ComponentType::Id;
 		SASSERT(componentId < Components.Count);
 
-		using ArrayType = ComponentArray<ComponentType>;
-		ArrayType* componentArray = (ArrayType*)Components[componentId];
+		ComponentArray& componentArray = Components[componentId];
 		SASSERT(componentArray);
 
-		componentArray->Remove(entity);
-		SLOG_INFO("Removed Component(%u) to Entity(%u,%u)", ComponentType::Id, GetId(entity), GetGen(entity));
+		componentArray.Remove(entity);
+
+		#if SCAL_DEBUG
+		const std::type_info& typeInfo = typeid(ComponentType);
+		SLOG_INFO("Removed Component(%u, %s) to Entity(%u,%u)", ComponentType::Id, typeInfo.name(), GetId(entity), GetGen(entity));
+		#endif
 	}
 
 	template<typename ComponentType>
@@ -169,11 +178,10 @@ struct ComponentMgr
 	{
 		uint32_t componentId = ComponentType::Id;
 
-		using ArrayType = ComponentArray<ComponentType>;
-		ArrayType* componentArray = (ArrayType*)Components[componentId];
+		const ComponentArray& componentArray = Components[componentId];
 		SASSERT(componentArray);
 
-		return componentArray->Contains(entity);
+		return componentArray.Contains(entity);
 	}
 
 };

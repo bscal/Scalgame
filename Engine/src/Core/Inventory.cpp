@@ -155,7 +155,7 @@ bool ItemStack::Deincrement()
 	return true;
 }
 
-bool Equipment::EquipItem(uint32_t entity, CreatureEntity* creature, ItemStack* stack, uint8_t slot)
+bool Equipment::EquipItem(CreatureEntity* creature, ItemStack* stack, uint8_t slot)
 {
 	SASSERT(creature);
 	SASSERT(stack);
@@ -165,12 +165,12 @@ bool Equipment::EquipItem(uint32_t entity, CreatureEntity* creature, ItemStack* 
 
 	Item* item = stack->GetItem();
 	if (item->OnEquipCallback)
-		item->OnEquipCallback(entity, creature, slot, stack);
+		item->OnEquipCallback(creature, slot, stack);
 
 	return true;
 }
 
-bool Equipment::UnequipItem(uint32_t entity, CreatureEntity* creature, uint8_t slot)
+bool Equipment::UnequipItem(CreatureEntity* creature, uint8_t slot)
 {
 	SASSERT(creature);
 	SASSERT(slot < (uint8_t)EquipmentSlots::MAX_SLOTS);
@@ -183,12 +183,13 @@ bool Equipment::UnequipItem(uint32_t entity, CreatureEntity* creature, uint8_t s
 	return hadStack;
 }
 
-void OnEquipTorch(uint32_t entityId, CreatureEntity* creature, uint16_t slot, ItemStack* itemStack)
+void OnEquipTorch(CreatureEntity* creature, uint16_t slot, ItemStack* itemStack)
 {
 	SLOG_INFO("EQUIPED");
 
 	uint32_t torch = GetGame()->EntityMgr.CreateEntity();
-	GetGame()->ComponentMgr.AddComponent(torch, TransformComponent{});
+	TransformComponent* transform = GetGame()->ComponentMgr.GetComponent<TransformComponent>(creature->OwningEntity);
+	GetGame()->ComponentMgr.AddComponent<TransformComponent>(torch, *transform);
 
 	SpriteRenderer* torchRenderable = GetGame()->ComponentMgr.AddComponent(torch, SpriteRenderer{});
 	torchRenderable->Sprite.x = 0;
@@ -199,7 +200,7 @@ void OnEquipTorch(uint32_t entityId, CreatureEntity* creature, uint16_t slot, It
 	torchRenderable->DstHeight = 4;
 
 	Attachable* torchAttachable = GetGame()->ComponentMgr.AddComponent(torch, Attachable{});
-	torchAttachable->EntityId = GetGame()->EntityMgr.Player.EntityId;
+	torchAttachable->EntityId = creature->OwningEntity;
 	torchAttachable->EntityOrigin = { 8.0f, 8.0f };
 	torchAttachable->Local.Origin.x = 2.0f;
 	torchAttachable->Local.Origin.y = 2.0f;
@@ -218,18 +219,34 @@ void OnEquipTorch(uint32_t entityId, CreatureEntity* creature, uint16_t slot, It
 void InventoryMgr::Initialize()
 {
 	Items::AIR = RegisterItem({ 0 });
-	Items::TORCH = RegisterItem({ OnEquipTorch, { 0, 32, 4, 4 }, 1, 1, 1 });
+	Items::TORCH = RegisterItemFunc({ 0, 32, 4, 4 }, [](Item* item)
+		{
+			item->Width = 1;
+			item->Height = 1;
+			item->MaxStackSize = 1;
+			item->OnEquipCallback = OnEquipTorch;
+		});
 }
 
-uint32_t InventoryMgr::RegisterItem(const Item& item)
+uint16_t InventoryMgr::RegisterItem(Sprite sprite)
 {
 	SASSERT(NextItemId < INV_MAX_ITEMS);
 
 	if (NextItemId >= INV_MAX_ITEMS)
 		return UINT32_MAX;
 
-	uint32_t id = NextItemId++;
-	Items.Data[id] = item;
+	uint16_t id = NextItemId++;
+	Items[id] = {};
+	Items[id].Sprite = sprite;
+	return id;
+}
+
+uint16_t InventoryMgr::RegisterItemFunc(Sprite sprite, void(*RegisterCallback)(Item* item))
+{
+	uint16_t id = RegisterItem(sprite);
+
+	RegisterCallback(&Items[id]);
+
 	return id;
 }
 

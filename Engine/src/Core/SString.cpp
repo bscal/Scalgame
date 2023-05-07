@@ -70,7 +70,7 @@ void SString::SetCapacity(uint32_t capacity)
 	{
 		if (IsAllocated())
 		{
-			SRealloc(SAllocator::Game, m_Buffer.StrMemory, Capacity, capacity, MemoryTag::Strings);
+			m_Buffer.StrMemory = (char*)SRealloc(SAllocator::Game, m_Buffer.StrMemory, Capacity, capacity, MemoryTag::Strings);
 		}
 		else
 		{

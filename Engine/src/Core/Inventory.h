@@ -27,8 +27,9 @@ union UID
 
 struct Item
 {
-	typedef void(*OnEquip)(uint32_t entity, CreatureEntity* creature, uint16_t slot, ItemStack* itemStack);
-	typedef void(*OnUnequip)(uint32_t entity, CreatureEntity* creature, uint16_t slot, ItemStack* itemStack);
+	typedef ItemStack(*CreateDefaultStack)();
+	typedef void(*OnEquip)(CreatureEntity* creature, uint16_t slot, ItemStack* itemStack);
+	typedef void(*OnUnequip)(CreatureEntity* creature, uint16_t slot, ItemStack* itemStack);
 	typedef void(*OnUpdate)(CreatureEntity* creature, ItemStack* itemStack);
 	typedef void(*OnUse)(CreatureEntity* creature, ItemStack* itemStack, int key);
 
@@ -108,14 +109,14 @@ struct Equipment
 	uint32_t EquipmentId;
 	StaticArray<ItemStack, (uint8_t)EquipmentSlots::MAX_SLOTS> Slots;
 
-	bool EquipItem(uint32_t entity, CreatureEntity* creature, ItemStack* stack, uint8_t slot);
-	bool UnequipItem(uint32_t entity, CreatureEntity* creature, uint8_t slot);
+	bool EquipItem(CreatureEntity* creature, ItemStack* stack, uint8_t slot);
+	bool UnequipItem(CreatureEntity* creature, uint8_t slot);
 };
 
 namespace Items
 {
-inline uint32_t AIR;
-inline uint32_t TORCH;
+inline uint16_t AIR;
+inline uint16_t TORCH;
 };
 
 struct InventoryMgr
@@ -125,13 +126,14 @@ struct InventoryMgr
 	SHoodTable<uint32_t, Inventory> Inventories;
 	SHoodTable<uint32_t, Equipment> Equipments;
 	
-	uint32_t NextItemId;
 	uint32_t NextInventoryId;
 	uint32_t NextEquipmentId;
+	uint16_t NextItemId;
 
 	void Initialize();
 
-	uint32_t RegisterItem(const Item& item);
+	uint16_t RegisterItem(Sprite sprite);
+	uint16_t RegisterItemFunc(Sprite sprite, void(*RegisterCallback)(Item* item));
 
 	Inventory* CreateInventory(uint32_t entity, uint16_t width, uint16_t height);
 	void RemoveInventory(Inventory* inventory);

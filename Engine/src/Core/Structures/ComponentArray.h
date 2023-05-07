@@ -2,14 +2,13 @@
 
 #include "Core/Core.h"
 #include "Core/Globals.h"
-#include "Core/Structures/SList.h"
+#include "Core/Structures/SArray.h"
 #include "Core/Structures/SparseSet.h"
 
-template<typename T>
 struct ComponentArray
 {
 
-	SList<T> Values;
+	SArray Values;
 	SparseSet Indices;
 
 	inline uint32_t Size() const
@@ -17,50 +16,73 @@ struct ComponentArray
 		return Values.Count;
 	}
 
+	template<typename T>
 	inline void Initialize()
 	{
-		Values = {};
-		Values.Reserve(1);
+		Values = ArrayCreate((uint8_t)SAllocator::Game, 1, sizeof(T));
 		Indices = {};
 		Indices.Reserve(0, 1);
 	}
 
+	template<typename T>
 	inline T* Add(uint32_t entityId, const T& value)
 	{
+		SASSERT(Values.Memory);
 		uint32_t id = GetId(entityId);
 		Indices.Add(id);
-		Values.Push(&value);
-		return Values.Last();
+		ArrayPush(&Values, &value);
+		return (T*)ArrayPeekAt(&Values, Values.Count - 1);
 	}
+
 
 	inline bool Remove(uint32_t entityId)
 	{
-		SASSERT(Values.IsAllocated());
+		SASSERT(Values.Memory);
 		SASSERT(Indices.IsAllocated());
 		uint32_t id = GetId(entityId);
 		uint32_t index = Indices.Remove(id);
 		if (index != SPARSE_EMPTY_ID)
 		{
-			Values.RemoveAtFast(index);
+			ArrayRemoveAt(&Values, index);
 			return true;
 		}
 		return false;
 	}
 
+	template<typename T>
 	inline T* Get(uint32_t entityId)
 	{
-		SASSERT(Values.IsAllocated());
+		SASSERT(Values.Memory);
 		SASSERT(Indices.IsAllocated());
 		uint32_t id = GetId(entityId);
 		uint32_t index = Indices.Get(id);
 		if (index == SPARSE_EMPTY_ID) 
 			return nullptr;
-		return &Values[index];
+		return (T*)ArrayPeekAt(&Values, index);
+	}
+
+
+	template<typename T>
+	inline T* GetNotNull(uint32_t entityId)
+	{
+		SASSERT(Values.Memory);
+		SASSERT(Indices.IsAllocated());
+		uint32_t id = GetId(entityId);
+		uint32_t index = Indices.Get(id);
+		return (T*)ArrayPeekAt(&Values, index);
+	}
+
+	template<typename T>
+	inline T* Index(uint32_t idx)
+	{
+		SASSERT(Values.Memory);
+		SASSERT(Indices.IsAllocated());
+		return (T*)ArrayPeekAt(&Values, idx);
 	}
 
 	inline bool Contains(uint32_t entityId)
 	{
-		SASSERT(Values.IsAllocated());
+		SASSERT(Values.Memory);
 		SASSERT(Indices.IsAllocated());
 		uint32_t id = GetId(entityId);
 		uint32_t index = Indices.Get(id);

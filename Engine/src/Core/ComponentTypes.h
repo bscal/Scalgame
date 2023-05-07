@@ -8,7 +8,7 @@
 
 typedef uint32_t Entity;
 
-global_var inline uint32_t NextId = 0;
+inline uint32_t NextId = 0;
 
 template<typename T>
 struct Component

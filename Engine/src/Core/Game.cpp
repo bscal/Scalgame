@@ -271,7 +271,7 @@ SAPI void GameApplication::Run()
 				creature->EquipmentId = equipment->EquipmentId;
 
 				ItemStack stack = ItemStackNew(Items::TORCH, 1);
-				equipment->EquipItem(GetClientPlayer()->EntityId, creature, &stack, 0);
+				equipment->EquipItem(creature, &stack, 0);
 			}
 		}
 
