@@ -400,14 +400,14 @@ SDrawTextureF(const Texture2D& texture, const Rectangle& source,
 }
 
 void
-SDrawSprite(const Texture2D* texture, const TransformComponent* transform, SpriteRenderer renderable, bool flipX)
+SDrawSprite(const Texture2D* texture, const TransformComponent* transform, const SpriteRenderer* renderable, bool flipX)
 {
 	SASSERT(texture->id);
 
 	float width = (float)texture->width;
 	float height = (float)texture->height;
-	Rectangle source = { (float)renderable.Sprite.x, (float)renderable.Sprite.y, (float)renderable.Sprite.w, (float)renderable.Sprite.h };
-	Rectangle dest = { transform->Position.x, transform->Position.y, (float)renderable.DstWidth, (float)renderable.DstHeight };
+	Rectangle source = { (float)renderable->Sprite.x, (float)renderable->Sprite.y, (float)renderable->Sprite.w, (float)renderable->Sprite.h };
+	Rectangle dest = { transform->Position.x, transform->Position.y, (float)renderable->DstWidth, (float)renderable->DstHeight };
 
 	if (source.height < 0) source.y -= source.height;
 
@@ -419,8 +419,8 @@ SDrawSprite(const Texture2D* texture, const TransformComponent* transform, Sprit
 	// Only calculate rotation if needed
 	if (transform->Rotation == 0.0f)
 	{
-		float x = dest.x - transform->Origin.x;
-		float y = dest.y - transform->Origin.y;
+		float x = dest.x - renderable->Origin.x;
+		float y = dest.y - renderable->Origin.y;
 		topLeft = Vector2{ x, y };
 		topRight = Vector2{ x + dest.width, y };
 		bottomLeft = Vector2{ x, y + dest.height };
@@ -432,8 +432,8 @@ SDrawSprite(const Texture2D* texture, const TransformComponent* transform, Sprit
 		float cosRotation = cosf(transform->Rotation * DEG2RAD);
 		float x = dest.x;
 		float y = dest.y;
-		float dx = -transform->Origin.x;
-		float dy = -transform->Origin.y;
+		float dx = -renderable->Origin.x;
+		float dy = -renderable->Origin.y;
 
 		topLeft.x = x + dx * cosRotation - dy * sinRotation;
 		topLeft.y = y + dx * sinRotation + dy * cosRotation;

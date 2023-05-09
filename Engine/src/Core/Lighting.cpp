@@ -4,6 +4,7 @@
 #include "Structures/SHoodSet.h"
 #include "Structures/SLinkedList.h"
 #include "raylib/src/raymath.h"
+#include "WickedEngine/Jobs.h"
 
 #include <cmath>
 #include <chrono>
@@ -220,65 +221,57 @@ void LightsUpdate(LightingState* lightingState, Game* game)
 {
 	PROFILE_BEGIN();
 	
+	GetGameApp()->NumOfLightsUpdated = 0;
+	double start = GetTime();
 
 	//wi::jobsystem::context ctx = {};
-	//std::function<void(wi::jobsystem::JobArgs)> task = [](wi::jobsystem::JobArgs job)
+	//std::function<void(wi::jobsystem::JobArgs)> task = [&lightingState](wi::jobsystem::JobArgs job)
 	//{
 	//	PROFILE_BEGIN_EX("LightsUpdate::Job_UpdateLights");
 	//	uint32_t lightIndex = job.jobIndex;
-	//	SASSERT(lightIndex < State.UpdatingLights.Count);
-	//	UpdatingLight* light = &State.UpdatingLights[lightIndex];
+	//	SASSERT(lightIndex < lightingState->UpdatingLights.Count);
+	//	UpdatingLight* light = &lightingState->UpdatingLights[lightIndex];
 	//	TileCoord coord = WorldTileToCullTile(Vector2i::FromVec2(light->Pos));
 	//	int index = coord.x + coord.y * CULL_WIDTH_TILES;
 	//	UpdateLightColor(light, index, 0.0f);
 	//	ThreadedLightUpdate(light);
 	//	PROFILE_END();
 	//};
-	//wi::jobsystem::Dispatch(ctx, State.UpdatingLights.Count, 16, task, 0);
+	//wi::jobsystem::Dispatch(ctx, lightingState->UpdatingLights.Count, 16, task, 0);
 
 	ChunkedTileMap* tilemap = &game->Universe.World.ChunkedTileMap;
-	Vector2i playerPos = GetClientPlayer()->Transform.TilePos();
-	TileDirection playerDir = GetClientPlayer()->Transform.LookDir;
+	Vector2i playerPos = GetClientPlayer()->GetTransform()->TilePos();
+	TileDirection playerDir = GetClientPlayer()->GetTransform()->LookDir;
 	Vector2i lookDir = Vec2i_NEIGHTBORS[(uint8_t)playerDir];
 	lightingState->PlayerLookVector = Vector2Normalize(lookDir.AsVec2());
 
 
 	//std::chrono::milliseconds interval(1000);
 	//std::chrono::milliseconds num_elements_per_frame(500);
-
 	//auto start_time = std::chrono::high_resolution_clock::now();
 	//int num_frames = 0;
-
 	//while (true)
 	//{
 	//	auto current_time = std::chrono::high_resolution_clock::now();
 	//	auto elapsed_time = std::chrono::duration_cast<std::chrono::milliseconds>(current_time - start_time);
-
 	//	if (elapsed_time >= interval)
 	//	{
 	//		start_time = current_time;
 	//		int start_index = num_frames * num_elements_per_frame.count() / interval.count();
 	//		int end_index = (num_frames + 1) * num_elements_per_frame.count() / interval.count();
-
 	//		for (int i = start_index; i < end_index && i < State.UpdatingLights.Count; i++)
 	//		{
 	//			UpdatingLight* light = &State.UpdatingLights[i];
 	//			light->Update(game);
-
 	//		}
-
 	//		num_frames++;
 	//	}
-
 	//	if (num_frames * num_elements_per_frame.count() / interval.count() >= State.UpdatingLights.Count)
 	//	{
 	//		break;
 	//	}
 	//}
 
-	GetGameApp()->NumOfLightsUpdated = 0;
-	
-	double start = GetTime();
 	for (uint32_t i = 0; i < lightingState->UpdatingLights.Count; ++i)
 	{
 		UpdatingLight* light = &lightingState->UpdatingLights[i];
@@ -293,7 +286,6 @@ void LightsUpdate(LightingState* lightingState, Game* game)
 		}
 		++GetGameApp()->NumOfLightsUpdated;
 	}
-	GetGameApp()->DebugLightTime = GetTime() - start;
 
 	for (uint32_t i = 0; i < lightingState->StaticLights.Count; ++i)
 	{
@@ -327,24 +319,6 @@ void LightsUpdate(LightingState* lightingState, Game* game)
 #endif
 	}
 
-	//for (int i = 0; i < State.Lights.Count; ++i)
-	//{
-	//	const Light& light = State.Lights[i];
-
-	//	// FIXME: dont render lights off screen, should add buffer
-	//	Vector2i lightTilePos = Vector2i::FromVec2(light.Pos);
-	//	if (!TileInsideCullRect(lightTilePos)) continue;
-
-	//	SMemSet(State.CheckedTiles.data(), 0, State.Size);
-
-	//	LightsUpdateTileColorTile({ lightTilePos.x, lightTilePos.y }, 0.0f, light);
-	//	for (uint8_t octant = 0; octant < 8; ++octant)
-	//	{
-	//		ComputeLightShadowCast(tilemap, light, octant, lightTilePos,
-	//			(int)light.Radius, 1, { 1, 1 }, { 0, 1 });
-	//	}
-	//}
-
 	//for (int i = 0; i < State.UpdatingLights.Count; ++i)
 	//{
 	//	Vector2i lightTilePos = Vector2i::FromVec2(State.UpdatingLights[i].Pos);
@@ -367,6 +341,7 @@ void LightsUpdate(LightingState* lightingState, Game* game)
 	//wi::jobsystem::Wait(ctx);
 	//PROFILE_END();
 
+	GetGameApp()->DebugLightTime = GetTime() - start;
 	PROFILE_END();
 }
 
@@ -386,7 +361,7 @@ internal void SetVisible(ChunkedTileMap* tilemap, int x, int y, Vector2i origin,
 	newPos.y += x * TranslationTable[octant][2] + y * TranslationTable[octant][3];
 #if ENABLE_CONE_FOV
 	constexpr float coneFov = (80.0f * DEG2RAD);
-	Vector2i length = newPos.Subtract(GetClientPlayer()->Transform.TilePos());
+	Vector2i length = newPos.Subtract(GetClientPlayer()->GetTransform()->TilePos());
 	
 	float dot = Vector2LineAngle(GetGame()->LightingState.PlayerLookVector, Vector2Normalize(length.AsVec2()));
 	if (dot < coneFov)
@@ -580,6 +555,7 @@ ComputeLightShadowCast(ChunkedTileMap* tilemap, const Light* light,
 {
 	Vector2i origin = Vector2i::FromVec2(light->Pos);
 	int rangeLimit = (int)light->Radius;
+	float rangeSqr = light->Radius * light->Radius;
 	for (; x <= rangeLimit; ++x) // rangeLimit < 0 || x <= rangeLimit
 	{
 		// compute the Y coordinates where the top vector leaves the column (on the right) and where the bottom vector
@@ -598,7 +574,7 @@ ComputeLightShadowCast(ChunkedTileMap* tilemap, const Light* light,
 			float distance;
 			bool inRange = TileInsideCullRect(txty)
 				&& CTileMap::IsTileInBounds(tilemap, txty)
-				&& ((distance = Vector2i{ x, y }.Distance(TILEMAP_ORIGIN)) <= rangeLimit);
+				&& ((distance = Vector2Distance(Vector2i{ x, y }.AsVec2(), TILEMAP_ORIGIN.AsVec2())) <= rangeLimit);
 			if (inRange)
 			{
 				TileCoord coord = WorldTileToCullTile(txty);

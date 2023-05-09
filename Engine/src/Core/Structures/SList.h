@@ -49,6 +49,8 @@ struct SList
 	inline uint32_t LastIndex() const; // last used index, or 0
 	inline size_t MemUsed() const; // Total memory used in bytes
 	inline bool IsAllocated() const;
+
+	void DebugPrint();
 };
 
 // ********************

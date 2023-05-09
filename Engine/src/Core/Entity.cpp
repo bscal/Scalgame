@@ -9,7 +9,6 @@
 
 void InitializeEntities(EntityMgr* entityMgr, ComponentMgr* componentMgr)
 {
-	componentMgr->Register<TransformComponent>();
 	componentMgr->Register<SpriteRenderer>();
 	componentMgr->Register<Attachable>();
 	componentMgr->Register<UpdatingLightSource>();
@@ -21,9 +20,7 @@ void CreatePlayer(EntityMgr* entityMgr, ComponentMgr* componentMgr)
 	uint32_t entity = entityMgr->CreateEntity();
 	entityMgr->Player.EntityId = entity;
 
-	//entityMgr->Player.Transform.Origin = { 8.0f, 8.0f };
-	//entityMgr->Player.Transform.Position = { -8.0f, -8.0f };
-	componentMgr->AddComponent(entity, entityMgr->Player.Transform);
+	componentMgr->AddComponent<TransformComponent>(entity, {});
 
 	SpriteRenderer* renderable = componentMgr->AddComponent(entity, SpriteRenderer{});
 	renderable->Sprite = Sprites::PLAYER_SPRITE;
@@ -44,15 +41,29 @@ uint32_t EntityMgr::CreateEntity()
 	Entities[id].Gen = GetGen(result);
 	Entities[id].IsAlive = true;
 
-	SLOG_INFO("Created Entity(%u), Id: %u Gen: %u", result, id, GetGen(result));
+	SLOG_INFO("Created %s", FMT_ENTITY(result));
 
 	return result;
 }
 
-void EntityMgr::RemoveEntity(uint32_t entityId)
+void EntityMgr::RemoveEntity(Entity entityId)
 {
 	uint32_t id = GetId(entityId);
-	Entities[id].Gen = IncGen(entityId);
+	
+	if (!Entities[id].IsAlive)
+		return;
+
+	SLOG_INFO("Removed %s", FMT_ENTITY(entityId));
+
+	SList<ComponentArray>& components = GetGame()->ComponentMgr.Components;
+	for (uint32_t i = 0; i < components.Count; ++i)
+	{
+		ComponentArray& componentArray = components[i];
+		componentArray.Remove(entityId);
+	}
+
+	entityId = IncGen(entityId);
+	Entities[id].Gen = GetGen(entityId);
 	Entities[id].IsAlive = false;
 	FreeIds.Push(&entityId);
 }
@@ -90,20 +101,24 @@ void PlayerEntity::Update()
 
 	if (HasMoved)
 	{
+		TransformComponent* transform = GetTransform();
 		Vector2 moveDir = TileDirectionVectors[(uint8_t)inputMoveDir];
 		Vector2 moveAmount = Vector2Scale(moveDir, TILE_SIZE_F);
-		Vector2 movePoint = Vector2Add(Transform.Position, moveAmount);
+		Vector2 movePoint = Vector2Add(transform->Position, moveAmount);
 
 		Vector2i tile = Vector2i::FromVec2(Vector2Scale(movePoint, INVERSE_TILE_SIZE));
 		if (CanMoveToTile(&GetGame()->Universe.World, tile))
 		{
 			TilePos = tile;
-			Transform.Position = movePoint;
+			transform->Position = movePoint;
 			GetGame()->CameraLerpTime = 0.0f;
 		}
-		Transform.LookDir = inputMoveDir;
-
-		TransformComponent* playerTransform = GetGame()->ComponentMgr.GetComponent<TransformComponent>(EntityId);
-		*playerTransform = Transform;
+		transform->LookDir = inputMoveDir;
 	}
+}
+
+TransformComponent* PlayerEntity::GetTransform()
+{
+	uint32_t entityId = GetId(EntityId);
+	return GetGame()->ComponentMgr.GetComponent<TransformComponent>(entityId);
 }

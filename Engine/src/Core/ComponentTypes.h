@@ -19,12 +19,11 @@ struct Component
 template<typename T>
 const uint32_t Component<T>::Id = NextId++;
 
-struct TransformComponent : Component<TransformComponent>
+struct TransformComponent
 {
 	Vector2 Position;
-	Vector2 Origin;
-	Vector2 Scale = { 1.0f, 1.0f };
 	float Rotation;
+	float Scale = 1.0f;
 	TileDirection LookDir;
 
 	inline Vector2i TilePos() const
@@ -39,6 +38,7 @@ struct TransformComponent : Component<TransformComponent>
 struct SpriteRenderer : Component<SpriteRenderer>
 {
 	Sprite Sprite;
+	Vector2 Origin;
 	uint16_t DstWidth;
 	uint16_t DstHeight;
 };
@@ -46,8 +46,9 @@ struct SpriteRenderer : Component<SpriteRenderer>
 struct Attachable : Component<Attachable>
 {
 	TransformComponent Local;
-	Vector2 EntityOrigin;
-	uint32_t EntityId;
+	Vector2 Target;
+	uint32_t ParentEntity;
+	uint16_t Width;
 };
 
 struct UpdatingLightSource : Component<UpdatingLightSource>
@@ -60,8 +61,17 @@ struct UpdatingLightSource : Component<UpdatingLightSource>
 	float UpdateCounter;
 };
 
+struct Skeleton
+{
+	Vector2 Head;
+	Vector2 Body;
+	Vector2 HandLeft;
+	Vector2 HandRight;
+};
+
 struct CreatureEntity : Component<CreatureEntity>
 {
+	Skeleton Skeleton;
 	AttributesContainer Attributes;
 	uint32_t OwningEntity;
 	uint32_t InventoryId;

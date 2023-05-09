@@ -273,6 +273,16 @@ SAPI void GameApplication::Run()
 				ItemStack stack = ItemStackNew(Items::TORCH, 1);
 				equipment->EquipItem(creature, &stack, 0);
 			}
+
+			if (IsKeyPressed(KEY_ZERO))
+			{
+				uint32_t tmpEntity = 1;
+				tmpEntity = SetGen(tmpEntity, GetGame()->EntityMgr.Entities[tmpEntity].Gen);
+				GetGame()->EntityMgr.RemoveEntity(tmpEntity);
+
+				Attachable* a = Game->ComponentMgr.GetComponent<Attachable>(1);
+				SASSERT(!a);
+			}
 		}
 
 		// **************************
@@ -386,7 +396,7 @@ internal void GameUpdateCamera(Game* game, GameApplication* gameApp)
 		game->CameraLerpTime += GetDeltaTime();
 		if (game->CameraLerpTime > 1.0f) game->CameraLerpTime = 1.0f;
 
-		game->WorldCamera.target = Vector2AddValue(GetClientPlayer()->Transform.Position, HALF_TILE_SIZE);
+		game->WorldCamera.target = Vector2AddValue(GetClientPlayer()->GetTransform()->Position, HALF_TILE_SIZE);
 		game->ViewCamera.target = Vector2Multiply(game->WorldCamera.target, { GetScale(), GetScale() });
 	}
 
@@ -506,7 +516,7 @@ void SetCameraDistance(GameApplication* gameApp, float zoom)
 
 	// NOTE: this is so we dont get weird camera
 	// jerking when we scroll
-	Vector2 playerPos = VecToTileCenter(GetClientPlayer()->Transform.Position);
+	Vector2 playerPos = VecToTileCenter(GetClientPlayer()->GetTransform()->Position);
 	gameApp->Game->WorldCamera.target = playerPos;
 	Vector2 viewTarget = Vector2Multiply(playerPos, { GetScale(), GetScale() });
 	gameApp->Game->ViewCamera.target = viewTarget;

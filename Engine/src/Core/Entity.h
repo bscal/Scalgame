@@ -20,13 +20,14 @@ typedef uint32_t Entity;
 
 struct PlayerEntity
 {
-	TransformComponent Transform;
 	Vector2i TilePos;
 	uint32_t EntityId;
 	bool HasMoved;
 
 	void Update();
 	void Move(Vector2 to);
+
+	TransformComponent* GetTransform();
 };
 
 struct EntityMgr
@@ -49,26 +50,29 @@ struct EntityMgr
 
 struct ComponentQuery
 {
-	uint32_t ComponentIds[8];
+	uint32_t ComponentIds[4];
 
 	inline bool operator==(const ComponentQuery& other) const
 	{
-		for (uint8_t i = 0; i < 8; ++i)
-			if (ComponentIds[i] != other.ComponentIds[i]) return false;
-		return true;
+		return (ComponentIds[0] == other.ComponentIds[0]
+			&& ComponentIds[1] == other.ComponentIds[1]
+			&& ComponentIds[2] == other.ComponentIds[2]
+			&& ComponentIds[3] == other.ComponentIds[3]);
 	}
 
 	inline bool operator!=(const ComponentQuery& other) const
 	{
-		for (uint8_t i = 0; i < 8; ++i)
-			if (ComponentIds[i] != other.ComponentIds[i]) return true;
-		return false;
+		return (ComponentIds[0] != other.ComponentIds[0]
+			&& ComponentIds[1] != other.ComponentIds[1]
+			&& ComponentIds[2] != other.ComponentIds[2]
+			&& ComponentIds[3] != other.ComponentIds[3]);
 	}
 };
 
 struct ComponentMgr
 {
 	SList<ComponentArray> Components;
+	SList<TransformComponent> Transforms;
 	SHoodTable<ComponentQuery, SList<uint32_t>> CachedQueries;
 
 	template<typename ComponentType>
@@ -84,7 +88,6 @@ struct ComponentMgr
 		SLOG_INFO("Registered Component: %u, Name: %s", componentId, typeInfo.name());
 		#endif
 	}
-
 
 	inline SList<uint32_t> FindEntities(uint32_t* ids, size_t idsCount) const
 	{
@@ -131,11 +134,7 @@ struct ComponentMgr
 	{
 		uint32_t componentId = ComponentType::Id;
 		SASSERT(componentId < Components.Count);
-
-		ComponentArray& componentArray = Components[componentId];
-		ComponentType* component = componentArray.Get<ComponentType>(entity);
-		SASSERT(component);
-		return component;
+		return Components[componentId].Get<ComponentType>(entity);
 	}
 
 	template<typename ComponentType>
@@ -184,6 +183,24 @@ struct ComponentMgr
 		return componentArray.Contains(entity);
 	}
 
+	template<>
+	inline TransformComponent* GetComponent(Entity entity)
+	{
+		uint32_t entityId = GetId(entity);
+		SASSERT(entityId < Components.Count);
+		return &Transforms[entityId];
+	}
+
+	template<>
+	inline TransformComponent* AddComponent(Entity entity, const TransformComponent& component)
+	{
+
+		uint32_t entityId = GetId(entity);
+		Transforms.EnsureSize(entityId + 1);
+		SASSERT(entityId < Components.Count);
+		Transforms[entityId] = component;
+		return &Transforms[entityId];
+	}
 };
 
 void CreatePlayer(EntityMgr* entityMgr, ComponentMgr* componentMgr);

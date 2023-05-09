@@ -200,20 +200,17 @@ void OnEquipTorch(CreatureEntity* creature, uint16_t slot, ItemStack* itemStack)
 	torchRenderable->DstHeight = 4;
 
 	Attachable* torchAttachable = GetGame()->ComponentMgr.AddComponent(torch, Attachable{});
-	torchAttachable->EntityId = creature->OwningEntity;
-	torchAttachable->EntityOrigin = { 8.0f, 8.0f };
-	torchAttachable->Local.Origin.x = 2.0f;
-	torchAttachable->Local.Origin.y = 2.0f;
-	torchAttachable->Local.Position.x = 2.0f;
-	torchAttachable->Local.Position.y = -5.0f;
-	torchAttachable->Local.Rotation = 0.0f;
+	torchAttachable->ParentEntity = creature->OwningEntity;
+	torchAttachable->Target = { 8.0f, 8.0f };
+	torchAttachable->Local.Position.x = 4.0f;
+	torchAttachable->Local.Position.y = -4.0f;
+	torchAttachable->Width = 4;
 
 	UpdatingLightSource* torchLight = GetGame()->ComponentMgr.AddComponent(torch, UpdatingLightSource{});
 	torchLight->MinRadius = 6;
 	torchLight->MaxRadius = 7;
 	torchLight->Colors[0] = { 250, 190, 200, 200 };
 	torchLight->Colors[1] = { 255, 200, 210, 200 };
-
 }
 
 void InventoryMgr::Initialize()

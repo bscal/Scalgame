@@ -27,12 +27,12 @@ UpdateLightColor(const UpdatingLight* light, int index, float distance)
 	float x = (float)light->Color.r * inverse * attenuation;
 	float y = (float)light->Color.g * inverse * attenuation;
 	float z = (float)light->Color.b * inverse * attenuation;
-	{
-		std::scoped_lock lock(LightArrayLock);
-		GetGame()->LightingRenderer.Tiles[index].x += x;
-		GetGame()->LightingRenderer.Tiles[index].y += y;
-		GetGame()->LightingRenderer.Tiles[index].z += z;
-	}
+
+	LightArrayLock.lock();
+	GetGame()->LightingRenderer.Tiles[index].x += x;
+	GetGame()->LightingRenderer.Tiles[index].y += y;
+	GetGame()->LightingRenderer.Tiles[index].z += z;
+	LightArrayLock.unlock();
 }
 
 internal inline void 

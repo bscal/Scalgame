@@ -147,7 +147,7 @@ internal void
 DrawDebugPanel(UIState* state)
 {
 	struct nk_context* ctx = &state->Ctx;
-	const PlayerEntity* p = GetClientPlayer();
+	PlayerEntity* p = GetClientPlayer();
 	
 	ctx->style.window.fixed_background.data.color = BG_COLOR;
 	
@@ -177,10 +177,10 @@ DrawDebugPanel(UIState* state)
 			, GetGameApp()->NumOfLightsUpdated, GetNumOfLights());
 		nk_label(ctx, lightStr, NK_TEXT_LEFT);
 
-		const char* xy = TextFormat("Pos: %s", FMT_VEC2(p->Transform.Position));
+		const char* xy = TextFormat("Pos: %s", FMT_VEC2(p->GetTransform()->Position));
 		nk_label(ctx, xy, NK_TEXT_LEFT);
 
-		Vector2i v = Vector2i::FromVec2(p->Transform.Position);
+		Vector2i v = Vector2i::FromVec2(p->GetTransform()->Position);
 		v = v.Divide({ TILE_SIZE, TILE_SIZE });
 		const char* tileXY = TextFormat("TilePos: %s", FMT_VEC2I(v));
 		nk_label(ctx, tileXY, NK_TEXT_LEFT);

@@ -104,7 +104,7 @@ SDrawTextureF(const Texture2D& texture, const Rectangle& source,
 	const Rectangle& dest, const Vector4& tint);
 
 void
-SDrawSprite(const Texture2D* texture, const TransformComponent* transform, SpriteRenderer renderable, bool flip);
+SDrawSprite(const Texture2D* texture, const TransformComponent* transform, const SpriteRenderer* renderable, bool flip);
 
 void 
 SDrawRectangleProF(Rectangle rec, Vector2 origin, float rotation, Vector4 color);

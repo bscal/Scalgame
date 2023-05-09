@@ -18,18 +18,16 @@ UpdateEntities(EntityMgr* entityMgr, ComponentMgr* componentMgr)
 
 	const Texture2D* spriteTextureSheet = &GetGame()->Resources.EntitySpriteSheet;
 
-	ComponentArray* transforms = componentMgr->GetArray<TransformComponent>();
 	ComponentArray* renderables = componentMgr->GetArray<SpriteRenderer>();
 
 	for (uint32_t i = 0; i < renderables->Size(); ++i)
 	{
 		uint32_t entity = renderables->Indices.Dense[i];
 		SpriteRenderer* renderable = renderables->Index<SpriteRenderer>(i);
-		const TransformComponent* transform = transforms->Index<TransformComponent>(entity);
-		SASSERT(transform);
+		TransformComponent* transform = componentMgr->GetComponent<TransformComponent>(entity);
 
 		bool flipX = transform->LookDir == TileDirection::South || transform->LookDir == TileDirection::West;
-		SDrawSprite(spriteTextureSheet, transform, *renderable, flipX);
+		SDrawSprite(spriteTextureSheet, transform, renderable, flipX);
 	}
 
 	ComponentArray* updatingLights = componentMgr->GetArray<UpdatingLightSource>();
@@ -47,7 +45,7 @@ UpdateEntities(EntityMgr* entityMgr, ComponentMgr* componentMgr)
 		}
 
 		uint32_t entity = renderables->Indices.Dense[i];
-		const TransformComponent* transform = transforms->Get<TransformComponent>(entity);
+		const TransformComponent* transform = componentMgr->GetComponent<TransformComponent>(entity);
 		SASSERT(transform);
 		DrawLightWithShadows(transform->TilePos().AsVec2(), *light);
 	}
@@ -56,30 +54,26 @@ UpdateEntities(EntityMgr* entityMgr, ComponentMgr* componentMgr)
 internal void 
 UpdateAttachables(EntityMgr* entityMgr, ComponentMgr* componentMgr)
 {
-	ComponentArray* transforms = componentMgr->GetArray<TransformComponent>();
+	SList<uint32_t> entToDelete = {};
+	entToDelete.Allocator = SAllocator::Temp;
+
 	ComponentArray* attachables = componentMgr->GetArray<Attachable>();
 
 	for (uint32_t i = 0; i < attachables->Size(); ++i)
 	{
 		uint32_t entity = attachables->Indices.Dense[i];
 		Attachable* attachable = attachables->Index<Attachable>(i);
-
-		TransformComponent* entityTransform = transforms->Get<TransformComponent>(entity);
-		SASSERT(entityTransform);
-		TransformComponent* parentTransform = transforms->Get<TransformComponent>(attachable->EntityId);
-		SASSERT(parentTransform);
+		TransformComponent* entityTransform = componentMgr->GetComponent<TransformComponent>(entity);
+		TransformComponent* parentTransform = componentMgr->GetComponent<TransformComponent>(attachable->ParentEntity);
 		
 		entityTransform->LookDir = parentTransform->LookDir;
-		entityTransform->Position.x = parentTransform->Position.x + attachable->EntityOrigin.x + attachable->Local.Position.x;
-		entityTransform->Position.y = parentTransform->Position.y + attachable->EntityOrigin.y + attachable->Local.Position.y;
-	}
+		bool flipX = entityTransform->LookDir == TileDirection::South || entityTransform->LookDir == TileDirection::West;
+		float offsetX = (flipX) ? -attachable->Local.Position.x - attachable->Width : attachable->Local.Position.x;
 
-	SList<uint32_t> entToDelete = {};
-	entToDelete.Allocator = SAllocator::Temp;
-	for (uint32_t i = 0; i < attachables->Size(); ++i)
-	{
-		Attachable* attachable = attachables->Index<Attachable>(i);
-		if (!entityMgr->IsAlive(attachable->EntityId))
+		entityTransform->Position.x = parentTransform->Position.x + attachable->Target.x + offsetX;
+		entityTransform->Position.y = parentTransform->Position.y + attachable->Target.y + attachable->Local.Position.y;
+
+		if (!entityMgr->IsAlive(attachable->ParentEntity))
 		{
 			uint32_t entity = attachables->Indices.Dense[i];
 			entToDelete.Push(&entity);

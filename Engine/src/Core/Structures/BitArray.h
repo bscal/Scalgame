@@ -8,7 +8,7 @@ struct BitArray
 	uint64_t Memory[Size];
 
 	bool GetBit(uint64_t bit) const;
-	void SetBit(uint64_t bit, bool value);
+	void SetBit(uint64_t bit);
 	void ClearBit(uint64_t bit);
 	void Clear();
 };
@@ -22,7 +22,7 @@ bool BitArray<Size>::GetBit(uint64_t bit) const
 }
 
 template<uint64_t Size>
-void BitArray<Size>::SetBit(uint64_t bit, bool value)
+void BitArray<Size>::SetBit(uint64_t bit)
 {
 	uint64_t index = bit / sizeof(uint64_t);
 	uint64_t indexBit = bit % sizeof(uint64_t);
