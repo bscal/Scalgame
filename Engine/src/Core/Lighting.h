@@ -13,6 +13,29 @@ struct Light;
 struct UpdatingLight;
 struct UpdatingLightSource;
 
+struct Slope
+{
+    int y;
+    int x;
+
+    inline bool Greater(int y, int x) { return this->y * x > this->x * y; }; // this > y/x
+    inline bool GreaterOrEqual(int y, int x) { return this->y * x >= this->x * y; } // this >= y/x
+    inline bool Less(int y, int x) { return this->y * x < this->x * y; } // this < y/x
+};
+
+// Used to translate tile coordinates 
+constexpr global_var int TranslationTable[8][4] =
+{
+    {  1,  0,  0, -1 },
+    {  0,  1, -1,  0 },
+    {  0, -1, -1,  0 },
+    { -1,  0,  0, -1 },
+    { -1,  0,  0,  1 },
+    {  0, -1,  1,  0 },
+    {  0,  1,  1,  0 },
+    {  1,  0,  0,  1 },
+};
+
 struct Light
 {
     Vector2 Pos;

@@ -18,6 +18,14 @@ static_assert(sizeof(size_t) == sizeof(uint64_t), "ScalEngine does not support 3
 #define local_var static
 #define global_var static
 
+#if defined(__clang__) || defined(__GNUC__)
+#define SRESTRICT __restrict__
+#elif defined(_MSC_VER)
+#define SRESTRICT __restrict
+#else
+#define SRESTRICT 
+#endif
+
 typedef int bool32;
 
 #define SCAL_GAME_TESTS 1
