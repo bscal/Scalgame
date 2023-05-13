@@ -2,9 +2,7 @@
 
 #include "Core/Core.h"
 
-#define ENABLE_PROFILING 0
-
-#if ENABLE_PROFILING
+#if SCAL_ENABLE_PROFILING
 #include "spall/spall.h"
 
 void SpallBegin(const char* name, uint32_t len, double time);

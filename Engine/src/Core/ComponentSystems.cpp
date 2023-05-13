@@ -1,6 +1,5 @@
 #include "ComponentSystems.h"
 
-#include "Globals.h"
 #include "Game.h"
 #include "Lighting.h"
 #include "Renderer.h"

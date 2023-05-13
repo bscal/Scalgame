@@ -1,6 +1,5 @@
 #include "Game.h"
 
-#include "Globals.h"
 #include "ResourceManager.h"
 #include "SpriteAtlas.h"
 #include "SUI.h"

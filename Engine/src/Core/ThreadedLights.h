@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Core.h"
-#include "Globals.h"
 
 struct UpdatingLight;
 struct Vector3;

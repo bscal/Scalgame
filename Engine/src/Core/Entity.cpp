@@ -46,32 +46,32 @@ uint32_t EntityMgr::CreateEntity()
 	return result;
 }
 
-void EntityMgr::RemoveEntity(Entity entityId)
+void EntityMgr::RemoveEntity(Entity entity)
 {
-	uint32_t id = GetId(entityId);
+	uint32_t id = GetId(entity);
 	
 	if (!Entities[id].IsAlive)
 		return;
 
-	SLOG_INFO("Removed %s", FMT_ENTITY(entityId));
+	SLOG_INFO("Removed %s", FMT_ENTITY(entity));
 
 	SList<ComponentArray>& components = GetGame()->ComponentMgr.Components;
 	for (uint32_t i = 0; i < components.Count; ++i)
 	{
 		ComponentArray& componentArray = components[i];
-		componentArray.Remove(entityId);
+		componentArray.Remove(entity);
 	}
 
-	entityId = IncGen(entityId);
-	Entities[id].Gen = GetGen(entityId);
+	entity = IncGen(entity);
+	Entities[id].Gen = GetGen(entity);
 	Entities[id].IsAlive = false;
-	FreeIds.Push(&entityId);
+	FreeIds.Push(&entity);
 }
 
-bool EntityMgr::IsAlive(uint32_t entityId) const
+bool EntityMgr::IsAlive(Entity entity) const
 {
-	EntityStatus status = Entities[GetId(entityId)];
-	return (status.IsAlive && status.Gen == GetGen(entityId));
+	EntityStatus status = Entities[GetId(entity)];
+	return (status.IsAlive && status.Gen == GetGen(entity));
 }
 
 void PlayerEntity::Update()

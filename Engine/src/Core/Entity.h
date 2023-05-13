@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Core.h"
-#include "Globals.h"
 #include "ComponentTypes.h"
 #include "Inventory.h"
 
@@ -43,9 +42,9 @@ struct EntityMgr
 	SLinkedList<Entity> FreeIds;
 
 	Entity CreateEntity();
-	void RemoveEntity(Entity entityId);
+	void RemoveEntity(Entity entity);
 	
-	bool IsAlive(Entity entityId) const;
+	bool IsAlive(Entity entity) const;
 };
 
 struct ComponentQuery
@@ -73,7 +72,6 @@ struct ComponentMgr
 {
 	SList<ComponentArray> Components;
 	SList<TransformComponent> Transforms;
-	SHoodTable<ComponentQuery, SList<uint32_t>> CachedQueries;
 
 	template<typename ComponentType>
 	inline void Register()

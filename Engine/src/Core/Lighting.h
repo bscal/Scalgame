@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Core.h"
-#include "Globals.h"
+#include "Vector2i.h"
 
 #include "Structures/StaticArray.h"
 #include "Structures/SList.h"

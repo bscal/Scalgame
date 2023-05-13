@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Core/Core.h"
-#include "Core/Globals.h"
 #include "Core/Structures/SArray.h"
 #include "Core/Structures/SparseSet.h"
 

@@ -14,6 +14,11 @@
 
 static_assert(sizeof(size_t) == sizeof(uint64_t), "ScalEngine does not support 32bit");
 
+#define SCAL_ENABLE_PROFILING 0
+#include "Tools/Profiling.h"
+
+#define SCAL_GAME_TESTS 1
+
 #define internal static
 #define local_var static
 #define global_var static
@@ -27,8 +32,6 @@ static_assert(sizeof(size_t) == sizeof(uint64_t), "ScalEngine does not support 3
 #endif
 
 typedef int bool32;
-
-#define SCAL_GAME_TESTS 1
 
 #ifdef SCAL_PLATFORM_WINDOWS
 #ifdef SCAL_BUILD_DLL
@@ -52,9 +55,6 @@ typedef int bool32;
 #define BitToggle(state, bit) (state ^ 1ULL << bit)
 #define BitMask(state, mask) ((state & mask) == mask)
 
-void
-ReportAssertFailure(const char* expression, const char* msg, const char* file, int line);
-
 #if SCAL_DEBUG
 
 #if _MSC_VER
@@ -64,8 +64,10 @@ ReportAssertFailure(const char* expression, const char* msg, const char* file, i
 #endif
 
 #define SLOG_DEBUG(msg, ...) TraceLog(LOG_DEBUG, msg, __VA_ARGS__)
-#define SASSERT(expr) if (!(expr)) { ReportAssertFailure(#expr, "", __FILE__, __LINE__); DEBUG_BREAK(void); }
-#define SASSERT_MSG(expr, msg) if (!(expr)) { ReportAssertFailure(#expr, msg, __FILE__, __LINE__); DEBUG_BREAK(void); }
+#define SASSERT(expr) if (!(expr)) { TraceLog(LOG_ERROR, "Assertion Failure: %s\nMessage: % s\n  File : % s, Line : % d\n" \
+								, #expr, "", __FILE__, __LINE__); DEBUG_BREAK(void); } 
+#define SASSERT_MSG(expr, msg) if (!(expr)) { TraceLog(LOG_ERROR, "Assertion Failure: %s\nMessage: % s\n  File : % s, Line : % d\n" \
+								, #expr, msg, __FILE__, __LINE__); DEBUG_BREAK(void); }
 
 #else
 
@@ -92,6 +94,90 @@ struct MemorySizeData
 	char BytePrefix;
 };
 
-MemorySizeData FindMemSize(uint64_t size);
+global_var constexpr float TAO = static_cast<float>(PI) * 2.0f;
 
-double GetMicroTime();
+// TODO: should probably move resolution to another place
+global_var constexpr int SCREEN_WIDTH = 1600;
+global_var constexpr int SCREEN_HEIGHT = 900;
+
+global_var constexpr int TILE_SIZE = 16;
+global_var constexpr float TILE_SIZE_F = static_cast<float>(TILE_SIZE);
+global_var constexpr float INVERSE_TILE_SIZE = 1.0f / TILE_SIZE_F;
+global_var constexpr float HALF_TILE_SIZE = TILE_SIZE_F / 2.0f;
+
+global_var constexpr int SCREEN_WIDTH_TILES = SCREEN_WIDTH / TILE_SIZE;
+global_var constexpr int SCREEN_HEIGHT_TILES = SCREEN_HEIGHT / TILE_SIZE;
+global_var constexpr Vector2 SCREEN_CENTER = { (float)SCREEN_WIDTH / 2.0f, (float)SCREEN_HEIGHT / 2.0f };
+
+global_var constexpr int CULL_PADDING_TOTAL_TILES = 4;
+global_var constexpr float CULL_PADDING_EDGE_PIXELS = 2 * TILE_SIZE_F;
+global_var constexpr int CULL_WIDTH_TILES = (SCREEN_WIDTH / TILE_SIZE) + CULL_PADDING_TOTAL_TILES;
+global_var constexpr int CULL_HEIGHT_TILES = (SCREEN_HEIGHT / TILE_SIZE) + CULL_PADDING_TOTAL_TILES;
+global_var constexpr int CULL_WIDTH = CULL_WIDTH_TILES * TILE_SIZE;
+global_var constexpr int CULL_HEIGHT = CULL_HEIGHT_TILES * TILE_SIZE;
+global_var constexpr int CULL_TOTAL_TILES = CULL_WIDTH_TILES * CULL_HEIGHT_TILES;
+
+global_var constexpr int CHUNK_DIMENSIONS = 64;
+global_var constexpr int CHUNK_SIZE = CHUNK_DIMENSIONS * CHUNK_DIMENSIONS;
+
+// TODO: move to settings struct?
+global_var constexpr int VIEW_DISTANCE = 1;
+
+// EntityId 
+#define SetId(entity, id) (entity | (0x00ffffff & id))
+#define SetGen(entity, gen) ((entity & 0x00ffffff) | ((uint8_t)gen << 24u))
+#define GetId(entity) (entity & 0x00ffffff)
+#define GetGen(entity) (uint8_t)((entity & 0xff000000) >> 24u)
+#define IncGen(entity) SetGen(entity, GetGen(entity) + 1)
+
+namespace Colors
+{
+global_var constexpr Vector4 White = { 1.0f, 1.0f, 1.0f, 1.0f };
+global_var constexpr Vector4 Black = { 0.0f, 0.0f, 0.0f, 1.0f };
+global_var constexpr Vector4 Clear = { 0.0f, 0.0f, 0.0f, 0.0f };
+}
+
+enum class TileDirection : uint8_t
+{
+	North,
+	East,
+	South,
+	West
+};
+
+constexpr global_var float
+TileDirectionToTurns[] = { TAO * 0.75f, 0.0f, TAO * 0.25f, TAO * 0.5f };
+constexpr global_var Vector2
+TileDirectionVectors[] = { { 0, -1 }, { 1, 0 }, { 0, 1 }, { -1, 0 } };
+
+#define AngleFromTileDir(tileDirection) TileDirectionToTurns[(uint8_t)tileDirection]
+
+#define FMT_VEC2(v) TextFormat("Vector2(x: %.3f, y: %.3f)", v.x, v.y)
+#define FMT_VEC2I(v) TextFormat("Vector2i(x: %d, y: %d)", v.x, v.y)
+#define FMT_RECT(rect) TextFormat("Rectangle(x: %.3f, y: %.3f, w: %.3f, h: %.3f)", rect.x, rect.y, rect.width, rect.height)
+#define FMT_BOOL(boolVar) TextFormat("%s", ((boolVar)) ? "true" : "false")
+#define FMT_ENTITY(ent) TextFormat("Entity(%u, Id: %u, Gen: %u", ent, GetId(ent), GetGen(ent))
+
+inline MemorySizeData FindMemSize(uint64_t size);
+inline double GetMicroTime();
+
+MemorySizeData FindMemSize(uint64_t size)
+{
+	const uint64_t gb = 1024 * 1024 * 1024;
+	const uint64_t mb = 1024 * 1024;
+	const uint64_t kb = 1024;
+
+	if (size > gb)
+		return { (float)size / (float)gb, 'G' };
+	else if (size > mb)
+		return { (float)size / (float)mb, 'M' };
+	else if (size > kb)
+		return { (float)size / (float)kb, 'K' };
+	else
+		return { (float)size, ' ' };
+}
+
+double GetMicroTime()
+{
+	return GetTime() * 1000000.0;
+}

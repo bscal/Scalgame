@@ -1,6 +1,5 @@
 #include "ChunkedTileMap.h"
 
-#include "Globals.h"
 #include "Game.h"
 #include "SRandom.h"
 #include "SUtil.h"
@@ -29,8 +28,8 @@ void Initialize(ChunkedTileMap* tilemap)
 {
 	SASSERT(tilemap);
 
-	tilemap->ViewDistance.x = VIEW_DISTANCE.x;
-	tilemap->ViewDistance.y = VIEW_DISTANCE.y;
+	tilemap->ViewDistance.x = VIEW_DISTANCE;
+	tilemap->ViewDistance.y = VIEW_DISTANCE;
 
 	tilemap->WorldDimChunks = { 4, 4 };
 
@@ -74,7 +73,7 @@ void Update(ChunkedTileMap* tilemap, Game* game)
 	
 	UpdateTileMap(tilemap, &game->TileMapRenderer);
 
-	constexpr float viewDistanceSqr = ((float)VIEW_DISTANCE.x + 1.0f) * ((float)VIEW_DISTANCE.x + 1.0f);
+	constexpr float viewDistanceSqr = ((float)VIEW_DISTANCE + 1.0f) * ((float)VIEW_DISTANCE + 1.0f);
 	for (uint32_t i = 0; i < tilemap->Chunks.Size; ++i)
 	{
 		auto& chunk = tilemap->Chunks[i];

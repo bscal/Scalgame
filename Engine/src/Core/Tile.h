@@ -1,8 +1,7 @@
 #pragma once
 
 #include "Core.h"
-#include "Globals.h"
-
+#include "Vector2i.h"
 
 struct TileData;
 

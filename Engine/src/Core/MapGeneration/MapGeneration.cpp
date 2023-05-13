@@ -1,6 +1,5 @@
 #include "MapGeneration.h"
 
-#include "Core/Globals.h"
 #include "Core/Game.h"
 #include "Core/ChunkedTileMap.h"
 

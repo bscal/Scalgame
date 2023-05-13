@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Core.h"
-#include "Globals.h"
 #include "Tile.h"
 #include "ComponentTypes.h"
 
