@@ -139,22 +139,20 @@ bool SHoodSet<K, HashFunc, EqualsFunc>::Insert(const K* key)
 			{
 				// Note: Swap out current insert with bucket
 				SHoodSetBucket<K> tmpBucket = *bucket;
-
-				swapBucket.ProbeLength = probeLength;
 				*bucket = swapBucket;
-
 				swapBucket = tmpBucket;
-				probeLength = swapBucket.ProbeLength;
+
+				bucket->ProbeLength = probeLength;
 			}
 			// Continues searching
-			if (++index == Capacity) index = 0; // Wrap
 			++probeLength;
+			if (++index == Capacity) index = 0;
 		}
 		else
 		{
 			// Note: Found open spot, finish inserting
-			swapBucket.ProbeLength = probeLength;
 			*bucket = swapBucket;
+			bucket->ProbeLength = probeLength;
 			++Size;
 			return true;
 		}

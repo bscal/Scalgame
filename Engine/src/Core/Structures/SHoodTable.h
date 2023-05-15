@@ -50,7 +50,7 @@ struct SHoodTable
 	SHoodBucket<K, V>& operator[](size_t i) { SASSERT(i < Capacity); return Buckets[i]; }
 
 private:
-	inline uint32_t Hash(const K* key) const;
+	uint64_t Hash(const K* key) const;
 };
 
 template<
@@ -58,7 +58,7 @@ template<
 	typename V,
 	typename HashFunc,
 	typename EqualsFunc>
-inline uint32_t 
+uint64_t
 SHoodTable<K, V, HashFunc, EqualsFunc>::Hash(const K* key) const
 {
 	SASSERT(IsPowerOf2_32(Capacity));
@@ -67,7 +67,7 @@ SHoodTable<K, V, HashFunc, EqualsFunc>::Hash(const K* key) const
 	hash &= ((uint64_t)(Capacity - 1));
 	// Since we mod by capacity is will not be larger then capacity and cast to u32
 	SASSERT(hash < Capacity);
-    return static_cast<uint32_t>(hash);
+    return hash;
 }
 
 template<
@@ -188,17 +188,16 @@ void SHoodTable<K, V, HashFunc, EqualsFunc>::Insert(const K* key, const V* value
 				swapBucket = tmpBucket;
 				
 				bucket->ProbeLength = probeLength;
-				probeLength = swapBucket.ProbeLength;
 			}
 			// Continues searching
-			if (++index == Capacity) index = 0;
 			++probeLength;
+			if (++index == Capacity) index = 0;
 		}
 		else
 		{
 			// Note: Found open spot, finish inserting
-			swapBucket.ProbeLength = probeLength;
 			*bucket = swapBucket;
+			bucket->ProbeLength = probeLength;
 			++Size;
 			break;
 		}
@@ -403,7 +402,7 @@ bool SHoodTable<K, V, HashFunc, EqualsFunc>::Remove(const K* key)
 	SASSERT(EqualsFunc{}(key, key));
 	SASSERT(key);
 
-	uint32_t hash = Hash(key);
+	uint64_t hash = Hash(key);
 	uint32_t index = hash;
 	while (true)
 	{

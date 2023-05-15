@@ -19,6 +19,7 @@ typedef uint32_t Entity;
 
 struct PlayerEntity
 {
+	ItemStack CursorStack;
 	Vector2i TilePos;
 	uint32_t EntityId;
 	bool HasMoved;

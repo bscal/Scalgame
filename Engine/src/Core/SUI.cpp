@@ -9,6 +9,8 @@
 #include "Lighting.h"
 #include "SMemory.h"
 
+#include "raylib/src/raymath.h"
+
 global_var const int CONSOLE_MAX_LENGTH = 128;
 global_var const struct nk_color BG_COLOR = ColorToNuklear({ 17, 17, 17, 155 });
 
@@ -498,7 +500,17 @@ DrawInventory(struct nk_context* ctx, Inventory* inv)
 						img.w = 0;
 						img.h = 0;
 						SMemCopy(img.region, &invStack.Stack.GetItem()->Sprite.Region, sizeof(nk_ushort) * 4);
-						nk_image(ctx, img);
+						if (nk_button_image(ctx, img))
+						{
+							Vector2 mousePressedInRect = GetMousePosition();
+							mousePressedInRect.x -= ctx->current->bounds.x;
+							mousePressedInRect.y -= ctx->current->bounds.y;
+
+							Vector2 slotPressed = Vector2Divide(mousePressedInRect, { SLOT_SIZE, SLOT_SIZE });
+
+							SLOG_INFO("Test! , %s", FMT_VEC2I(Vector2i::FromVec2(slotPressed)));
+						}
+
 					} break;
 
 					default:
