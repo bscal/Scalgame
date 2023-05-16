@@ -61,7 +61,7 @@ bool Inventory::RemoveStack(uint16_t x, uint16_t y)
 	uint16_t slotIdx = x + y * Width;
 	InventorySlot slot = Slots[slotIdx];
 
-	if (static_cast<InventorySlotState>(Slots[slotIdx].State) != InventorySlotState::FILLED)
+	if (static_cast<InventorySlotState>(slot.State) != InventorySlotState::FILLED)
 		return false;
 
 	SASSERT(slot.InventoryStackIndex != 0xfff)
@@ -69,29 +69,32 @@ bool Inventory::RemoveStack(uint16_t x, uint16_t y)
 	InventoryStack& invStack = Contents[slot.InventoryStackIndex];
 	Item* item = invStack.Stack.GetItem();
 
-	for (uint16_t y = invStack.SlotY; y < invStack.SlotY + item->Height; ++y)
+	// Sets all slots containing item to empty
+	for (uint16_t slotY = invStack.SlotY; slotY < invStack.SlotY + item->Height; ++slotY)
 	{
-		for (uint16_t x = invStack.SlotX; x < invStack.SlotX + item->Width; ++x)
+		for (uint16_t slotX = invStack.SlotX; slotX < invStack.SlotX + item->Width; ++slotX)
 		{
-			uint32_t idx = x + y * Width;
+			uint32_t idx = slotX + slotY * Width;
 			Slots[idx].InventoryStackIndex = UINT16_MAX;
 			Slots[idx].State = (uint16_t)InventorySlotState::EMPTY;
 		}
 	}
 	
-	InventorySlot lastSlot = Slots[Contents.LastIndex()];
-	Contents.RemoveAtFast(slot.InventoryStackIndex);
-	if (Contents.Count > 0)
+	// Removes InventoryStack
+	SMemSet((Contents.Memory + slot.InventoryStackIndex), 0, sizeof(InventoryStack));
+	bool wasLastSwapped = Contents.RemoveAtFast(slot.InventoryStackIndex);
+
+	if (wasLastSwapped) // Updates swapped element's index
 	{
-		InventoryStack& lastInvStack = Contents[lastSlot.InventoryStackIndex];
+		InventoryStack& lastInvStack = Contents[slot.InventoryStackIndex];
 		Item* lastItem = lastInvStack.Stack.GetItem();
 
-		for (uint16_t y = lastInvStack.SlotY; y < lastInvStack.SlotY + item->Height; ++y)
+		for (uint16_t slotY = lastInvStack.SlotY; slotY < lastInvStack.SlotY + lastItem->Height; ++slotY)
 		{
-			for (uint16_t x = lastInvStack.SlotX; x < lastInvStack.SlotX + item->Width; ++x)
+			for (uint16_t slotX = lastInvStack.SlotX; slotX < lastInvStack.SlotX + lastItem->Width; ++slotX)
 			{
-				uint32_t idx = x + y * Width;
-				Slots[idx].InventoryStackIndex = lastSlot.InventoryStackIndex;
+				uint32_t idx = slotX + slotY * Width;
+				Slots[idx].InventoryStackIndex = slot.InventoryStackIndex;
 			}
 		}
 	}
@@ -222,6 +225,12 @@ void InventoryMgr::Initialize()
 			item->Height = 1;
 			item->MaxStackSize = 1;
 			item->OnEquipCallback = OnEquipTorch;
+		});
+	Items::FIRE_STAFF = RegisterItemFunc(Sprites::FIRE_STAFF, [](Item* item)
+		{
+			item->Width = 1;
+			item->Height = 2;
+			item->MaxStackSize = 1;
 		});
 }
 

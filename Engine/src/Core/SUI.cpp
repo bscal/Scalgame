@@ -39,6 +39,7 @@ bool InitializeUI(UIState* state, GameApplication* gameApp)
 	return true;
 }
 
+static Inventory* inv;
 
 void UpdateUI(UIState* state, Game* game)
 {
@@ -58,11 +59,15 @@ void UpdateUI(UIState* state, Game* game)
 
 	if (game->IsInventoryOpen)
 	{
-		Inventory* inv = game->InventoryMgr.CreateInventory(UINT32_MAX, 4, 4);
-		ItemStack itemStack = ItemStackNew(Items::TORCH, 1);
-		inv->SetStack(2, 2, &itemStack);
+		if (!inv)
+		{
+			inv = game->InventoryMgr.CreateInventory(UINT32_MAX, 4, 4);
+			ItemStack itemStack = ItemStackNew(Items::TORCH, 1);
+			inv->SetStack(2, 2, &itemStack);
+			ItemStack itemStack2 = ItemStackNew(Items::FIRE_STAFF, 1);
+			inv->SetStack(0, 2, &itemStack2);
+		}		
 		DrawInventory(&state->Ctx, inv);
-		game->InventoryMgr.RemoveInventory(inv);
 	}
 
 	DrawConsole(state);
@@ -419,6 +424,8 @@ DrawInventory(struct nk_context* ctx, Inventory* inv)
 	float height = SLOT_SIZE * (inv->Height);
 
 	Texture2D* spriteSheet = &GetGame()->Resources.EntitySpriteSheet;
+	ItemStack* cursorStack = &GetClientPlayer()->CursorStack;
+	bool hasHandledInventoryActionThisFrame = false;
 
 	struct nk_rect windowRect;
 	windowRect.x = 256.0f;
@@ -436,16 +443,17 @@ DrawInventory(struct nk_context* ctx, Inventory* inv)
 		ctx->style.window.spacing.x = 0.0f;
 		ctx->style.window.spacing.y = 0.0f;
 
+		ctx->style.button.border = 0.0f;
+		ctx->style.button.padding = { 0.0f, 0.0f };
+		ctx->style.button.rounding = 0.0f;
+
 		nk_layout_space_begin(ctx, NK_STATIC, height, INT_MAX);
 
-		// Slots
-		uint16_t idx = 0;
+		// Draws slots + empty slot insert buttons
 		for (uint16_t h = 0; h < inv->Height; ++h)
 		{
 			for (uint16_t w = 0; w < inv->Width; ++w)
 			{
-				InventorySlot slot = inv->Slots[idx++];
-
 				struct nk_rect rect;
 				rect.x = w * SLOT_SIZE;
 				rect.y = h * SLOT_SIZE;
@@ -453,73 +461,47 @@ DrawInventory(struct nk_context* ctx, Inventory* inv)
 				rect.h = SLOT_SIZE;
 				nk_layout_space_push(ctx, rect);
 
-				switch ((InventorySlotState)slot.State)
+				nk_window* win = ctx->current;
+				SASSERT(win);
+
+				struct nk_rect bounds;
+				enum nk_widget_layout_states state;
+				state = nk_widget(&bounds, ctx);
+
+				struct nk_color fillColor = { 22, 22, 22, 255 };
+				nk_fill_rect(&win->buffer, bounds, 0.0f, fillColor);
+
+				struct nk_color strokeColor = { 88, 88, 88, 255 };
+				nk_stroke_rect(&win->buffer, bounds, 0.0f, 1.0f, strokeColor);
+
+				struct nk_rect but;
+				but.x = w * SLOT_SIZE + 2;
+				but.y = h * SLOT_SIZE + 2;
+				but.w = SLOT_SIZE - 4;
+				but.h = SLOT_SIZE - 4;
+				nk_layout_space_push(ctx, but);
+				if (nk_button_color(ctx, { 22, 22, 22, 255 }))
 				{
-					case InventorySlotState::EMPTY:
+					Vector2 boundsXY = { ctx->current->bounds.x, ctx->current->bounds.y };
+					Vector2 mousePressedInRect = Vector2Subtract(GetMousePosition(), boundsXY);
+					Vector2i slotPressed = Vector2i::FromVec2(Vector2Divide(mousePressedInRect, { SLOT_SIZE, SLOT_SIZE }));
+
+					SLOG_INFO("Test! , %s", FMT_VEC2I(slotPressed));
+
+					if (cursorStack->ItemId != 0)
 					{
-						nk_window* win = ctx->current;
-						SASSERT(win);
-
-						struct nk_rect bounds;
-						enum nk_widget_layout_states state;
-						state = nk_widget(&bounds, ctx);
-
-						struct nk_color fillColor = { 22, 22, 22, 255 };
-						nk_fill_rect(&win->buffer, bounds, 0.0f, fillColor);
-
-						struct nk_color strokeColor = { 88, 88, 88, 255 };
-						nk_stroke_rect(&win->buffer, bounds, 0.0f, 1.0f, strokeColor);
-					} break;
-
-					case InventorySlotState::FILLED:
-					{
-						nk_window* win = ctx->current;
-						SASSERT(win);
-
-						struct nk_rect bounds;
-						enum nk_widget_layout_states state;
-						state = nk_widget(&bounds, ctx);
-
-						struct nk_color fillColor = { 22, 22, 22, 255 };
-						nk_fill_rect(&win->buffer, bounds, 0.0f, fillColor);
-
-						struct nk_color strokeColor = { 88, 88, 88, 255 };
-						nk_stroke_rect(&win->buffer, bounds, 0.0f, 1.0f, strokeColor);
-
-						struct nk_rect imgRect;
-						imgRect.x = rect.x + 4;
-						imgRect.y = rect.y + 4;
-						imgRect.w = SLOT_SIZE - 8;
-						imgRect.h = SLOT_SIZE - 8;
-						nk_layout_space_push(ctx, imgRect);
-
-						const InventoryStack& invStack = inv->Contents[slot.InventoryStackIndex];
-
-						struct nk_image img;
-						img.handle.ptr = spriteSheet;
-						img.w = 0;
-						img.h = 0;
-						SMemCopy(img.region, &invStack.Stack.GetItem()->Sprite.Region, sizeof(nk_ushort) * 4);
-						if (nk_button_image(ctx, img))
+						if (inv->CanInsertStack(slotPressed.x, slotPressed.y, cursorStack->GetItem()))
 						{
-							Vector2 mousePressedInRect = GetMousePosition();
-							mousePressedInRect.x -= ctx->current->bounds.x;
-							mousePressedInRect.y -= ctx->current->bounds.y;
-
-							Vector2 slotPressed = Vector2Divide(mousePressedInRect, { SLOT_SIZE, SLOT_SIZE });
-
-							SLOG_INFO("Test! , %s", FMT_VEC2I(Vector2i::FromVec2(slotPressed)));
+							inv->SetStack(slotPressed.x, slotPressed.y, cursorStack);
+							cursorStack->Remove();
+							hasHandledInventoryActionThisFrame = true;
 						}
-
-					} break;
-
-					default:
-						break;
+					}
 				}
 			}
 		}
 
-		// Border
+		// Inventory border
 		nk_layout_space_push(ctx, nk_rect(0, 0, width, height));
 		{
 			nk_window* win = ctx->current;
@@ -533,7 +515,64 @@ DrawInventory(struct nk_context* ctx, Inventory* inv)
 			nk_stroke_rect(&win->buffer, bounds, 0.0f, 2.0f, strokeColor);
 		}
 
+		// Draws inventory items in inventory + take item buttons
+		for (uint32_t i = 0; i < inv->Contents.Count; ++i)
+		{
+			InventoryStack& invStack = inv->Contents[i];
+			Item* item = invStack.Stack.GetItem();
+
+			struct nk_rect rect;
+			rect.x = invStack.SlotX * SLOT_SIZE + 2;
+			rect.y = invStack.SlotY * SLOT_SIZE + 2;
+			rect.w = item->Width * SLOT_SIZE - 4;
+			rect.h = item->Height * SLOT_SIZE - 4;
+			nk_layout_space_push(ctx, rect);
+
+			struct nk_image img;
+			img.handle.ptr = spriteSheet;
+			img.w = 0;
+			img.h = 0;
+			SMemCopy(img.region, &item->Sprite.Region, sizeof(nk_ushort) * 4);
+			if (nk_button_image(ctx, img) && !hasHandledInventoryActionThisFrame)
+			{
+				Vector2 boundsXY = { ctx->current->bounds.x, ctx->current->bounds.y };
+				Vector2 mousePressedInRect = Vector2Subtract(GetMousePosition(), boundsXY);
+				Vector2i slotPressed = Vector2i::FromVec2(Vector2Divide(mousePressedInRect, { SLOT_SIZE, SLOT_SIZE }));
+
+				SLOG_INFO("Test! , %s", FMT_VEC2I(slotPressed));
+
+				ItemStack* slotStack = inv->GetStack(slotPressed.x, slotPressed.y);
+				if (slotStack && cursorStack->ItemId == 0)
+				{
+					*cursorStack = *slotStack;
+					inv->RemoveStack(slotPressed.x, slotPressed.y);
+				}
+			}
+		}
+
 		nk_layout_space_end(ctx);
 	}
 	nk_end(ctx);
+
+	// Draws Cursor Item
+	if (cursorStack->ItemId != 0)
+	{
+		struct nk_rect cursorStackRect;
+		cursorStackRect.x = GetMousePosition().x + 4;
+		cursorStackRect.y = GetMousePosition().y + 4;
+		cursorStackRect.w = SLOT_SIZE;
+		cursorStackRect.h = SLOT_SIZE;
+
+		if (nk_begin(ctx, "CursorStack", cursorStackRect, NK_WINDOW_NO_SCROLLBAR))
+		{
+			nk_layout_row_static(ctx, SLOT_SIZE, SLOT_SIZE, 1);
+			struct nk_image img;
+			img.handle.ptr = spriteSheet;
+			img.w = 0;
+			img.h = 0;
+			SMemCopy(img.region, &cursorStack->GetItem()->Sprite.Region, sizeof(nk_ushort) * 4);
+			nk_image(ctx, img);
+		}
+		nk_end(ctx);
+	}
 }

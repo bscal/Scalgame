@@ -28,8 +28,8 @@ struct SList
 	void PopAt(uint32_t index, T* valueDest);
 	void PopAtFast(uint32_t index, T* valueDest); // pops index, moving last element to index
 	void Remove(); // Same as pop, but does not do a copy
-	void RemoveAt(uint32_t index);
-	void RemoveAtFast(uint32_t index);
+	bool RemoveAt(uint32_t index);
+	bool RemoveAtFast(uint32_t index);
 
 	inline T* PeekAt(uint32_t index) const;
 	inline T* Last() const;
@@ -242,7 +242,7 @@ void SList<T>::Remove()
 }
 
 template<typename T>
-void SList<T>::RemoveAt(uint32_t index)
+bool SList<T>::RemoveAt(uint32_t index)
 {
 	SASSERT(Memory);
 	SASSERT(Count > 0);
@@ -254,11 +254,13 @@ void SList<T>::RemoveAt(uint32_t index)
 		size_t sizeTillEnd = (size_t)(Count - index) * sizeof(T);
 		char* mem = (char*)Memory;
 		SMemMove(mem + dstOffset, mem + srcOffset, sizeTillEnd);
+		return true;
 	}
+	return false;
 }
 
 template<typename T>
-void SList<T>::RemoveAtFast(uint32_t index)
+bool SList<T>::RemoveAtFast(uint32_t index)
 {
 	SASSERT(Memory);
 	SASSERT(Count > 0);
@@ -267,7 +269,9 @@ void SList<T>::RemoveAtFast(uint32_t index)
 	if (index != Count)
 	{
 		Memory[index] = Memory[Count];
+		return true;
 	}
+	return false;
 }
 
 template<typename T>

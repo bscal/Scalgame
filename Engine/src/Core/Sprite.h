@@ -47,4 +47,7 @@ namespace Sprites
 constexpr global_var Sprite PLAYER_SPRITE = { 0, 0, 16, 16 };
 constexpr global_var Sprite RAT_SPRITE = { 16, 16, 16, 16 };
 constexpr global_var Sprite ROGUE_SPRITE = { 16, 0, 16, 16 };
+
+constexpr global_var Sprite FIRE_STAFF = { 4, 32, 4, 16 };
+
 }

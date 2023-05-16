@@ -42,6 +42,14 @@ constexpr static const char* MemoryTagStrings[(uint8_t)MemoryTag::MaxTags] =
 	"TrackedMalloc"
 };
 
+struct SPool
+{
+	void* Memory;
+	void* Offset;
+	size_t Stride;
+	size_t Capacity;
+};
+
 void
 SMemInitialize(GameApplication* gameApp, size_t gameMemorySize, size_t tempMemorySize);
 

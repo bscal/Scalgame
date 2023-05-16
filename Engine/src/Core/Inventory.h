@@ -117,6 +117,7 @@ namespace Items
 {
 inline uint16_t AIR;
 inline uint16_t TORCH;
+inline uint16_t FIRE_STAFF;
 };
 
 struct InventoryMgr
