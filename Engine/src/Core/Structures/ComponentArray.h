@@ -4,11 +4,16 @@
 #include "Core/Structures/SArray.h"
 #include "Core/Structures/SparseSet.h"
 
+typedef void(*OnAdd)(uint32_t, void*);
+typedef void(*OnRemove)(uint32_t, void*);
+
 struct ComponentArray
 {
 
 	SArray Values;
 	SparseSet Indices;
+	OnAdd AddCallback;
+	OnRemove RemoveCallback;
 
 	inline uint32_t Size() const
 	{
@@ -28,15 +33,23 @@ struct ComponentArray
 	{
 		SASSERT(Values.Memory);
 		uint32_t id = GetId(entity);
-		uint32_t idx = Indices.Get(id);
-		if (idx == SPARSE_EMPTY_ID)
+		if (id > Indices.MaxValue || Indices.Get(id) == SPARSE_EMPTY_ID)
 		{
+			uint32_t idx = Values.Count;
+
 			Indices.Add(id);
 			ArrayPush(&Values, &value);
-			return (T*)ArrayPeekAt(&Values, Values.Count - 1);
+
+			T* valuePtr = (T*)ArrayPeekAt(&Values, idx);
+
+			if (AddCallback)
+				AddCallback(entity, valuePtr);
+
+			return valuePtr;
 		}
 		else
 		{
+			uint32_t idx = Indices.Get(id);
 			return (T*)ArrayPeekAt(&Values, idx);
 		}
 	}
@@ -50,6 +63,9 @@ struct ComponentArray
 		uint32_t idx = Indices.Remove(id);
 		if (idx != SPARSE_EMPTY_ID)
 		{
+			if (RemoveCallback)
+				RemoveCallback(entity, ArrayPeekAt(&Values, idx));
+
 			ArrayRemoveAt(&Values, idx);
 			return true;
 		}

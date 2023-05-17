@@ -77,10 +77,18 @@ struct ComponentMgr
 	template<typename ComponentType>
 	inline void Register()
 	{
+		RegisterWithCallback<ComponentType>(nullptr, nullptr);
+	}
+
+	template<typename ComponentType>
+	inline void RegisterWithCallback(OnAdd addCallback, OnRemove removeCallback)
+	{
 		uint32_t componentId = ComponentType::Id;
 		Components.EnsureSize(componentId + 1);
 		Components[componentId] = {};
 		Components[componentId].Initialize<ComponentType>();
+		Components[componentId].AddCallback = addCallback;
+		Components[componentId].RemoveCallback = removeCallback;
 
 		#if SCAL_DEBUG
 		const std::type_info& typeInfo = typeid(ComponentType);

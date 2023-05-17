@@ -12,7 +12,7 @@ void InitializeEntities(EntityMgr* entityMgr, ComponentMgr* componentMgr)
 	componentMgr->Register<SpriteRenderer>();
 	componentMgr->Register<Attachable>();
 	componentMgr->Register<UpdatingLightSource>();
-	componentMgr->Register<CreatureEntity>();
+	componentMgr->RegisterWithCallback<CreatureEntity>(CreatureEntity::OnAdd, CreatureEntity::OnRemove);
 }
 
 void CreatePlayer(EntityMgr* entityMgr, ComponentMgr* componentMgr)

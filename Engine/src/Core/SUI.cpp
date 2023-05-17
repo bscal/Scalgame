@@ -560,17 +560,17 @@ DrawInventory(struct nk_context* ctx, Inventory* inv)
 		struct nk_rect cursorStackRect;
 		cursorStackRect.x = GetMousePosition().x + 4;
 		cursorStackRect.y = GetMousePosition().y + 4;
-		cursorStackRect.w = SLOT_SIZE;
-		cursorStackRect.h = SLOT_SIZE;
+		cursorStackRect.w = cursorStack->GetItem()->Width * SLOT_SIZE;
+		cursorStackRect.h = cursorStack->GetItem()->Height * SLOT_SIZE;
 
 		if (nk_begin(ctx, "CursorStack", cursorStackRect, NK_WINDOW_NO_SCROLLBAR))
 		{
-			nk_layout_row_static(ctx, SLOT_SIZE, SLOT_SIZE, 1);
+			nk_layout_row_static(ctx, cursorStackRect.h, (int)cursorStackRect.w, 1);
 			struct nk_image img;
 			img.handle.ptr = spriteSheet;
 			img.w = 0;
 			img.h = 0;
-			SMemCopy(img.region, &cursorStack->GetItem()->Sprite.Region, sizeof(nk_ushort) * 4);
+			SMemCopy(img.region, cursorStack->GetItem()->Sprite.Region, sizeof(nk_ushort) * 4);
 			nk_image(ctx, img);
 		}
 		nk_end(ctx);
