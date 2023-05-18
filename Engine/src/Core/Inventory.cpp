@@ -98,6 +98,8 @@ bool Inventory::RemoveStack(uint16_t x, uint16_t y)
 			}
 		}
 	}
+
+	return true;
 }
 
 bool Inventory::CanInsertStack(uint16_t x, uint16_t y, const Item* item) const
@@ -239,7 +241,7 @@ uint16_t InventoryMgr::RegisterItem(Sprite sprite)
 	SASSERT(NextItemId < INV_MAX_ITEMS);
 
 	if (NextItemId >= INV_MAX_ITEMS)
-		return UINT32_MAX;
+		return UINT16_MAX;
 
 	uint16_t id = NextItemId++;
 	Items[id] = {};

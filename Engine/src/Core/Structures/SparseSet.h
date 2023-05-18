@@ -5,7 +5,17 @@
 
 #define SPARSE_EMPTY_ID UINT32_MAX
 
-#define SparseBoundsCheck(ptr, cap, index) SASSERT(ptr + index >= ptr); SASSERT(ptr + index < ptr + cap)
+internal inline bool
+SparseBoundsCheckFunc(void* ptr, uint32_t cap, uint32_t idx)
+{
+	uint8_t* ptrCast = static_cast<uint8_t*>(ptr);
+	SASSERT(ptrCast);
+	SASSERT(idx < cap);
+	SASSERT((ptrCast + idx) >= ptrCast);
+	SASSERT((ptrCast + idx) < (ptrCast + cap));
+	return true;
+}
+#define SparseBoundsCheck(ptr, cap, idx) SASSERT(SparseBoundsCheckFunc(ptr, cap, idx))
 
 struct SparseSet
 {
@@ -79,6 +89,8 @@ struct SparseSet
 		if (Count >= DenseCapacity)
 			ResizeDense(Count + 1);
 
+		SASSERT(id <= MaxValue)
+
 		uint32_t index = Count;
 
 		SparseBoundsCheck(Dense, DenseCapacity, index);
@@ -92,15 +104,20 @@ struct SparseSet
 
 	uint32_t Remove(uint32_t id)
 	{
-		if (id > MaxValue || id >= SparseCapacity) 
+		if (id > MaxValue) 
 			return SPARSE_EMPTY_ID;
 
 		SparseBoundsCheck(Sparse, SparseCapacity, id);
 		uint32_t index = Sparse[id];
-		if (index < Count - 1)
+
+		if (index == SPARSE_EMPTY_ID)
+			return SPARSE_EMPTY_ID;
+
+		uint32_t last = Count - 1;
+		if (index < last)
 		{
 			SparseBoundsCheck(Dense, DenseCapacity, index);
-			Dense[index] = Dense[Count - 1];
+			Dense[index] = Dense[last];
 			uint32_t moved = Dense[index];
 			SparseBoundsCheck(Sparse, SparseCapacity, moved);
 			Sparse[moved] = index;
@@ -112,7 +129,9 @@ struct SparseSet
 
 	uint32_t Get(uint32_t id) const
 	{
-		SASSERT(id <= MaxValue);
+		if (id > MaxValue)
+			return SPARSE_EMPTY_ID;
+
 		SparseBoundsCheck(Sparse, SparseCapacity, id);
 		return Sparse[id];
 	}

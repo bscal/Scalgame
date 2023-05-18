@@ -25,7 +25,6 @@ struct PlayerEntity
 	bool HasMoved;
 
 	void Update();
-	void Move(Vector2 to);
 
 	TransformComponent* GetTransform();
 };

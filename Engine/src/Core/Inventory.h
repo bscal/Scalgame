@@ -73,8 +73,8 @@ struct InventorySlot
 struct InventoryStack
 {
 	ItemStack Stack;
-	uint8_t SlotX;
-	uint8_t SlotY;
+	uint16_t SlotX;
+	uint16_t SlotY;
 };
 
 struct Inventory

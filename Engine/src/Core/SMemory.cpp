@@ -23,6 +23,8 @@
 // TODO: maybe move this to an internal state struct?
 global_var MemPool* GameMemoryPtr;
 global_var BiStack* TemporaryMemoryPtr;
+global_var uint8_t* GameMemoryStart;
+global_var uint8_t* TempMemoryStart;
 global_var uint64_t MemoryTagUsage[(uint8_t)MemoryTag::MaxTags];
 global_var uint64_t GameMemSize;
 global_var uint64_t TemporaryMemSize;
@@ -39,12 +41,16 @@ SMemInitialize(GameApplication* gameApp,
 	TemporaryMemSize = AlignSize(temporaryMemSize, 64);
 	TotalMemoryAllocated = GameMemSize + TemporaryMemSize;
 
-	uint8_t* memoryLocation = (uint8_t*)_aligned_malloc(TotalMemoryAllocated, 64);
-	SASSERT(memoryLocation);
-	SMemClear(memoryLocation, TotalMemoryAllocated);
+	GameMemoryStart = (uint8_t*)_aligned_malloc(TotalMemoryAllocated, 64);
+	SASSERT(GameMemoryStart);
+	SMemClear(GameMemoryStart, TotalMemoryAllocated);
 
-	gameApp->GameMemory = CreateMemPoolFromBuffer(memoryLocation, GameMemSize);
-	gameApp->TemporaryMemory = CreateBiStackFromBuffer(memoryLocation + GameMemSize, TemporaryMemSize);
+	gameApp->GameMemory = CreateMemPoolFromBuffer(GameMemoryStart, GameMemSize);
+
+	TempMemoryStart = GameMemoryStart + GameMemSize;
+	gameApp->TemporaryMemory = CreateBiStackFromBuffer(TempMemoryStart, TemporaryMemSize);
+
+
 	GameMemoryPtr = &gameApp->GameMemory;
 	TemporaryMemoryPtr = &gameApp->TemporaryMemory;
 
@@ -66,11 +72,11 @@ SMemInitialize(GameApplication* gameApp,
 
 	MemorySizeData gameFormatSize = FindMemSize(gameMemSize);
 	SLOG_INFO("[ Memory ] Game mem size: %.2f%c. At: 0x%p", gameFormatSize.Size,
-		gameFormatSize.BytePrefix, memoryLocation);
+		gameFormatSize.BytePrefix, GameMemoryStart);
 
 	MemorySizeData tempFormatSize = FindMemSize(temporaryMemSize);
 	SLOG_INFO("[ Memory ] Temporary mem size: %.2f%c. At: 0x%p", tempFormatSize.Size,
-		tempFormatSize.BytePrefix, memoryLocation + GameMemSize);
+		tempFormatSize.BytePrefix, TempMemoryStart);
 }
 
 void SMemFree()
@@ -292,6 +298,44 @@ void SMemClear(void* dst, size_t size)
 	SASSERT(dst);
 	SASSERT(size > 0);
 	memset(dst, 0, size);
+}
+
+bool ValidateMemory(SAllocator allocator, void* block)
+{
+	switch (allocator)
+	{
+		case(SAllocator::Game):
+		{
+			return ValidateGameMemory(block);
+		} break;
+
+		case(SAllocator::Temp):
+		{
+			return ValidateTempMemory(block);
+		} break;
+
+		case(SAllocator::Malloc):
+		{
+			return (block);
+		} break;
+
+		default:
+		{
+			SLOG_ERR("Using an invalid allocator!");
+			SASSERT(false);
+			return false;
+		} break;
+	}
+}
+
+bool ValidateGameMemory(void* block)
+{
+	return ((uint8_t*)(block) >= GameMemoryStart && (uint8_t*)(block) < (GameMemoryStart + GameMemSize));
+}
+
+bool ValidateTempMemory(void* block)
+{
+	return ((uint8_t*)(block) >= TempMemoryStart && (uint8_t*)(block) < (TempMemoryStart + TemporaryMemSize));
 }
 
 const size_t* SMemGetTaggedUsages()

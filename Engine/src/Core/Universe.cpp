@@ -19,7 +19,7 @@ void UniverseUnload(Universe* universe, GameApplication* gameApp)
 
 void UniverseUpdate(Universe* universe, Game* game)
 {
-	universe->UpdateCounter += GetTime();
+	universe->UpdateCounter += (float)GetTime();
 	if (universe->UpdateCounter > universe->UpdateCounterTarget)
 	{
 		universe->UpdateCounter = 0.0f;

@@ -37,7 +37,7 @@ UpdateEntities(EntityMgr* entityMgr, ComponentMgr* componentMgr)
 		light->UpdateCounter -= GetDeltaTime();
 		if (light->UpdateCounter < 0)
 		{
-			light->UpdateCounter = 0.2;
+			light->UpdateCounter = 0.2f;
 			int rand = (int)SRandNextRange(GetGlobalRandom(), 0, 1);
 			light->FinalColor = light->Colors[rand];
 			light->Radius = SRandNextFloatRange(GetGlobalRandom(), light->MinRadius, light->MaxRadius);

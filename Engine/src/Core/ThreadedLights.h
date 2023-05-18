@@ -15,4 +15,4 @@ struct ThreadedLights
 	void UpdateLightColorArray(Vector4* finalColors) const;
 };
 
-void ProcessLightUpdater(UpdatingLight* light, size_t width, Vector3* colorsArray, ChunkedTileMap* tilemap);
+void ProcessLightUpdater(UpdatingLight* light, uint32_t screenLightsWidth, Vector3* colorsArray, ChunkedTileMap* tilemap);

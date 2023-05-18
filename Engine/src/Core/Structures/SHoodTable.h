@@ -170,7 +170,7 @@ void SHoodTable<K, V, HashFunc, EqualsFunc>::Insert(const K* key, const V* value
 	swapBucket.Value = *value;
 	swapBucket.Occupied = true;
 
-	uint64_t index = hash;
+	uint32_t index = (uint32_t)hash;
 	uint32_t probeLength = 0;
 	while (true)
 	{
@@ -229,7 +229,7 @@ SHoodBucket<K, V>* SHoodTable<K, V, HashFunc, EqualsFunc>::InsertAndGet(const K*
 	swapBucket.Value = *value;
 	swapBucket.Occupied = true;
 
-	uint64_t index = hash;
+	uint32_t index = (uint32_t)hash;
 	uint32_t probeLength = 0;
 	while (true)
 	{
@@ -296,7 +296,7 @@ V* SHoodTable<K, V, HashFunc, EqualsFunc>::InsertKey(const K* key)
 	swapBucket.Key = *key;
 	swapBucket.Occupied = true;
 
-	uint64_t index = hash;
+	uint64_t index = (uint32_t)hash;
 	uint32_t probeLength = 0;
 	while (true)
 	{
@@ -351,7 +351,7 @@ V* SHoodTable<K, V, HashFunc, EqualsFunc>::Get(const K* key) const
 	SASSERT(key);
 
 	uint64_t hash = Hash(key);
-	uint32_t index = hash;
+	uint32_t index = (uint32_t)hash;
 	while (true)
 	{
 		SHoodBucket<K, V>* bucket = &Buckets[index];
@@ -377,7 +377,7 @@ bool SHoodTable<K, V, HashFunc, EqualsFunc>::Contains(const K* key) const
 	SASSERT(key);
 
 	uint64_t hash = Hash(key);
-	uint32_t index = hash;
+	uint32_t index = (uint32_t)hash;
 	while (true)
 	{
 		SHoodBucket<K, V>* bucket = &Buckets[index];
@@ -403,7 +403,7 @@ bool SHoodTable<K, V, HashFunc, EqualsFunc>::Remove(const K* key)
 	SASSERT(key);
 
 	uint64_t hash = Hash(key);
-	uint32_t index = hash;
+	uint32_t index = (uint32_t)hash;
 	while (true)
 	{
 		SHoodBucket<K, V>* bucket = &Buckets[index];

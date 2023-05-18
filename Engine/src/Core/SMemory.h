@@ -75,6 +75,10 @@ void SMemMove(void* dst, const void* src, size_t size);
 void SMemSet(void* block, int value, size_t size);
 void SMemClear(void* block, size_t size);
 
+bool ValidateMemory(SAllocator allocator, void* block);
+bool ValidateGameMemory(void* block);
+bool ValidateTempMemory(void* block);
+
 const size_t* SMemGetTaggedUsages();
 uint64_t SMemGetAllocated();
 uint64_t SMemGetLastFrameTempUsage();

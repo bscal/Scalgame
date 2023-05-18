@@ -4,6 +4,7 @@
 #include "Core/SMemory.h"
 
 #define SLIST_DEFAULT_RESIZE 2
+#define SLIST_NO_FOUND UINT32_MAX
 
 template<typename T>
 struct SList
@@ -43,14 +44,12 @@ struct SList
 	SList<T>& Assign(T* inList, size_t listCount);
 
 	bool Contains(const T* value) const;
-	int64_t Find(const T* value) const;
+	uint32_t Find(const T* value) const;
 	inline void Clear();
 
 	inline uint32_t LastIndex() const; // last used index, or 0
 	inline size_t MemUsed() const; // Total memory used in bytes
 	inline bool IsAllocated() const;
-
-	void DebugPrint();
 };
 
 // ********************
@@ -136,11 +135,10 @@ void SList<T>::PushAt(uint32_t index, const T* valueSrc)
 	}
 	if (index != Count)
 	{
-		size_t dstOffset = (size_t)(index + 1) * sizeof(T);
-		size_t srcOffset = index * sizeof(T);
+		size_t dstOffset = (size_t)index + 1;
+		size_t srcOffset = index;
 		size_t sizeTillEnd = (size_t)(Count - index) * sizeof(T);
-		char* mem = (char*)Memory;
-		SMemMove(mem + dstOffset, mem + srcOffset, sizeTillEnd);
+		SMemMove(Memory + dstOffset, Memory + srcOffset, sizeTillEnd);
 	}
 	Memory[index] = *valueSrc;
 	++Count;
@@ -318,14 +316,14 @@ bool SList<T>::Contains(const T* value) const
 }
 
 template<typename T>
-int64_t SList<T>::Find(const T* value) const
+uint32_t SList<T>::Find(const T* value) const
 {
 	SASSERT(value);
-	for (int64_t i = 0; i < Count; ++i)
+	for (uint32_t i = 0; i < Count; ++i)
 	{
 		if (Memory[i] == *value) return i;
 	}
-	return -1;
+	return SLIST_NO_FOUND;
 }
 
 template<typename T>

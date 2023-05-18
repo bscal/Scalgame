@@ -128,7 +128,7 @@ global_var constexpr int VIEW_DISTANCE = 1;
 #define SetGen(entity, gen) ((entity & 0x00ffffff) | ((uint8_t)gen << 24u))
 #define GetId(entity) (entity & 0x00ffffff)
 #define GetGen(entity) (uint8_t)((entity & 0xff000000) >> 24u)
-#define IncGen(entity) SetGen(entity, GetGen(entity) + 1)
+#define IncGen(entity) (SetGen(entity, (GetGen(entity) + 1)))
 
 namespace Colors
 {

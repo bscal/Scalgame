@@ -13,7 +13,7 @@ struct LightUpdater
 	Vector3* ColorsArray;
 	ChunkedTileMap* Tilemap;
 	Vector2i Origin;
-	size_t Width;
+	uint32_t Width;
 
 	void ProcessOctant(uint8_t octant, int x, Slope top, Slope bottom);
 	void SetColor(uint32_t index, float distance);
@@ -51,14 +51,14 @@ void ThreadedLights::UpdateLightColorArray(Vector4* finalColors) const
 	}
 }
 
-void ProcessLightUpdater(UpdatingLight* light, size_t width, Vector3* colorsArray, ChunkedTileMap* tilemap)
+void ProcessLightUpdater(UpdatingLight* light, uint32_t screenLightsWidth, Vector3* colorsArray, ChunkedTileMap* tilemap)
 {
 	LightUpdater updater = LightUpdater();
 	updater.Light = light;
 	updater.ColorsArray = colorsArray;
 	updater.Tilemap = tilemap;
 	updater.Origin = Vector2i::FromVec2(light->Pos);
-	updater.Width = width;
+	updater.Width = screenLightsWidth;
 
 	TileCoord coord = WorldTileToCullTile(updater.Origin);
 	uint32_t idx = coord.x + coord.y * updater.Width;

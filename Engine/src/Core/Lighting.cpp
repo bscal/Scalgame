@@ -242,7 +242,7 @@ void LightsUpdate(LightingState* lightingState, Game* game)
 		ProcessLightUpdater(light, CULL_WIDTH_TILES, threadedLights.ColorArrayPtrs[threadIndex], tilemap);
 		PROFILE_BEGIN();
 	};
-	uint32_t num = std::ceilf((float)lightingState->UpdatingLights.Count / 3.0f);
+	uint32_t num = (uint32_t)std::ceilf((float)lightingState->UpdatingLights.Count / 3.0f);
 	wi::jobsystem::Dispatch(ctx, lightingState->UpdatingLights.Count, num, task, 0);
 #else
 	for (uint32_t i = 0; i < lightingState->UpdatingLights.Count; ++i)
