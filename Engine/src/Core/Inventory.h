@@ -25,6 +25,13 @@ union UID
 	uint32_t Mask;
 };
 
+namespace Items
+{
+inline uint16_t AIR;
+inline uint16_t TORCH;
+inline uint16_t FIRE_STAFF;
+};
+
 struct Item
 {
 	typedef ItemStack(*CreateDefaultStack)();
@@ -54,13 +61,15 @@ struct ItemStack
 
 	bool Increment();
 	bool Deincrement();
+
+	inline bool IsEmpty() const { return ItemId == Items::AIR; }
 };
 global_var constexpr ItemStack AIR_ITEMSTACK = {};
 
 enum class InventorySlotState : uint8_t
 {
-	EMPTY = 0,
-	NOT_USED,
+	NOT_USED = 0,
+	EMPTY,
 	FILLED
 };
 
@@ -113,13 +122,6 @@ struct Equipment
 	bool UnequipItem(CreatureEntity* creature, uint8_t slot);
 };
 
-namespace Items
-{
-inline uint16_t AIR;
-inline uint16_t TORCH;
-inline uint16_t FIRE_STAFF;
-};
-
 struct InventoryMgr
 {
 	StaticArray<Item, INV_MAX_ITEMS> Items;
@@ -137,6 +139,7 @@ struct InventoryMgr
 	uint16_t RegisterItemFunc(Sprite sprite, void(*RegisterCallback)(Item* item));
 
 	Inventory* CreateInventory(uint32_t entity, uint16_t width, uint16_t height);
+	Inventory* CreateInventoryLayout(uint32_t entity, uint16_t width, uint16_t height, const InventorySlotState* layoutArray);
 	void RemoveInventory(Inventory* inventory);
 
 	Equipment* CreateEquipment();

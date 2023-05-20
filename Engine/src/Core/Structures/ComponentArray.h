@@ -15,17 +15,13 @@ struct ComponentArray
 	OnAdd AddCallback;
 	OnRemove RemoveCallback;
 
-	inline uint32_t Size() const
+	inline void Initialize(uint32_t defaultCap, size_t stride, OnAdd addCb, OnRemove removeCb)
 	{
-		return Values.Count;
-	}
-
-	template<typename T>
-	inline void Initialize()
-	{
-		Values = ArrayCreate((uint8_t)SAllocator::Game, 1, sizeof(T));
-		Indices = {};
-		Indices.Reserve(0, 1);
+		Values = ArrayCreate((uint8_t)SAllocator::Game, defaultCap, stride);
+		SMemSet(&Indices, 0, sizeof(SparseSet));
+		Indices.Reserve(0, defaultCap);
+		AddCallback = addCb;
+		RemoveCallback = removeCb;
 	}
 
 	template<typename T>
@@ -116,4 +112,8 @@ struct ComponentArray
 		return (idx != SPARSE_EMPTY_ID);
 	}
 
+	inline uint32_t Size() const
+	{
+		return Values.Count;
+	}
 };

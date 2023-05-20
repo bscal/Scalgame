@@ -19,13 +19,13 @@ SparseBoundsCheckFunc(void* ptr, uint32_t cap, uint32_t idx)
 
 struct SparseSet
 {
-	SAllocator Allocator;
 	uint32_t* Sparse;
 	uint32_t* Dense;
 	uint32_t Count;
 	uint32_t SparseCapacity;
 	uint32_t DenseCapacity;
 	uint32_t MaxValue;
+	SAllocator Allocator;
 
 	inline bool IsAllocated() { return (Sparse && Dense); }
 

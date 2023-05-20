@@ -270,6 +270,16 @@ Inventory* InventoryMgr::CreateInventory(uint32_t entity, uint16_t width, uint16
 	return inv;
 }
 
+Inventory* InventoryMgr::CreateInventoryLayout(uint32_t entity, uint16_t width, uint16_t height, const InventorySlotState* layoutArray)
+{
+	Inventory* inv = CreateInventory(entity, width, height);
+	for (uint32_t i = 0; i < inv->Slots.Count; ++i)
+	{
+		inv->Slots[i].State = (uint16_t)layoutArray[i];
+	}
+	return inv;
+}
+
 void InventoryMgr::RemoveInventory(Inventory* inventory)
 {
 	inventory->Slots.Free();

@@ -11,7 +11,7 @@ struct SList
 {
 	T* Memory;
 	uint32_t Capacity;
-	uint32_t Count; // Number of elements or last index to insert
+	uint32_t Count;
 	SAllocator Allocator;
 
 	void EnsureSize(uint32_t ensuredCount); // ensures capacity and count elements
@@ -310,7 +310,8 @@ bool SList<T>::Contains(const T* value) const
 	SASSERT(value);
 	for (uint32_t i = 0; i < Count; ++i)
 	{
-		if (Memory[i] == *value) return true;
+		if (Memory[i] == *value)
+			return true;
 	}
 	return false;
 }
@@ -321,7 +322,8 @@ uint32_t SList<T>::Find(const T* value) const
 	SASSERT(value);
 	for (uint32_t i = 0; i < Count; ++i)
 	{
-		if (Memory[i] == *value) return i;
+		if (Memory[i] == *value)
+			return i;
 	}
 	return SLIST_NO_FOUND;
 }
