@@ -257,20 +257,38 @@ SAPI void GameApplication::Run()
 			}
 
 			if (IsKeyPressed(KEY_EIGHT))
+			{
+				PlayerEntity* player = GetClientPlayer();
+				if (Game->IsInventoryOpen && !player->CursorStack.IsEmpty())
+				{
+					CreatureEntity* playerCreature = Game->ComponentMgr.GetComponent<CreatureEntity>(player->EntityId);
+					Inventory* playerInv = Game->InventoryMgr.Inventories.Get(&playerCreature->InventoryId);
+					if (playerInv)
+					{
+						playerInv->SetStack(player->CursorStackLastPos.x, player->CursorStackLastPos.y, &player->CursorStack);
+						player->CursorStackLastPos = {};
+						player->CursorStack.Remove();
+					}
+				}
+
 				Game->IsInventoryOpen = !Game->IsInventoryOpen;
+			}
 
 			if (IsKeyPressed(KEY_NINE))
 			{
-				Inventory* inv = GetGame()->InventoryMgr.CreateInventory(GetClientPlayer()->EntityId, 10, 6);
-				Equipment* equipment = GetGame()->InventoryMgr.CreateEquipment();
-
 				CreatureEntity* creature = Game->ComponentMgr.AddComponent(GetClientPlayer()->EntityId, CreatureEntity{});
-				creature->OwningEntity = GetClientPlayer()->EntityId;
-				creature->InventoryId = inv->InventoryId;
-				creature->EquipmentId = equipment->EquipmentId;
+				Inventory* playerInv = Game->InventoryMgr.Inventories.Get(&creature->InventoryId);
+				SASSERT(playerInv);
+				Equipment* playerEquipment = Game->InventoryMgr.Equipments.Get(&creature->InventoryId);
+				SASSERT(playerEquipment);
+
+				ItemStack itemStack = ItemStackNew(Items::TORCH, 1);
+				playerInv->SetStack(2, 2, &itemStack);
+				ItemStack itemStack2 = ItemStackNew(Items::FIRE_STAFF, 1);
+				playerInv->SetStack(0, 2, &itemStack2);
 
 				ItemStack stack = ItemStackNew(Items::TORCH, 1);
-				equipment->EquipItem(creature, &stack, 0);
+				playerEquipment->EquipItem(creature, &stack, 0);
 			}
 
 			if (IsKeyPressed(KEY_ZERO))
@@ -425,7 +443,6 @@ internal void GameLateUpdate(Game* game)
 
 SAPI void GameApplication::Shutdown()
 {
-	GameAppPtr = nullptr;
 	FreeResouces(&Game->Resources);
 	Game->Renderer.Free();
 	Game->TileMapRenderer.Free();
@@ -435,6 +452,8 @@ SAPI void GameApplication::Shutdown()
 
 	CloseWindow();
 	SMemFree();
+
+	GameAppPtr = nullptr;
 }
 
 internal void GameUnload(Game* game, GameApplication* gameApp)

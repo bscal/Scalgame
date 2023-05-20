@@ -20,6 +20,7 @@ typedef uint32_t Entity;
 struct PlayerEntity
 {
 	ItemStack CursorStack;
+	Vector2i CursorStackLastPos;
 	Vector2i TilePos;
 	uint32_t EntityId;
 	bool HasMoved;
@@ -84,10 +85,7 @@ struct ComponentMgr
 	{
 		uint32_t componentId = ComponentType::Id;
 		Components.EnsureSize(componentId + 1);
-		Components[componentId] = {};
-		Components[componentId].Initialize<ComponentType>();
-		Components[componentId].AddCallback = addCallback;
-		Components[componentId].RemoveCallback = removeCallback;
+		Components[componentId].Initialize(1, sizeof(ComponentType), addCallback, removeCallback);
 
 		#if SCAL_DEBUG
 		const std::type_info& typeInfo = typeid(ComponentType);

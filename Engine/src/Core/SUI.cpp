@@ -29,7 +29,7 @@ internal void AppendMemoryUsage(UIState* state);
 bool InitializeUI(UIState* state, GameApplication* gameApp)
 {
 	InitializeNuklear(&state->Ctx, state, &gameApp->Game->Resources.FontSilver, 16.0f);
-	
+
 	// Initialize ConsoleEntries
 	state->ConsoleEntries.Allocator = SAllocator::Game;
 	state->ConsoleEntries.Reserve(CONSOLE_MAX_LENGTH);
@@ -44,7 +44,7 @@ static Inventory* inv;
 void UpdateUI(UIState* state, Game* game)
 {
 	PROFILE_BEGIN();
-	SASSERT_MSG(state->Ctx.memory.needed < state->Ctx.memory.size, 
+	SASSERT_MSG(state->Ctx.memory.needed < state->Ctx.memory.size,
 		"UI needed memory is larger then memory allocated!");
 
 	UpdateNuklear(&state->Ctx);
@@ -59,15 +59,15 @@ void UpdateUI(UIState* state, Game* game)
 
 	if (game->IsInventoryOpen)
 	{
-		if (!inv)
+		CreatureEntity* creature = game->ComponentMgr.GetComponent<CreatureEntity>(GetClientPlayer()->EntityId);
+		if (creature)
 		{
-			inv = game->InventoryMgr.CreateInventory(UINT32_MAX, 4, 4);
-			ItemStack itemStack = ItemStackNew(Items::TORCH, 1);
-			inv->SetStack(2, 2, &itemStack);
-			ItemStack itemStack2 = ItemStackNew(Items::FIRE_STAFF, 1);
-			inv->SetStack(0, 2, &itemStack2);
-		}		
-		DrawInventory(&state->Ctx, inv);
+			Inventory* inv = game->InventoryMgr.Inventories.Get(&creature->InventoryId);
+			if (inv)
+			{
+				DrawInventory(&state->Ctx, inv);
+			}
+		}
 	}
 
 	DrawConsole(state);
@@ -81,19 +81,19 @@ void DrawUI(UIState* state)
 	PROFILE_END();
 }
 
-internal nk_colorf 
+internal nk_colorf
 Vec4ToColorF(const Vector4 color)
 {
 	return { color.x, color.y, color.z, color.w };
 }
 
-internal Vector4 
+internal Vector4
 ColorFToVec4(struct nk_colorf color)
 {
 	return { color.r, color.g, color.b, color.a };
 }
 
-internal struct nk_color 
+internal struct nk_color
 ColorFToColor(struct nk_colorf* color)
 {
 	struct nk_color result;
@@ -109,7 +109,7 @@ internal bool ColorFEqual(const struct nk_colorf& v0, const struct nk_colorf& v1
 	return (v0.r == v1.r && v0.g == v1.g && v0.b == v1.b && v0.a == v1.a);
 }
 
-internal float 
+internal float
 CalculateTextWidth(nk_handle handle, float height, const char* text, int len)
 {
 	if (len == 0) return 0.0f;
@@ -119,7 +119,7 @@ CalculateTextWidth(nk_handle handle, float height, const char* text, int len)
 	return MeasureTextEx(*(Font*)handle.ptr, subtext, height, height / 10.0f).x;
 }
 
-internal void 
+internal void
 InitializeNuklear(nk_context* nkCtxToInit, UIState* state, Font* font, float fontSize)
 {
 	state->Font.userdata = nk_handle_ptr(font);
@@ -150,15 +150,15 @@ InitializeNuklear(nk_context* nkCtxToInit, UIState* state, Font* font, float fon
 	SLOG_INFO("[ UI ] Initialized Nuklear");
 }
 
-internal void 
+internal void
 DrawDebugPanel(UIState* state)
 {
 	struct nk_context* ctx = &state->Ctx;
 	PlayerEntity* p = GetClientPlayer();
-	
+
 	ctx->style.window.fixed_background.data.color = BG_COLOR;
-	
-	if (nk_begin(ctx, "Debug", { 4, 4, 500, (float)GetScreenHeight()},
+
+	if (nk_begin(ctx, "Debug", { 4, 4, 500, (float)GetScreenHeight() },
 		NK_WINDOW_NO_SCROLLBAR))
 	{
 		nk_layout_row_dynamic(ctx, 16, 2);
@@ -263,7 +263,7 @@ DrawDebugPanel(UIState* state)
 	nk_end(&state->Ctx);
 }
 
-internal void 
+internal void
 AppendMemoryUsage(UIState* state)
 {
 	nk_layout_row_dynamic(&state->Ctx, 16, 1);
@@ -294,7 +294,7 @@ AppendMemoryUsage(UIState* state)
 	}
 }
 
-internal void 
+internal void
 DrawConsole(UIState* state)
 {
 	local_var int heightAnimValue;
@@ -383,7 +383,7 @@ DrawConsole(UIState* state)
 			}
 			if (cmdMgr->Length > 0)
 			{
-				SuggestionPanelSize = (float)(24.0f * cmdMgr->Suggestions.Count);
+				SuggestionPanelSize = (float)(cmdMgr->Suggestions.Count) * 24.0f;
 				nk_layout_row_dynamic(ctx, TEXT_ENTRY_HEIGHT, 1);
 				for (uint32_t i = 0; i < cmdMgr->Suggestions.Count; ++i)
 				{
@@ -401,7 +401,7 @@ DrawConsole(UIState* state)
 		heightAnimValue = 0;
 }
 
-internal void 
+internal void
 DrawFPS(struct nk_context* ctx)
 {
 	float w = (float)GetScreenWidth();
@@ -418,67 +418,67 @@ DrawFPS(struct nk_context* ctx)
 internal void
 DrawInventory(struct nk_context* ctx, Inventory* inv)
 {
-	constexpr float SLOT_SIZE = 32.0f;
-
-	float width = SLOT_SIZE * (inv->Width);
-	float height = SLOT_SIZE * (inv->Height);
-
 	Texture2D* spriteSheet = &GetGame()->Resources.EntitySpriteSheet;
 	ItemStack* cursorStack = &GetClientPlayer()->CursorStack;
 	bool hasHandledInventoryActionThisFrame = false;
-
-	struct nk_rect windowRect;
-	windowRect.x = 256.0f;
-	windowRect.y = 256.0f;
-	windowRect.w = width;
-	windowRect.h = height;
 
 	ctx->style.window.padding = nk_vec2(0.0f, 0.0f);
 	ctx->style.window.border = 0.0f;
 	ctx->style.window.spacing.x = 0.0f;
 	ctx->style.window.spacing.y = 0.0f;
 
+	constexpr struct nk_color BORDER_COLOR = { 88, 88, 88, 255 };
+	constexpr float SLOT_SIZE = 64.0f;
+	constexpr float BORDER_SIZE = 2.0f;
+
+	float width = SLOT_SIZE * (inv->Width);
+	float height = SLOT_SIZE * (inv->Height);
+
+	struct nk_rect windowRect;
+	windowRect.x = 256.0f;
+	windowRect.y = 256.0f;
+	windowRect.w = width + BORDER_SIZE;
+	windowRect.h = height + BORDER_SIZE;
 	if (nk_begin(ctx, "Inventory", windowRect, NK_WINDOW_NO_SCROLLBAR))
 	{
-		ctx->style.window.spacing.x = 0.0f;
-		ctx->style.window.spacing.y = 0.0f;
+		nk_layout_space_begin(ctx, NK_STATIC, height, INT_MAX);
 
 		ctx->style.button.border = 0.0f;
 		ctx->style.button.padding = { 0.0f, 0.0f };
 		ctx->style.button.rounding = 0.0f;
 
-		nk_layout_space_begin(ctx, NK_STATIC, height, INT_MAX);
-
+		uint16_t idx = 0;
 		// Draws slots + empty slot insert buttons
 		for (uint16_t h = 0; h < inv->Height; ++h)
 		{
 			for (uint16_t w = 0; w < inv->Width; ++w)
 			{
-				struct nk_rect rect;
-				rect.x = w * SLOT_SIZE;
-				rect.y = h * SLOT_SIZE;
-				rect.w = SLOT_SIZE;
-				rect.h = SLOT_SIZE;
-				nk_layout_space_push(ctx, rect);
+				InventorySlot slot = inv->Slots[idx++];
+				if ((InventorySlotState)slot.State == InventorySlotState::NOT_USED)
+					continue;
 
-				nk_window* win = ctx->current;
-				SASSERT(win);
+				struct nk_rect borderRect;
+				borderRect.x = w * SLOT_SIZE;
+				borderRect.y = h * SLOT_SIZE;
+				borderRect.w = SLOT_SIZE + BORDER_SIZE;
+				borderRect.h = SLOT_SIZE + BORDER_SIZE;
+				nk_layout_space_push(ctx, borderRect);
+				{
+					nk_window* win = ctx->current;
+					SASSERT(win);
 
-				struct nk_rect bounds;
-				enum nk_widget_layout_states state;
-				state = nk_widget(&bounds, ctx);
+					struct nk_rect bounds;
+					enum nk_widget_layout_states state;
+					state = nk_widget(&bounds, ctx);
 
-				struct nk_color fillColor = { 22, 22, 22, 255 };
-				nk_fill_rect(&win->buffer, bounds, 0.0f, fillColor);
-
-				struct nk_color strokeColor = { 88, 88, 88, 255 };
-				nk_stroke_rect(&win->buffer, bounds, 0.0f, 1.0f, strokeColor);
+					nk_stroke_rect(&win->buffer, bounds, 0.0f, BORDER_SIZE, BORDER_COLOR);
+				}
 
 				struct nk_rect but;
-				but.x = w * SLOT_SIZE + 2;
-				but.y = h * SLOT_SIZE + 2;
-				but.w = SLOT_SIZE - 4;
-				but.h = SLOT_SIZE - 4;
+				but.x = w * SLOT_SIZE + BORDER_SIZE;
+				but.y = h * SLOT_SIZE + BORDER_SIZE;
+				but.w = SLOT_SIZE - (BORDER_SIZE);
+				but.h = SLOT_SIZE - (BORDER_SIZE);
 				nk_layout_space_push(ctx, but);
 				if (nk_button_color(ctx, { 22, 22, 22, 255 }))
 				{
@@ -502,7 +502,7 @@ DrawInventory(struct nk_context* ctx, Inventory* inv)
 		}
 
 		// Inventory border
-		nk_layout_space_push(ctx, nk_rect(0, 0, width, height));
+		nk_layout_space_push(ctx, nk_rect(0, 0, width + BORDER_SIZE, height + BORDER_SIZE));
 		{
 			nk_window* win = ctx->current;
 			SASSERT(win);
@@ -511,8 +511,7 @@ DrawInventory(struct nk_context* ctx, Inventory* inv)
 			enum nk_widget_layout_states state;
 			state = nk_widget(&bounds, ctx);
 
-			struct nk_color strokeColor = { 88, 88, 88, 255 };
-			nk_stroke_rect(&win->buffer, bounds, 0.0f, 2.0f, strokeColor);
+			nk_stroke_rect(&win->buffer, bounds, 0.0f, BORDER_SIZE, BORDER_COLOR);
 		}
 
 		// Draws inventory items in inventory + take item buttons
@@ -522,10 +521,10 @@ DrawInventory(struct nk_context* ctx, Inventory* inv)
 			Item* item = invStack.Stack.GetItem();
 
 			struct nk_rect rect;
-			rect.x = invStack.SlotX * SLOT_SIZE + 2;
-			rect.y = invStack.SlotY * SLOT_SIZE + 2;
-			rect.w = item->Width * SLOT_SIZE - 4;
-			rect.h = item->Height * SLOT_SIZE - 4;
+			rect.x = (float)invStack.SlotX * SLOT_SIZE + BORDER_SIZE;
+			rect.y = (float)invStack.SlotY * SLOT_SIZE + BORDER_SIZE;
+			rect.w = (float)item->Width * SLOT_SIZE - (BORDER_SIZE);
+			rect.h = (float)item->Height * SLOT_SIZE - (BORDER_SIZE);
 			nk_layout_space_push(ctx, rect);
 
 			struct nk_image img;
@@ -545,11 +544,11 @@ DrawInventory(struct nk_context* ctx, Inventory* inv)
 				if (slotStack && cursorStack->ItemId == 0)
 				{
 					*cursorStack = *slotStack;
+					GetClientPlayer()->CursorStackLastPos = slotPressed;
 					inv->RemoveStack(slotPressed.x, slotPressed.y);
 				}
 			}
 		}
-
 		nk_layout_space_end(ctx);
 	}
 	nk_end(ctx);
