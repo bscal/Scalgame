@@ -430,6 +430,7 @@ DrawInventory(struct nk_context* ctx, Inventory* inv)
 	constexpr struct nk_color BORDER_COLOR = { 88, 88, 88, 255 };
 	constexpr float SLOT_SIZE = 64.0f;
 	constexpr float BORDER_SIZE = 2.0f;
+	constexpr float LABEL_HEIGHT = 16.0f;
 
 	float width = SLOT_SIZE * (inv->Width);
 	float height = SLOT_SIZE * (inv->Height);
@@ -438,9 +439,18 @@ DrawInventory(struct nk_context* ctx, Inventory* inv)
 	windowRect.x = 256.0f;
 	windowRect.y = 256.0f;
 	windowRect.w = width + BORDER_SIZE;
-	windowRect.h = height + BORDER_SIZE;
+	windowRect.h = height + LABEL_HEIGHT + BORDER_SIZE;
 	if (nk_begin(ctx, "Inventory", windowRect, NK_WINDOW_NO_SCROLLBAR))
 	{
+		// Inventory Title bar
+		nk_layout_space_begin(ctx, NK_STATIC, LABEL_HEIGHT, INT_MAX);
+		nk_layout_space_push(ctx, nk_rect(0, 0, windowRect.w, LABEL_HEIGHT));
+		nk_fill_rect(&ctx->current->buffer, nk_layout_space_bounds(ctx), 0.0f, BORDER_COLOR);
+		nk_layout_space_push(ctx, nk_rect(BORDER_SIZE, 0, windowRect.w, LABEL_HEIGHT));
+		nk_label(ctx, TextFormat("%s's Inventory", "Players Name"), NK_TEXT_ALIGN_LEFT);
+		nk_layout_space_end(ctx);
+
+		// Inventory Contents Grid
 		nk_layout_space_begin(ctx, NK_STATIC, height, INT_MAX);
 
 		ctx->style.button.border = 0.0f;

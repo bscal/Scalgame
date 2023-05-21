@@ -2,14 +2,14 @@
 
 #include "Core.h"
 #include "SMemory.h"
+#include "SHash.hpp"
 
 #include <stdint.h>
 #include <string.h>
-#include "SHash.hpp"
 
 global_var constexpr uint32_t SSTR_SSO_ARRAY_SIZE = 16;
 global_var constexpr uint32_t SSTR_SSO_STR_LENGTH = SSTR_SSO_ARRAY_SIZE - 1; // room for null terminator
-global_var constexpr uint32_t SSTR_NO_POS = UINT32_MAX - 1;
+global_var constexpr uint32_t SSTR_NO_POS = UINT32_MAX;
 
 bool SStrEquals(const char* str0, const char* str1);
 

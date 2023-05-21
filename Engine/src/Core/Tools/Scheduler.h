@@ -46,7 +46,7 @@ struct Scheduler
 			uint32_t maxIndex = (uint32_t)fminf((float)Tasks.Count, ceilf(ListProgress));
 
 			SLinkedList<int> indexToRemove = {};
-			indexToRemove.Allocator = SMEM_TEMP_ALLOCATOR;
+			indexToRemove.Allocator = SAllocator::Temp;
 
 			for (; ListCurrentIndex < maxIndex; ++ListCurrentIndex)
 			{

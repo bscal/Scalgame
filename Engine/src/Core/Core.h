@@ -9,6 +9,7 @@
 * -TODO
 * -NOTE
 * -COMMENT_THIS
+* -FIXME
 * 
 */
 
@@ -63,19 +64,16 @@ typedef int bool32;
 	#define DEBUG_BREAK(void) __builtin_trap()
 #endif
 
+#define SASSERT(expr) if (!(expr)) { TraceLog(LOG_ERROR, "Assertion Failure: %s\nMessage: % s\n  File : % s, Line : % d\n", #expr, "", __FILE__, __LINE__); DEBUG_BREAK(void); } 
+#define SASSERT_MSG(expr, msg) if (!(expr)) { TraceLog(LOG_ERROR, "Assertion Failure: %s\nMessage: % s\n  File : % s, Line : % d\n", #expr, msg, __FILE__, __LINE__); DEBUG_BREAK(void); }
+
 #define SLOG_DEBUG(msg, ...) TraceLog(LOG_DEBUG, msg, __VA_ARGS__)
-#define SASSERT(expr) if (!(expr)) { TraceLog(LOG_ERROR, "Assertion Failure: %s\nMessage: % s\n  File : % s, Line : % d\n" \
-								, #expr, "", __FILE__, __LINE__); DEBUG_BREAK(void); } 
-#define SASSERT_MSG(expr, msg) if (!(expr)) { TraceLog(LOG_ERROR, "Assertion Failure: %s\nMessage: % s\n  File : % s, Line : % d\n" \
-								, #expr, msg, __FILE__, __LINE__); DEBUG_BREAK(void); }
 
 #else
-
-#define SLOG_DEBUG(msg, ...)
+#define DEBUG_BREAK(void)
 #define SASSERT(expr)
 #define SASSERT_MSG(expr, msg)
-#define DEBUG_BREAK(void)
-
+#define SLOG_DEBUG(msg, ...)
 #endif
 
 #define SLOG_INFO(msg, ...) TraceLog(LOG_INFO, msg, __VA_ARGS__)
@@ -147,6 +145,7 @@ enum class TileDirection : uint8_t
 
 constexpr global_var float
 TileDirectionToTurns[] = { TAO * 0.75f, 0.0f, TAO * 0.25f, TAO * 0.5f };
+
 constexpr global_var Vector2
 TileDirectionVectors[] = { { 0, -1 }, { 1, 0 }, { 0, 1 }, { -1, 0 } };
 
@@ -161,11 +160,11 @@ TileDirectionVectors[] = { { 0, -1 }, { 1, 0 }, { 0, 1 }, { -1, 0 } };
 inline MemorySizeData FindMemSize(uint64_t size);
 inline double GetMicroTime();
 
-MemorySizeData FindMemSize(uint64_t size)
+inline MemorySizeData FindMemSize(uint64_t size)
 {
-	const uint64_t gb = 1024 * 1024 * 1024;
-	const uint64_t mb = 1024 * 1024;
-	const uint64_t kb = 1024;
+	const uint64_t gb = 1024ull * 1024ull * 1024ull;
+	const uint64_t mb = 1024ull * 1024ull;
+	const uint64_t kb = 1024ull;
 
 	if (size > gb)
 		return { (float)size / (float)gb, 'G' };
@@ -177,7 +176,7 @@ MemorySizeData FindMemSize(uint64_t size)
 		return { (float)size, ' ' };
 }
 
-double GetMicroTime()
+inline double GetMicroTime()
 {
 	return GetTime() * 1000000.0;
 }

@@ -102,7 +102,6 @@ struct Inventory
 	void SetStack(uint16_t x, uint16_t y, ItemStack* stack);
 	bool RemoveStack(uint16_t x, uint16_t y);
 	bool CanInsertStack(uint16_t x, uint16_t y, const Item* item) const;
-
 };
 
 enum class EquipmentSlots : uint8_t
@@ -144,5 +143,6 @@ struct InventoryMgr
 
 	Equipment* CreateEquipment();
 };
+
 
 ItemStack ItemStackNew(uint16_t itemId, uint16_t itemCount);
