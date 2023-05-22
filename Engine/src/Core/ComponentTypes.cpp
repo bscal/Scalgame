@@ -15,7 +15,7 @@ void CreatureEntity::OnAdd(uint32_t entity, void* component)
 		1, 1, 1, 1,
 		1, 1, 1, 1,
 	};
-	Inventory* inv = GetGame()->InventoryMgr.CreateInventoryLayout(entity, 4, 4, (InventorySlotState*)layout);
+	Inventory* inv = GetGame()->InventoryMgr.CreateInventoryLayout(entity, { 4, 4 }, (InventorySlotState*)layout);
 
 	//Inventory* inv = GetGame()->InventoryMgr.CreateInventory(entity, 10, 6);
 	creature->InventoryId = inv->InventoryId;

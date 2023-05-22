@@ -259,15 +259,16 @@ SAPI void GameApplication::Run()
 			if (IsKeyPressed(KEY_EIGHT))
 			{
 				PlayerEntity* player = GetClientPlayer();
-				if (Game->IsInventoryOpen && !player->CursorStack.IsEmpty())
+				PlayerClient& playerClient = player->PlayerClient;
+				if (Game->IsInventoryOpen && !playerClient.CursorStack.IsEmpty())
 				{
 					CreatureEntity* playerCreature = Game->ComponentMgr.GetComponent<CreatureEntity>(player->EntityId);
 					Inventory* playerInv = Game->InventoryMgr.Inventories.Get(&playerCreature->InventoryId);
 					if (playerInv)
 					{
-						playerInv->SetStack(player->CursorStackLastPos.x, player->CursorStackLastPos.y, &player->CursorStack);
-						player->CursorStackLastPos = {};
-						player->CursorStack.Remove();
+						playerInv->SetStack(playerClient.CursorStackLastPos, &playerClient.CursorStack);
+						playerClient.CursorStackLastPos = {};
+						playerClient.CursorStack.Remove();
 					}
 				}
 
@@ -283,9 +284,9 @@ SAPI void GameApplication::Run()
 				SASSERT(playerEquipment);
 
 				ItemStack itemStack = ItemStackNew(Items::TORCH, 1);
-				playerInv->SetStack(2, 2, &itemStack);
+				playerInv->SetStack({ 2, 2 }, &itemStack);
 				ItemStack itemStack2 = ItemStackNew(Items::FIRE_STAFF, 1);
-				playerInv->SetStack(0, 2, &itemStack2);
+				playerInv->SetStack({ 0, 2 }, & itemStack2);
 
 				ItemStack stack = ItemStackNew(Items::TORCH, 1);
 				playerEquipment->EquipItem(creature, &stack, 0);

@@ -14,65 +14,120 @@ uint32_t Inventory::FindItem(uint32_t item) const
 	return NOT_FOUND;
 }
 
-ItemStack* Inventory::GetStack(uint16_t x, uint16_t y)
+ItemStack* Inventory::GetStack(Vector2i16 slot)
 {
-	uint32_t idx = x + y * Width;
-	InventorySlot slot = Slots[idx];
+	if (slot.x >= Width || slot.y >= Height)
+		return nullptr;
 
-	if (static_cast<InventorySlotState>(slot.State) == InventorySlotState::FILLED)
-		return &Contents[slot.InventoryStackIndex].Stack;
+	uint32_t idx = slot.x + slot.y * Width;
+	InventorySlot invSlot = Slots[idx];
+	SASSERT(invSlot.InventoryStackIndex < INVENTORY_SLOT_MAX);
+
+	if (static_cast<InventorySlotState>(invSlot.State) == InventorySlotState::FILLED)
+		return &Contents[invSlot.InventoryStackIndex].Stack;
 	else
 		return nullptr;
 }
 
-void Inventory::SetStack(uint16_t x, uint16_t y, ItemStack* stack)
+void Inventory::SetStack(Vector2i16 slot, ItemStack* stack)
 {
 	const Item* item = stack->GetItem();
-	if (CanInsertStack(x, y, item))
+
+	InventoryStack* invStack = Contents.PushNew();
+	invStack->Slot = slot;
+	invStack->Stack = *stack;
+
+	uint16_t invStackIndex = Contents.LastIndex();
+
+	uint16_t xEnd = slot.x + item->Width;
+	uint16_t yEnd = slot.y + item->Height;
+	for (uint16_t yPos = slot.y; yPos < yEnd; ++yPos)
 	{
-		InventoryStack* invStack = Contents.PushNew();
-		invStack->Stack = *stack;
-		invStack->SlotX = x;
-		invStack->SlotY = y;
-
-		uint16_t invStackIndex = Contents.LastIndex();
-
-		uint16_t xEnd = x + item->Width;
-		uint16_t yEnd = y + item->Height;
-		for (uint16_t yPos = y; yPos < yEnd; ++yPos)
+		for (uint16_t xPos = slot.x; xPos < xEnd; ++xPos)
 		{
-			for (uint16_t xPos = x; xPos < xEnd; ++xPos)
-			{
-				uint32_t idx = xPos + yPos * Width;
-				Slots[idx].State = (uint32_t)InventorySlotState::FILLED;
-				Slots[idx].InventoryStackIndex = invStackIndex;
-			}
+			uint32_t idx = xPos + yPos * Width;
+			Slots[idx].State = (uint32_t)InventorySlotState::FILLED;
+			Slots[idx].InventoryStackIndex = invStackIndex;
 		}
 	}
 }
 
-bool Inventory::RemoveStack(uint16_t x, uint16_t y)
+void Inventory::InsertStack(Vector2i16 slot, ItemStack* stack, bool flipped)
 {
-	SASSERT(x < Width);
-	SASSERT(y < Height);
-	if (x >= Width || y >= Height)
+	SASSERT(slot.x > 0);
+	SASSERT(slot.y > 0);
+	SASSERT(stack);
+
+	const Item* item = stack->GetItem();
+
+	short xEnd;
+	short yEnd;
+	if (flipped)
+	{
+		xEnd = slot.x + item->Height;
+		yEnd = slot.y + item->Width;
+	}	
+	else
+	{
+		xEnd = slot.x + item->Width;
+		yEnd = slot.y + item->Height;
+	}
+
+	for (short yPos = slot.y; yPos < yEnd; ++yPos)
+	{
+		for (short xPos = slot.x; xPos < xEnd; ++xPos)
+		{
+			uint32_t idx = (uint32_t)(xPos + yPos * Width);
+			if (idx >= Slots.Count)
+				return;
+			if (static_cast<InventorySlotState>(Slots[idx].State) != InventorySlotState::EMPTY)
+				return;
+		}
+	}
+
+	InventoryStack* invStack = Contents.PushNew();
+	invStack->Slot = slot;
+	invStack->Stack = *stack;
+
+	uint32_t invStackIndex = Contents.LastIndex();
+	SASSERT(invStackIndex < INVENTORY_SLOT_MAX);
+
+	for (short yPos = slot.y; yPos < yEnd; ++yPos)
+	{
+		for (short xPos = slot.x; xPos < xEnd; ++xPos)
+		{
+			uint32_t idx = xPos + yPos * Width;
+			Slots[idx].State = (uint32_t)InventorySlotState::FILLED;
+			Slots[idx].InventoryStackIndex = (uint16_t)invStackIndex;
+			Slots[idx].IsFlipped = flipped;
+		}
+	}
+}
+
+bool Inventory::RemoveStack(Vector2i16 slot)
+{
+	SASSERT(slot.x < Width);
+	SASSERT(slot.y < Height);
+	if (slot.x >= Width || slot.y >= Height)
 		return false;
 
-	uint16_t slotIdx = x + y * Width;
-	InventorySlot slot = Slots[slotIdx];
+	uint16_t slotIdx = slot.x + slot.y * Width;
+	InventorySlot invSlot = Slots[slotIdx];
 
-	if (static_cast<InventorySlotState>(slot.State) != InventorySlotState::FILLED)
+	if (static_cast<InventorySlotState>(invSlot.State) != InventorySlotState::FILLED)
 		return false;
 
-	SASSERT(slot.InventoryStackIndex != 0xfff)
+	SASSERT(invSlot.InventoryStackIndex < INVENTORY_SLOT_MAX)
 
-	InventoryStack& invStack = Contents[slot.InventoryStackIndex];
+	InventoryStack& invStack = Contents[invSlot.InventoryStackIndex];
 	Item* item = invStack.Stack.GetItem();
 
 	// Sets all slots containing item to empty
-	for (uint16_t slotY = invStack.SlotY; slotY < invStack.SlotY + item->Height; ++slotY)
+	short xEnd = invStack.Slot.x + item->Width;
+	short yEnd = invStack.Slot.y + item->Height;
+	for (short slotY = invStack.Slot.y; slotY < yEnd; ++slotY)
 	{
-		for (uint16_t slotX = invStack.SlotX; slotX < invStack.SlotX + item->Width; ++slotX)
+		for (short slotX = invStack.Slot.x; slotX < xEnd; ++slotX)
 		{
 			uint32_t idx = slotX + slotY * Width;
 			Slots[idx].InventoryStackIndex = UINT16_MAX;
@@ -81,42 +136,43 @@ bool Inventory::RemoveStack(uint16_t x, uint16_t y)
 	}
 	
 	// Removes InventoryStack
-	SMemSet((Contents.Memory + slot.InventoryStackIndex), 0, sizeof(InventoryStack));
-	bool wasLastSwapped = Contents.RemoveAtFast(slot.InventoryStackIndex);
+	SMemSet((Contents.Memory + invSlot.InventoryStackIndex), 0, sizeof(InventoryStack));
+	bool wasLastSwapped = Contents.RemoveAtFast(invSlot.InventoryStackIndex);
 
 	if (wasLastSwapped) // Updates swapped element's index
 	{
-		InventoryStack& lastInvStack = Contents[slot.InventoryStackIndex];
+		InventoryStack& lastInvStack = Contents[invSlot.InventoryStackIndex];
 		Item* lastItem = lastInvStack.Stack.GetItem();
 
-		for (uint16_t slotY = lastInvStack.SlotY; slotY < lastInvStack.SlotY + lastItem->Height; ++slotY)
+		short xEnd = lastInvStack.Slot.x + lastItem->Width;
+		short yEnd = lastInvStack.Slot.y + lastItem->Height;
+		for (short slotY = lastInvStack.Slot.y; slotY < yEnd; ++slotY)
 		{
-			for (uint16_t slotX = lastInvStack.SlotX; slotX < lastInvStack.SlotX + lastItem->Width; ++slotX)
+			for (short slotX = lastInvStack.Slot.x; slotX < xEnd; ++slotX)
 			{
 				uint32_t idx = slotX + slotY * Width;
-				Slots[idx].InventoryStackIndex = slot.InventoryStackIndex;
+				Slots[idx].InventoryStackIndex = invSlot.InventoryStackIndex;
 			}
 		}
 	}
-
 	return true;
 }
 
-bool Inventory::CanInsertStack(uint16_t x, uint16_t y, const Item* item) const
+bool Inventory::CanInsertStack(Vector2i16 slot, const Item* item) const
 {
-	uint16_t xEnd = x + item->Width;
-	uint16_t yEnd = y + item->Height;
+	uint16_t xEnd = slot.x + item->Width;
+	uint16_t yEnd = slot.y + item->Height;
 	SASSERT(xEnd >= 0);
 	SASSERT(yEnd >= 0);
 
-	for (uint16_t yPos = y; yPos < yEnd; ++yPos)
+	for (short yPos = slot.y; yPos < yEnd; ++yPos)
 	{
-		for (uint16_t xPos = x; xPos < xEnd; ++xPos)
+		for (short xPos = slot.x; xPos < xEnd; ++xPos)
 		{
-			if (xPos >= Width || yPos >= Height)
+			uint32_t idx = xPos + yPos * Width;
+			if (idx >= Slots.Count)
 				return false;
 
-			uint32_t idx = xPos + yPos * Width;
 			if (static_cast<InventorySlotState>(Slots[idx].State) != InventorySlotState::EMPTY)
 				return false;
 		}
@@ -258,21 +314,24 @@ uint16_t InventoryMgr::RegisterItemFunc(Sprite sprite, void(*RegisterCallback)(I
 	return id;
 }
 
-Inventory* InventoryMgr::CreateInventory(uint32_t entity, uint16_t width, uint16_t height)
+Inventory* InventoryMgr::CreateInventory(uint32_t entity, Vector2i16 dimensions)
 {
+	SASSERT(dimensions.x > 0);
+	SASSERT(dimensions.y > 0);
+
 	uint32_t id = NextInventoryId++;
 	Inventory* inv = Inventories.InsertKey(&id);
-	inv->Width = width;
-	inv->Height = height;
+	inv->Width = dimensions.x;
+	inv->Height = dimensions.y;
 	inv->InventoryId = id;
 	inv->OwningEntity = entity;
-	inv->Slots.EnsureSize(width * height);
+	inv->Slots.EnsureSize(inv->Width * inv->Height);
 	return inv;
 }
 
-Inventory* InventoryMgr::CreateInventoryLayout(uint32_t entity, uint16_t width, uint16_t height, const InventorySlotState* layoutArray)
+Inventory* InventoryMgr::CreateInventoryLayout(uint32_t entity, Vector2i16 dimensions, const InventorySlotState* layoutArray)
 {
-	Inventory* inv = CreateInventory(entity, width, height);
+	Inventory* inv = CreateInventory(entity, dimensions);
 	for (uint32_t i = 0; i < inv->Slots.Count; ++i)
 	{
 		inv->Slots[i].State = (uint16_t)layoutArray[i];

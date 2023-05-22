@@ -44,8 +44,8 @@ struct Item
 
 	Sprite Sprite;
 	uint16_t MaxStackSize;
-	uint8_t Width;
-	uint8_t Height;
+	short Width;
+	short Height;
 };
 
 struct ItemStack
@@ -73,17 +73,24 @@ enum class InventorySlotState : uint8_t
 	FILLED
 };
 
+struct Vector2i16
+{
+	short x;
+	short y;
+};
+
+#define INVENTORY_SLOT_MAX (0x20ff)
 struct InventorySlot
 {
-	uint16_t InventoryStackIndex : 12;
-	uint16_t State : 4;
+	uint16_t InventoryStackIndex : 13;
+	uint16_t State : 2;
+	uint16_t IsFlipped : 1;
 };
 
 struct InventoryStack
 {
 	ItemStack Stack;
-	uint16_t SlotX;
-	uint16_t SlotY;
+	Vector2i16 Slot;
 };
 
 struct Inventory
@@ -98,10 +105,11 @@ struct Inventory
 	uint16_t Height;
 
 	uint32_t FindItem(uint32_t item) const;
-	ItemStack* GetStack(uint16_t x, uint16_t y);
-	void SetStack(uint16_t x, uint16_t y, ItemStack* stack);
-	bool RemoveStack(uint16_t x, uint16_t y);
-	bool CanInsertStack(uint16_t x, uint16_t y, const Item* item) const;
+	ItemStack* GetStack(Vector2i16 slot);
+	void InsertStack(Vector2i16 slot, ItemStack* stack, bool flipped);
+	void SetStack(Vector2i16 slot, ItemStack* stack);
+	bool RemoveStack(Vector2i16 slot);
+	bool CanInsertStack(Vector2i16 slot, const Item* item) const;
 };
 
 enum class EquipmentSlots : uint8_t
@@ -137,8 +145,8 @@ struct InventoryMgr
 	uint16_t RegisterItem(Sprite sprite);
 	uint16_t RegisterItemFunc(Sprite sprite, void(*RegisterCallback)(Item* item));
 
-	Inventory* CreateInventory(uint32_t entity, uint16_t width, uint16_t height);
-	Inventory* CreateInventoryLayout(uint32_t entity, uint16_t width, uint16_t height, const InventorySlotState* layoutArray);
+	Inventory* CreateInventory(uint32_t entity, Vector2i16 dimensions);
+	Inventory* CreateInventoryLayout(uint32_t entity, Vector2i16 dimensions, const InventorySlotState* layoutArray);
 	void RemoveInventory(Inventory* inventory);
 
 	Equipment* CreateEquipment();

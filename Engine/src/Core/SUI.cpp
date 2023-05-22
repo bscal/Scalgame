@@ -419,7 +419,7 @@ internal void
 DrawInventory(struct nk_context* ctx, Inventory* inv)
 {
 	Texture2D* spriteSheet = &GetGame()->Resources.EntitySpriteSheet;
-	ItemStack* cursorStack = &GetClientPlayer()->CursorStack;
+	PlayerClient* playerClient = &GetClientPlayer()->PlayerClient;
 	bool hasHandledInventoryActionThisFrame = false;
 
 	ctx->style.window.padding = nk_vec2(0.0f, 0.0f);
@@ -459,9 +459,9 @@ DrawInventory(struct nk_context* ctx, Inventory* inv)
 
 		uint16_t idx = 0;
 		// Draws slots + empty slot insert buttons
-		for (uint16_t h = 0; h < inv->Height; ++h)
+		for (short h = 0; h < inv->Height; ++h)
 		{
-			for (uint16_t w = 0; w < inv->Width; ++w)
+			for (short w = 0; w < inv->Width; ++w)
 			{
 				InventorySlot slot = inv->Slots[idx++];
 				if ((InventorySlotState)slot.State == InventorySlotState::NOT_USED)
@@ -490,22 +490,15 @@ DrawInventory(struct nk_context* ctx, Inventory* inv)
 				but.w = SLOT_SIZE - (BORDER_SIZE);
 				but.h = SLOT_SIZE - (BORDER_SIZE);
 				nk_layout_space_push(ctx, but);
+
 				if (nk_button_color(ctx, { 22, 22, 22, 255 }))
 				{
-					Vector2 boundsXY = { ctx->current->bounds.x, ctx->current->bounds.y };
-					Vector2 mousePressedInRect = Vector2Subtract(GetMousePosition(), boundsXY);
-					Vector2i slotPressed = Vector2i::FromVec2(Vector2Divide(mousePressedInRect, { SLOT_SIZE, SLOT_SIZE }));
-
-					SLOG_INFO("Test! , %s", FMT_VEC2I(slotPressed));
-
-					if (cursorStack->ItemId != 0)
+					if (!playerClient->CursorStack.IsEmpty()
+						&& inv->CanInsertStack({ w, h }, playerClient->CursorStack.GetItem()))
 					{
-						if (inv->CanInsertStack(slotPressed.x, slotPressed.y, cursorStack->GetItem()))
-						{
-							inv->SetStack(slotPressed.x, slotPressed.y, cursorStack);
-							cursorStack->Remove();
-							hasHandledInventoryActionThisFrame = true;
-						}
+						inv->SetStack({ w, h }, &playerClient->CursorStack);
+						playerClient->CursorStack.Remove();
+						hasHandledInventoryActionThisFrame = true;
 					}
 				}
 			}
@@ -527,12 +520,12 @@ DrawInventory(struct nk_context* ctx, Inventory* inv)
 		// Draws inventory items in inventory + take item buttons
 		for (uint32_t i = 0; i < inv->Contents.Count; ++i)
 		{
-			InventoryStack& invStack = inv->Contents[i];
-			Item* item = invStack.Stack.GetItem();
+			InventoryStack* invStack = &inv->Contents[i];
+			Item* item = invStack->Stack.GetItem();
 
 			struct nk_rect rect;
-			rect.x = (float)invStack.SlotX * SLOT_SIZE + BORDER_SIZE;
-			rect.y = (float)invStack.SlotY * SLOT_SIZE + BORDER_SIZE;
+			rect.x = (float)invStack->Slot.x * SLOT_SIZE + BORDER_SIZE;
+			rect.y = (float)invStack->Slot.y * SLOT_SIZE + BORDER_SIZE;
 			rect.w = (float)item->Width * SLOT_SIZE - (BORDER_SIZE);
 			rect.h = (float)item->Height * SLOT_SIZE - (BORDER_SIZE);
 			nk_layout_space_push(ctx, rect);
@@ -541,21 +534,28 @@ DrawInventory(struct nk_context* ctx, Inventory* inv)
 			img.handle.ptr = spriteSheet;
 			img.w = 0;
 			img.h = 0;
-			SMemCopy(img.region, &item->Sprite.Region, sizeof(nk_ushort) * 4);
+			SMemCopy(img.region, &item->Sprite.Region, sizeof(img.region));
 			if (nk_button_image(ctx, img) && !hasHandledInventoryActionThisFrame)
 			{
-				Vector2 boundsXY = { ctx->current->bounds.x, ctx->current->bounds.y };
-				Vector2 mousePressedInRect = Vector2Subtract(GetMousePosition(), boundsXY);
-				Vector2i slotPressed = Vector2i::FromVec2(Vector2Divide(mousePressedInRect, { SLOT_SIZE, SLOT_SIZE }));
+				// This gets the offset slot on the clicked itemstack
+				struct nk_vec2 btnScreenCoord = nk_layout_space_to_screen(ctx, { rect.x, rect.y });
+				Vector2 btnScreenOffset = Vector2Subtract(GetMousePosition(), { btnScreenCoord.x, btnScreenCoord.y });
+				Vector2i16 btnScreenSlot;
+				btnScreenSlot.x = (short)btnScreenOffset.x / (short)SLOT_SIZE;
+				btnScreenSlot.y = (short)btnScreenOffset.y / (short)SLOT_SIZE;
 
-				SLOG_INFO("Test! , %s", FMT_VEC2I(slotPressed));
+				// This is the origin slot of the Itemstack. Real slot is btnScreenCoord + slotPressed
+				Vector2i16 slotPressed = invStack->Slot;
+				SLOG_DEBUG("Test! %d, %d, %d, %d", slotPressed.x, slotPressed.y, btnScreenSlot.x, btnScreenSlot.y);
 
-				ItemStack* slotStack = inv->GetStack(slotPressed.x, slotPressed.y);
-				if (slotStack && cursorStack->ItemId == 0)
+				ItemStack* slotStack = inv->GetStack(slotPressed);
+				if (slotStack && playerClient->CursorStack.ItemId == 0)
 				{
-					*cursorStack = *slotStack;
-					GetClientPlayer()->CursorStackLastPos = slotPressed;
-					inv->RemoveStack(slotPressed.x, slotPressed.y);
+					playerClient->CursorStack = *slotStack;
+					playerClient->CursorStackLastPos = slotPressed;
+					playerClient->CursorStackClickedPos = btnScreenSlot;
+					playerClient->IsCursorStackFlipped = ;
+					inv->RemoveStack(slotPressed);
 				}
 			}
 		}
@@ -564,13 +564,13 @@ DrawInventory(struct nk_context* ctx, Inventory* inv)
 	nk_end(ctx);
 
 	// Draws Cursor Item
-	if (cursorStack->ItemId != 0)
+	if (playerClient->CursorStack.ItemId != 0)
 	{
 		struct nk_rect cursorStackRect;
 		cursorStackRect.x = GetMousePosition().x + 4;
 		cursorStackRect.y = GetMousePosition().y + 4;
-		cursorStackRect.w = cursorStack->GetItem()->Width * SLOT_SIZE;
-		cursorStackRect.h = cursorStack->GetItem()->Height * SLOT_SIZE;
+		cursorStackRect.w = playerClient->CursorStack.GetItem()->Width * SLOT_SIZE;
+		cursorStackRect.h = playerClient->CursorStack.GetItem()->Height * SLOT_SIZE;
 
 		if (nk_begin(ctx, "CursorStack", cursorStackRect, NK_WINDOW_NO_SCROLLBAR))
 		{
@@ -579,7 +579,7 @@ DrawInventory(struct nk_context* ctx, Inventory* inv)
 			img.handle.ptr = spriteSheet;
 			img.w = 0;
 			img.h = 0;
-			SMemCopy(img.region, cursorStack->GetItem()->Sprite.Region, sizeof(nk_ushort) * 4);
+			SMemCopy(img.region, playerClient->CursorStack.GetItem()->Sprite.Region, sizeof(nk_ushort) * 4);
 			nk_image(ctx, img);
 		}
 		nk_end(ctx);

@@ -68,16 +68,18 @@ typedef int bool32;
 #define SASSERT_MSG(expr, msg) if (!(expr)) { TraceLog(LOG_ERROR, "Assertion Failure: %s\nMessage: % s\n  File : % s, Line : % d\n", #expr, msg, __FILE__, __LINE__); DEBUG_BREAK(void); }
 
 #define SLOG_DEBUG(msg, ...) TraceLog(LOG_DEBUG, msg, __VA_ARGS__)
+#define SLOG_WARN(msg, ...) TraceLog(LOG_WARNING, msg, __VA_ARGS__)
 
 #else
 #define DEBUG_BREAK(void)
 #define SASSERT(expr)
 #define SASSERT_MSG(expr, msg)
+
 #define SLOG_DEBUG(msg, ...)
+#define SLOG_WARN(msg, ...)
 #endif
 
 #define SLOG_INFO(msg, ...) TraceLog(LOG_INFO, msg, __VA_ARGS__)
-#define SLOG_WARN(msg, ...) TraceLog(LOG_WARNING, msg, __VA_ARGS__)
 #define SLOG_ERR(msg, ...) TraceLog(LOG_ERROR, msg, __VA_ARGS__)
 
 #define SFATAL(msg, ...) \

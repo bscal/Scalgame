@@ -1,14 +1,12 @@
 #pragma once
 
 #include "Core.h"
+#include "Player.h"
 #include "ComponentTypes.h"
-#include "Inventory.h"
 
 #include "Structures/SArray.h"
 #include "Structures/ComponentArray.h"
-#include "Structures/SHoodSet.h"
 #include "Structures/SLinkedList.h"
-#include "Structures/StaticArray.h"
 
 #include <typeinfo>
 
@@ -16,19 +14,6 @@
 #define ENT_MAX_COMPONENTS 64
 
 typedef uint32_t Entity;
-
-struct PlayerEntity
-{
-	ItemStack CursorStack;
-	Vector2i CursorStackLastPos;
-	Vector2i TilePos;
-	uint32_t EntityId;
-	bool HasMoved;
-
-	void Update();
-
-	TransformComponent* GetTransform();
-};
 
 struct EntityMgr
 {
