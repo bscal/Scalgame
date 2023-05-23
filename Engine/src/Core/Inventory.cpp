@@ -54,8 +54,8 @@ void Inventory::SetStack(Vector2i16 slot, ItemStack* stack)
 
 void Inventory::InsertStack(Vector2i16 slot, ItemStack* stack, bool flipped)
 {
-	SASSERT(slot.x > 0);
-	SASSERT(slot.y > 0);
+	SASSERT(slot.x >= 0);
+	SASSERT(slot.y >= 0);
 	SASSERT(stack);
 
 	const Item* item = stack->GetItem();
@@ -158,10 +158,20 @@ bool Inventory::RemoveStack(Vector2i16 slot)
 	return true;
 }
 
-bool Inventory::CanInsertStack(Vector2i16 slot, const Item* item) const
+bool Inventory::CanInsertStack(Vector2i16 slot, const Item* item, bool flipped) const
 {
-	uint16_t xEnd = slot.x + item->Width;
-	uint16_t yEnd = slot.y + item->Height;
+	short xEnd;
+	short yEnd;
+	if (flipped)
+	{
+		xEnd = slot.x + item->Height;
+		yEnd = slot.y + item->Width;
+	}
+	else
+	{
+		xEnd = slot.x + item->Width;
+		yEnd = slot.y + item->Height;
+	}
 	SASSERT(xEnd >= 0);
 	SASSERT(yEnd >= 0);
 
@@ -182,8 +192,7 @@ bool Inventory::CanInsertStack(Vector2i16 slot, const Item* item) const
 
 void ItemStack::Remove()
 {
-	ItemId = 0;
-	ItemCount = 0;
+	SMemClear(this, sizeof(ItemStack));
 }
 
 Item* ItemStack::GetItem() const

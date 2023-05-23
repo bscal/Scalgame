@@ -302,6 +302,17 @@ SAPI void GameApplication::Run()
 				SASSERT(!a);
 			}
 		}
+		else
+		{
+			if (IsKeyPressed(KEY_R))
+			{
+				PlayerClient& playerClient = GetClientPlayer()->PlayerClient;
+				if (!playerClient.CursorStack.IsEmpty())
+				{
+					playerClient.IsCursorStackFlipped = !playerClient.IsCursorStackFlipped;
+				}
+			}
+		}
 
 		// **************************
 		// Updates UI logic, draws to

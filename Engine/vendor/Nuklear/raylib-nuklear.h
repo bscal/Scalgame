@@ -61,10 +61,28 @@
 #endif  // NK_ASSERT
 
 #include "nuklear.h"
+#include <math.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+// Note(bscal): struct definition from SUI.h
+struct nk_sprite
+{
+    nk_handle handle;
+    nk_ushort region[4];
+    bool isRotated;
+};
+
+struct nk_command_scal_sprite
+{
+    struct nk_command header;
+    short x, y;
+    unsigned short w, h;
+    struct nk_sprite sprite;
+    struct nk_color col;
+};
 
 NK_API struct nk_context* InitNuklear(int fontSize);                // Initialize the Nuklear GUI context
 NK_API struct nk_context* InitNuklearEx(Font font, float fontSize); // Initialize the Nuklear GUI context, with a custom font
@@ -541,6 +559,34 @@ DrawNuklear(struct nk_context * ctx)
                 Vector2 origin = {0, 0};
                 Color tint = ColorFromNuklear(i->col);
                 DrawTexturePro(texture, source, dest, origin, 0, tint);
+            } break;
+
+            case NK_COMMAND_SCAL_SPRITE: {
+                const struct nk_command_scal_sprite* i = (const struct nk_command_scal_sprite*)cmd;
+                Texture texture = *(Texture*)i->sprite.handle.ptr;
+                Rectangle source = { (float)i->sprite.region[0], (float)i->sprite.region[1], (float)i->sprite.region[2], (float)i->sprite.region[3] };
+
+                Rectangle dest;
+                Vector2 origin;
+                float rotation;
+                if (i->sprite.isRotated)
+                {
+                    float hw = i->w / 2.0f;
+                    float hh = i->h / 2.0f;
+
+                    dest = { (float)i->x * scale, (float)i->y * scale + 64.0f, (float)i->w * scale, (float)i->h * scale };
+                    origin = { 0.0f, 64.0f };
+                    rotation = 270.0f;
+                }
+                else
+                {
+                    dest = { (float)i->x * scale, (float)i->y * scale, (float)i->w * scale, (float)i->h * scale };
+                    origin = { 0.0f, 0.0f };
+                    rotation = 0.0f;
+                }
+                
+                Color tint = ColorFromNuklear(i->col);
+                DrawTexturePro(texture, source, dest, origin, rotation, tint);
             } break;
 
             case NK_COMMAND_CUSTOM: {

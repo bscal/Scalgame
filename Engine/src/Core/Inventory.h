@@ -109,7 +109,7 @@ struct Inventory
 	void InsertStack(Vector2i16 slot, ItemStack* stack, bool flipped);
 	void SetStack(Vector2i16 slot, ItemStack* stack);
 	bool RemoveStack(Vector2i16 slot);
-	bool CanInsertStack(Vector2i16 slot, const Item* item) const;
+	bool CanInsertStack(Vector2i16 slot, const Item* item, bool flipped) const;
 };
 
 enum class EquipmentSlots : uint8_t

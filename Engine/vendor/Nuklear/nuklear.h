@@ -4439,7 +4439,9 @@ enum nk_command_type {
     NK_COMMAND_POLYLINE,
     NK_COMMAND_TEXT,
     NK_COMMAND_IMAGE,
-    NK_COMMAND_CUSTOM
+    NK_COMMAND_CUSTOM,
+    // bscal
+    NK_COMMAND_SCAL_SPRITE
 };
 
 /* command base and header of every command inside the buffer */

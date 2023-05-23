@@ -20,6 +20,13 @@ union Sprite
     };
 };
 
+struct SImage
+{
+    Sprite Src;
+    Sprite Dst;
+    Vector2 Origin;
+};
+
 struct Animation
 {
     Sprite* Frames;

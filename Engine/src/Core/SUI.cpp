@@ -25,6 +25,7 @@ internal void InitializeNuklear(nk_context* nkCtxToInit, UIState* state, Font* f
 internal void DrawDebugPanel(UIState* state);
 internal void DrawConsole(UIState* state);
 internal void AppendMemoryUsage(UIState* state);
+internal struct nk_rect GetSpriteRect(struct nk_rect rect, bool rotate);
 
 bool InitializeUI(UIState* state, GameApplication* gameApp)
 {
@@ -494,9 +495,9 @@ DrawInventory(struct nk_context* ctx, Inventory* inv)
 				if (nk_button_color(ctx, { 22, 22, 22, 255 }))
 				{
 					if (!playerClient->CursorStack.IsEmpty()
-						&& inv->CanInsertStack({ w, h }, playerClient->CursorStack.GetItem()))
+						&& inv->CanInsertStack({ w, h }, playerClient->CursorStack.GetItem(), slot.IsFlipped))
 					{
-						inv->SetStack({ w, h }, &playerClient->CursorStack);
+						inv->InsertStack({ w, h }, &playerClient->CursorStack, slot.IsFlipped);
 						playerClient->CursorStack.Remove();
 						hasHandledInventoryActionThisFrame = true;
 					}
@@ -522,6 +523,9 @@ DrawInventory(struct nk_context* ctx, Inventory* inv)
 		{
 			InventoryStack* invStack = &inv->Contents[i];
 			Item* item = invStack->Stack.GetItem();
+			
+			int idx = invStack->Slot.x + invStack->Slot.y * inv->Width;
+			InventorySlot stackSlot = inv->Slots[idx];
 
 			struct nk_rect rect;
 			rect.x = (float)invStack->Slot.x * SLOT_SIZE + BORDER_SIZE;
@@ -530,12 +534,11 @@ DrawInventory(struct nk_context* ctx, Inventory* inv)
 			rect.h = (float)item->Height * SLOT_SIZE - (BORDER_SIZE);
 			nk_layout_space_push(ctx, rect);
 
-			struct nk_image img;
-			img.handle.ptr = spriteSheet;
-			img.w = 0;
-			img.h = 0;
-			SMemCopy(img.region, &item->Sprite.Region, sizeof(img.region));
-			if (nk_button_image(ctx, img) && !hasHandledInventoryActionThisFrame)
+			struct nk_sprite sprite;
+			sprite.handle.ptr = spriteSheet;
+			sprite.isRotated = stackSlot.IsFlipped;
+			SMemCopy(sprite.region, &item->Sprite.Region, sizeof(sprite.region));
+			if (nk_button_sprite(ctx, sprite) && !hasHandledInventoryActionThisFrame)
 			{
 				// This gets the offset slot on the clicked itemstack
 				struct nk_vec2 btnScreenCoord = nk_layout_space_to_screen(ctx, { rect.x, rect.y });
@@ -549,12 +552,12 @@ DrawInventory(struct nk_context* ctx, Inventory* inv)
 				SLOG_DEBUG("Test! %d, %d, %d, %d", slotPressed.x, slotPressed.y, btnScreenSlot.x, btnScreenSlot.y);
 
 				ItemStack* slotStack = inv->GetStack(slotPressed);
-				if (slotStack && playerClient->CursorStack.ItemId == 0)
+				if (slotStack && playerClient->CursorStack.IsEmpty())
 				{
 					playerClient->CursorStack = *slotStack;
 					playerClient->CursorStackLastPos = slotPressed;
 					playerClient->CursorStackClickedPos = btnScreenSlot;
-					playerClient->IsCursorStackFlipped = ;
+					playerClient->IsCursorStackFlipped = stackSlot.IsFlipped;
 					inv->RemoveStack(slotPressed);
 				}
 			}
@@ -564,24 +567,146 @@ DrawInventory(struct nk_context* ctx, Inventory* inv)
 	nk_end(ctx);
 
 	// Draws Cursor Item
-	if (playerClient->CursorStack.ItemId != 0)
+	if (!playerClient->CursorStack.IsEmpty())
 	{
 		struct nk_rect cursorStackRect;
 		cursorStackRect.x = GetMousePosition().x + 4;
 		cursorStackRect.y = GetMousePosition().y + 4;
 		cursorStackRect.w = playerClient->CursorStack.GetItem()->Width * SLOT_SIZE;
 		cursorStackRect.h = playerClient->CursorStack.GetItem()->Height * SLOT_SIZE;
+		cursorStackRect = GetSpriteRect(cursorStackRect, playerClient->IsCursorStackFlipped);
 
+		ctx->style.window.background = { 0 };
 		if (nk_begin(ctx, "CursorStack", cursorStackRect, NK_WINDOW_NO_SCROLLBAR))
 		{
-			nk_layout_row_static(ctx, cursorStackRect.h, (int)cursorStackRect.w, 1);
-			struct nk_image img;
-			img.handle.ptr = spriteSheet;
-			img.w = 0;
-			img.h = 0;
-			SMemCopy(img.region, playerClient->CursorStack.GetItem()->Sprite.Region, sizeof(nk_ushort) * 4);
-			nk_image(ctx, img);
+			if (playerClient->IsCursorStackFlipped)
+				nk_layout_row_static(ctx, cursorStackRect.w, (int)cursorStackRect.h, 1);
+			else
+				nk_layout_row_static(ctx, cursorStackRect.h, (int)cursorStackRect.w, 1);
+
+			struct nk_sprite sprite;
+			sprite.handle.ptr = spriteSheet;
+			sprite.isRotated = playerClient->IsCursorStackFlipped;
+			SMemCopy(sprite.region, playerClient->CursorStack.GetItem()->Sprite.Region, sizeof(sprite.region));
+			nk_sprite(ctx, sprite);
 		}
 		nk_end(ctx);
 	}
+}
+
+internal struct nk_rect 
+GetSpriteRect(struct nk_rect rect, bool rotate)
+{
+	struct nk_rect res;
+	res.x = rect.x;
+	res.y = rect.y;
+	if (rotate)
+	{
+		res.w = rect.h;
+		res.h = rect.w;
+	}
+	else
+	{
+		res.w = rect.w;
+		res.h = rect.h;
+	}
+	return rect;
+}
+
+NK_API nk_bool
+nk_button_sprite(struct nk_context* ctx, struct nk_sprite sprite)
+{
+	NK_ASSERT(ctx);
+	if (!ctx) return 0;
+
+	struct nk_window* win;
+	struct nk_panel* layout;
+	const struct nk_input* in;
+
+	struct nk_rect bounds;
+	enum nk_widget_layout_states state;
+
+	NK_ASSERT(ctx);
+	NK_ASSERT(ctx->current);
+	NK_ASSERT(ctx->current->layout);
+	if (!ctx || !ctx->current || !ctx->current->layout)
+		return 0;
+
+	win = ctx->current;
+	layout = win->layout;
+
+	state = nk_widget(&bounds, ctx);
+	if (!state) return 0;
+	in = (state == NK_WIDGET_ROM || layout->flags & NK_WINDOW_ROM) ? 0 : &ctx->input;
+	return nk_do_button_sprite(&ctx->last_widget_state, &win->buffer, bounds,
+		sprite, ctx->button_behavior, &ctx->style.button, in);
+}
+
+NK_LIB nk_bool
+nk_do_button_sprite(nk_flags* state,
+	struct nk_command_buffer* out, struct nk_rect bounds,
+	struct nk_sprite sprite, enum nk_button_behavior b,
+	const struct nk_style_button* style, const struct nk_input* in)
+{
+	int ret;
+	struct nk_rect content;
+
+	NK_ASSERT(state);
+	NK_ASSERT(style);
+	NK_ASSERT(out);
+	if (!out || !style || !state)
+		return nk_false;
+
+	ret = nk_do_button(state, out, bounds, style, in, b, &content);
+	content.x += style->image_padding.x;
+	content.y += style->image_padding.y;
+	content.w -= 2 * style->image_padding.x;
+	content.h -= 2 * style->image_padding.y;
+
+	if (style->draw_begin) style->draw_begin(out, style->userdata);
+	nk_draw_button(out, &bounds, *state, style);
+	nk_draw_sprite(out, content, &sprite, nk_white);
+	if (style->draw_end) style->draw_end(out, style->userdata);
+	return ret;
+}
+
+NK_API void
+nk_sprite(struct nk_context* ctx, struct nk_sprite sprite)
+{
+	struct nk_window* win;
+	struct nk_rect bounds;
+
+	NK_ASSERT(ctx);
+	NK_ASSERT(ctx->current);
+	NK_ASSERT(ctx->current->layout);
+	if (!ctx || !ctx->current || !ctx->current->layout) return;
+
+	win = ctx->current;
+	if (!nk_widget(&bounds, ctx)) return;
+	nk_draw_sprite(&win->buffer, bounds, &sprite, nk_white);
+}
+
+NK_API void
+nk_draw_sprite(struct nk_command_buffer* b, struct nk_rect r,
+	const struct nk_sprite* sprite, struct nk_color col)
+{
+	struct nk_command_scal_sprite* cmd;
+	NK_ASSERT(b);
+	if (!b) return;
+	if (b->use_clipping)
+	{
+		const struct nk_rect* c = &b->clip;
+		if (c->w == 0 || c->h == 0 || !NK_INTERSECT(r.x, r.y, r.w, r.h, c->x, c->y, c->w, c->h))
+			return;
+	}
+
+	cmd = (struct nk_command_scal_sprite*)
+		nk_command_buffer_push(b, NK_COMMAND_SCAL_SPRITE, sizeof(*cmd));
+	if (!cmd) return;
+	cmd->x = (short)r.x;
+	cmd->y = (short)r.y;
+	cmd->w = (unsigned short)NK_MAX(0, r.w);
+	cmd->h = (unsigned short)NK_MAX(0, r.h);
+	cmd->sprite = *sprite;
+	cmd->col = col;
 }
