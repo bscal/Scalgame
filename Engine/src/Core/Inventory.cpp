@@ -121,17 +121,30 @@ bool Inventory::RemoveStack(Vector2i16 slot)
 
 	InventoryStack& invStack = Contents[invSlot.InventoryStackIndex];
 	Item* item = invStack.Stack.GetItem();
-
-	// Sets all slots containing item to empty
-	short xEnd = invStack.Slot.x + item->Width;
-	short yEnd = invStack.Slot.y + item->Height;
-	for (short slotY = invStack.Slot.y; slotY < yEnd; ++slotY)
 	{
-		for (short slotX = invStack.Slot.x; slotX < xEnd; ++slotX)
+		short xEnd;
+		short yEnd;
+		if (invSlot.IsFlipped)
 		{
-			uint32_t idx = slotX + slotY * Width;
-			Slots[idx].InventoryStackIndex = UINT16_MAX;
-			Slots[idx].State = (uint16_t)InventorySlotState::EMPTY;
+			xEnd = invStack.Slot.x + item->Height;
+			yEnd = invStack.Slot.y + item->Width;
+		}
+		else
+		{
+			xEnd = invStack.Slot.x + item->Width;
+			yEnd = invStack.Slot.y + item->Height;
+		}
+
+		// Sets all slots containing item to empty
+		for (short slotY = invStack.Slot.y; slotY < yEnd; ++slotY)
+		{
+			for (short slotX = invStack.Slot.x; slotX < xEnd; ++slotX)
+			{
+				uint32_t idx = slotX + slotY * Width;
+				Slots[idx].InventoryStackIndex = UINT16_MAX;
+				Slots[idx].State = (uint16_t)InventorySlotState::EMPTY;
+				Slots[idx].IsFlipped = 0;
+			}
 		}
 	}
 	
@@ -143,15 +156,29 @@ bool Inventory::RemoveStack(Vector2i16 slot)
 	{
 		InventoryStack& lastInvStack = Contents[invSlot.InventoryStackIndex];
 		Item* lastItem = lastInvStack.Stack.GetItem();
-
-		short xEnd = lastInvStack.Slot.x + lastItem->Width;
-		short yEnd = lastInvStack.Slot.y + lastItem->Height;
-		for (short slotY = lastInvStack.Slot.y; slotY < yEnd; ++slotY)
+		uint16_t slotIdx = lastInvStack.Slot.x + lastInvStack.Slot.y * Width;
+		InventorySlot lastInvSlot = Slots[slotIdx];
 		{
-			for (short slotX = lastInvStack.Slot.x; slotX < xEnd; ++slotX)
+			short xEnd;
+			short yEnd;
+			if (lastInvSlot.IsFlipped)
 			{
-				uint32_t idx = slotX + slotY * Width;
-				Slots[idx].InventoryStackIndex = invSlot.InventoryStackIndex;
+				xEnd = lastInvStack.Slot.x + lastItem->Height;
+				yEnd = lastInvStack.Slot.y + lastItem->Width;
+			}
+			else
+			{
+				xEnd = lastInvStack.Slot.x + lastItem->Width;
+				yEnd = lastInvStack.Slot.y + lastItem->Height;
+			}
+
+			for (short slotY = lastInvStack.Slot.y; slotY < yEnd; ++slotY)
+			{
+				for (short slotX = lastInvStack.Slot.x; slotX < xEnd; ++slotX)
+				{
+					uint32_t idx = slotX + slotY * Width;
+					Slots[idx].InventoryStackIndex = invSlot.InventoryStackIndex;
+				}
 			}
 		}
 	}

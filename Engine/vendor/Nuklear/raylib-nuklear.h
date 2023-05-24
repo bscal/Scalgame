@@ -72,6 +72,8 @@ struct nk_sprite
 {
     nk_handle handle;
     nk_ushort region[4];
+    struct nk_vec2 origin;
+    float rotation;
     bool isRotated;
 };
 
@@ -565,26 +567,9 @@ DrawNuklear(struct nk_context * ctx)
                 const struct nk_command_scal_sprite* i = (const struct nk_command_scal_sprite*)cmd;
                 Texture texture = *(Texture*)i->sprite.handle.ptr;
                 Rectangle source = { (float)i->sprite.region[0], (float)i->sprite.region[1], (float)i->sprite.region[2], (float)i->sprite.region[3] };
-
-                Rectangle dest;
-                Vector2 origin;
-                float rotation;
-                if (i->sprite.isRotated)
-                {
-                    float hw = i->w / 2.0f;
-                    float hh = i->h / 2.0f;
-
-                    dest = { (float)i->x * scale, (float)i->y * scale + 64.0f, (float)i->w * scale, (float)i->h * scale };
-                    origin = { 0.0f, 64.0f };
-                    rotation = 270.0f;
-                }
-                else
-                {
-                    dest = { (float)i->x * scale, (float)i->y * scale, (float)i->w * scale, (float)i->h * scale };
-                    origin = { 0.0f, 0.0f };
-                    rotation = 0.0f;
-                }
-                
+                Vector2 origin = { i->sprite.origin.x, i->sprite.origin.y };
+                Rectangle dest = { ((float)i->x + origin.x) * scale, ((float)i->y + origin.y) * scale, (float)i->w * scale, (float)i->h * scale };
+                float rotation = i->sprite.rotation;
                 Color tint = ColorFromNuklear(i->col);
                 DrawTexturePro(texture, source, dest, origin, rotation, tint);
             } break;
