@@ -26,6 +26,7 @@ internal void DrawDebugPanel(UIState* state);
 internal void DrawConsole(UIState* state);
 internal void AppendMemoryUsage(UIState* state);
 internal struct nk_rect GetSpriteRect(struct nk_rect rect, bool rotate);
+internal struct nk_sprite GetSprite(Texture2D* texture, Item* item, bool isRotated);
 
 bool InitializeUI(UIState* state, GameApplication* gameApp)
 {
@@ -416,6 +417,11 @@ DrawFPS(struct nk_context* ctx)
 	nk_end(ctx);
 }
 
+constexpr struct nk_color BORDER_COLOR = { 88, 88, 88, 255 };
+constexpr float SLOT_SIZE = 64.0f;
+constexpr float BORDER_SIZE = 2.0f;
+constexpr float LABEL_HEIGHT = 16.0f;
+
 internal void
 DrawInventory(struct nk_context* ctx, Inventory* inv)
 {
@@ -427,11 +433,6 @@ DrawInventory(struct nk_context* ctx, Inventory* inv)
 	ctx->style.window.border = 0.0f;
 	ctx->style.window.spacing.x = 0.0f;
 	ctx->style.window.spacing.y = 0.0f;
-
-	constexpr struct nk_color BORDER_COLOR = { 88, 88, 88, 255 };
-	constexpr float SLOT_SIZE = 64.0f;
-	constexpr float BORDER_SIZE = 2.0f;
-	constexpr float LABEL_HEIGHT = 16.0f;
 
 	float width = SLOT_SIZE * (inv->Width);
 	float height = SLOT_SIZE * (inv->Height);
@@ -485,13 +486,12 @@ DrawInventory(struct nk_context* ctx, Inventory* inv)
 					nk_stroke_rect(&win->buffer, bounds, 0.0f, BORDER_SIZE, BORDER_COLOR);
 				}
 
-				struct nk_rect but;
-				but.x = w * SLOT_SIZE + BORDER_SIZE;
-				but.y = h * SLOT_SIZE + BORDER_SIZE;
-				but.w = SLOT_SIZE - (BORDER_SIZE);
-				but.h = SLOT_SIZE - (BORDER_SIZE);
-				nk_layout_space_push(ctx, but);
-
+				struct nk_rect buttonRect;
+				buttonRect.x = w * SLOT_SIZE + BORDER_SIZE;
+				buttonRect.y = h * SLOT_SIZE + BORDER_SIZE;
+				buttonRect.w = SLOT_SIZE - (BORDER_SIZE);
+				buttonRect.h = SLOT_SIZE - (BORDER_SIZE);
+				nk_layout_space_push(ctx, buttonRect);
 				if (nk_button_color(ctx, { 22, 22, 22, 255 }))
 				{
 					if (!playerClient->CursorStack.IsEmpty()
@@ -525,36 +525,34 @@ DrawInventory(struct nk_context* ctx, Inventory* inv)
 		for (uint32_t i = 0; i < inv->Contents.Count; ++i)
 		{
 			InventoryStack* invStack = &inv->Contents[i];
-			const Item* item = invStack->Stack.GetItem();
+			Item* item = invStack->Stack.GetItem();
 			
 			int idx = invStack->Slot.x + invStack->Slot.y * inv->Width;
 			InventorySlot stackSlot = inv->Slots[idx];
 
-			struct nk_rect rect;
-			rect.x = (float)invStack->Slot.x * SLOT_SIZE + BORDER_SIZE;
-			rect.y = (float)invStack->Slot.y * SLOT_SIZE + BORDER_SIZE;
-			rect.w = (float)item->Width * SLOT_SIZE - BORDER_SIZE;
-			rect.h = (float)item->Height * SLOT_SIZE - BORDER_SIZE;
-
-			struct nk_rect rect2 = GetSpriteRect(rect, stackSlot.IsFlipped);
-			nk_layout_space_push(ctx, rect2);
-
+			struct nk_rect baseRect;
+			baseRect.x = (float)invStack->Slot.x * SLOT_SIZE + BORDER_SIZE;
+			baseRect.y = (float)invStack->Slot.y * SLOT_SIZE + BORDER_SIZE;
+			baseRect.w = (float)item->Width * SLOT_SIZE - BORDER_SIZE;
+			baseRect.h = (float)item->Height * SLOT_SIZE - BORDER_SIZE;
+			struct nk_rect itemRect = GetSpriteRect(baseRect, stackSlot.IsFlipped);
+			nk_layout_space_push(ctx, itemRect);
 			if (nk_button_color(ctx, { 55, 0, 0, 255 }) && !hasHandledInventoryActionThisFrame)
 			{
-				// This gets the offset slot on the clicked itemstack
-				struct nk_vec2 btnScreenCoord = nk_layout_space_to_screen(ctx, { rect.x, rect.y });
-				Vector2 btnScreenOffset = Vector2Subtract(GetMousePosition(), { btnScreenCoord.x, btnScreenCoord.y });
-				Vector2i16 btnScreenSlot;
-				btnScreenSlot.x = (short)btnScreenOffset.x / (short)SLOT_SIZE;
-				btnScreenSlot.y = (short)btnScreenOffset.y / (short)SLOT_SIZE;
-
 				// This is the origin slot of the Itemstack. Real slot is btnScreenCoord + slotPressed
 				Vector2i16 slotPressed = invStack->Slot;
-				SLOG_DEBUG("Test! %d, %d, %d, %d", slotPressed.x, slotPressed.y, btnScreenSlot.x, btnScreenSlot.y);
+				SLOG_DEBUG("Test! %d, %d, %d, %d", slotPressed.x, slotPressed.y);
 
 				ItemStack* slotStack = inv->GetStack(slotPressed);
 				if (slotStack && playerClient->CursorStack.IsEmpty())
 				{
+					// This gets the offset slot on the clicked itemstack
+					struct nk_vec2 btnScreenCoord = nk_layout_space_to_screen(ctx, { baseRect.x, baseRect.y });
+					Vector2 btnScreenOffset = Vector2Subtract(GetMousePosition(), { btnScreenCoord.x, btnScreenCoord.y });
+					Vector2i16 btnScreenSlot;
+					btnScreenSlot.x = (short)btnScreenOffset.x / (short)SLOT_SIZE;
+					btnScreenSlot.y = (short)btnScreenOffset.y / (short)SLOT_SIZE;
+
 					playerClient->CursorStack = *slotStack;
 					playerClient->CursorStackLastPos = slotPressed;
 					playerClient->CursorStackClickedPos = btnScreenSlot;
@@ -562,17 +560,9 @@ DrawInventory(struct nk_context* ctx, Inventory* inv)
 					inv->RemoveStack(slotPressed);
 				}
 			}
-			nk_layout_space_push(ctx, rect);
+			nk_layout_space_push(ctx, baseRect);
 
-			struct nk_sprite sprite = {};
-			sprite.handle.ptr = spriteSheet;
-			SMemCopy(sprite.region, &item->Sprite.Region, sizeof(sprite.region));
-			if (stackSlot.IsFlipped)
-			{
-				sprite.origin = { SLOT_SIZE / 2, SLOT_SIZE / 2 };
-				sprite.rotation = 270.0f;
-				sprite.isRotated = true;
-			}
+			struct nk_sprite sprite = GetSprite(spriteSheet, item, stackSlot.IsFlipped);
 			nk_sprite(ctx, sprite);
 		}
 		nk_layout_space_end(ctx);
@@ -582,28 +572,23 @@ DrawInventory(struct nk_context* ctx, Inventory* inv)
 	// Draws Cursor Item
 	if (!playerClient->CursorStack.IsEmpty())
 	{
-		struct nk_rect cursorStackRect;
-		cursorStackRect.x = GetMousePosition().x + 4;
-		cursorStackRect.y = GetMousePosition().y + 4;
-		cursorStackRect.w = playerClient->CursorStack.GetItem()->Width * SLOT_SIZE;
-		cursorStackRect.h = playerClient->CursorStack.GetItem()->Height * SLOT_SIZE;
-		struct nk_rect rect = GetSpriteRect(cursorStackRect, playerClient->IsCursorStackFlipped);
+		struct nk_rect baseRect;
+		baseRect.x = GetMousePosition().x + 4;
+		baseRect.y = GetMousePosition().y + 4;
+		baseRect.w = playerClient->CursorStack.GetItem()->Width * SLOT_SIZE;
+		baseRect.h = playerClient->CursorStack.GetItem()->Height * SLOT_SIZE;
+		struct nk_rect cursorStackRect = GetSpriteRect(baseRect, playerClient->IsCursorStackFlipped);
 
 		ctx->style.window.background = { 0 };
-		if (nk_begin(ctx, "CursorStack", rect, NK_WINDOW_NO_SCROLLBAR))
+		if (nk_begin(ctx, "CursorStack", cursorStackRect, NK_WINDOW_NO_SCROLLBAR))
 		{
-			nk_layout_row_static(ctx, cursorStackRect.h, (int)cursorStackRect.w, 1);
+			nk_layout_space_begin(ctx, NK_STATIC, cursorStackRect.h, 1);
+			nk_layout_space_push(ctx, { 0, 0, baseRect.w, baseRect.h });
 				
-			struct nk_sprite sprite = {};
-			sprite.handle.ptr = spriteSheet;
-			SMemCopy(sprite.region, playerClient->CursorStack.GetItem()->Sprite.Region, sizeof(sprite.region));
-			if (playerClient->IsCursorStackFlipped)
-			{
-				sprite.origin = { SLOT_SIZE / 2, SLOT_SIZE / 2 };
-				sprite.rotation = 270.0f;
-				sprite.isRotated = true;
-			}
+			struct nk_sprite sprite = GetSprite(spriteSheet, playerClient->CursorStack.GetItem(), playerClient->IsCursorStackFlipped);
 			nk_sprite(ctx, sprite);
+
+			nk_layout_space_end(ctx);
 		}
 		nk_end(ctx);
 	}
@@ -624,6 +609,23 @@ GetSpriteRect(struct nk_rect rect, bool rotate)
 	{
 		res.w = rect.w;
 		res.h = rect.h;
+	}
+	return res;
+}
+
+internal struct nk_sprite 
+GetSprite(Texture2D* texture, Item* item, bool isRotated)
+{
+	struct nk_sprite res = {};
+	res.handle.ptr = texture;
+	SMemCopy(res.region, item->Sprite.Region, sizeof(res.region));
+	if (isRotated)
+	{
+		// Note: Half slot size - 1, -1 because I guessing rotation offsets slightly?
+		constexpr float offset = SLOT_SIZE / 2.0f - 1.0f;
+		res.origin = { offset, offset };
+		res.rotation = 270.0f;
+		res.isRotated = true;
 	}
 	return res;
 }
