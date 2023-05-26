@@ -63,10 +63,6 @@
 #include "nuklear.h"
 #include <math.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 // Note(bscal): struct definition from SUI.h
 struct nk_sprite
 {
@@ -74,7 +70,6 @@ struct nk_sprite
     nk_ushort region[4];
     struct nk_vec2 origin;
     float rotation;
-    bool isRotated;
 };
 
 struct nk_command_scal_sprite
@@ -85,6 +80,10 @@ struct nk_command_scal_sprite
     struct nk_sprite sprite;
     struct nk_color col;
 };
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 NK_API struct nk_context* InitNuklear(int fontSize);                // Initialize the Nuklear GUI context
 NK_API struct nk_context* InitNuklearEx(Font font, float fontSize); // Initialize the Nuklear GUI context, with a custom font

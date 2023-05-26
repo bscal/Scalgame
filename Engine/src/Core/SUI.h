@@ -34,6 +34,8 @@ bool InitializeUI(UIState* state, GameApplication* gameApp);
 void UpdateUI(UIState* state, Game* game);
 void DrawUI(UIState* state);
 
+void HandleGUIInput(UIState* state, GameApplication* gameApp);
+
 NK_API nk_bool
 nk_button_sprite(struct nk_context* ctx, struct nk_sprite sprite);
 
@@ -49,3 +51,7 @@ nk_sprite(struct nk_context* ctx, struct nk_sprite sprite);
 NK_API void
 nk_draw_sprite(struct nk_command_buffer* b, struct nk_rect r,
     const struct nk_sprite* sprite, struct nk_color col);
+
+
+NK_API void
+nk_rect_lines(struct nk_context* ctx, float roundness, float border, struct nk_color color);
