@@ -67,6 +67,19 @@ void EntityMgr::RemoveEntity(Entity entity)
 	FreeIds.Push(&entity);
 }
 
+uint32_t EntityMgr::FindGen(uint32_t entityId)
+{
+	if (entityId >= Entities.Count)
+		return ENT_NOT_FOUND;
+
+	EntityStatus status = Entities[GetId(entityId)];
+	
+	if (!status.IsAlive)
+		return ENT_NOT_FOUND;
+
+	return status.Gen;
+}
+
 bool EntityMgr::IsAlive(Entity entity) const
 {
 	EntityStatus status = Entities[GetId(entity)];

@@ -12,6 +12,7 @@
 
 #define ENT_MAX_ENTITIES UINT16_MAX
 #define ENT_MAX_COMPONENTS 64
+#define ENT_NOT_FOUND UINT32_MAX
 
 typedef uint32_t Entity;
 
@@ -30,6 +31,7 @@ struct EntityMgr
 	Entity CreateEntity();
 	void RemoveEntity(Entity entity);
 	
+	uint32_t FindGen(uint32_t entityId);
 	bool IsAlive(Entity entity) const;
 };
 

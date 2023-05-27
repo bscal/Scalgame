@@ -527,16 +527,19 @@ DrawInventory(struct nk_context* ctx, Inventory* inv)
 				buttonRect.h = SLOT_SIZE - (BORDER_SIZE);
 				nk_layout_space_push(ctx, buttonRect);
 
-				if (nk_button_color(ctx, { 22, 22, 22, 255 })
-					&& !playerClient->CursorStack.IsEmpty()
-					&& inv->CanInsertStack({ w, h }, playerClient->CursorStack.GetItem(), playerClient->IsCursorStackFlipped))
+				if (nk_button_color(ctx, { 22, 22, 22, 255 }) && !playerClient->CursorStack.IsEmpty())
 				{
-					inv->InsertStack({ w, h }, &playerClient->CursorStack, playerClient->IsCursorStackFlipped);
-					playerClient->CursorStack.Remove();
-					playerClient->IsCursorStackFlipped = false;
-					playerClient->CursorStackClickedPos = {};
-					playerClient->CursorStackLastPos = {};
-					hasHandledInventoryActionThisFrame = true;
+					if (inv->InsertStack({ w, h }
+						, playerClient->ItemSlotOffset
+						, &playerClient->CursorStack
+						, playerClient->IsCursorStackFlipped))
+					{
+						playerClient->CursorStack.Remove();
+						playerClient->IsCursorStackFlipped = false;
+						playerClient->ItemSlotOffset = {};
+						playerClient->CursorStackLastPos = {};
+						hasHandledInventoryActionThisFrame = true;
+					}
 				}
 			}
 		}
@@ -550,8 +553,6 @@ DrawInventory(struct nk_context* ctx, Inventory* inv)
 		{
 			InventoryStack* invStack = &inv->Contents[i];
 			Item* item = invStack->Stack.GetItem();
-			int idx = invStack->Slot.x + invStack->Slot.y * inv->Width;
-			InventorySlot stackSlot = inv->Slots[idx];
 
 			// Draws button and sprite. They are draw seperate because of
 			// ItemStack rotation. They use different rectangle layout spaces
@@ -561,7 +562,7 @@ DrawInventory(struct nk_context* ctx, Inventory* inv)
 			baseRect.w = (float)item->Width * SLOT_SIZE - BORDER_SIZE;
 			baseRect.h = (float)item->Height * SLOT_SIZE - BORDER_SIZE;
 
-			struct nk_rect itemRect = GetSpriteRect(baseRect, stackSlot.IsFlipped);
+			struct nk_rect itemRect = GetSpriteRect(baseRect, invStack->IsRotated);
 
 			nk_layout_space_push(ctx, itemRect);
 
@@ -586,15 +587,15 @@ DrawInventory(struct nk_context* ctx, Inventory* inv)
 
 					playerClient->CursorStack = *slotStack;
 					playerClient->CursorStackLastPos = slotPressed;
-					playerClient->CursorStackClickedPos = btnScreenSlot;
-					playerClient->IsCursorStackFlipped = stackSlot.IsFlipped;
+					playerClient->ItemSlotOffset = btnScreenSlot;
+					playerClient->IsCursorStackFlipped = invStack->IsRotated;
 					inv->RemoveStack(slotPressed);
 				}
 			}
 			else // Draws item sprite if not pressed
 			{
 				nk_layout_space_push(ctx, baseRect);
-				struct nk_sprite sprite = GetSprite(spriteSheet, item, stackSlot.IsFlipped);
+				struct nk_sprite sprite = GetSprite(spriteSheet, item, invStack->IsRotated);
 				nk_sprite(ctx, sprite);
 			}
 		}
@@ -608,13 +609,13 @@ DrawInventory(struct nk_context* ctx, Inventory* inv)
 		ctx->style.window.background = { 0 };
 
 		struct nk_rect baseRect;
-		baseRect.x = GetMousePosition().x + 4;
-		baseRect.y = GetMousePosition().y + 4;
+		baseRect.x = GetMousePosition().x + (playerClient->ItemSlotOffset.x * SLOT_SIZE);
+		baseRect.y = GetMousePosition().y + (playerClient->ItemSlotOffset.y * SLOT_SIZE);
 		baseRect.w = playerClient->CursorStack.GetItem()->Width * SLOT_SIZE;
 		baseRect.h = playerClient->CursorStack.GetItem()->Height * SLOT_SIZE;
 		struct nk_rect cursorStackRect = GetSpriteRect(baseRect, playerClient->IsCursorStackFlipped);
 
-		if (nk_begin(ctx, "CursorStack", cursorStackRect, NK_WINDOW_NO_SCROLLBAR))
+		if (nk_begin(ctx, "CursorStack", cursorStackRect, NK_WINDOW_NO_SCROLLBAR | NK_WINDOW_NO_INPUT))
 		{
 			nk_layout_space_begin(ctx, NK_STATIC, cursorStackRect.h, 1);
 			nk_layout_space_push(ctx, { 0, 0, baseRect.w, baseRect.h });

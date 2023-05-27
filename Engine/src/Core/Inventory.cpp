@@ -16,10 +16,11 @@ uint32_t Inventory::FindItem(uint32_t item) const
 
 ItemStack* Inventory::GetStack(Vector2i16 slot)
 {
-	if (slot.x >= Width || slot.y >= Height)
+	if (slot.x < 0 || slot.x >= Width || slot.y < 0 || slot.y >= Height)
 		return nullptr;
 
 	uint32_t idx = slot.x + slot.y * Width;
+	SASSERT(idx < Slots.Count);
 	InventorySlot invSlot = Slots[idx];
 	SASSERT(invSlot.InventoryStackIndex < INVENTORY_SLOT_MAX);
 
@@ -29,65 +30,38 @@ ItemStack* Inventory::GetStack(Vector2i16 slot)
 		return nullptr;
 }
 
-void Inventory::SetStack(Vector2i16 slot, ItemStack* stack)
-{
-	const Item* item = stack->GetItem();
-
-	InventoryStack* invStack = Contents.PushNew();
-	invStack->Slot = slot;
-	invStack->Stack = *stack;
-
-	uint16_t invStackIndex = Contents.LastIndex();
-
-	uint16_t xEnd = slot.x + item->Width;
-	uint16_t yEnd = slot.y + item->Height;
-	for (uint16_t yPos = slot.y; yPos < yEnd; ++yPos)
-	{
-		for (uint16_t xPos = slot.x; xPos < xEnd; ++xPos)
-		{
-			uint32_t idx = xPos + yPos * Width;
-			Slots[idx].State = (uint32_t)InventorySlotState::FILLED;
-			Slots[idx].InventoryStackIndex = invStackIndex;
-		}
-	}
-}
-
-void Inventory::InsertStack(Vector2i16 slot, ItemStack* stack, bool flipped)
+bool Inventory::InsertStack(Vector2i16 slot, Vector2i16 offset, ItemStack* stack, bool rotated)
 {
 	SASSERT(slot.x >= 0);
 	SASSERT(slot.y >= 0);
 	SASSERT(stack);
 
 	const Item* item = stack->GetItem();
+	SASSERT(item);
+
+	if (!CanInsertStack(slot, offset, item, rotated))
+		return false;
+
+	slot.x -= offset.x;
+	slot.y -= offset.y;
 
 	short xEnd;
 	short yEnd;
-	if (flipped)
+	if (rotated)
 	{
 		xEnd = slot.x + item->Height;
 		yEnd = slot.y + item->Width;
-	}	
+	}
 	else
 	{
 		xEnd = slot.x + item->Width;
 		yEnd = slot.y + item->Height;
 	}
 
-	for (short yPos = slot.y; yPos < yEnd; ++yPos)
-	{
-		for (short xPos = slot.x; xPos < xEnd; ++xPos)
-		{
-			uint32_t idx = (uint32_t)(xPos + yPos * Width);
-			if (idx >= Slots.Count)
-				return;
-			if (static_cast<InventorySlotState>(Slots[idx].State) != InventorySlotState::EMPTY)
-				return;
-		}
-	}
-
 	InventoryStack* invStack = Contents.PushNew();
-	invStack->Slot = slot;
 	invStack->Stack = *stack;
+	invStack->Slot = slot;
+	invStack->IsRotated = rotated;
 
 	uint32_t invStackIndex = Contents.LastIndex();
 	SASSERT(invStackIndex < INVENTORY_SLOT_MAX);
@@ -99,9 +73,50 @@ void Inventory::InsertStack(Vector2i16 slot, ItemStack* stack, bool flipped)
 			uint32_t idx = xPos + yPos * Width;
 			Slots[idx].State = (uint32_t)InventorySlotState::FILLED;
 			Slots[idx].InventoryStackIndex = (uint16_t)invStackIndex;
-			Slots[idx].IsFlipped = flipped;
 		}
 	}
+
+	return true;
+}
+
+bool Inventory::CanInsertStack(Vector2i16 slot, Vector2i16 offset, const Item* item, bool flipped) const
+{
+	SASSERT(offset.x <= item->Width);
+	SASSERT(offset.y <= item->Height);
+
+	slot.x -= offset.x;
+	slot.y -= offset.y;
+
+	short xEnd;
+	short yEnd;
+	if (flipped)
+	{
+		xEnd = slot.x + item->Height;
+		yEnd = slot.y + item->Width;
+	}
+	else
+	{
+		xEnd = slot.x + item->Width;
+		yEnd = slot.y + item->Height;
+	}
+	SASSERT(xEnd >= 0);
+	SASSERT(yEnd >= 0);
+	if (uint16_t(xEnd) > Width || uint16_t(yEnd) > Height)
+		return false;
+
+	for (short yPos = slot.y; yPos < yEnd; ++yPos)
+	{
+		for (short xPos = slot.x; xPos < xEnd; ++xPos)
+		{
+			if (xPos >= Width || yPos >= Height)
+				return false;
+
+			uint32_t idx = xPos + yPos * Width;
+			if (static_cast<InventorySlotState>(Slots[idx].State) != InventorySlotState::EMPTY)
+				return false;
+		}
+	}
+	return true;
 }
 
 bool Inventory::RemoveStack(Vector2i16 slot)
@@ -124,7 +139,7 @@ bool Inventory::RemoveStack(Vector2i16 slot)
 	{
 		short xEnd;
 		short yEnd;
-		if (invSlot.IsFlipped)
+		if (invStack.IsRotated)
 		{
 			xEnd = invStack.Slot.x + item->Height;
 			yEnd = invStack.Slot.y + item->Width;
@@ -143,7 +158,6 @@ bool Inventory::RemoveStack(Vector2i16 slot)
 				uint32_t idx = slotX + slotY * Width;
 				Slots[idx].InventoryStackIndex = UINT16_MAX;
 				Slots[idx].State = (uint16_t)InventorySlotState::EMPTY;
-				Slots[idx].IsFlipped = 0;
 			}
 		}
 	}
@@ -161,7 +175,7 @@ bool Inventory::RemoveStack(Vector2i16 slot)
 		{
 			short xEnd;
 			short yEnd;
-			if (lastInvSlot.IsFlipped)
+			if (lastInvStack.IsRotated)
 			{
 				xEnd = lastInvStack.Slot.x + lastItem->Height;
 				yEnd = lastInvStack.Slot.y + lastItem->Width;
@@ -171,6 +185,8 @@ bool Inventory::RemoveStack(Vector2i16 slot)
 				xEnd = lastInvStack.Slot.x + lastItem->Width;
 				yEnd = lastInvStack.Slot.y + lastItem->Height;
 			}
+			SASSERT(xEnd >= 0);
+			SASSERT(yEnd >= 0);
 
 			for (short slotY = lastInvStack.Slot.y; slotY < yEnd; ++slotY)
 			{
@@ -180,38 +196,6 @@ bool Inventory::RemoveStack(Vector2i16 slot)
 					Slots[idx].InventoryStackIndex = invSlot.InventoryStackIndex;
 				}
 			}
-		}
-	}
-	return true;
-}
-
-bool Inventory::CanInsertStack(Vector2i16 slot, const Item* item, bool flipped) const
-{
-	short xEnd;
-	short yEnd;
-	if (flipped)
-	{
-		xEnd = slot.x + item->Height;
-		yEnd = slot.y + item->Width;
-	}
-	else
-	{
-		xEnd = slot.x + item->Width;
-		yEnd = slot.y + item->Height;
-	}
-	SASSERT(xEnd >= 0);
-	SASSERT(yEnd >= 0);
-
-	for (short yPos = slot.y; yPos < yEnd; ++yPos)
-	{
-		for (short xPos = slot.x; xPos < xEnd; ++xPos)
-		{
-			uint32_t idx = xPos + yPos * Width;
-			if (idx >= Slots.Count)
-				return false;
-
-			if (static_cast<InventorySlotState>(Slots[idx].State) != InventorySlotState::EMPTY)
-				return false;
 		}
 	}
 	return true;

@@ -6,6 +6,7 @@
 #include "Structures/StaticArray.h"
 #include "Structures/SHoodTable.h"
 
+struct GameApplication;
 struct CreatureEntity;
 struct ItemStack;
 
@@ -79,19 +80,20 @@ struct Vector2i16
 	short y;
 };
 
-#define INVENTORY_SLOT_MAX (0x20ff)
+constexpr global_var uint16_t INVENTORY_SLOT_MAX = (0xffff >> 2);
 struct InventorySlot
 {
-	uint16_t InventoryStackIndex : 13;
+	uint16_t InventoryStackIndex : 14;
 	uint16_t State : 2;
-	uint16_t IsFlipped : 1;
 };
 
 struct InventoryStack
 {
 	ItemStack Stack;
 	Vector2i16 Slot;
+	bool IsRotated;
 };
+
 
 struct Inventory
 {
@@ -106,10 +108,9 @@ struct Inventory
 
 	uint32_t FindItem(uint32_t item) const;
 	ItemStack* GetStack(Vector2i16 slot);
-	void InsertStack(Vector2i16 slot, ItemStack* stack, bool flipped);
-	void SetStack(Vector2i16 slot, ItemStack* stack);
+	bool InsertStack(Vector2i16 slot, Vector2i16 offset, ItemStack* stack, bool rotated);
+	bool CanInsertStack(Vector2i16 slot, Vector2i16 offset, const Item* item, bool rotated) const;
 	bool RemoveStack(Vector2i16 slot);
-	bool CanInsertStack(Vector2i16 slot, const Item* item, bool flipped) const;
 };
 
 enum class EquipmentSlots : uint8_t
@@ -151,6 +152,5 @@ struct InventoryMgr
 
 	Equipment* CreateEquipment();
 };
-
 
 ItemStack ItemStackNew(uint16_t itemId, uint16_t itemCount);

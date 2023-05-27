@@ -3,13 +3,14 @@
 #include "Core.h"
 #include "Inventory.h"
 
+struct GameApplication;
 struct TransformComponent;
 
 struct PlayerClient
 {
 	ItemStack CursorStack;
 	Vector2i16 CursorStackLastPos;
-	Vector2i16 CursorStackClickedPos;
+	Vector2i16 ItemSlotOffset;
 	bool IsCursorStackFlipped;
 };
 
@@ -25,3 +26,4 @@ struct PlayerEntity
 	TransformComponent* GetTransform();
 };
 
+void HandlePlayerInput(GameApplication* gameApp, PlayerEntity* player);

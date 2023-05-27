@@ -53,3 +53,67 @@ TransformComponent* PlayerEntity::GetTransform()
 	uint32_t entityId = GetId(EntityId);
 	return GetGame()->ComponentMgr.GetComponent<TransformComponent>(entityId);
 }
+
+void HandlePlayerInput(GameApplication* gameApp, PlayerEntity* player)
+{
+	SASSERT(gameApp);
+	SASSERT(player);
+	if (!gameApp->IsGameInputDisabled)
+	{
+		Game* game = gameApp->Game;
+		PlayerClient* playerClient = &player->PlayerClient;
+
+		if (IsKeyPressed(KEY_EIGHT))
+		{
+			PlayerEntity* player = GetClientPlayer();
+			if (game->IsInventoryOpen && !playerClient->CursorStack.IsEmpty())
+			{
+				CreatureEntity* playerCreature = game->ComponentMgr.GetComponent<CreatureEntity>(player->EntityId);
+				Inventory* playerInv = game->InventoryMgr.Inventories.Get(&playerCreature->InventoryId);
+				if (playerInv && playerInv->InsertStack(playerClient->CursorStackLastPos
+					, playerClient->ItemSlotOffset
+					, &playerClient->CursorStack
+					, playerClient->IsCursorStackFlipped))
+				{
+					playerClient->CursorStack.Remove();
+					playerClient->IsCursorStackFlipped = false;
+					playerClient->CursorStackLastPos = {};
+					playerClient->ItemSlotOffset = {};
+				}
+			}
+			game->IsInventoryOpen = !game->IsInventoryOpen;
+		}
+
+		if (IsKeyPressed(KEY_NINE))
+		{
+			CreatureEntity* creature = game->ComponentMgr.AddComponent(GetClientPlayer()->EntityId, CreatureEntity {});
+			Inventory* playerInv = game->InventoryMgr.Inventories.Get(&creature->InventoryId);
+			SASSERT(playerInv);
+			Equipment* playerEquipment = game->InventoryMgr.Equipments.Get(&creature->InventoryId);
+			SASSERT(playerEquipment);
+
+			ItemStack itemStack = ItemStackNew(Items::TORCH, 1);
+			playerInv->InsertStack({ 2, 2 }, { 0, 0 }, &itemStack, false);
+			ItemStack itemStack2 = ItemStackNew(Items::FIRE_STAFF, 1);
+			playerInv->InsertStack({ 0, 2 }, { 0, 0 }, &itemStack2, false);
+
+			ItemStack stack = ItemStackNew(Items::TORCH, 1);
+			playerEquipment->EquipItem(creature, &stack, 0);
+		}
+
+		if (IsKeyPressed(KEY_ZERO))
+		{
+			static uint32_t curId = 1;
+
+			uint32_t gen = GetGame()->EntityMgr.FindGen(curId);
+			if (gen != ENT_NOT_FOUND)
+			{
+				uint32_t entity = SetGen(curId, gen);
+				GetGame()->EntityMgr.RemoveEntity(entity);
+
+				Attachable* a = game->ComponentMgr.GetComponent<Attachable>(entity);
+				SASSERT(!a);
+			}
+		}
+	}
+}

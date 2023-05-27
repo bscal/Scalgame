@@ -153,13 +153,6 @@ SAPI void GameApplication::Run()
 		// Update
 		// ***************
 
-		if (IsKeyPressed(KEY_GRAVE))
-			UIState->IsDebugPanelOpen = !UIState->IsDebugPanelOpen;
-		if (IsKeyPressed(KEY_EQUAL))
-			UIState->IsConsoleOpen = !UIState->IsConsoleOpen;
-		if (IsKeyPressed(KEY_BACKSLASH))
-			UIState->IsDrawingFPS = !UIState->IsDrawingFPS;
-
 		// Don't want game input when over UI
 		if (!UIState->IsMouseHoveringUI)
 		{
@@ -255,64 +248,9 @@ SAPI void GameApplication::Run()
 				else
 					Game->ViewCamera.zoom = 1.f;
 			}
-
-			if (IsKeyPressed(KEY_EIGHT))
-			{
-				PlayerEntity* player = GetClientPlayer();
-				PlayerClient& playerClient = player->PlayerClient;
-				if (Game->IsInventoryOpen && !playerClient.CursorStack.IsEmpty())
-				{
-					CreatureEntity* playerCreature = Game->ComponentMgr.GetComponent<CreatureEntity>(player->EntityId);
-					Inventory* playerInv = Game->InventoryMgr.Inventories.Get(&playerCreature->InventoryId);
-					if (playerInv)
-					{
-						playerInv->SetStack(playerClient.CursorStackLastPos, &playerClient.CursorStack);
-						playerClient.CursorStackLastPos = {};
-						playerClient.CursorStack.Remove();
-					}
-				}
-
-				Game->IsInventoryOpen = !Game->IsInventoryOpen;
-			}
-
-			if (IsKeyPressed(KEY_NINE))
-			{
-				CreatureEntity* creature = Game->ComponentMgr.AddComponent(GetClientPlayer()->EntityId, CreatureEntity{});
-				Inventory* playerInv = Game->InventoryMgr.Inventories.Get(&creature->InventoryId);
-				SASSERT(playerInv);
-				Equipment* playerEquipment = Game->InventoryMgr.Equipments.Get(&creature->InventoryId);
-				SASSERT(playerEquipment);
-
-				ItemStack itemStack = ItemStackNew(Items::TORCH, 1);
-				playerInv->SetStack({ 2, 2 }, &itemStack);
-				ItemStack itemStack2 = ItemStackNew(Items::FIRE_STAFF, 1);
-				playerInv->SetStack({ 0, 2 }, & itemStack2);
-
-				ItemStack stack = ItemStackNew(Items::TORCH, 1);
-				playerEquipment->EquipItem(creature, &stack, 0);
-			}
-
-			if (IsKeyPressed(KEY_ZERO))
-			{
-				uint32_t tmpEntity = 1;
-				tmpEntity = SetGen(tmpEntity, GetGame()->EntityMgr.Entities[tmpEntity].Gen);
-				GetGame()->EntityMgr.RemoveEntity(tmpEntity);
-
-				Attachable* a = Game->ComponentMgr.GetComponent<Attachable>(1);
-				SASSERT(!a);
-			}
 		}
-		else
-		{
-			if (IsKeyPressed(KEY_R))
-			{
-				PlayerClient& playerClient = GetClientPlayer()->PlayerClient;
-				if (!playerClient.CursorStack.IsEmpty())
-				{
-					playerClient.IsCursorStackFlipped = !playerClient.IsCursorStackFlipped;
-				}
-			}
-		}
+
+		HandlePlayerInput(this, GetClientPlayer());
 
 		// **************************
 		// Updates UI logic, draws to
