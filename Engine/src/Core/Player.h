@@ -9,8 +9,9 @@ struct TransformComponent;
 struct PlayerClient
 {
 	ItemStack CursorStack;
+	Vector2 ItemSlotOffset;
+	Vector2i16 ItemSlotOffsetSlot;
 	Vector2i16 CursorStackLastPos;
-	Vector2i16 ItemSlotOffset;
 	bool IsCursorStackFlipped;
 };
 

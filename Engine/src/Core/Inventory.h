@@ -80,6 +80,11 @@ struct Vector2i16
 	short y;
 };
 
+static inline bool operator==(Vector2i16 left, Vector2i16 right)
+{
+	return  (left.x == right.x && left.y == right.y);
+}
+
 constexpr global_var uint16_t INVENTORY_SLOT_MAX = (0xffff >> 2);
 struct InventorySlot
 {
@@ -111,6 +116,7 @@ struct Inventory
 	bool InsertStack(Vector2i16 slot, Vector2i16 offset, ItemStack* stack, bool rotated);
 	bool CanInsertStack(Vector2i16 slot, Vector2i16 offset, const Item* item, bool rotated) const;
 	bool RemoveStack(Vector2i16 slot);
+	SList<Vector2i16> GetIntersectingSlots(Vector2i16 slot, Vector2i16 offset, const Item* item, bool rotated) const;
 };
 
 enum class EquipmentSlots : uint8_t

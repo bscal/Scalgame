@@ -201,6 +201,48 @@ bool Inventory::RemoveStack(Vector2i16 slot)
 	return true;
 }
 
+SList<Vector2i16> Inventory::GetIntersectingSlots(Vector2i16 slot, Vector2i16 offset, const Item* item, bool rotated) const
+{
+	SList<Vector2i16> res = {};
+	res.Allocator = SAllocator::Temp;
+	res.Reserve(item->Width * item->Height);
+
+	slot.x -= offset.x;
+	slot.y -= offset.y;
+
+	short xEnd;
+	short yEnd;
+	if (rotated)
+	{
+		xEnd = slot.x + item->Height;
+		yEnd = slot.y + item->Width;
+	}
+	else
+	{
+		xEnd = slot.x + item->Width;
+		yEnd = slot.y + item->Height;
+	}
+	SASSERT(xEnd >= 0);
+	SASSERT(yEnd >= 0);
+
+	for (short slotY = slot.y; slotY < yEnd; ++slotY)
+	{
+		for (short slotX = slot.x; slotX < xEnd; ++slotX)
+		{
+			uint32_t idx = slotX + slotY * Width;
+			if (slotX >= Width || slotY >= Height)
+				continue;
+
+			if (static_cast<InventorySlotState>(Slots[idx].State) == InventorySlotState::EMPTY)
+			{
+				Vector2i16 curSlot = { slotX, slotY };
+				res.Push(&curSlot);
+			}
+		}
+	}
+	return res;
+}
+
 void ItemStack::Remove()
 {
 	SMemClear(this, sizeof(ItemStack));

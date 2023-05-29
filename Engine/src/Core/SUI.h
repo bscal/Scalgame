@@ -52,6 +52,8 @@ NK_API void
 nk_draw_sprite(struct nk_command_buffer* b, struct nk_rect r,
     const struct nk_sprite* sprite, struct nk_color col);
 
-
 NK_API void
 nk_rect_lines(struct nk_context* ctx, float roundness, float border, struct nk_color color);
+
+NK_API void
+nk_rect_fill(struct nk_context* ctx, float roundness, struct nk_color color);

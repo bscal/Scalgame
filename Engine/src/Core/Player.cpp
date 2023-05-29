@@ -71,7 +71,7 @@ void HandlePlayerInput(GameApplication* gameApp, PlayerEntity* player)
 				CreatureEntity* playerCreature = game->ComponentMgr.GetComponent<CreatureEntity>(player->EntityId);
 				Inventory* playerInv = game->InventoryMgr.Inventories.Get(&playerCreature->InventoryId);
 				if (playerInv && playerInv->InsertStack(playerClient->CursorStackLastPos
-					, playerClient->ItemSlotOffset
+					, playerClient->ItemSlotOffsetSlot
 					, &playerClient->CursorStack
 					, playerClient->IsCursorStackFlipped))
 				{
