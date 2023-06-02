@@ -13,6 +13,7 @@
 #include "Structures/STable.h"
 #include "Structures/SHoodTable.h"
 #include "Structures/SparseSet.h"
+#include "Structures/TreeMap.h"
 
 #include "WickedEngine/Jobs.h"
 
@@ -77,6 +78,7 @@ SAPI bool GameApplication::Start()
 	GAME_TEST(TestSparseSet);
 	GAME_TEST(TestComponents);
 	GAME_TEST(TestEntityId);
+	GAME_TEST(TreeTest);
 
 	SLOG_INFO("[ Tests ] %d/%d tests passed!", passingTests, totalTests);
 	#endif // SCAL_GAME_TESTS

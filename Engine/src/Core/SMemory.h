@@ -25,6 +25,7 @@ enum class MemoryTag : uint8_t
 	UI,
 	Profiling,
 	TrackedMalloc,
+	Trees,
 
 	MaxTags
 };
@@ -39,7 +40,8 @@ constexpr static const char* MemoryTagStrings[(uint8_t)MemoryTag::MaxTags] =
 	"Game",
 	"UI",
 	"Profiling",
-	"TrackedMalloc"
+	"TrackedMalloc",
+	"Trees"
 };
 
 struct SPool

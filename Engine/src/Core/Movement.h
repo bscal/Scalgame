@@ -1,58 +1,25 @@
 #pragma once
 
 #include "Core.h"
-#include "Creature.h"
 
-#include <vector>
-#include <bitset>
+#include "Structures/BitArray.h"
+#include "Structures/SList.h"
 
-struct Movement
-{
-	int MaxPoints;
-	int Points;
-	int PointsPerTurn;
-};
+struct CreatureEntity;
+struct World;
+
 
 struct MoveAction
 {
-	std::bitset<16> set;
 	Vector3 ToPosition;
-	struct Creature* Creature;
+	struct CreatureEntity* Creature;
 	int Cost;
 };
 
-struct MoveMgr
+struct MoveList
 {
-	std::vector<MoveAction> MoveActions;
-
-	void Insert(const MoveAction* action)
-	{
-		bool added = false;
-		for (int i = 0; i < MoveActions.size(); ++i)
-		{
-			const auto& at = MoveActions[i];
-			if (at.Cost > action->Cost)
-			{
-				MoveActions.push_back(at);
-				MoveActions[i] = *action;
-				added = true;
-				break;
-			}
-		}
-
-		if (!added)
-		{
-			MoveActions.push_back(*action);
-		}
-	}
-
-	void Process(World* world)
-	{
-		for (int i = 0; i < MoveActions.size(); ++i)
-		{
-			//const auto& at = MoveActions[i];
-		}
-		MoveActions.clear();
-	}
+	SList<MoveAction> Actions;
 };
 
+void QueueMove(MoveList* moves, const MoveAction* move);
+void MovesProcess(MoveList* moves, World* world);
