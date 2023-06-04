@@ -54,7 +54,7 @@ struct Queue
 		
 		++Tail;
 		if (Tail == Capacity)
-			Tail = QUEUE_EMPTY;z
+			Tail = QUEUE_EMPTY;
 	}
 
 	T Dequeue()

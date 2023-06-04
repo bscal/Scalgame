@@ -19,22 +19,25 @@ struct UIUserData
 struct UIState
 {
 	nk_context Ctx;
+	struct nk_rect GUIRect;
 	nk_user_font Font;
+	SStringsBuffer ChatBoxStrings;
 	void* UIMemory;
 	size_t UIMemorySize;
-	bool IsMouseHoveringUI;
 	bool IsDrawingFPS;
 	bool IsDebugPanelOpen;
     bool IsConsoleOpen;
+	bool IsConsoleAlreadyOpen;
+	bool IsChatBoxShowing;
 	SList<SString> ConsoleEntries;
 	UIUserData UserData;
 };
 
 bool InitializeUI(UIState* state, GameApplication* gameApp);
-void UpdateUI(UIState* state, Game* game);
+void HandleGUIInput(UIState* state, GameApplication* gameApp);
+void UpdateUI(UIState* state, GameApplication* gameApp, Game* game);
 void DrawUI(UIState* state);
 
-void HandleGUIInput(UIState* state, GameApplication* gameApp);
 
 NK_API nk_bool
 nk_button_sprite(struct nk_context* ctx, struct nk_sprite sprite);

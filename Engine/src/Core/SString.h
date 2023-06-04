@@ -139,6 +139,22 @@ SRawString RawStringNew(const char* cStr);
 SRawString TempRawString(const char* cStr, uint32_t length);
 void RawStringFree(SRawString* string);
 
+struct SStringsBuffer
+{
+	char* StringsMemory;
+	uint32_t PoolCapacity;
+	uint32_t StringStride;
+	uint32_t Head;
+
+	void Initialize(uint32_t poolCapacity, uint32_t stringCapacity);
+	void Free();
+	void Clear();
+
+	char* Next();
+	void Copy(const char* string);
+	char* Get(uint32_t idx);
+};
+
 struct SRawStringHasher
 {
 	[[nodiscard]] constexpr uint64_t operator()(const SRawString* key) const noexcept

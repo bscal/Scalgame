@@ -71,6 +71,7 @@ struct GameApplication
     
     double RenderTime;
     double UpdateWorldTime;
+    double DrawTime;
     double DebugLightTime;
     int NumOfLoadedChunks;
     int NumOfChunksUpdated;
@@ -78,6 +79,7 @@ struct GameApplication
 
     float Scale;
     
+    bool IsGUIInputDisabled;
     bool IsGameInputDisabled;
     bool IsHoveringGUIWindow;
     

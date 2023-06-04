@@ -14,6 +14,7 @@
 #include "Structures/SHoodTable.h"
 #include "Structures/SparseSet.h"
 #include "Structures/TreeMap.h"
+#include "Structures/References.h"
 
 #include "WickedEngine/Jobs.h"
 
@@ -21,6 +22,8 @@
 #include "rlgl.h"
 
 global_var GameApplication* GameAppPtr;
+
+internal void HandleGameInput(GameApplication* gameApp, Game* game);
 
 internal bool GameInitialize(Game* game, GameApplication* gameApp);
 internal void GameLoad(Game* game, GameApplication* gameApp);
@@ -64,9 +67,9 @@ SAPI bool GameApplication::Start()
 	bool didUiInit = InitializeUI(UIState, this);
 	SASSERT(didUiInit);
 
-	#ifdef SCAL_GAME_TESTS
+#ifdef SCAL_GAME_TESTS
 
-	#define GAME_TEST(function) ++totalTests; passingTests += function()
+#define GAME_TEST(function) ++totalTests; passingTests += function()
 	int passingTests = 0;
 	int totalTests = 0;
 
@@ -79,9 +82,10 @@ SAPI bool GameApplication::Start()
 	GAME_TEST(TestComponents);
 	GAME_TEST(TestEntityId);
 	GAME_TEST(TreeTest);
+	GAME_TEST(TestRef);
 
 	SLOG_INFO("[ Tests ] %d/%d tests passed!", passingTests, totalTests);
-	#endif // SCAL_GAME_TESTS
+#endif // SCAL_GAME_TESTS
 
 	IsInitialized = true;
 
@@ -132,7 +136,7 @@ internal void GameLoad(Game* game, GameApplication* gameApp)
 
 	UniverseInitialize(&game->Universe, gameApp);
 	UniverseLoad(&game->Universe, gameApp);
-	
+
 	PROFILE_END();
 }
 
@@ -144,7 +148,8 @@ SAPI void GameApplication::Run()
 	while (!WindowShouldClose())
 	{
 		PROFILE_BEGIN_EX("Run");
-		if (IsSuspended) continue;
+
+		double updateWorldStart = GetTime();
 
 		// ***************
 		// Frame Setup
@@ -155,119 +160,24 @@ SAPI void GameApplication::Run()
 		// Update
 		// ***************
 
+		HandleGUIInput(UIState, this);
+
 		// Don't want game input when over UI
-		if (!UIState->IsMouseHoveringUI)
+		if (!IsGameInputDisabled)
 		{
-			// Free Camera Controls
-			if (IsKeyPressed(KEY_SLASH))
-				Game->IsFreeCam = !Game->IsFreeCam;
-
-			if (Game->IsFreeCam)
-			{
-				if (IsKeyDown(KEY_L))
-					SetCameraPosition(Game,
-						{ 512.0f * GetDeltaTime(), 0, 0 });
-				else if (IsKeyDown(KEY_J))
-					SetCameraPosition(Game,
-						{ -512.0f * GetDeltaTime(), 0, 0 });
-				if (IsKeyDown(KEY_K))
-					SetCameraPosition(Game,
-						{ 0, 512.0f * GetDeltaTime(), 0 });
-				else if (IsKeyDown(KEY_I))
-					SetCameraPosition(Game,
-						{ 0, -512.0f * GetDeltaTime(), 0 });
-			}
-
-			// Camera zoom controls
-			float mouseWheel = GetMouseWheelMove();
-			if (mouseWheel != 0)
-			{
-				SetCameraDistance(this, mouseWheel);
-			}
-
-			// Debug place tiles
-			if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
-			{
-				Vector2i clickedTilePos = GetTileFromMouse(Game);
-				if (CTileMap::IsTileInBounds(&Game->Universe.World.ChunkedTileMap, clickedTilePos))
-				{
-					TileData* tile = CTileMap::GetTile(&Game->Universe.World.ChunkedTileMap, clickedTilePos);
-					TileData newTile = TileMgrCreate(TileMgrToTileId(ROCKY_WALL));
-					CTileMap::SetTile(&Game->Universe.World.ChunkedTileMap, &newTile, clickedTilePos);
-					SLOG_INFO("Clicked Tile[%d, %d] Id: %u", clickedTilePos.x, clickedTilePos.y, TileMgrToTileId(tile->AsCoord()));
-				}
-			}
-			if (IsMouseButtonPressed(MOUSE_BUTTON_RIGHT))
-			{
-				Vector2i clickedTilePos = GetTileFromMouse(Game);
-				if (CTileMap::IsTileInBounds(&Game->Universe.World.ChunkedTileMap, clickedTilePos))
-				{
-					UpdatingLight light = {};
-					light.Pos = clickedTilePos.AsVec2();
-					light.MinIntensity = 8.0f;
-					light.MaxIntensity = 9.0f;
-					light.Colors[0] = { 0xab, 0x16, 0x0a, 255 };
-					light.Colors[1] = { 0x89, 0x12, 0x08, 255 };
-					light.Colors[2] = { 0xd6, 0x1b, 0x0c, 255 };
-					light.Colors[3] = { 0xbf, 0x05, 0x00, 255 };
-					light.Color = light.Colors[0];
-					light.Radius = light.MaxIntensity;
-					LightsAddUpdating(light);
-				}
-			}
-			if (IsMouseButtonPressed(MOUSE_BUTTON_MIDDLE))
-			{
-				Vector2i clickedTilePos = GetTileFromMouse(Game);
-				if (CTileMap::IsTileInBounds(&Game->Universe.World.ChunkedTileMap, clickedTilePos))
-				{
-					CTileMap::GetTile(&Game->Universe.World.ChunkedTileMap, clickedTilePos)->HasCeiling = true;
-				}
-			}
-			if (IsKeyPressed(KEY_SEMICOLON))
-			{
-				Vector2i clickedTilePos = GetTileFromMouse(Game);
-				if (CTileMap::IsTileInBounds(&Game->Universe.World.ChunkedTileMap, clickedTilePos))
-				{
-					StaticLight light = {};
-					light.Pos = clickedTilePos.AsVec2();
-					light.Radius = 5.0f;
-					light.Color = BLUE;
-					light.StaticLightType = StaticLightTypes::Lava;
-					LightsAddStatic(light);
-				}
-			}
-
-			if (IsKeyPressed(KEY_F1))
-				Game->DebugDisableDarkess = !Game->DebugDisableDarkess;
-			if (IsKeyPressed(KEY_F2))
-				Game->DebugDisableFOV = !Game->DebugDisableFOV;
-			if (IsKeyPressed(KEY_F3))
-				Game->DebugTileView = !Game->DebugTileView;
-			if (IsKeyPressed(KEY_F4))
-			{
-				if (Game->ViewCamera.zoom == 1.f)
-					Game->ViewCamera.zoom = .5f;
-				else
-					Game->ViewCamera.zoom = 1.f;
-			}
+			HandleGameInput(this, Game);
+			HandlePlayerInput(this, GetClientPlayer());
 		}
-
-		HandlePlayerInput(this, GetClientPlayer());
 
 		// **************************
 		// Updates UI logic, draws to
 		// screen later in frame
 		// **************************
-		UpdateUI(UIState, Game);
-		// TODO maybe add a non drawing preupdate?
+		UpdateUI(UIState, this, Game);
 
 		// *****************
-		// Drawing
+		// Updating
 		// *****************
-
-		// FIXME: Cleanup!
-
-		double updateWorldStart = GetTime();
 
 		GameUpdateCamera(Game, this);
 
@@ -282,11 +192,10 @@ SAPI void GameApplication::Run()
 
 		// Update and draw world
 		BeginTextureMode(Game->Renderer.WorldTexture);
-		ClearBackground(BLACK);
-		
 		BeginShaderMode(Game->Renderer.UnlitShader);
-		
 		BeginMode2D(Game->WorldCamera);
+
+		ClearBackground(BLACK);
 
 		Rectangle tilemapDest = { CullXY.x - HALF_TILE_SIZE, CullXY.y - HALF_TILE_SIZE, CULL_WIDTH, CULL_HEIGHT };
 		DrawTexturePro(Game->TileMapRenderer.TileMapTexture.texture, srcRect, tilemapDest, { 0 }, 0.0f, WHITE);
@@ -296,13 +205,18 @@ SAPI void GameApplication::Run()
 		UpdateEntities(&Game->EntityMgr, &Game->ComponentMgr);
 
 		EndMode2D();
-
 		EndShaderMode();
-
 		EndTextureMode();
-		
+
+		UpdateWorldTime = GetTime() - updateWorldStart;
+
+		double drawTime = GetTime();
+
+		// *****************
+		// Post Process
+		// *****************
+
 		Game->LightingRenderer.Draw();
-		
 		Game->Renderer.PostProcess(Game, Game->Renderer.WorldTexture, Game->LightingRenderer.LightingTexture);
 
 		// ***************
@@ -312,6 +226,7 @@ SAPI void GameApplication::Run()
 
 		BeginShaderMode(Game->Renderer.LitShader);
 		BeginMode2D(Game->ViewCamera);
+
 		ClearBackground(BLACK);
 
 		rlPushMatrix();
@@ -319,7 +234,6 @@ SAPI void GameApplication::Run()
 
 		SetShaderValueTexture(Game->Renderer.LitShader, Game->Renderer.UniformLightMapLoc, Game->LightingRenderer.LightingTexture.texture);
 		DrawTexturePro(Game->Renderer.WorldTexture.texture, srcRect, dstRect, { 0 }, 0.0f, WHITE);
-
 		Game->Renderer.DrawBloom(dstRect);
 
 		rlPopMatrix();
@@ -327,10 +241,10 @@ SAPI void GameApplication::Run()
 		EndMode2D();
 		EndShaderMode();
 
-		UpdateWorldTime = GetTime() - updateWorldStart;
-
 		DrawUI(UIState);
-		
+
+		DrawTime = GetTime() - drawTime;
+
 		// Swap buffers
 		double drawStart = GetTime();
 		EndDrawing();
@@ -341,17 +255,17 @@ SAPI void GameApplication::Run()
 	IsRunning = false;
 }
 
-internal void 
+internal void
 GameUpdate(Game* game, GameApplication* gameApp)
 {
 	PROFILE_BEGIN();
-	
+
 	UniverseUpdate(&game->Universe, game);
-	
+
 	LightsUpdate(&game->LightingState, game);
 
 	//EntityMgrUpdate(&game->EntityMgr, game);
-	
+
 	PROFILE_END();
 }
 
@@ -386,11 +300,109 @@ internal void GameUpdateCamera(Game* game, GameApplication* gameApp)
 	PROFILE_END();
 }
 
-internal void GameLateUpdate(Game* game)
+internal void
+GameLateUpdate(Game* game)
 {
 	PROFILE_BEGIN();
 	WorldLateUpdate(&game->Universe.World, game);
 	PROFILE_END();
+}
+
+internal void
+HandleGameInput(GameApplication* gameApp, Game* game)
+{
+	// Free Camera Controls
+	if (IsKeyPressed(KEY_SLASH))
+		game->IsFreeCam = !game->IsFreeCam;
+
+	if (game->IsFreeCam)
+	{
+		if (IsKeyDown(KEY_L))
+			SetCameraPosition(game,
+				{ 512.0f * GetDeltaTime(), 0, 0 });
+		else if (IsKeyDown(KEY_J))
+			SetCameraPosition(game,
+				{ -512.0f * GetDeltaTime(), 0, 0 });
+		if (IsKeyDown(KEY_K))
+			SetCameraPosition(game,
+				{ 0, 512.0f * GetDeltaTime(), 0 });
+		else if (IsKeyDown(KEY_I))
+			SetCameraPosition(game,
+				{ 0, -512.0f * GetDeltaTime(), 0 });
+	}
+
+	// Camera zoom controls
+	float mouseWheel = GetMouseWheelMove();
+	if (mouseWheel != 0)
+	{
+		SetCameraDistance(gameApp, mouseWheel);
+	}
+
+	// Debug place tiles
+	if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
+	{
+		Vector2i clickedTilePos = GetTileFromMouse(game);
+		if (CTileMap::IsTileInBounds(&game->Universe.World.ChunkedTileMap, clickedTilePos))
+		{
+			TileData* tile = CTileMap::GetTile(&game->Universe.World.ChunkedTileMap, clickedTilePos);
+			TileData newTile = TileMgrCreate(TileMgrToTileId(ROCKY_WALL));
+			CTileMap::SetTile(&game->Universe.World.ChunkedTileMap, &newTile, clickedTilePos);
+			SLOG_INFO("Clicked Tile[%d, %d] Id: %u", clickedTilePos.x, clickedTilePos.y, TileMgrToTileId(tile->AsCoord()));
+		}
+	}
+	if (IsMouseButtonPressed(MOUSE_BUTTON_RIGHT))
+	{
+		Vector2i clickedTilePos = GetTileFromMouse(game);
+		if (CTileMap::IsTileInBounds(&game->Universe.World.ChunkedTileMap, clickedTilePos))
+		{
+			UpdatingLight light = {};
+			light.Pos = clickedTilePos.AsVec2();
+			light.MinIntensity = 8.0f;
+			light.MaxIntensity = 9.0f;
+			light.Colors[0] = { 0xab, 0x16, 0x0a, 255 };
+			light.Colors[1] = { 0x89, 0x12, 0x08, 255 };
+			light.Colors[2] = { 0xd6, 0x1b, 0x0c, 255 };
+			light.Colors[3] = { 0xbf, 0x05, 0x00, 255 };
+			light.Color = light.Colors[0];
+			light.Radius = light.MaxIntensity;
+			LightsAddUpdating(light);
+		}
+	}
+	if (IsMouseButtonPressed(MOUSE_BUTTON_MIDDLE))
+	{
+		Vector2i clickedTilePos = GetTileFromMouse(game);
+		if (CTileMap::IsTileInBounds(&game->Universe.World.ChunkedTileMap, clickedTilePos))
+		{
+			CTileMap::GetTile(&game->Universe.World.ChunkedTileMap, clickedTilePos)->HasCeiling = true;
+		}
+	}
+	if (IsKeyPressed(KEY_SEMICOLON))
+	{
+		Vector2i clickedTilePos = GetTileFromMouse(game);
+		if (CTileMap::IsTileInBounds(&game->Universe.World.ChunkedTileMap, clickedTilePos))
+		{
+			StaticLight light = {};
+			light.Pos = clickedTilePos.AsVec2();
+			light.Radius = 5.0f;
+			light.Color = BLUE;
+			light.StaticLightType = StaticLightTypes::Lava;
+			LightsAddStatic(light);
+		}
+	}
+
+	if (IsKeyPressed(KEY_F1))
+		game->DebugDisableDarkess = !game->DebugDisableDarkess;
+	if (IsKeyPressed(KEY_F2))
+		game->DebugDisableFOV = !game->DebugDisableFOV;
+	if (IsKeyPressed(KEY_F3))
+		game->DebugTileView = !game->DebugTileView;
+	if (IsKeyPressed(KEY_F4))
+	{
+		if (game->ViewCamera.zoom == 1.f)
+			game->ViewCamera.zoom = .5f;
+		else
+			game->ViewCamera.zoom = 1.f;
+	}
 }
 
 SAPI void GameApplication::Shutdown()
@@ -495,9 +507,9 @@ void SetCameraDistance(GameApplication* gameApp, float zoom)
 bool TileInsideCullRect(Vector2i coord)
 {
 	Vector2i offset = GetGameApp()->CullXYTiles;
-	return (coord.x >= offset.x 
+	return (coord.x >= offset.x
 		&& coord.y >= offset.y
-		&& coord.x < offset.x + CULL_WIDTH_TILES 
+		&& coord.x < offset.x + CULL_WIDTH_TILES
 		&& coord.y < offset.y + CULL_HEIGHT_TILES);
 }
 

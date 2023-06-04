@@ -20,19 +20,37 @@ static_assert(sizeof(size_t) == sizeof(uint64_t), "ScalEngine does not support 3
 
 #define SCAL_GAME_TESTS 1
 
+typedef int bool32;
+
 #define internal static
 #define local_var static
 #define global_var static
 
 #if defined(__clang__) || defined(__GNUC__)
-#define SRESTRICT __restrict__
+#define _RESTRICT_ __restrict__
 #elif defined(_MSC_VER)
-#define SRESTRICT __restrict
+#define _RESTRICT_ __restrict
 #else
-#define SRESTRICT 
+#define _RESTRICT_
 #endif
 
-typedef int bool32;
+#ifndef _ALWAYS_INLINE_
+#if defined(__GNUC__)
+#define _ALWAYS_INLINE_ __attribute__((always_inline)) inline
+#elif defined(_MSC_VER)
+#define _ALWAYS_INLINE_ __forceinline
+#else
+#define _ALWAYS_INLINE_ inline
+#endif
+#endif
+
+#ifndef _FORCE_INLINE_
+#ifdef SCAL_DEBUG
+#define _FORCE_INLINE_ inline
+#else
+#define _FORCE_INLINE_ _ALWAYS_INLINE_
+#endif
+#endif
 
 #ifdef SCAL_PLATFORM_WINDOWS
 #ifdef SCAL_BUILD_DLL
@@ -42,7 +60,7 @@ typedef int bool32;
 #endif // SCAL_BUILD_DLL
 #else
 #define SAPI
-#endif // SCAL_PLATFORM_WINDOWS
+#endif
 
 #define ArrayLength(arr) (sizeof(arr) / sizeof(arr[0]))
 
@@ -55,6 +73,8 @@ typedef int bool32;
 #define BitClear(state, bit) (state & ~(1ULL << bit))
 #define BitToggle(state, bit) (state ^ 1ULL << bit)
 #define BitMask(state, mask) ((state & mask) == mask)
+
+#define Swap(x, y, T) (T temp = x; x = y; y = temp)
 
 #if SCAL_DEBUG
 

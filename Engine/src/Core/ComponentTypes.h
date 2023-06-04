@@ -19,6 +19,8 @@ struct Component
 template<typename T>
 const uint32_t Component<T>::Id = NextId++;
 
+#define Component(name) struct name : Component<name>
+
 struct TransformComponent
 {
 	Vector2 Position;
@@ -78,6 +80,5 @@ struct CreatureEntity : Component<CreatureEntity>
 	uint32_t EquipmentId;
 
 	static void OnAdd(uint32_t entity, void* component);
-
 	static void OnRemove(uint32_t entity, void* component);
 };

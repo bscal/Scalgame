@@ -346,9 +346,11 @@ template<
 	typename EqualsFunc>
 V* SHoodTable<K, V, HashFunc, EqualsFunc>::Get(const K* key) const
 {
-	SASSERT(IsAllocated());
 	SASSERT(EqualsFunc{}(key, key));
 	SASSERT(key);
+
+	if (!IsAllocated())
+		return nullptr;
 
 	uint64_t hash = Hash(key);
 	uint32_t index = (uint32_t)hash;
@@ -372,9 +374,11 @@ template<
 	typename EqualsFunc>
 bool SHoodTable<K, V, HashFunc, EqualsFunc>::Contains(const K* key) const
 {
-	SASSERT(IsAllocated());
 	SASSERT(EqualsFunc{}(key, key));
 	SASSERT(key);
+
+	if (!IsAllocated())
+		return false;
 
 	uint64_t hash = Hash(key);
 	uint32_t index = (uint32_t)hash;

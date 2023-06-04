@@ -216,5 +216,5 @@ inline int TreeTest()
 	bool contains3 = tree.Contains(&x);
 	SASSERT(contains3);
 
-	return 0;
+	return 1;
 }

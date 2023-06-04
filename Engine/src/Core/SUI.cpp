@@ -14,17 +14,21 @@
 global_var const int CONSOLE_MAX_LENGTH = 128;
 global_var const struct nk_color BG_COLOR = ColorToNuklear({ 17, 17, 17, 155 });
 
+internal void InitializeNuklear(nk_context* nkCtxToInit, UIState* state, Font* font, float fontSize);
+
+internal void DrawGameGUI(UIState* state, Game* game);
 internal void DrawFPS(struct nk_context* ctx);
 internal void DrawInventory(struct nk_context* ctx, Inventory* inv);
+internal void DrawDebugPanel(UIState* state);
+internal void AppendMemoryUsage(UIState* state);
+internal void DrawConsole(UIState* state);
+internal void DrawChatBox(UIState* state, Game* game);
+
 internal struct nk_colorf Vec4ToColorf(Vector4 color);
 internal Vector4 ColorFToVec4(struct nk_colorf color);
 internal struct nk_color ColorFToColor(struct nk_colorf* color);
 internal bool ColorFEqual(const struct nk_colorf& v0, const struct nk_colorf& v1);
 internal float CalculateTextWidth(nk_handle handle, float height, const char* text, int len);
-internal void InitializeNuklear(nk_context* nkCtxToInit, UIState* state, Font* font, float fontSize);
-internal void DrawDebugPanel(UIState* state);
-internal void DrawConsole(UIState* state);
-internal void AppendMemoryUsage(UIState* state);
 internal struct nk_rect GetSpriteRect(struct nk_rect rect, bool isRotated);
 internal struct nk_sprite GetSprite(Texture2D* texture, Item* item, bool isRotated);
 
@@ -32,28 +36,30 @@ bool InitializeUI(UIState* state, GameApplication* gameApp)
 {
 	InitializeNuklear(&state->Ctx, state, &gameApp->Game->Resources.FontSilver, 16.0f);
 
+	state->GUIRect.x = 0;
+	state->GUIRect.y = 0;
+	state->GUIRect.w = (float)GetScreenWidth();
+	state->GUIRect.h = (float)GetScreenHeight();
+
+	state->ChatBoxStrings.Initialize(64, 64);
+
 	// Initialize ConsoleEntries
 	state->ConsoleEntries.Allocator = SAllocator::Game;
 	state->ConsoleEntries.Reserve(CONSOLE_MAX_LENGTH);
+
 
 	SLOG_INFO("[ UI ] Initialized");
 
 	return true;
 }
 
-static Inventory* inv;
-
-void UpdateUI(UIState* state, Game* game)
+void UpdateUI(UIState* state, GameApplication* gameApp, Game* game)
 {
 	PROFILE_BEGIN();
 	SASSERT_MSG(state->Ctx.memory.needed < state->Ctx.memory.size,
 		"UI needed memory is larger then memory allocated!");
 
-	UpdateNuklear(&state->Ctx);
-
-	state->IsMouseHoveringUI = (nk_window_is_any_hovered(&state->Ctx) != 0);
-
-	HandleGUIInput(state, GetGameApp());
+	DrawGameGUI(state, game);
 
 	if (state->IsDrawingFPS)
 		DrawFPS(&state->Ctx);
@@ -74,7 +80,11 @@ void UpdateUI(UIState* state, Game* game)
 		}
 	}
 
-	DrawConsole(state);
+	if (state->IsConsoleOpen)
+		DrawConsole(state);
+	else
+		state->IsConsoleAlreadyOpen = false;
+
 	PROFILE_END();
 }
 
@@ -85,6 +95,11 @@ void HandleGUIInput(UIState* state, GameApplication* gameApp)
 	SASSERT(state);
 	SASSERT(gameApp);
 
+	struct nk_context* ctx = &state->Ctx;
+	SASSERT(ctx);
+
+	UpdateNuklear(ctx);
+
 	if (IsKeyPressed(KEY_GRAVE))
 		state->IsDebugPanelOpen = !state->IsDebugPanelOpen;
 	if (IsKeyPressed(KEY_EQUAL))
@@ -92,23 +107,22 @@ void HandleGUIInput(UIState* state, GameApplication* gameApp)
 	if (IsKeyPressed(KEY_BACKSLASH))
 		state->IsDrawingFPS = !state->IsDrawingFPS;
 
-	if (gameApp->IsGameInputDisabled)
-		return;
+	gameApp->IsGameInputDisabled = state->IsConsoleOpen;
 
-	struct nk_context* ctx = &state->Ctx;
-	SASSERT(ctx);
-
-	struct nk_window* inventoryWindow = nk_window_find(ctx, "Inventory");
-	if (!inventoryWindow || (inventoryWindow->flags & NK_WINDOW_CLOSED))
-		return;
-
-	if (nk_input_is_mouse_hovering_rect(&ctx->input, inventoryWindow->bounds))
+	if (gameApp->Game->IsInventoryOpen)
 	{
-		PlayerClient* playerClient = &GetClientPlayer()->PlayerClient;
-		SASSERT(playerClient);
-		if (!playerClient->CursorStack.IsEmpty() && IsKeyPressed(INV_FLIP_ITEM))
+		struct nk_window* inventoryWindow = nk_window_find(ctx, "Inventory");
+		if (!inventoryWindow || (inventoryWindow->flags & NK_WINDOW_CLOSED))
+			return;
+
+		if (nk_input_is_mouse_hovering_rect(&ctx->input, inventoryWindow->bounds))
 		{
-			playerClient->IsCursorStackFlipped = !playerClient->IsCursorStackFlipped;
+			PlayerClient* playerClient = &GetClientPlayer()->PlayerClient;
+			SASSERT(playerClient);
+			if (!playerClient->CursorStack.IsEmpty() && IsKeyPressed(INV_FLIP_ITEM))
+			{
+				playerClient->IsCursorStackFlipped = !playerClient->IsCursorStackFlipped;
+			}
 		}
 	}
 }
@@ -118,6 +132,19 @@ void DrawUI(UIState* state)
 	PROFILE_BEGIN();
 	DrawNuklear(&state->Ctx);
 	PROFILE_END();
+}
+
+internal void DrawGameGUI(UIState* state, Game* game)
+{
+	struct nk_context* ctx = &state->Ctx;
+
+	ctx->style.window.fixed_background.data.color = {};
+
+	if (nk_begin(ctx, "GameGUI", state->GUIRect, NK_WINDOW_NO_SCROLLBAR))
+	{
+		DrawChatBox(state, game);
+	}
+	nk_end(ctx);
 }
 
 internal nk_colorf
@@ -210,6 +237,9 @@ DrawDebugPanel(UIState* state)
 
 		nk_label(ctx, "WorldUpdateTime:", NK_TEXT_LEFT);
 		nk_label(ctx, TextFormat("% .3f", GetGameApp()->UpdateWorldTime * 1000.0), NK_TEXT_LEFT);
+
+		nk_label(ctx, "DrawTime:", NK_TEXT_LEFT);
+		nk_label(ctx, TextFormat("% .3f", GetGameApp()->DrawTime * 1000.0), NK_TEXT_LEFT);
 
 		nk_label(ctx, "DebugLightTime:", NK_TEXT_LEFT);
 		nk_label(ctx, TextFormat("% .3f", GetGameApp()->DebugLightTime * 1000.0), NK_TEXT_LEFT);
@@ -339,106 +369,145 @@ DrawConsole(UIState* state)
 	local_var int heightAnimValue;
 	local_var float SuggestionPanelSize;
 
-	GetGameApp()->IsGameInputDisabled = state->IsConsoleOpen;
-	if (state->IsConsoleOpen)
-	{
-		constexpr int CONSOLE_ANIM_SPEED = 900 * 6;
-		constexpr int MAX_CONSOLE_HISTORY = 128;
-		constexpr float INPUT_HEIGHT = 36.0f;
-		constexpr float INPUT_WIDTH = INPUT_HEIGHT + 12.0f;
-		constexpr int SCROLL_BAR_OFFSET = 16;
-		constexpr float TEXT_ENTRY_HEIGHT = 16.0f;
-		constexpr int TEXT_ENTRY_HEIGHT_WITH_PADDING = (int)TEXT_ENTRY_HEIGHT + 4;
-
-		int w = GetScreenWidth();
-		int h = int((float)GetScreenHeight() * .75f + SuggestionPanelSize);
-		if (heightAnimValue < h)
-		{
-			h = heightAnimValue;
-			heightAnimValue += (int)(GetDeltaTime() * CONSOLE_ANIM_SPEED);
-		}
-
-		float paddingX = 32.0f;
-		float paddingW = (float)w - (paddingX * 2);
-
-		nk_context* ctx = &state->Ctx;
-
-		struct nk_color c = { 117, 117, 117, 200 };
-		ctx->style.window.fixed_background.data.color = c;
-
-		struct nk_rect bounds = { paddingX, 0.0f, paddingW, (float)h };
-		if (nk_begin(ctx, "Console", bounds, NK_WINDOW_NO_SCROLLBAR))
-		{
-			nk_layout_row_static(ctx, h - INPUT_WIDTH - SuggestionPanelSize, (int)paddingW - SCROLL_BAR_OFFSET, 1);
-
-			if (nk_group_begin(ctx, "Messages", 0))
-			{
-				nk_layout_row_dynamic(ctx, TEXT_ENTRY_HEIGHT, 1);
-				for (uint32_t i = 0; i < state->ConsoleEntries.Count; ++i)
-				{
-					nk_label(ctx, state->ConsoleEntries[i].Data(), NK_TEXT_LEFT);
-				}
-				nk_group_end(ctx);
-			}
-
-			CommandMgr* cmdMgr = &GetGame()->CommandMgr;
-			if (IsKeyPressed(KEY_TAB) && cmdMgr->Suggestions.Count > 0)
-			{
-				SStringView sug = cmdMgr->Suggestions[0];
-				cmdMgr->Length = (int)sug.Length;
-				SMemCopy(cmdMgr->TextInputMemory, sug.Str, cmdMgr->Length);
-			}
-
-			// *** Command Input ***
-			nk_layout_row_static(ctx, INPUT_HEIGHT, (int)paddingW, 1);
-			nk_edit_string(&state->Ctx,
-				NK_EDIT_SIMPLE,
-				cmdMgr->TextInputMemory,
-				&cmdMgr->Length,
-				sizeof(cmdMgr->TextInputMemory) - 1,
-				nk_filter_default);
-
-			if (IsKeyPressed(KEY_ENTER))
-			{
-				if (state->ConsoleEntries.Count > MAX_CONSOLE_HISTORY)
-				{
-					state->ConsoleEntries.RemoveAt(0);
-				}
-
-				SString* string = state->ConsoleEntries.PushNew();
-				string->Assign(cmdMgr->TextInputMemory);
-
-				cmdMgr->TryExecuteCommand(SStringView(cmdMgr->TextInputMemory, cmdMgr->Length));
-
-				if (state->ConsoleEntries.Count >= uint32_t(h / TEXT_ENTRY_HEIGHT_WITH_PADDING))
-				{
-					nk_group_set_scroll(ctx, "Messages", 0, state->ConsoleEntries.Count * TEXT_ENTRY_HEIGHT_WITH_PADDING);
-				}
-			}
-
-			if (cmdMgr->Length != cmdMgr->LastLength)
-			{
-				cmdMgr->LastLength = cmdMgr->Length;
-				cmdMgr->PopulateSuggestions(SStringView(cmdMgr->TextInputMemory, cmdMgr->Length));
-			}
-			if (cmdMgr->Length > 0)
-			{
-				SuggestionPanelSize = (float)(cmdMgr->Suggestions.Count) * 24.0f;
-				nk_layout_row_dynamic(ctx, TEXT_ENTRY_HEIGHT, 1);
-				for (uint32_t i = 0; i < cmdMgr->Suggestions.Count; ++i)
-				{
-					nk_label(ctx, cmdMgr->Suggestions[i].Str, NK_TEXT_LEFT);
-				}
-			}
-			else
-			{
-				SuggestionPanelSize = 0.0f;
-			}
-		}
-		nk_end(&state->Ctx);
-	}
-	else
+	if (!state->IsConsoleAlreadyOpen)
 		heightAnimValue = 0;
+
+	state->IsConsoleAlreadyOpen = true;
+
+	constexpr int CONSOLE_ANIM_SPEED = 900 * 6;
+	constexpr int MAX_CONSOLE_HISTORY = 128;
+	constexpr float INPUT_HEIGHT = 36.0f;
+	constexpr float INPUT_WIDTH = INPUT_HEIGHT + 12.0f;
+	constexpr int SCROLL_BAR_OFFSET = 16;
+	constexpr float TEXT_ENTRY_HEIGHT = 16.0f;
+	constexpr int TEXT_ENTRY_HEIGHT_WITH_PADDING = (int)TEXT_ENTRY_HEIGHT + 4;
+
+	int w = GetScreenWidth();
+	int h = int((float)GetScreenHeight() * .75f + SuggestionPanelSize);
+	if (heightAnimValue < h)
+	{
+		h = heightAnimValue;
+		heightAnimValue += (int)(GetDeltaTime() * CONSOLE_ANIM_SPEED);
+	}
+
+	float paddingX = 32.0f;
+	float paddingW = (float)w - (paddingX * 2);
+
+	nk_context* ctx = &state->Ctx;
+
+	struct nk_color c = { 117, 117, 117, 200 };
+	ctx->style.window.fixed_background.data.color = c;
+
+	struct nk_rect bounds = { paddingX, 0.0f, paddingW, (float)h };
+	if (nk_begin(ctx, "Console", bounds, NK_WINDOW_NO_SCROLLBAR))
+	{
+		nk_layout_row_static(ctx, h - INPUT_WIDTH - SuggestionPanelSize, (int)paddingW - SCROLL_BAR_OFFSET, 1);
+
+		if (nk_group_begin(ctx, "Messages", 0))
+		{
+			nk_layout_row_dynamic(ctx, TEXT_ENTRY_HEIGHT, 1);
+			for (uint32_t i = 0; i < state->ConsoleEntries.Count; ++i)
+			{
+				nk_label(ctx, state->ConsoleEntries[i].Data(), NK_TEXT_LEFT);
+			}
+			nk_group_end(ctx);
+		}
+
+		CommandMgr* cmdMgr = &GetGame()->CommandMgr;
+		if (IsKeyPressed(KEY_TAB) && cmdMgr->Suggestions.Count > 0)
+		{
+			SStringView sug = cmdMgr->Suggestions[0];
+			cmdMgr->Length = (int)sug.Length;
+			SMemCopy(cmdMgr->TextInputMemory, sug.Str, cmdMgr->Length);
+		}
+
+		// *** Command Input ***
+		nk_layout_row_static(ctx, INPUT_HEIGHT, (int)paddingW, 1);
+		nk_edit_string(&state->Ctx,
+			NK_EDIT_SIMPLE,
+			cmdMgr->TextInputMemory,
+			&cmdMgr->Length,
+			sizeof(cmdMgr->TextInputMemory) - 1,
+			nk_filter_default);
+
+		if (IsKeyPressed(KEY_ENTER))
+		{
+			if (state->ConsoleEntries.Count > MAX_CONSOLE_HISTORY)
+			{
+				state->ConsoleEntries.RemoveAt(0);
+			}
+
+			SString* string = state->ConsoleEntries.PushNew();
+			string->Assign(cmdMgr->TextInputMemory);
+
+			cmdMgr->TryExecuteCommand(SStringView(cmdMgr->TextInputMemory, cmdMgr->Length));
+
+			if (state->ConsoleEntries.Count >= uint32_t(h / TEXT_ENTRY_HEIGHT_WITH_PADDING))
+			{
+				nk_group_set_scroll(ctx, "Messages", 0, state->ConsoleEntries.Count * TEXT_ENTRY_HEIGHT_WITH_PADDING);
+			}
+		}
+
+		if (cmdMgr->Length != cmdMgr->LastLength)
+		{
+			cmdMgr->LastLength = cmdMgr->Length;
+			cmdMgr->PopulateSuggestions(SStringView(cmdMgr->TextInputMemory, cmdMgr->Length));
+		}
+		if (cmdMgr->Length > 0)
+		{
+			SuggestionPanelSize = (float)(cmdMgr->Suggestions.Count) * 24.0f;
+			nk_layout_row_dynamic(ctx, TEXT_ENTRY_HEIGHT, 1);
+			for (uint32_t i = 0; i < cmdMgr->Suggestions.Count; ++i)
+			{
+				nk_label(ctx, cmdMgr->Suggestions[i].Str, NK_TEXT_LEFT);
+			}
+		}
+		else
+		{
+			SuggestionPanelSize = 0.0f;
+		}
+	}
+	nk_end(&state->Ctx);
+
+	nk_window_set_focus(ctx, "Console");
+}
+
+internal void
+DrawChatBox(UIState* state, Game* game)
+{
+	struct nk_context* ctx = &state->Ctx;
+
+	if (true)
+	{
+
+		struct nk_rect chatBoxRect;
+		chatBoxRect.x = (float)GetScreenWidth() - 256;
+		chatBoxRect.y = (float)GetScreenHeight() - 256;
+		chatBoxRect.w = 256;
+		chatBoxRect.h = 256;
+
+		ctx->style.window.fixed_background.data.color = { 155, 22, 22, 255 };
+
+		nk_layout_space_begin(ctx, NK_STATIC, chatBoxRect.h, INT_MAX);
+		nk_layout_space_push(ctx, chatBoxRect);
+
+		if (nk_group_begin(ctx, "ChatBox", 0))
+		{
+			nk_layout_row_dynamic(ctx, 16, 1);
+
+			for (uint32_t i = 0; i < state->ChatBoxStrings.PoolCapacity; ++i)
+			{
+				char* entryStr = state->ChatBoxStrings.Get(i);
+
+				// TODO: Look into not drawing label if no entry
+
+
+				nk_label(ctx, "Test Text!", NK_TEXT_ALIGN_LEFT);
+			}
+			nk_group_end(ctx);
+		}
+		nk_layout_space_end(ctx);
+	}
 }
 
 internal void
@@ -615,7 +684,7 @@ DrawInventory(struct nk_context* ctx, Inventory* inv)
 			struct nk_rect itemRect = GetSpriteRect(baseRect, invStack->IsRotated);
 			nk_layout_space_push(ctx, itemRect);
 
-			if (nk_button_color(ctx, { 55, 0, 0, 255 }) 
+			if (nk_button_color(ctx, { 55, 0, 0, 255 })
 				&& !hasHandledInventoryActionThisFrame
 				&& playerClient->CursorStack.IsEmpty())
 			{
@@ -670,7 +739,7 @@ DrawInventory(struct nk_context* ctx, Inventory* inv)
 	PROFILE_END();
 }
 
-internal struct nk_rect 
+internal struct nk_rect
 GetSpriteRect(struct nk_rect rect, bool rotate)
 {
 	struct nk_rect res;
@@ -689,7 +758,7 @@ GetSpriteRect(struct nk_rect rect, bool rotate)
 	return res;
 }
 
-internal struct nk_sprite 
+internal struct nk_sprite
 GetSprite(Texture2D* texture, Item* item, bool isRotated)
 {
 	struct nk_sprite res = {};
