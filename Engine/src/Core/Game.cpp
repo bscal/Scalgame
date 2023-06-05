@@ -57,7 +57,7 @@ SAPI bool GameApplication::Start()
 
 	GameAppPtr = this;
 
-	wi::jobsystem::Initialize(8);
+	wi::jobsystem::Initialize(6);
 
 	Game = (struct Game*)SAlloc(SAllocator::Game, sizeof(struct Game), MemoryTag::Game);
 	bool didGameInit = GameInitialize(Game, this);

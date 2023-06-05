@@ -280,3 +280,62 @@ bool SStrEquals(const char* str1, const char* str2)
 	if (str1 == str2) return true;
 	return (strcmp(str1, str2) == 0);
 }
+
+void SStringsBuffer::Initialize(uint32_t poolCapacity, uint32_t stringCapacity)
+{
+	SASSERT(poolCapacity > 0);
+	SASSERT(stringCapacity > 0);
+
+	PoolCapacity = poolCapacity;
+	StringStride = sizeof(char) * stringCapacity;
+	Head = 0;
+	 
+	size_t arraySize = StringStride * PoolCapacity;
+	StringsMemory = (char*)SAlloc(SAllocator::Game, arraySize, MemoryTag::Strings);
+	SMemClear(StringsMemory, arraySize);
+}
+
+void SStringsBuffer::Free()
+{
+	size_t arraySize = StringStride * PoolCapacity;
+	SFree(SAllocator::Game, StringsMemory, arraySize, MemoryTag::Strings);
+}
+
+void SStringsBuffer::Clear()
+{
+	if (StringsMemory)
+	{
+		size_t arraySize = StringStride * PoolCapacity;
+		SMemClear(StringsMemory, arraySize);
+	}
+}
+
+char* SStringsBuffer::Next()
+{
+	SASSERT(StringsMemory);
+
+	uint32_t head = Head;
+	Head = (Head + 1) % PoolCapacity;
+
+	uint32_t offset = head * StringStride;
+	char* ptr = StringsMemory + offset;
+	SASSERT(ptr >= StringsMemory);
+	SASSERT(ptr < (StringsMemory + (StringStride * PoolCapacity)));
+	return ptr;
+}
+
+void SStringsBuffer::Copy(const char* string)
+{
+	memcpy(Next(), string, StringStride);
+}
+
+char* SStringsBuffer::Get(uint32_t idx)
+{
+	SASSERT(StringsMemory);
+
+	uint32_t offset = idx * StringStride;
+	char* ptr = StringsMemory + offset;
+	SASSERT(ptr >= StringsMemory);
+	SASSERT(ptr < (StringsMemory + (StringStride * PoolCapacity)));
+	return ptr;
+}

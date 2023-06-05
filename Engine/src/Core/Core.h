@@ -116,6 +116,8 @@ struct MemorySizeData
 
 global_var constexpr float TAO = static_cast<float>(PI) * 2.0f;
 
+global_var constexpr size_t SIZEOF_I64_BITS = (sizeof(uint64_t) * 8);
+
 // TODO: should probably move resolution to another place
 global_var constexpr int SCREEN_WIDTH = 1600;
 global_var constexpr int SCREEN_HEIGHT = 900;

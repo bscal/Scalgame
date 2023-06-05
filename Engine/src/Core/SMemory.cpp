@@ -209,6 +209,9 @@ void  SMemFreeTag(uint8_t allocator, void* ptr, size_t size, MemoryTag tag)
 {
 	SASSERT(tag != MemoryTag::Unknown);
 
+	if (!ptr)
+		return;
+
 	switch (allocator)
 	{
 		case((uint8_t)SAllocator::Game):
