@@ -61,8 +61,6 @@ void LateUpdate(ChunkedTileMap* tilemap, Game* game);
 TileMapChunk* LoadChunk(ChunkedTileMap* tilemap, ChunkCoord coord);
 void UnloadChunk(ChunkedTileMap* tilemap, ChunkCoord coord);
 
-void UpdateChunk(ChunkedTileMap* tilemap, TileMapChunk* chunk);
-
 TileMapChunk* GetChunk(ChunkedTileMap* tilemap, ChunkCoord coord);
 TileMapChunk* GetChunkByTile(ChunkedTileMap* tilemap, TileCoord tileCoord);
 ChunkCoord TileToChunkCoord(TileCoord tilePos);

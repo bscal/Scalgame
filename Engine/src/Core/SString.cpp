@@ -326,7 +326,8 @@ char* SStringsBuffer::Next()
 
 void SStringsBuffer::Copy(const char* string)
 {
-	memcpy(Next(), string, StringStride);
+	// -1 makes sure the last character is null terminated
+	memcpy(Next(), string, StringStride - 1);
 }
 
 char* SStringsBuffer::Get(uint32_t idx)
@@ -337,5 +338,6 @@ char* SStringsBuffer::Get(uint32_t idx)
 	char* ptr = StringsMemory + offset;
 	SASSERT(ptr >= StringsMemory);
 	SASSERT(ptr < (StringsMemory + (StringStride * PoolCapacity)));
+	SASSERT(ptr[StringStride - 1] == '\0');
 	return ptr;
 }

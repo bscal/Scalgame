@@ -7,19 +7,29 @@
 
 struct CreatureEntity;
 struct World;
+struct Action;
 
-
-struct MoveAction
+enum class ActionType : int
 {
-	Vector3 ToPosition;
-	struct CreatureEntity* Creature;
+	REST = 0,
+	MOVE,
+
+	MAX
+};
+
+typedef bool(*ActionFunction)(Action*, int);
+
+struct Action
+{
+	CreatureEntity* Creature;
+	ActionFunction Func;
+	void* ActionData;
+	ActionType Type;
 	int Cost;
 };
 
 struct MoveList
 {
-	SList<MoveAction> Actions;
+	SList<Action> Actions;
 };
 
-void QueueMove(MoveList* moves, const MoveAction* move);
-void MovesProcess(MoveList* moves, World* world);

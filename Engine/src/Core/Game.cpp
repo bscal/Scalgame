@@ -162,13 +162,6 @@ SAPI void GameApplication::Run()
 
 		HandleGUIInput(UIState, this);
 
-		// Don't want game input when over UI
-		if (!IsGameInputDisabled)
-		{
-			HandleGameInput(this, Game);
-			HandlePlayerInput(this, GetClientPlayer());
-		}
-
 		// **************************
 		// Updates UI logic, draws to
 		// screen later in frame
@@ -179,15 +172,12 @@ SAPI void GameApplication::Run()
 		// Updating
 		// *****************
 
-		GameUpdateCamera(Game, this);
-
 		Rectangle srcRect = { 0.0f, 0.0f, CULL_WIDTH, -CULL_HEIGHT };
 		Rectangle dstRect = { ScreenXY.x, ScreenXY.y, CULL_WIDTH, CULL_HEIGHT };
 
-		Game->EntityMgr.Player.Update();
+		GameUpdate(Game, this);
 
 		CTileMap::Update(&Game->Universe.World.ChunkedTileMap, Game);
-
 		Game->TileMapRenderer.Draw();
 
 		// Update and draw world
@@ -200,9 +190,8 @@ SAPI void GameApplication::Run()
 		Rectangle tilemapDest = { CullXY.x - HALF_TILE_SIZE, CullXY.y - HALF_TILE_SIZE, CULL_WIDTH, CULL_HEIGHT };
 		DrawTexturePro(Game->TileMapRenderer.TileMapTexture.texture, srcRect, tilemapDest, { 0 }, 0.0f, WHITE);
 
-		GameUpdate(Game, this);
-		GameLateUpdate(Game);
 		UpdateEntities(&Game->EntityMgr, &Game->ComponentMgr);
+		GameLateUpdate(Game);
 
 		EndMode2D();
 		EndShaderMode();
@@ -260,11 +249,30 @@ GameUpdate(Game* game, GameApplication* gameApp)
 {
 	PROFILE_BEGIN();
 
+	if (game->IsPlayersTurn)
+	{
+		// Waits for play to make their move
+		if (!gameApp->IsGameInputDisabled)
+		{
+			HandleGameInput(gameApp, game);
+			HandlePlayerInput(gameApp, GetClientPlayer());
+		}
+	}
+	else
+	{
+		// Process ai ticks
+
+
+		game->IsPlayersTurn = true;
+		++game->GameTick;
+	}
+
+	GameUpdateCamera(game, gameApp);
+
+	game->EntityMgr.Player.Update();
+
 	UniverseUpdate(&game->Universe, game);
-
 	LightsUpdate(&game->LightingState, game);
-
-	//EntityMgrUpdate(&game->EntityMgr, game);
 
 	PROFILE_END();
 }

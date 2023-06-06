@@ -78,6 +78,8 @@ struct CreatureEntity : Component<CreatureEntity>
 	uint32_t OwningEntity;
 	uint32_t InventoryId;
 	uint32_t EquipmentId;
+	int MaxEnergy;
+	int Energy;
 
 	static void OnAdd(uint32_t entity, void* component);
 	static void OnRemove(uint32_t entity, void* component);

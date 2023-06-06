@@ -39,11 +39,13 @@ struct Game
     
     Universe Universe;
 
-    uint64_t Time;
-    uint64_t CurrentDayProgress;
+    uint64_t GameTick;
+    float GameTimer;
+    uint32_t CurrentDayProgress;
 
     float CameraLerpTime;
 
+    bool IsPlayersTurn;
     bool IsFreeCam;
     bool IsInventoryOpen;
 
@@ -85,7 +87,6 @@ struct GameApplication
     
     bool IsInitialized;
     bool IsRunning;
-    bool IsSuspended;
     
     SAPI bool Start();
     SAPI void Shutdown();

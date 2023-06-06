@@ -110,7 +110,7 @@ void TileMap::UnloadChunk(Vector2i coord)
 	chunk->IsLoaded = false;
 }
 
-void BuildChunk(TileChunk* chunk)
+void TileMap::BuildChunk(TileChunk* chunk)
 {
 	int chunkSize = CHUNK_DIMENSIONS * TILE_SIZE;
 

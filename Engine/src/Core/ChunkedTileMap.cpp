@@ -59,7 +59,13 @@ void Load(ChunkedTileMap* tilemap)
 
 void Update(ChunkedTileMap* tilemap, Game* game)
 {
+	SASSERT(tilemap);
+	SASSERT(game);
+
+	SASSERT(tilemap->Chunks.IsAllocated());
+
 	PROFILE_BEGIN();
+
 	const PlayerEntity* player = GetClientPlayer();
 
 	Vector2i playerTilePos = player->TilePos;
@@ -70,14 +76,15 @@ void Update(ChunkedTileMap* tilemap, Game* game)
 	{
 		CheckChunksInLOS(tilemap, playerChunkPos);
 	}
-	
-	UpdateTileMap(tilemap, &game->TileMapRenderer);
 
 	constexpr float viewDistanceSqr = ((float)VIEW_DISTANCE + 1.0f) * ((float)VIEW_DISTANCE + 1.0f);
-	for (uint32_t i = 0; i < tilemap->Chunks.Size; ++i)
+	for (uint32_t i = 0; i < tilemap->Chunks.Capacity; ++i)
 	{
-		auto& chunk = tilemap->Chunks[i];
-		if (!chunk.Occupied) continue;
+		const auto& chunk = tilemap->Chunks[i];
+		if (!chunk.Occupied)
+			continue;
+
+		++GetGameApp()->NumOfChunksUpdated;
 
 		float dist = Vector2DistanceSqr(playerChunkPos.AsVec2(), chunk.Value.ChunkCoord.AsVec2());
 
@@ -87,11 +94,6 @@ void Update(ChunkedTileMap* tilemap, Game* game)
 		{
 			tilemap->ChunksToUnload.Push(&chunk.Value.ChunkCoord);
 		}
-		else
-		{
-			GetGameApp()->NumOfChunksUpdated++;
-			UpdateChunk(tilemap, &chunk.Value);
-		}
 	}
 
 	while (tilemap->ChunksToUnload.HasNext())
@@ -99,6 +101,8 @@ void Update(ChunkedTileMap* tilemap, Game* game)
 		Vector2i chunkCoord = tilemap->ChunksToUnload.PopValue();
 		UnloadChunk(tilemap, chunkCoord);
 	}
+
+	UpdateTileMap(tilemap, &game->TileMapRenderer);
 
 	PROFILE_END();
 }
@@ -112,21 +116,18 @@ void LateUpdate(ChunkedTileMap* tilemap, Game* game)
 		screen.y = GetGameApp()->ScreenXY.y;
 		screen.width = (float)GetScreenWidth();
 		screen.height = (float)GetScreenHeight();
-		for (uint32_t i = 0; i < tilemap->Chunks.Size; ++i)
-		{
-			auto& chunk = tilemap->Chunks[i];
-			if (!chunk.Occupied) continue;
-			if (CheckCollisionRecs(screen, chunk.Value.Bounds))
-			{
-				DrawRectangleLinesEx(chunk.Value.Bounds, 4, GREEN);
-			}
-		}
-	}
-}
 
-void 
-UpdateChunk(ChunkedTileMap* tilemap, TileMapChunk* chunk)
-{
+		tilemap->Chunks.Foreach([&screen](TileMapChunk* chunk)
+		{
+			const char* chunkPosStr = TextFormat("%d, %d", chunk->ChunkCoord.x, chunk->ChunkCoord.y);
+			DrawText(chunkPosStr, chunk->Bounds.x, chunk->Bounds.y, 32, WHITE);
+
+			if (CheckCollisionRecs(screen, chunk->Bounds))
+			{
+				DrawRectangleLinesEx(chunk->Bounds, 4, GREEN);
+			}
+		});
+	}
 }
 
 TileMapChunk* LoadChunk(ChunkedTileMap* tilemap, ChunkCoord coord)

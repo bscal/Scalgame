@@ -84,3 +84,16 @@ UpdateAttachables(EntityMgr* entityMgr, ComponentMgr* componentMgr)
 		entityMgr->RemoveEntity(entity);
 	}
 }
+
+internal void
+UpdateCreatures(EntityMgr* entityMgr, ComponentMgr* componentMgr)
+{
+	ComponentArray* creatures = componentMgr->GetArray<CreatureEntity>();
+	for (uint32_t i = 0; i < creatures->Size(); ++i)
+	{
+		CreatureEntity* creature = creatures->Index<CreatureEntity>(i);
+
+		if (creature->Energy < creature->MaxEnergy)
+			++creature->Energy;
+	}
+}
