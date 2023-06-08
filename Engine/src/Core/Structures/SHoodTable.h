@@ -56,7 +56,9 @@ template<
 		for (uint32_t i = 0; i < Capacity; ++i)
 		{
 			if (Buckets[i].Occupied)
+			{
 				onElement(&Buckets[i].Value);
+			}
 		}
 	}
 

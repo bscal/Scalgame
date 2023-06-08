@@ -84,3 +84,13 @@ struct CreatureEntity : Component<CreatureEntity>
 	static void OnAdd(uint32_t entity, void* component);
 	static void OnRemove(uint32_t entity, void* component);
 };
+
+struct Character
+{
+
+};
+
+struct Monster : Component<Monster>
+{
+	uint16_t MonsterType;
+};
