@@ -40,7 +40,7 @@ struct TileMapChunk
 
 struct ChunkedTileMap
 {
-	SHoodTable<Vector2i, TileMapChunk, Vector2iHasher, Vector2iEquals> Chunks;
+	SHoodTable<Vector2i, TileMapChunk, Vector2iHasher> Chunks;
 	SLinkedList<ChunkCoord> ChunksToUnload;
 
 	Vector2i ViewDistance;

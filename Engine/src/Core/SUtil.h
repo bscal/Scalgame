@@ -11,16 +11,6 @@ Vector4 Vec4Add(const Vector4& v0, const Vector4& v1);
 
 int IModNegative(int a, int b);
 
-inline Rectangle RectangleExpand(const Rectangle& rect, float width, float height)
-{
-	Rectangle r;
-	r.x = rect.x - width / 2.0f;
-	r.y = rect.y - height / 2.0f;
-	r.width = rect.width + width / 2.0f;
-	r.height = rect.height + height / 2.0f;
-	return r;
-}
-
 template<typename T>
 struct DefaultHasher
 {
@@ -40,14 +30,14 @@ struct DefaultEquals
 	}
 };
 
-inline uint64_t
+_FORCE_INLINE_ uint64_t
 SStringHash(const SString* key)
 {
 	const uint8_t* const data = (const uint8_t* const)key->Data();
 	return FNVHash64(data, key->Length);
 }
 
-inline uint64_t
+_FORCE_INLINE_ uint64_t
 SStringViewHash(const SStringView* key)
 {
 	const uint8_t* const data = (const uint8_t* const)key->Str;
@@ -56,26 +46,25 @@ SStringViewHash(const SStringView* key)
 
 struct Vector2iHasher
 {
-	inline size_t operator()(const Vector2i* v) const noexcept
+	[[nodiscard]] _FORCE_INLINE_ constexpr size_t operator()(const Vector2i* v) const noexcept
 	{
-		return FNVHash64((const uint8_t*)v, sizeof(Vector2i));
+		size_t res = size_t(v->x) | (size_t(v->y) << sizeof(int32_t));
+		res = (res ^ (res >> 30)) * UINT64_C(0xbf58476d1ce4e5b9);
+		res = (res ^ (res >> 27)) * UINT64_C(0x94d049bb133111eb);
+		res = res ^ (res >> 31);
+		return res;
 	}
 };
 
-inline bool Vector2iEqualsFunc(const Vector2i* lhs, const Vector2i* rhs) noexcept
-{
-	return lhs->Equals(*rhs);
-}
-
 struct Vector2iEquals
 {
-	inline bool operator()(const Vector2i* lhs, const Vector2i* rhs) const noexcept
+	_FORCE_INLINE_ bool operator()(const Vector2i* lhs, const Vector2i* rhs) const noexcept
 	{
 		return lhs->Equals(*rhs);
 	}
 };
 
-inline constexpr size_t
+_FORCE_INLINE_ constexpr size_t
 AlignPowTwo64(size_t num)
 {
 	if (num == 0) return 0;
@@ -85,7 +74,7 @@ AlignPowTwo64(size_t num)
 	return power;
 }
 
-inline constexpr uint32_t
+_FORCE_INLINE_ constexpr uint32_t
 AlignPowTwo32(uint32_t num)
 {
 	if (num == 0) return 0;
@@ -95,7 +84,7 @@ AlignPowTwo32(uint32_t num)
 	return power;
 }
 
-inline constexpr size_t
+_FORCE_INLINE_ constexpr size_t
 AlignPowTwo64Ceil(size_t x)
 {
 	if (x <= 1) return 1;
@@ -105,7 +94,7 @@ AlignPowTwo64Ceil(size_t x)
 	return power;
 }
 
-inline constexpr uint32_t 
+_FORCE_INLINE_ constexpr uint32_t
 AlignPowTwo32Ceil(uint32_t x)
 {
 	if (x <= 1) return 1;
@@ -115,20 +104,20 @@ AlignPowTwo32Ceil(uint32_t x)
 	return power;
 }
 
-inline constexpr bool
+_FORCE_INLINE_ constexpr bool
 IsPowerOf2_32(uint32_t num)
 {
 	return (num > 0 && ((num & (num - 1)) == 0));
 }
 
-inline constexpr size_t
+_FORCE_INLINE_ constexpr size_t
 AlignSize(size_t size, size_t alignment)
 {
 	size_t res = (size + static_cast<size_t>(alignment - 1)) & static_cast<size_t>(~(alignment - 1));
 	return res;
 }
 
-inline constexpr bool
+_FORCE_INLINE_ constexpr bool
 IsPowerOf2(size_t num)
 {
 	return (num > 0ULL && ((num & (num - 1ULL)) == 0ULL));
