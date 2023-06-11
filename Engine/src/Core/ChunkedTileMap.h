@@ -4,7 +4,7 @@
 #include "Vector2i.h"
 #include "Tile.h"
 
-#include "Structures/SHoodTable.h"
+#include "Structures/SHashMap.h"
 #include "Structures/SLinkedList.h"
 #include "Structures/StaticArray.h"
 
@@ -40,7 +40,7 @@ struct TileMapChunk
 
 struct ChunkedTileMap
 {
-	SHoodTable<Vector2i, TileMapChunk, Vector2iHasher> Chunks;
+	SHashMap<Vector2i, TileMapChunk, Vector2iHasher> Chunks;
 	SLinkedList<ChunkCoord> ChunksToUnload;
 
 	Vector2i ViewDistance;

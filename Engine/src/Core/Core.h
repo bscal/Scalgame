@@ -74,7 +74,7 @@ typedef int bool32;
 #define BitToggle(state, bit) (state ^ 1ULL << bit)
 #define BitMask(state, mask) ((state & mask) == mask)
 
-#define Swap(x, y, T) (T temp = x; x = y; y = temp)
+#define Swap(x, y, T) T temp = x; x = y; y = temp
 
 #if SCAL_DEBUG
 
@@ -165,6 +165,16 @@ enum class TileDirection : uint8_t
 	East,
 	South,
 	West
+};
+
+union UID
+{
+	struct
+	{
+		uint32_t Id : 24;
+		uint32_t Gen : 8;
+	};
+	uint32_t Mask;
 };
 
 constexpr global_var float

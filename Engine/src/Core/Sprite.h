@@ -2,7 +2,7 @@
 
 #include "Core.h"
 
-#include "Structures/SHoodTable.h"
+#include "Structures/SHashMap.h"
 
 struct Game;
 
@@ -37,7 +37,7 @@ struct Animation
 
 struct Animator
 {
-    SHoodTable<AnimationId, Animation> Animations;
+    SHashMap<AnimationId, Animation> Animations;
     Animation* IdleAnimation;
     Animation* CurrentAnimation;
     uint16_t CurrentCycleTick;

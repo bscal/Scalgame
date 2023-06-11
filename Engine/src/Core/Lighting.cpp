@@ -1,7 +1,7 @@
 #include "Lighting.h"
 
 #include "Game.h"
-#include "Structures/SHoodSet.h"
+#include "Structures/SHashSet.h"
 #include "Structures/SLinkedList.h"
 #include "raylib/src/raymath.h"
 #include "WickedEngine/Jobs.h"
@@ -639,7 +639,7 @@ bool FloodFillLighting(ChunkedTileMap* tilemap, Light* light)
 	Vector2i pos = Vector2i::FromVec2(light->Pos);
 
 
-	SHoodSet<Vector2i, Vector2iHasher, Vector2iEquals> visited = {};
+	SHashSet<Vector2i, Vector2iHasher, Vector2iEquals> visited = {};
 	visited.Allocator = SAllocator::Temp;
 	int str = (int)light->Radius * 2;
 	visited.Reserve(str * str);

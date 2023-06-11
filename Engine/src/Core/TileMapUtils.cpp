@@ -1,7 +1,7 @@
 #include "Game.h"
 #include "World.h"
 #include "ChunkedTileMap.h"
-#include "Structures/SHoodSet.h"
+#include "Structures/SHashSet.h"
 
 #include "raymath.h"
 
@@ -119,7 +119,7 @@ IsInCone(SList<Vector2i>* tilesInLos, Vector2 line0, Vector2 line1)
 	}
 }
 
-void GetTilesInLOS(SHoodSet<Vector2i>* tiles, Vector2i pos, float distance, float fov)
+void GetTilesInLOS(SHashSet<Vector2i>* tiles, Vector2i pos, float distance, float fov)
 {
 	PlayerEntity* player = GetClientPlayer();
 	float playerAngleRadians = AngleFromTileDir(player->GetTransform()->LookDir);

@@ -11,7 +11,7 @@
 #include "Structures/SArray.h"
 #include "Structures/SList.h"
 #include "Structures/STable.h"
-#include "Structures/SHoodTable.h"
+#include "Structures/SHashMap.h"
 #include "Structures/SparseSet.h"
 #include "Structures/TreeMap.h"
 #include "Structures/References.h"

@@ -1,77 +1,161 @@
 #pragma once
 
 #include "Core.h"
-
 #include "Player.h"
+#include "SUtil.h"
+#include "SString.h"
 
 #include "Structures/StaticArray.h"
-#include "Structures/SList.h"
-#include "Structures/SLinkedList.h"
-#include "Structures/ComponentArray.h"
-#include "Structures/SHoodTable.h"
+#include "Structures/SHashMap.h"
 
-enum class EntityTypes : uint8_t
-{
-	Npc = 0,
-	Monster,
-	TileEntity
-};
+#include <MemoryPool/MemoryPool.h>
 
-union UID
+struct GameApplication;
+
+union Entity
 {
 	struct
 	{
-		uint32_t Id : 20;
-		uint32_t Generation : 8;
+		uint32_t Id : 28;
 		uint32_t Type : 4;
 	};
-	uint32_t Packed;
+	uint32_t Mask;
 };
 
-struct Player
+enum class EntitySize : uint8_t
 {
+	Tiny,
+	Small,
+	Medium,
+	Large,
+	Huge,
+	Giant,
 
+	MaxSize
 };
 
-struct NPC
+enum class EntityTypes : uint8_t
 {
-	UID Uid;
+	Player = 0,
+	Npc,
+	Monster,
+	TileEntity,
+
+	MaxSize
 };
 
-enum MonsterType : uint8_t
+enum class Pain : uint8_t
+{
+	None,
+	Scratch,	// Twisted ankle, minor wound
+	Hurt,		// Bleeding
+	Very,		// Major injury, Broken bone
+	Extreme,	
+
+	MaxSize
+};
+
+enum CreatureTypes : uint16_t
 {
 	Human = 0,
 
-	MaxTypes
+	MaxSize
 };
 
-struct Monster
+struct CreatureType
 {
-	UID Uid;
+	SString Name;	// Monster internal name
+	SString Desc;	// Description
+	SString Lore;	// Learnable lore
+
+	short MaxEnergy;
+	short MaxHealth;
+	uint16_t YoungAge;
+	uint16_t OldAge;
+	EntitySize Size;	// Size of creature
+	uint8_t GroupId;	// Groups define Friendly/Neutral/Enemy relations
+	bool IsAggresive;
 };
 
-struct TileEntity
+struct WorldEntity
 {
-	UID Uid;
+	Vector2i TilePos;
+	Color Color;
+	uint16_t SpriteIdx;
+	TileDirection LookDir;
+};
+
+struct Creature
+{
+	SString DisplayName;	
+
+	uint32_t InventoryId;	
+	uint32_t EquipmentId;
+
+	uint16_t CreatureType;
+	uint16_t Age;
+
+	short Energy;
+	short Health;
+	short Stamina;
+	short Morale;
+	short Sanity;
+
+	Pain Pain;
+
+	bool IsMale;
+	bool IsSleeping;
+};
+
+struct Character
+{
+	SString FirstName;
+	SString LastName;
+	SString Title;
+};
+
+constexpr global_var Entity PLAYER_ENTITY = { 0 };
+
+struct Player : public WorldEntity
+{
+	Creature Creature;
+	Character Character;
+	Entity Uid;
+};
+
+struct Monster : public WorldEntity
+{
+	Creature Creature;
+	Entity Uid;
+};
+
+struct TileEntity : public WorldEntity
+{
 };
 
 struct EntityManager
 {
+	constexpr static size_t MONSTER_BLOCK_SZ = AlignPowTwo64Ceil((sizeof(Monster) * 256));
+
 	Player Player;
 	
-	ComponentArray Npcs;
-	uint32_t NextNpcId;
-	SList<UID> UnusedNpcId;
-	ComponentArray Monsters;
-	uint32_t NextMonsterId;
-	SList<UID> UnusedMonsterId;
-	SHoodTable<Vector2i, TileEntity> TileEntities;
+	uint32_t NextUid = 1; // 0 Is always player
+	SHashMap<uint32_t, void*> Entities;
+	SHashMap<Vector2i, TileEntity, Vector2iHasher> TileEntities;
 
-	StaticArray<MonsterType, MonsterType::MaxTypes> MonsterTypes;
+	MemoryPool<Monster, MONSTER_BLOCK_SZ> Monsters;
+
+	StaticArray<CreatureType, CreatureTypes::MaxSize> CreatureDB;
 };
 
+void EntityMgrInitialize(GameApplication* gameApp);
 EntityManager* GetEntityMgr();
 
-NPC* SpawnNPC();
+
 Monster* SpawnMonster();
-TileEntity* SpawnTileEntity();
+void DeleteMonster(Monster* monster);
+
+void* GetEntity(Entity ent);
+bool DoesEntityExist(Entity ent);
+
+TileEntity* SpawnTileEntity(Vector2i pos);

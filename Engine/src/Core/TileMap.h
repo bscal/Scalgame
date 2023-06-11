@@ -3,7 +3,7 @@
 #include "Core/Core.h"
 
 #include "Structures/SLinkedList.h"
-#include "Structures/SHoodTable.h"
+#include "Structures/SHashMap.h"
 #include "Structures/StaticArray.h"
 #include "Structures/BitArray.h"
 
@@ -37,7 +37,7 @@ struct TileChunk
 
 struct TileMap
 {
-	SHoodTable<Vector2i, TileChunk> Chunks;
+	SHashMap<Vector2i, TileChunk> Chunks;
 	SLinkedList<Vector2i> ChunksToUnload;
 	Vector2i ViewDistanceInChunks;
 	Vector2i WorldDimensionsInChunks;

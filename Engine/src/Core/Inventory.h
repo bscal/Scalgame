@@ -4,7 +4,7 @@
 #include "Sprite.h"
 #include "Structures/SList.h"
 #include "Structures/StaticArray.h"
-#include "Structures/SHoodTable.h"
+#include "Structures/SHashMap.h"
 
 struct GameApplication;
 struct CreatureEntity;
@@ -16,15 +16,6 @@ constexpr global_var uint32_t INV_EMPTY = UINT32_MAX;
 #define INV_MAX_INV_TYPES 10
 #define EQUIPMENT_MAX_SLOTS 5
 
-union UID
-{
-	struct
-	{
-		uint32_t Gen : 8;
-		uint32_t Id : 24;
-	};
-	uint32_t Mask;
-};
 
 namespace Items
 {
@@ -140,8 +131,8 @@ struct InventoryMgr
 {
 	StaticArray<Item, INV_MAX_ITEMS> Items;
 
-	SHoodTable<uint32_t, Inventory> Inventories;
-	SHoodTable<uint32_t, Equipment> Equipments;
+	SHashMap<uint32_t, Inventory> Inventories;
+	SHashMap<uint32_t, Equipment> Equipments;
 	
 	uint32_t NextInventoryId;
 	uint32_t NextEquipmentId;

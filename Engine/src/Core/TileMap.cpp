@@ -42,7 +42,7 @@ void TileMap::CullAndDrawChunks(Game* game, RenderTexture2D target)
 
 	for (uint32_t i = 0; i < Chunks.Capacity; ++i)
 	{
-		SHoodBucket<Vector2i, TileChunk>& bucket = Chunks.Buckets[i];
+		SHashMapBucket<Vector2i, TileChunk>& bucket = Chunks.Buckets[i];
 		if (bucket.Occupied && bucket.Value.IsLoaded)
 		{
 			bool shouldDraw = CheckCollisionRecs(viewport, bucket.Value.BoundingBox);

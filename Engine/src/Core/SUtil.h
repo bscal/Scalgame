@@ -48,11 +48,7 @@ struct Vector2iHasher
 {
 	[[nodiscard]] _FORCE_INLINE_ constexpr size_t operator()(const Vector2i* v) const noexcept
 	{
-		size_t res = size_t(v->x) | (size_t(v->y) << sizeof(int32_t));
-		res = (res ^ (res >> 30)) * UINT64_C(0xbf58476d1ce4e5b9);
-		res = (res ^ (res >> 27)) * UINT64_C(0x94d049bb133111eb);
-		res = res ^ (res >> 31);
-		return res;
+		return FNVHash64((const uint8_t*)v, sizeof(Vector2i));
 	}
 };
 

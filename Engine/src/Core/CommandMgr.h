@@ -5,7 +5,7 @@
 #include "SString.h"
 #include "SUtil.h"
 #include "Structures/SList.h"
-#include "Structures/SHoodTable.h"
+#include "Structures/SHashMap.h"
 
 global_var constexpr uint32_t MAX_SUGGESTIONS = 6;
 
@@ -16,7 +16,7 @@ struct Command
 
 struct CommandMgr
 {
-	SHoodTable<SRawString, Command, SRawStringHasher> Commands;
+	SHashMap<SRawString, Command, SRawStringHasher> Commands;
 	SList<SStringView> CommandNames;
 	SList<SStringView> Suggestions;
 	SList<SStringView> InputArgs;

@@ -345,7 +345,7 @@ inline int TestSTable()
 	testTable.Reserve(16);
 	SASSERT(testTable.Capacity == 16);
 
-	STable<Vector2i, char> table(Vector2iEqualsFunc, STableDefaultKeyHash<Vector2i>);
+	STable<Vector2i, char> table(STableDefaultKeyEquals, STableDefaultKeyHash);
 	SASSERT(!table.Entries);
 	table.Reserve(5);
 	SASSERT(table.IsAllocated());

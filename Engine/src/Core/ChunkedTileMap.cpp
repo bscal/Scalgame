@@ -164,7 +164,7 @@ bool IsChunkLoaded(ChunkedTileMap* tilemap,
 	ChunkCoord coord)
 {
 	// TODO
-	return (GetChunk(tilemap, coord) != nullptr);
+	return tilemap->Chunks.Contains(&coord);
 }
 
 bool IsTileInBounds(ChunkedTileMap* tilemap, TileCoord tilePos)
