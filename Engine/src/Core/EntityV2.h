@@ -4,15 +4,16 @@
 #include "Player.h"
 #include "SUtil.h"
 #include "SString.h"
+#include "Sprite.h"
 
 #include "Structures/StaticArray.h"
 #include "Structures/SHashMap.h"
 
 #include <MemoryPool/MemoryPool.h>
 
-struct GameApplication;
+struct Game;
 
-union Entity
+union EntityId
 {
 	struct
 	{
@@ -55,6 +56,18 @@ enum class Pain : uint8_t
 	MaxSize
 };
 
+namespace Groups
+{
+enum
+{
+	Player = 0,
+	Wild,
+	Monsters,
+
+	MaxSize
+};
+}
+
 enum CreatureTypes : uint16_t
 {
 	Human = 0,
@@ -68,20 +81,21 @@ struct CreatureType
 	SString Desc;	// Description
 	SString Lore;	// Learnable lore
 
+	Sprite Sprite;	// Src Rect on sprite sheet		
+
 	short MaxEnergy;
 	short MaxHealth;
 	uint16_t YoungAge;
 	uint16_t OldAge;
 	EntitySize Size;	// Size of creature
 	uint8_t GroupId;	// Groups define Friendly/Neutral/Enemy relations
-	bool IsAggresive;
+	bool IsAggresive;	
 };
 
 struct WorldEntity
 {
 	Vector2i TilePos;
 	Color Color;
-	uint16_t SpriteIdx;
 	TileDirection LookDir;
 };
 
@@ -114,19 +128,19 @@ struct Character
 	SString Title;
 };
 
-constexpr global_var Entity PLAYER_ENTITY = { 0 };
+constexpr global_var EntityId PLAYER_ENTITY = { 0 };
 
 struct Player : public WorldEntity
 {
 	Creature Creature;
 	Character Character;
-	Entity Uid;
+	EntityId Uid;
 };
 
 struct Monster : public WorldEntity
 {
 	Creature Creature;
-	Entity Uid;
+	EntityId Uid;
 };
 
 struct TileEntity : public WorldEntity
@@ -148,14 +162,16 @@ struct EntityManager
 	StaticArray<CreatureType, CreatureTypes::MaxSize> CreatureDB;
 };
 
-void EntityMgrInitialize(GameApplication* gameApp);
+void EntityMgrInitialize();
 EntityManager* GetEntityMgr();
 
+void UpdateEntities(Game* game);
+void DrawEntities(Game* game);
 
 Monster* SpawnMonster();
 void DeleteMonster(Monster* monster);
 
-void* GetEntity(Entity ent);
-bool DoesEntityExist(Entity ent);
+void* GetEntity(EntityId ent);
+bool DoesEntityExist(EntityId ent);
 
 TileEntity* SpawnTileEntity(Vector2i pos);

@@ -22,9 +22,9 @@ struct PlayerEntity
 	uint32_t EntityId;
 	bool HasMoved;
 
-	void Update();
-
 	TransformComponent* GetTransform();
 };
 
 void HandlePlayerInput(GameApplication* gameApp, PlayerEntity* player);
+
+void UpdatePlayer(PlayerEntity* player, Game* game);

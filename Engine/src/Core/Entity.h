@@ -14,8 +14,6 @@
 #define ENT_MAX_COMPONENTS 64
 #define ENT_NOT_FOUND UINT32_MAX
 
-typedef uint32_t Entity;
-
 struct EntityMgr
 {
 	struct EntityStatus
@@ -26,13 +24,13 @@ struct EntityMgr
 
 	PlayerEntity Player;
 	SList<EntityStatus> Entities;
-	SLinkedList<Entity> FreeIds;
+	SLinkedList<uint32_t> FreeIds;
 
-	Entity CreateEntity();
-	void RemoveEntity(Entity entity);
+	uint32_t CreateEntity();
+	void RemoveEntity(uint32_t entity);
 	
 	uint32_t FindGen(uint32_t entityId);
-	bool IsAlive(Entity entity) const;
+	bool IsAlive(uint32_t entity) const;
 };
 
 struct ComponentQuery
@@ -175,7 +173,7 @@ struct ComponentMgr
 	}
 
 	template<>
-	inline TransformComponent* GetComponent(Entity entity)
+	inline TransformComponent* GetComponent(uint32_t entity)
 	{
 		uint32_t entityId = GetId(entity);
 		SASSERT(entityId < Components.Count);
@@ -183,7 +181,7 @@ struct ComponentMgr
 	}
 
 	template<>
-	inline TransformComponent* AddComponent(Entity entity, const TransformComponent& component)
+	inline TransformComponent* AddComponent(uint32_t entity, const TransformComponent& component)
 	{
 
 		uint32_t entityId = GetId(entity);

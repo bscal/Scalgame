@@ -45,7 +45,7 @@ uint32_t EntityMgr::CreateEntity()
 	return result;
 }
 
-void EntityMgr::RemoveEntity(Entity entity)
+void EntityMgr::RemoveEntity(uint32_t entity)
 {
 	uint32_t id = GetId(entity);
 	
@@ -80,7 +80,7 @@ uint32_t EntityMgr::FindGen(uint32_t entityId)
 	return status.Gen;
 }
 
-bool EntityMgr::IsAlive(Entity entity) const
+bool EntityMgr::IsAlive(uint32_t entity) const
 {
 	EntityStatus status = Entities[GetId(entity)];
 	return (status.IsAlive && status.Gen == GetGen(entity));

@@ -400,6 +400,17 @@ SDrawTextureF(const Texture2D& texture, const Rectangle& source,
 }
 
 void
+SDrawSprite(const Texture2D* texture, Sprite sprite, Vector2i tile, Color color)
+{
+	SASSERT(texture);
+	SASSERT(texture->id);
+
+	Rectangle src = { (float)sprite.x, (float)sprite.x, (float)sprite.w, (float)sprite.h };
+	Rectangle dst = { (float)tile.x * TILE_SIZE_F, (float)tile.y * TILE_SIZE_F, (float)sprite.w, (float)sprite.h };
+	DrawTexturePro(*texture, src, dst, {}, 0.0f, color);
+}
+
+void
 SDrawSprite(const Texture2D* texture, const TransformComponent* transform, const SpriteRenderer* renderable, bool flipX)
 {
 	SASSERT(texture->id);

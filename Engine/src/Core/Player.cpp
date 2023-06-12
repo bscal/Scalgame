@@ -5,8 +5,9 @@
 
 #include <raylib/src/raymath.h>
 
-void PlayerEntity::Update()
+void UpdatePlayer(PlayerEntity* player, Game* game)
 {
+
 }
 
 TransformComponent* PlayerEntity::GetTransform()

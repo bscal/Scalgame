@@ -6,8 +6,6 @@
 
 #include "Structures/SList.h"
 
-typedef uint32_t Entity;
-
 inline uint32_t NextId = 0;
 
 template<typename T>
@@ -83,14 +81,4 @@ struct CreatureEntity : Component<CreatureEntity>
 
 	static void OnAdd(uint32_t entity, void* component);
 	static void OnRemove(uint32_t entity, void* component);
-};
-
-struct Character
-{
-
-};
-
-struct Monster : Component<Monster>
-{
-	uint16_t MonsterType;
 };
