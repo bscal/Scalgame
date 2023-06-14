@@ -31,6 +31,7 @@ struct SList
 	void Remove(); // Same as pop, but does not do a copy
 	bool RemoveAt(uint32_t index);
 	bool RemoveAtFast(uint32_t index);
+	void Set(uint32_t index, const T* data);
 
 	inline T* PeekAt(uint32_t index) const;
 	inline T* Last() const;
@@ -270,6 +271,14 @@ bool SList<T>::RemoveAtFast(uint32_t index)
 		return true;
 	}
 	return false;
+}
+
+template<typename T>
+void SList<T>::Set(uint32_t index, const T* data)
+{
+	EnsureSize(index);
+	T* dst = Memory + index;
+	memcpy(dst, data, sizeof(T));
 }
 
 template<typename T>

@@ -21,7 +21,7 @@ struct SHashMapBucket
 };
 
 // Hashmap using RobinHood open addressing and power of 2 capacties for faster modulo.
-template<typename K, typename V, typename HashFunc = DefaultHasher<K>, typename EqualsFunc = DefaultEquals<K>>
+template<typename K, typename V, typename Hasher = DefaultHasher>
 struct SHashMap
 {
 	SHashMapBucket<K, V>* Buckets;
@@ -42,8 +42,7 @@ struct SHashMap
 	bool Remove(const K* key);
 
 	_FORCE_INLINE_ bool IsAllocated() const { return Buckets; }
-	_FORCE_INLINE_ size_t Stride() const { return sizeof(SHashMapBucket<K, V>); }
-	_FORCE_INLINE_ size_t MemUsed() const { return Capacity * Stride(); }
+	_FORCE_INLINE_ size_t MemoryUsed() const { return Capacity * sizeof(SHashMapBucket<K, V>); }
 
 	const SHashMapBucket<K, V>& operator[](size_t i) const { SASSERT(i < Capacity); return Buckets[i]; }
 	SHashMapBucket<K, V>& operator[](size_t i) { SASSERT(i < Capacity); return Buckets[i]; }
@@ -60,18 +59,17 @@ struct SHashMap
 	}
 
 private:
-	_FORCE_INLINE_ uint64_t Hash(const K* key) const;
+	_FORCE_INLINE_ uint32_t Hash(const K* key) const;
+	_ALWAYS_INLINE_ bool Equals(const K* k0, const K* k1) const { return *k0 == *k1; };
 
 	SHashMapBucket<K, V>* FindIndexAndInsert(SHashMapBucket<K, V>* swapBucket);
 };
 
-template<
-	typename K,
-	typename V,
-	typename HashFunc,
-	typename EqualsFunc>
-void SHashMap<K, V, HashFunc, EqualsFunc>::Reserve(uint32_t capacity)
+template<typename K, typename V, typename Hasher>
+void SHashMap<K, V, Hasher>::Reserve(uint32_t capacity)
 {
+	constexpr size_t stride = sizeof(SHashMapBucket<K, V>);
+
 	uint32_t newCapacity = (uint32_t)((float)capacity);
 	if (newCapacity == 0)
 		newCapacity = 2;
@@ -87,17 +85,17 @@ void SHashMap<K, V, HashFunc, EqualsFunc>::Reserve(uint32_t capacity)
 
 	if (Size == 0)
 	{
-		size_t oldSize = oldCapacity * Stride();
-		size_t newSize = newCapacity * Stride();
+		size_t oldSize = oldCapacity * stride;
+		size_t newSize = newCapacity * stride;
 		Buckets = (SHashMapBucket<K, V>*)(SRealloc(Allocator, Buckets, oldSize, newSize, MemoryTag::Tables));
 	}
 	else
 	{
-		SHashMap<K, V, HashFunc, EqualsFunc> tmpTable = {};
+		SHashMap<K, V, Hasher> tmpTable = {};
 		tmpTable.Allocator = Allocator;
 		tmpTable.Capacity = Capacity;
 		tmpTable.MaxSize = MaxSize;
-		tmpTable.Buckets = (SHashMapBucket<K, V>*)SAlloc(Allocator, newCapacity * Stride(), MemoryTag::Tables);
+		tmpTable.Buckets = (SHashMapBucket<K, V>*)SAlloc(Allocator, newCapacity * stride, MemoryTag::Tables);
 
 		for (uint32_t i = 0; i < oldCapacity; ++i)
 		{
@@ -108,7 +106,7 @@ void SHashMap<K, V, HashFunc, EqualsFunc>::Reserve(uint32_t capacity)
 			if (tmpTable.Size == Size) break;
 		}
 
-		SFree(Allocator, Buckets, oldCapacity * Stride(), MemoryTag::Tables);
+		SFree(Allocator, Buckets, oldCapacity * stride, MemoryTag::Tables);
 		SASSERT(Size == tmpTable.Size);
 		SLOG_DEBUG("SHashMap resized! From: %u, To: %u", oldCapacity, newCapacity);
 		*this = tmpTable;
@@ -119,41 +117,31 @@ void SHashMap<K, V, HashFunc, EqualsFunc>::Reserve(uint32_t capacity)
 	SASSERT(IsPowerOf2_32(Capacity));
 }
 
-template<
-	typename K,
-	typename V,
-	typename HashFunc,
-	typename EqualsFunc>
-void SHashMap<K, V, HashFunc, EqualsFunc>::Clear()
+template<typename K, typename V, typename Hasher>
+void 
+SHashMap<K, V, Hasher>::Clear()
 {
-	SMemClear(Buckets, MemSize());
+	SMemClear(Buckets, MemoryUsed());
 	Size = 0;
 }
 
-template<
-	typename K,
-	typename V,
-	typename HashFunc,
-	typename EqualsFunc>
-void SHashMap<K, V, HashFunc, EqualsFunc>::Free()
+template<typename K, typename V, typename Hasher>
+void 
+SHashMap<K, V, Hasher>::Free()
 {
-	SFree(Allocator, Buckets, MemUsed(), MemoryTag::Tables);
+	SFree(Allocator, Buckets, MemoryUsed(), MemoryTag::Tables);
 	Buckets = nullptr;
 	Capacity = 0;
 	Size = 0;
 	MaxSize = 0;
 }
 
-template<
-	typename K,
-	typename V,
-	typename HashFunc,
-	typename EqualsFunc>
-void SHashMap<K, V, HashFunc, EqualsFunc>::Insert(const K* key, const V* value)
+template<typename K, typename V, typename Hasher>
+void 
+SHashMap<K, V, Hasher>::Insert(const K* key, const V* value)
 {
 	SASSERT(key);
 	SASSERT(value);
-	SASSERT(EqualsFunc{}(key, key));
 
 	if (Size >= MaxSize)
 	{
@@ -171,16 +159,12 @@ void SHashMap<K, V, HashFunc, EqualsFunc>::Insert(const K* key, const V* value)
 	SASSERT(result);
 }
 
-template<
-	typename K,
-	typename V,
-	typename HashFunc,
-	typename EqualsFunc>
-SHashMapBucket<K, V>* SHashMap<K, V, HashFunc, EqualsFunc>::InsertAndGet(const K* key, const V* value)
+template<typename K, typename V, typename Hasher>
+SHashMapBucket<K, V>* 
+SHashMap<K, V, Hasher>::InsertAndGet(const K* key, const V* value)
 {
 	SASSERT(key);
 	SASSERT(value);
-	SASSERT(EqualsFunc{}(key, key));
 
 	if (!key)
 		return nullptr;
@@ -202,15 +186,10 @@ SHashMapBucket<K, V>* SHashMap<K, V, HashFunc, EqualsFunc>::InsertAndGet(const K
 	return result;
 }
 
-template<
-	typename K,
-	typename V,
-	typename HashFunc,
-	typename EqualsFunc>
-V* SHashMap<K, V, HashFunc, EqualsFunc>::InsertKey(const K* key)
+template<typename K, typename V, typename Hasher>
+V* SHashMap<K, V, Hasher>::InsertKey(const K* key)
 {
 	SASSERT(key);
-	SASSERT(EqualsFunc{}(key, key));
 
 	if (!key)
 		return nullptr;
@@ -231,15 +210,10 @@ V* SHashMap<K, V, HashFunc, EqualsFunc>::InsertKey(const K* key)
 	return &result->Value;
 }
 
-template<
-	typename K,
-	typename V,
-	typename HashFunc,
-	typename EqualsFunc>
-V* SHashMap<K, V, HashFunc, EqualsFunc>::Get(const K* key) const
+template<typename K, typename V, typename Hasher>
+V* SHashMap<K, V, Hasher>::Get(const K* key) const
 {
 	SASSERT(key);
-	SASSERT(EqualsFunc{}(key, key));
 
 	if (!IsAllocated())
 		return nullptr;
@@ -251,7 +225,7 @@ V* SHashMap<K, V, HashFunc, EqualsFunc>::Get(const K* key) const
 		SHashMapBucket<K, V>* bucket = &Buckets[index];
 		if (bucket->Occupied == 0)
 			return nullptr;
-		else if (EqualsFunc{}(&bucket->Key, key))
+		else if (Equals(key, &bucket->Key))
 			return &bucket->Value;
 		else
 			if (++index == Capacity) index = 0;
@@ -259,14 +233,9 @@ V* SHashMap<K, V, HashFunc, EqualsFunc>::Get(const K* key) const
 	return nullptr;
 }
 
-template<
-	typename K,
-	typename V,
-	typename HashFunc,
-	typename EqualsFunc>
-bool SHashMap<K, V, HashFunc, EqualsFunc>::Contains(const K* key) const
+template<typename K, typename V, typename Hasher>
+bool SHashMap<K, V, Hasher>::Contains(const K* key) const
 {
-	SASSERT(EqualsFunc{}(key, key));
 	SASSERT(key);
 
 	if (!IsAllocated())
@@ -279,7 +248,7 @@ bool SHashMap<K, V, HashFunc, EqualsFunc>::Contains(const K* key) const
 		SHashMapBucket<K, V>* bucket = &Buckets[index];
 		if (bucket->Occupied == 0)
 			return false;
-		else if (EqualsFunc{}(&bucket->Key, key))
+		else if (Equals(key, &bucket->Key))
 			return true;
 		else
 			if (++index == Capacity) index = 0;
@@ -287,15 +256,10 @@ bool SHashMap<K, V, HashFunc, EqualsFunc>::Contains(const K* key) const
 	return false;
 }
 
-template<
-	typename K,
-	typename V,
-	typename HashFunc,
-	typename EqualsFunc>
-bool SHashMap<K, V, HashFunc, EqualsFunc>::Remove(const K* key)
+template<typename K, typename V, typename Hasher>
+bool SHashMap<K, V, Hasher>::Remove(const K* key)
 {
 	SASSERT(IsAllocated());
-	SASSERT(EqualsFunc{}(key, key));
 	SASSERT(key);
 
 	uint64_t hash = Hash(key);
@@ -305,7 +269,7 @@ bool SHashMap<K, V, HashFunc, EqualsFunc>::Remove(const K* key)
 		SHashMapBucket<K, V>* bucket = &Buckets[index];
 		if (bucket->Occupied)
 		{
-			if (EqualsFunc{}(&bucket->Key, key))
+			if (Equals(key, &bucket->Key))
 			{
 				while (true) // Move any entries after index closer to their ideal probe length.
 				{
@@ -342,30 +306,21 @@ bool SHashMap<K, V, HashFunc, EqualsFunc>::Remove(const K* key)
 	return false;
 }
 
-template<
-	typename K,
-	typename V,
-	typename HashFunc,
-	typename EqualsFunc>
-_FORCE_INLINE_ uint64_t
-SHashMap<K, V, HashFunc, EqualsFunc>::Hash(const K* key) const
+template<typename K, typename V, typename Hasher>
+_FORCE_INLINE_ uint32_t
+SHashMap<K, V, Hasher>::Hash(const K* key) const
 {
 	SASSERT(IsPowerOf2_32(Capacity));
-	uint64_t hash = HashFunc{}(key);
+	uint32_t hash = Hasher{}(key, sizeof(K));
 	// Fast mod of power of 2s
-	hash &= ((uint64_t)(Capacity - 1));
+	hash &= (Capacity - 1);
 	// Since we mod by capacity is will not be larger then capacity and cast to u32
-	SASSERT(hash < Capacity);
 	return hash;
 }
 
-template<
-	typename K,
-	typename V,
-	typename HashFunc,
-	typename EqualsFunc>
+template<typename K, typename V, typename Hasher>
 SHashMapBucket<K, V>* 
-SHashMap<K, V, HashFunc, EqualsFunc>::FindIndexAndInsert(SHashMapBucket<K, V>* swapBucket)
+SHashMap<K, V, Hasher>::FindIndexAndInsert(SHashMapBucket<K, V>* swapBucket)
 {
 	SASSERT(swapBucket);
 
@@ -379,7 +334,7 @@ SHashMap<K, V, HashFunc, EqualsFunc>::FindIndexAndInsert(SHashMapBucket<K, V>* s
 		if (bucket->Occupied) // Bucket is being used
 		{
 			// Duplicate
-			if (EqualsFunc{}(&bucket->Key, &swapBucket->Key))
+			if (Equals(&bucket->Key, &swapBucket->Key))
 				return bucket;
 
 			// Swaps swapBucket and larger element

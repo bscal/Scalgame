@@ -29,5 +29,5 @@ void CreatureEntity::OnRemove(uint32_t entity, void* component)
 
 	Inventory* inventoryPtr = GetGame()->InventoryMgr.Inventories.Get(&creature->InventoryId);
 	if (inventoryPtr)
-		GetGame()->InventoryMgr.RemoveInventory(inventoryPtr);
+		GetGame()->InventoryMgr.DeleteInventory(inventoryPtr);
 }

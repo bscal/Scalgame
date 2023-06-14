@@ -639,7 +639,7 @@ bool FloodFillLighting(ChunkedTileMap* tilemap, Light* light)
 	Vector2i pos = Vector2i::FromVec2(light->Pos);
 
 
-	SHashSet<Vector2i, Vector2iHasher, Vector2iEquals> visited = {};
+	SHashSet<Vector2i> visited = {};
 	visited.Allocator = SAllocator::Temp;
 	int str = (int)light->Radius * 2;
 	visited.Reserve(str * str);

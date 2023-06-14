@@ -18,7 +18,7 @@ struct SHoodSetBucket
 };
 
 // Hashset using Robin Hood open addressing
-template<typename K, typename HashFunc = DefaultHasher<K>, typename EqualsFunc = DefaultEquals<K>>
+template<typename K, typename HashFunc = DefaultHasher>
 struct SHashSet
 {
 	SHoodSetBucket<K>* Buckets;
@@ -35,15 +35,13 @@ struct SHashSet
 	bool Contains(const K* key) const;
 	bool Remove(const K* key);
 
-	_FORCE_INLINE_ bool IsAllocated() const { return MemUsed() > 0; };
-	_FORCE_INLINE_ size_t Stride() const { return sizeof(SHoodSetBucket<K>); }
-	_FORCE_INLINE_ size_t MemUsed() const { return Capacity * Stride(); };
+	_FORCE_INLINE_ bool IsAllocated() const { return Buckets; };
 
 	void ToString() const;
 };
 
-template<typename K, typename HashFunc, typename EqualsFunc>
-void SHashSet<K, HashFunc, EqualsFunc>::Reserve(uint32_t capacity)
+template<typename K, typename HashFunc>
+void SHashSet<K, HashFunc>::Reserve(uint32_t capacity)
 {
 	uint32_t newCapacity = (uint32_t)((float)capacity * SSET_LOAD_FACTOR);
 	if (newCapacity == 0)
@@ -55,20 +53,20 @@ void SHashSet<K, HashFunc, EqualsFunc>::Reserve(uint32_t capacity)
 
 	if (Size == 0)
 	{
-		size_t oldSize = Capacity * Stride();
-		size_t newSize = newCapacity * Stride();
+		size_t oldSize = Capacity * sizeof(SHoodSetBucket<K>);
+		size_t newSize = newCapacity * sizeof(SHoodSetBucket<K>);
 		Buckets = (SHoodSetBucket<K>*)(SRealloc(Allocator, Buckets, oldSize, newSize, MemoryTag::Tables));
 		Capacity = newCapacity;
 		MaxSize = (uint32_t)((float)newCapacity * SSET_LOAD_FACTOR_INVERSE);
 	}
 	else
 	{
-		SHashSet<K, HashFunc, EqualsFunc> tmpSet = {};
+		SHashSet<K, HashFunc> tmpSet = {};
 		tmpSet.Allocator = Allocator;
 		tmpSet.Size = 0;
 		tmpSet.Capacity = newCapacity;
 		tmpSet.MaxSize = (uint32_t)((float)newCapacity * SSET_LOAD_FACTOR_INVERSE);
-		tmpSet.Buckets = (SHoodSetBucket<K>*)(SAlloc(Allocator, tmpSet.Capacity * Stride(), MemoryTag::Tables));
+		tmpSet.Buckets = (SHoodSetBucket<K>*)(SAlloc(Allocator, tmpSet.Capacity * sizeof(SHoodSetBucket<K>), MemoryTag::Tables));
 
 		for (uint32_t i = 0; i < Capacity; ++i)
 		{
@@ -79,50 +77,53 @@ void SHashSet<K, HashFunc, EqualsFunc>::Reserve(uint32_t capacity)
 		}
 
 		SASSERT(Size == tmpSet.Size);
-		SFree(Allocator, Buckets, MemUsed(), MemoryTag::Tables);
+		size_t size = Capacity * sizeof(SHoodSetBucket<K>);
+		SFree(Allocator, Buckets, size, MemoryTag::Tables);
 		*this = tmpSet;
 	}
 
-	SASSERT(Buckets);
 	SASSERT(IsAllocated());
 	SASSERT(IsPowerOf2_32(Capacity));
 }
 
-template<typename K, typename HashFunc, typename EqualsFunc>
-void SHashSet<K, HashFunc, EqualsFunc>::Free()
+template<typename K, typename HashFunc>
+void SHashSet<K, HashFunc>::Free()
 {
-	SFree(Allocator, Buckets, MemUsed(), MemoryTag::Tables);
+	size_t size = Capacity * sizeof(SHoodSetBucket<K>);
+	SFree(Allocator, Buckets, size, MemoryTag::Tables);
 	Buckets = nullptr;
 	Size = 0;
 	Capacity = 0;
 	MaxSize = 0;
 }
 
-template<typename K, typename HashFunc, typename EqualsFunc>
-void SHashSet<K, HashFunc, EqualsFunc>::Clear()
+template<typename K, typename HashFunc>
+void SHashSet<K, HashFunc>::Clear()
 {
 	if (Buckets)
-		SMemClear(Buckets, MemUsed());
+	{
+		size_t size = Capacity * sizeof(SHoodSetBucket<K>);
+		SMemClear(Buckets, size);
+	}
 	Size = 0;
 }
 
-template<typename K, typename HashFunc, typename EqualsFunc>
-bool SHashSet<K, HashFunc, EqualsFunc>::Insert(const K* key)
+template<typename K, typename HashFunc>
+bool SHashSet<K, HashFunc>::Insert(const K* key)
 {
 	SASSERT(key);
-	SASSERT(EqualsFunc{}(key, key))
 
 	if (Size >= MaxSize)
 		Reserve(Capacity * SSET_RESIZE);
 
-	SASSERT(IsAllocated());
+	SASSERT(Buckets);
 
 	SHoodSetBucket<K> swapBucket;
 	swapBucket.Key = *key;
 	swapBucket.Occupied = true;
 
-	uint64_t hash = HashFunc{}(key);
-	uint32_t index = hash & ((uint64_t)(Capacity - 1));
+	uint32_t hash = HashFunc{}(key, sizeof(K));
+	uint32_t index = hash & (Capacity - 1);
 	SASSERT(index < Capacity);
 	uint32_t probeLength = 0;
 	while (true)
@@ -131,7 +132,7 @@ bool SHashSet<K, HashFunc, EqualsFunc>::Insert(const K* key)
 		if (bucket->Occupied) // Bucket is being used
 		{
 			// Duplicate
-			if (EqualsFunc{}(&bucket->Key, &swapBucket.Key))
+			if (bucket->Key == swapBucket.Key)
 				return false;
 
 			if (probeLength > bucket->ProbeLength)
@@ -161,24 +162,23 @@ bool SHashSet<K, HashFunc, EqualsFunc>::Insert(const K* key)
 	return false;
 }
 
-
-template<typename K, typename HashFunc, typename EqualsFunc>
-bool SHashSet<K, HashFunc, EqualsFunc>::Contains(const K* key) const
+template<typename K, typename HashFunc>
+bool SHashSet<K, HashFunc>::Contains(const K* key) const
 {
 	SASSERT(key);
-	SASSERT(EqualsFunc{}(key, key));
 
-	if (Size == 0) return false;
+	if (Size == 0)
+		return false;
 
-	uint64_t hash = HashFunc{}(key);
-	uint32_t index = hash & ((uint64_t)(Capacity - 1));
+	uint32_t hash = HashFunc{}(key, sizeof(K));
+	uint32_t index = hash & (Capacity - 1);
 	SASSERT(index < Capacity);
 	while (true)
 	{
 		SHoodSetBucket<K>* bucket = &Buckets[index];
 		if (!bucket->Occupied)
 			return false;
-		if (EqualsFunc{}(&bucket->Key, key))
+		if (*key == bucket->Key)
 			return true;
 		else
 			if (index++ == Capacity) index = 0; // wraps
@@ -186,15 +186,14 @@ bool SHashSet<K, HashFunc, EqualsFunc>::Contains(const K* key) const
 	return false;
 }
 
-template<typename K, typename HashFunc, typename EqualsFunc>
-bool SHashSet<K, HashFunc, EqualsFunc>::Remove(const K* key)
+template<typename K, typename HashFunc>
+bool SHashSet<K, HashFunc>::Remove(const K* key)
 {
 	SASSERT(key);
-	SASSERT(EqualsFunc{}(key, key))
 	SASSERT(IsAllocated());
 
-	uint64_t hash = HashFunc{}(key);
-	uint32_t index = hash & ((uint64_t)(Capacity - 1));
+	uint32_t hash = HashFunc{}(key, sizeof(K));
+	uint32_t index = hash & (Capacity - 1);
 	SASSERT(index < Capacity);
 	while(true)
 	{
@@ -203,7 +202,7 @@ bool SHashSet<K, HashFunc, EqualsFunc>::Remove(const K* key)
 			return false; // No key found
 
 		// If equal remove and shift next elements left until probe length is 0
-		if (EqualsFunc{}(&bucket->Key, key))
+		if (*key == bucket->Key)
 		{
 			while (true)
 			{
@@ -237,13 +236,13 @@ bool SHashSet<K, HashFunc, EqualsFunc>::Remove(const K* key)
 	return false;
 }
 
-template<typename K, typename HashFunc, typename EqualsFunc>
-void SHashSet<K, HashFunc, EqualsFunc>::ToString() const
+template<typename K, typename HashFunc>
+void SHashSet<K, HashFunc>::ToString() const
 {
 	SLOG_INFO("\nSHoodSet Info: Size:%u/MaxSize:%u , Capacity: %u", Size, MaxSize, Capacity);
 	for (uint32_t i = 0; i < Capacity; ++i)
 	{
 		const SHoodSetBucket<K>& bucket = Buckets[i];
-		SLOG_INFO("%d = probe:%d, occupied:%d, hash:%u", i, bucket.ProbeLength, bucket.Occupied, HashFunc{}(&bucket.Key) % Capacity);
+		SLOG_INFO("%d = probe:%d, occupied:%d, hash:%u", i, bucket.ProbeLength, bucket.Occupied, HashFunc{}(&bucket.Key, sizeof(K)) % Capacity);
 	}
 }

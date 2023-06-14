@@ -269,8 +269,6 @@ GameUpdate(Game* game, GameApplication* gameApp)
 
 	GameUpdateCamera(game, gameApp);
 
-	game->EntityMgr.Player.Update();
-
 	UniverseUpdate(&game->Universe, game);
 	LightsUpdate(&game->LightingState, game);
 

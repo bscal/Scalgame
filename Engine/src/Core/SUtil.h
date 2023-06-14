@@ -11,22 +11,11 @@ Vector4 Vec4Add(const Vector4& v0, const Vector4& v1);
 
 int IModNegative(int a, int b);
 
-template<typename T>
 struct DefaultHasher
 {
-	[[nodiscard]] constexpr uint64_t operator()(const T* key) const noexcept
+	[[nodiscard]] _FORCE_INLINE_ constexpr uint32_t operator()(const void* key, size_t size) const noexcept
 	{
-		const uint8_t* const data = (const uint8_t* const)(key);
-		return FNVHash64(data, sizeof(T));
-	}
-};
-
-template<typename T>
-struct DefaultEquals
-{
-	[[nodiscard]] bool operator()(const T* k1, const T* k2) const noexcept
-	{
-		return *k1 == *k2;
+		return FNVHash32((const uint8_t*)key, size);
 	}
 };
 
@@ -43,22 +32,6 @@ SStringViewHash(const SStringView* key)
 	const uint8_t* const data = (const uint8_t* const)key->Str;
 	return FNVHash64(data, key->Length);
 }
-
-struct Vector2iHasher
-{
-	[[nodiscard]] _FORCE_INLINE_ constexpr size_t operator()(const Vector2i* v) const noexcept
-	{
-		return FNVHash64((const uint8_t*)v, sizeof(Vector2i));
-	}
-};
-
-struct Vector2iEquals
-{
-	_FORCE_INLINE_ bool operator()(const Vector2i* lhs, const Vector2i* rhs) const noexcept
-	{
-		return lhs->Equals(*rhs);
-	}
-};
 
 _FORCE_INLINE_ constexpr size_t
 AlignPowTwo64(size_t num)

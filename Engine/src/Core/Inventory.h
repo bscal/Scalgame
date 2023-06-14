@@ -145,9 +145,10 @@ struct InventoryMgr
 
 	Inventory* CreateInventory(uint32_t entity, Vector2i16 dimensions);
 	Inventory* CreateInventoryLayout(uint32_t entity, Vector2i16 dimensions, const InventorySlotState* layoutArray);
-	void RemoveInventory(Inventory* inventory);
+	void DeleteInventory(Inventory* inv);
 
 	Equipment* CreateEquipment();
+	void DeleteEquipment(uint32_t id);
 };
 
 ItemStack ItemStackNew(uint16_t itemId, uint16_t itemCount);

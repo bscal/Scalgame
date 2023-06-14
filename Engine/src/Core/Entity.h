@@ -14,6 +14,8 @@
 #define ENT_MAX_COMPONENTS 64
 #define ENT_NOT_FOUND UINT32_MAX
 
+typedef uint32_t Entity;
+
 struct EntityMgr
 {
 	struct EntityStatus

@@ -8,25 +8,37 @@
 
 #include "Structures/StaticArray.h"
 #include "Structures/SHashMap.h"
+#include "Structures/SList.h"
 
 #include <MemoryPool/MemoryPool.h>
 
 struct Game;
 
-union EntityId
+struct EntitySkeleton
 {
-	struct
-	{
-		uint32_t Id : 28;
-		uint32_t Type : 4;
-	};
-	uint32_t Mask;
+	Vector2 Head;
+	Vector2 Body;
+	Vector2 LHand;
+	Vector2 RHand;
 };
+
+constexpr EntitySkeleton AsSkeleton(Vector2 head, Vector2 body, Vector2 lHand, Vector2 rHand)
+{
+	EntitySkeleton res = {};
+	res.Head = head;
+	res.Body = body;
+	res.LHand = lHand;
+	res.RHand = rHand;
+	return res;
+}
+
+constexpr global_var EntitySkeleton SKELETON_HUMAN = AsSkeleton({ 6.0f, 4.0f }, { 8.0f, 8.0f }, { 4.0f, 8.0f }, { 12.0f, 8.0f});
 
 enum class EntitySize : uint8_t
 {
 	Tiny,
 	Small,
+
 	Medium,
 	Large,
 	Huge,
@@ -77,11 +89,13 @@ enum CreatureTypes : uint16_t
 
 struct CreatureType
 {
-	SString Name;	// Monster internal name
-	SString Desc;	// Description
-	SString Lore;	// Learnable lore
+	SString Name;				// Monster internal name
+	SString DefaultDisplayName;	// Display name given to initilized creature, can be overriden
+	SString Desc;				// Description
+	SString Lore;				// Learnable lore
 
-	Sprite Sprite;	// Src Rect on sprite sheet		
+	Sprite Sprite;				// Src Rect on sprite sheet		
+	EntitySkeleton Skeleton;	// Body part points on creature
 
 	short MaxEnergy;
 	short MaxHealth;
@@ -96,7 +110,9 @@ struct WorldEntity
 {
 	Vector2i TilePos;
 	Color Color;
+	uint32_t StorageIdx;
 	TileDirection LookDir;
+	EntityTypes EntityType;
 };
 
 struct Creature
@@ -119,6 +135,8 @@ struct Creature
 
 	bool IsMale;
 	bool IsSleeping;
+
+	ItemStack EquipmentArray[6];
 };
 
 struct Character
@@ -128,23 +146,21 @@ struct Character
 	SString Title;
 };
 
-constexpr global_var EntityId PLAYER_ENTITY = { 0 };
+constexpr global_var uint32_t PLAYER_ENTITY = { 0 };
 
 struct Player : public WorldEntity
 {
 	Creature Creature;
 	Character Character;
-	EntityId Uid;
+	uint32_t Uid;
+
+	_FORCE_INLINE_ Vector2 AsPosition() const { return { TilePos.x * TILE_SIZE_F, TilePos.y * TILE_SIZE_F }; }
 };
 
 struct Monster : public WorldEntity
 {
 	Creature Creature;
-	EntityId Uid;
-};
-
-struct TileEntity : public WorldEntity
-{
+	uint32_t Uid;
 };
 
 struct EntityManager
@@ -154,10 +170,11 @@ struct EntityManager
 	Player Player;
 	
 	uint32_t NextUid = 1; // 0 Is always player
-	SHashMap<uint32_t, void*> Entities;
-	SHashMap<Vector2i, TileEntity, Vector2iHasher> TileEntities;
 
-	MemoryPool<Monster, MONSTER_BLOCK_SZ> Monsters;
+	SHashMap<uint32_t, void*> Entities;
+	SList<Monster*> Monsters;
+
+	MemoryPool<Monster, MONSTER_BLOCK_SZ> MonsterPool;
 
 	StaticArray<CreatureType, CreatureTypes::MaxSize> CreatureDB;
 };
@@ -168,10 +185,14 @@ EntityManager* GetEntityMgr();
 void UpdateEntities(Game* game);
 void DrawEntities(Game* game);
 
+void CreatePlayer(Player* player);
+
 Monster* SpawnMonster();
 void DeleteMonster(Monster* monster);
 
-void* GetEntity(EntityId ent);
-bool DoesEntityExist(EntityId ent);
+void* GetEntity(uint32_t ent);
+bool DoesEntityExist(uint32_t ent);
 
-TileEntity* SpawnTileEntity(Vector2i pos);
+CreatureType* GetCreatureType(Player* player);
+CreatureType* GetCreatureType(Monster* monster);
+CreatureType* GetCreatureType(Creature* creature);

@@ -16,7 +16,7 @@ struct Command
 
 struct CommandMgr
 {
-	SHashMap<SRawString, Command, SRawStringHasher> Commands;
+	SHashMap<SRawString, Command> Commands;
 	SList<SStringView> CommandNames;
 	SList<SStringView> Suggestions;
 	SList<SStringView> InputArgs;

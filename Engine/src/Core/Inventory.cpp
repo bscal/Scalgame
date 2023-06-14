@@ -401,11 +401,15 @@ Inventory* InventoryMgr::CreateInventoryLayout(uint32_t entity, Vector2i16 dimen
 	return inv;
 }
 
-void InventoryMgr::RemoveInventory(Inventory* inventory)
+void InventoryMgr::DeleteInventory(Inventory* inventory)
 {
-	inventory->Slots.Free();
-	inventory->Contents.Free();
-	inventory->InventoryId = UINT32_MAX;
+	SASSERT(inventory);
+	if (inventory)
+	{
+		inventory->Slots.Free();
+		inventory->Contents.Free();
+		inventory->InventoryId = UINT32_MAX;
+	}
 }
 
 Equipment* InventoryMgr::CreateEquipment()
@@ -414,6 +418,11 @@ Equipment* InventoryMgr::CreateEquipment()
 	Equipment* equipment = Equipments.InsertKey(&id);
 	equipment->EquipmentId = id;
 	return equipment;
+}
+
+void InventoryMgr::DeleteEquipment(uint32_t id)
+{
+	Equipments.Remove(&id);
 }
 
 ItemStack ItemStackNew(uint16_t itemId, uint16_t itemCount)
