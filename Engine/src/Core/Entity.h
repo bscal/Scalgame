@@ -2,227 +2,210 @@
 
 #include "Core.h"
 #include "Player.h"
-#include "ComponentTypes.h"
+#include "Inventory.h"
+#include "SUtil.h"
+#include "SString.h"
+#include "Sprite.h"
 
-#include "Structures/SArray.h"
-#include "Structures/ComponentArray.h"
-#include "Structures/SLinkedList.h"
+#include "Structures/StaticArray.h"
+#include "Structures/SHashMap.h"
+#include "Structures/SList.h"
 
-#include <typeinfo>
+#include <MemoryPool/MemoryPool.h>
 
-#define ENT_MAX_ENTITIES UINT16_MAX
-#define ENT_MAX_COMPONENTS 64
-#define ENT_NOT_FOUND UINT32_MAX
+struct GameApplication;
+struct Game;
 
-typedef uint32_t Entity;
+constexpr global_var uint32_t ENT_PLAYER = { 0 };
+constexpr global_var uint32_t ENT_NOT_FOUND = UINT32_MAX;
 
-struct EntityMgr
+struct EntitySkeleton
 {
-	struct EntityStatus
-	{
-		uint8_t Gen;
-		bool IsAlive;
-	};
+	Vector2 Head;
+	Vector2 Body;
+	Vector2 LHand;
+	Vector2 RHand;
+};
 
-	PlayerEntity Player;
-	SList<EntityStatus> Entities;
-	SLinkedList<uint32_t> FreeIds;
+constexpr EntitySkeleton AsSkeleton(Vector2 head, Vector2 body, Vector2 lHand, Vector2 rHand)
+{
+	EntitySkeleton res = {};
+	res.Head = head;
+	res.Body = body;
+	res.LHand = lHand;
+	res.RHand = rHand;
+	return res;
+}
 
-	uint32_t CreateEntity();
-	void RemoveEntity(uint32_t entity);
+constexpr global_var EntitySkeleton SKELETON_HUMAN = AsSkeleton({ 6.0f, 4.0f }, { 8.0f, 8.0f }, { 4.0f, 8.0f }, { 12.0f, 8.0f});
+
+enum class EntitySize : uint8_t
+{
+	Tiny,
+	Small,
+
+	Medium,
+	Large,
+	Huge,
+	Giant,
+
+	MaxSize
+};
+
+enum class EntityTypes : uint8_t
+{
+	Player = 0,
+	Npc,
+	Monster,
+	TileEntity,
+
+	MaxSize
+};
+
+enum class Pain : uint8_t
+{
+	None,
+	Scratch,	// Twisted ankle, minor wound
+	Hurt,		// Bleeding
+	Very,		// Major injury, Broken bone
+	Extreme,	
+
+	MaxSize
+};
+
+namespace Groups
+{
+enum
+{
+	Player = 0,
+	Wild,
+	Monsters,
+
+	MaxSize
+};
+}
+
+enum CreatureType : uint16_t
+{
+	Human = 0,
+
+	MaxSize
+};
+
+struct CreatureData
+{
+	SString Name;				// Monster internal name
+	SString DefaultDisplayName;	// Display name given to initilized creature, can be overriden
+	SString Desc;				// Description
+	SString Lore;				// Learnable lore
+
+	Sprite Sprite;				// Src Rect on sprite sheet		
+	EntitySkeleton Skeleton;	// Body part points on creature
+
+	short MaxEnergy;
+	short MaxHealth;
+	uint16_t YoungAge;
+	uint16_t OldAge;
+	EntitySize Size;	// Size of creature
+	uint8_t GroupId;	// Groups define Friendly/Neutral/Enemy relations
+	bool IsAggresive;	
+};
+
+struct WorldEntity
+{
+	Vector2i TilePos;
+	Color Color;
+	uint32_t StorageIdx;
+	TileDirection LookDir;
+	EntityTypes EntityType;
+};
+
+struct Creature
+{
+	SString DisplayName;	
+
+	uint32_t InventoryId;	
+	uint32_t EquipmentId;
+
+	uint16_t CreatureType;
+	uint16_t Age;
+
+	short Energy;
+	short Health;
+	short Stamina;
+	short Morale;
+	short Sanity;
+
+	Pain Pain;
+
+	bool IsMale;
+	bool IsSleeping;
+
+	Equipment Equipment;
+};
+
+struct Character
+{
+	SString FirstName;
+	SString LastName;
+	SString Title;
+};
+
+struct PlayerClient
+{
+	ItemStack CursorStack;
+	Vector2 ItemSlotOffset;
+	Vector2i16 ItemSlotOffsetSlot;
+	Vector2i16 CursorStackLastPos;
+	bool IsCursorStackFlipped;
+};
+
+struct Player : public WorldEntity
+{
+	PlayerClient PlayerClient;
+	Creature Creature;
+	Character Character;
+	uint32_t Uid;
+
+	_FORCE_INLINE_ Vector2 AsPosition() const { return { TilePos.x * TILE_SIZE_F, TilePos.y * TILE_SIZE_F }; }
+};
+
+struct Monster : public WorldEntity
+{
+	Creature Creature;
+	uint32_t Uid;
+};
+
+struct EntityManager
+{
+	constexpr static size_t MONSTER_BLOCK_SZ = AlignPowTwo64Ceil((sizeof(Monster) * 256));
+
+	Player Player;
 	
-	uint32_t FindGen(uint32_t entityId);
-	bool IsAlive(uint32_t entity) const;
+	uint32_t NextUid = 1; // 0 Is always player
+
+	SHashMap<uint32_t, void*> Entities;
+	SList<Monster*> Monsters;
+
+	MemoryPool<Monster, MONSTER_BLOCK_SZ> MonsterPool;
+
+	StaticArray<CreatureData, CreatureType::MaxSize> CreatureDB;
 };
 
-struct ComponentQuery
-{
-	uint32_t ComponentIds[4];
+void EntityManagerInitialize();
+EntityManager* GetEntityMgr();
 
-	inline bool operator==(const ComponentQuery& other) const
-	{
-		return (ComponentIds[0] == other.ComponentIds[0]
-			&& ComponentIds[1] == other.ComponentIds[1]
-			&& ComponentIds[2] == other.ComponentIds[2]
-			&& ComponentIds[3] == other.ComponentIds[3]);
-	}
+void UpdateEntities(Game* game);
+void DrawEntities(Game* game);
 
-	inline bool operator!=(const ComponentQuery& other) const
-	{
-		return (ComponentIds[0] != other.ComponentIds[0]
-			&& ComponentIds[1] != other.ComponentIds[1]
-			&& ComponentIds[2] != other.ComponentIds[2]
-			&& ComponentIds[3] != other.ComponentIds[3]);
-	}
-};
+void CreatePlayer(Player* player);
 
-struct ComponentMgr
-{
-	SList<ComponentArray> Components;
-	SList<TransformComponent> Transforms;
+Monster* SpawnMonster();
+void DeleteMonster(Monster* monster);
 
-	template<typename ComponentType>
-	inline void Register()
-	{
-		RegisterWithCallback<ComponentType>(nullptr, nullptr);
-	}
+void* GetEntity(uint32_t ent);
+bool DoesEntityExist(uint32_t ent);
 
-	template<typename ComponentType>
-	inline void RegisterWithCallback(OnAdd addCallback, OnRemove removeCallback)
-	{
-		uint32_t componentId = ComponentType::Id;
-		Components.EnsureSize(componentId + 1);
-		Components[componentId].Initialize(1, sizeof(ComponentType), addCallback, removeCallback);
-
-		#if SCAL_DEBUG
-		const std::type_info& typeInfo = typeid(ComponentType);
-		SLOG_INFO("Registered Component: %u, Name: %s", componentId, typeInfo.name());
-		#endif
-	}
-
-	inline SList<uint32_t> FindEntities(uint32_t* ids, size_t idsCount) const
-	{
-		PROFILE_BEGIN();
-		SASSERT(idsCount > 1)
-
-		SList<uint32_t> result = {};
-		result.Allocator = SAllocator::Temp;
-
-		const ComponentArray& firstArr = Components[ids[0]];
-
-		uint32_t count = firstArr.Indices.DenseCapacity;
-		result.Reserve(count);
-
-		for (uint32_t i = 0; i < count; ++i)
-		{
-			uint32_t entity = firstArr.Indices.Dense[i];
-			uint32_t entityId = GetId(entity);
-			bool containsEntity = true;
-			for (size_t nextComponentId = 1; nextComponentId < idsCount; ++nextComponentId)
-			{
-				const ComponentArray& arr = Components[ids[nextComponentId]];
-				containsEntity = entityId < arr.Indices.SparseCapacity
-					&& arr.Indices.Sparse[entityId] != SPARSE_EMPTY_ID;
-				if (!containsEntity) 
-					break;
-			}
-
-			if (containsEntity)
-				result.Push(&entity);
-		}
-		PROFILE_END();
-		return result;
-	}
-
-	template<typename ComponentType>
-	inline ComponentArray* GetArray()
-	{
-		return &Components[ComponentType::Id];
-	}
-
-	template<typename ComponentType>
-	inline ComponentType* GetComponent(Entity entity)
-	{
-		uint32_t componentId = ComponentType::Id;
-		SASSERT(componentId < Components.Count);
-		return Components[componentId].Get<ComponentType>(entity);
-	}
-
-	template<typename ComponentType>
-	inline ComponentType* AddComponent(Entity entity, const ComponentType& component)
-	{
-		uint32_t componentId = ComponentType::Id;
-		SASSERT(componentId < Components.Count);
-
-		ComponentArray& componentArray = Components[componentId];
-
-		ComponentType* result = componentArray.Add(entity, component);
-
-		#if SCAL_DEBUG
-		const std::type_info& typeInfo = typeid(ComponentType);
-		SLOG_INFO("Added Component(%u, %s) to Entity(%u,%u)", ComponentType::Id, typeInfo.name(), GetId(entity), GetGen(entity));
-		#endif
-
-		return result;
-	}
-
-	template<typename ComponentType>
-	inline void RemoveComponent(Entity entity)
-	{
-		uint32_t componentId = ComponentType::Id;
-		SASSERT(componentId < Components.Count);
-
-		ComponentArray& componentArray = Components[componentId];
-		SASSERT(componentArray);
-
-		componentArray.Remove(entity);
-
-		#if SCAL_DEBUG
-		const std::type_info& typeInfo = typeid(ComponentType);
-		SLOG_INFO("Removed Component(%u, %s) to Entity(%u,%u)", ComponentType::Id, typeInfo.name(), GetId(entity), GetGen(entity));
-		#endif
-	}
-
-	template<typename ComponentType>
-	inline bool HasComponent(Entity entity)
-	{
-		uint32_t componentId = ComponentType::Id;
-
-		const ComponentArray& componentArray = Components[componentId];
-		SASSERT(componentArray);
-
-		return componentArray.Contains(entity);
-	}
-
-	template<>
-	inline TransformComponent* GetComponent(uint32_t entity)
-	{
-		uint32_t entityId = GetId(entity);
-		SASSERT(entityId < Components.Count);
-		return &Transforms[entityId];
-	}
-
-	template<>
-	inline TransformComponent* AddComponent(uint32_t entity, const TransformComponent& component)
-	{
-
-		uint32_t entityId = GetId(entity);
-		Transforms.EnsureSize(entityId + 1);
-		SASSERT(entityId < Components.Count);
-		Transforms[entityId] = component;
-		return &Transforms[entityId];
-	}
-};
-
-void CreatePlayer(EntityMgr* entityMgr, ComponentMgr* componentMgr);
-void InitializeEntities(EntityMgr* entityMgr, ComponentMgr* componentMgr);
-
-inline bool TestEntityId()
-{
-	uint32_t ent1 = 0;
-	uint32_t ent2 = 0;
-
-	ent1 = SetId(ent1, 5);
-	ent1 = SetGen(ent1, 0);
-	SASSERT(ent1 == 5);
-	SASSERT(GetId(ent1) == 5);
-
-	ent2 = SetId(ent2, 105024);
-	ent2 = SetGen(ent2, 255);
-	SASSERT(ent2 > 105024);
-	SASSERT(GetId(ent2) == 105024);
-	SASSERT(GetGen(ent2) == 255);
-
-	ent2 = SetGen(ent2, GetGen(ent2) + 1);
-	SASSERT(ent2 == 105024);
-	SASSERT(GetId(ent2) == 105024);
-	SASSERT(GetGen(ent2) == 0);
-
-	return true;
-}
-
-inline bool TestComponents()
-{
-	return true;
-}
-
+CreatureData* GetCreatureType(Player* player);
+CreatureData* GetCreatureType(Monster* monster);
+CreatureData* GetCreatureType(Creature* creature);

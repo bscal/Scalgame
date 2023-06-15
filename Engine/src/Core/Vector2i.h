@@ -90,3 +90,14 @@ static inline Vector2i operator/=(Vector2i left, Vector2i right)
 {
     return left = left.Divide(right);
 }
+
+struct Vector2i16
+{
+    short x;
+    short y;
+};
+
+static inline bool operator==(Vector2i16 left, Vector2i16 right)
+{
+    return  (left.x == right.x && left.y == right.y);
+}

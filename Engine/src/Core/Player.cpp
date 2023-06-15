@@ -1,74 +1,58 @@
 #include "Player.h"
 
+#include "Core.h"
 #include "Game.h"
-#include "ComponentTypes.h"
+#include "Entity.h"
 
 #include <raylib/src/raymath.h>
 
-void UpdatePlayer(PlayerEntity* player, Game* game)
+void
+PlayerUpdate(Player* player, Game* game)
 {
-
-}
-
-TransformComponent* PlayerEntity::GetTransform()
-{
-	uint32_t entityId = GetId(EntityId);
-	return GetGame()->ComponentMgr.GetComponent<TransformComponent>(entityId);
-}
-
-void HandlePlayerInput(GameApplication* gameApp, PlayerEntity* player)
-{
-	SASSERT(gameApp);
 	SASSERT(player);
-	Game* game = gameApp->Game;
+	SASSERT(game);
 	PlayerClient* playerClient = &player->PlayerClient;
 
-	player->HasMoved = false;
+	// Get move input & direction
+	bool hasMoved = false;
 	TileDirection inputMoveDir;
 	if (IsKeyPressed(KEY_D))
 	{
-		player->HasMoved = true;
+		hasMoved = true;
 		inputMoveDir = TileDirection::East;
 	}
 	else if (IsKeyPressed(KEY_A))
 	{
-		player->HasMoved = true;
+		hasMoved = true;
 		inputMoveDir = TileDirection::West;
 	}
 	else if (IsKeyPressed(KEY_S))
 	{
-		player->HasMoved = true;
+		hasMoved = true;
 		inputMoveDir = TileDirection::South;
 	}
 	else if (IsKeyPressed(KEY_W))
 	{
-		player->HasMoved = true;
+		hasMoved = true;
 		inputMoveDir = TileDirection::North;
 	}
 
-	if (player->HasMoved)
+	// Handle movement
+	if (hasMoved)
 	{
-		TransformComponent* transform = player->GetTransform();
-		Vector2 moveDir = TileDirectionVectors[(uint8_t)inputMoveDir];
-		Vector2 moveAmount = Vector2Scale(moveDir, TILE_SIZE_F);
-		Vector2 movePoint = Vector2Add(transform->Position, moveAmount);
-
-		Vector2i tile = Vector2i::FromVec2(Vector2Scale(movePoint, INVERSE_TILE_SIZE));
-		if (CanMoveToTile(&GetGame()->Universe.World, tile))
+		Vector2i tileToMoveTo = player->TilePos + Vec2i_NEIGHTBORS[(uint8_t)inputMoveDir];
+		player->LookDir = inputMoveDir;
+		if (CanMoveToTile(&game->Universe.World, tileToMoveTo))
 		{
-			player->TilePos = tile;
-			transform->Position = movePoint;
-			GetGame()->CameraLerpTime = 0.0f;
+			player->TilePos = tileToMoveTo;
+			game->CameraLerpTime = 0.0f;
 		}
-		transform->LookDir = inputMoveDir;
 	}
 
 	if (IsKeyPressed(KEY_EIGHT))
 	{
-		PlayerEntity* player = GetClientPlayer();
 		if (game->IsInventoryOpen && !playerClient->CursorStack.IsEmpty())
 		{
-			CreatureEntity* playerCreature = game->ComponentMgr.GetComponent<CreatureEntity>(player->EntityId);
 			Inventory* playerInv = game->InventoryMgr.Inventories.Get(&playerCreature->InventoryId);
 			if (playerInv && playerInv->InsertStack(playerClient->CursorStackLastPos
 				, playerClient->ItemSlotOffsetSlot
@@ -103,16 +87,12 @@ void HandlePlayerInput(GameApplication* gameApp, PlayerEntity* player)
 
 	if (IsKeyPressed(KEY_ZERO))
 	{
-		static uint32_t curId = 1;
-
-		uint32_t gen = game->EntityMgr.FindGen(curId);
-		if (gen != ENT_NOT_FOUND)
-		{
-			uint32_t entity = SetGen(curId, gen);
-			game->EntityMgr.RemoveEntity(entity);
-
-			Attachable* a = game->ComponentMgr.GetComponent<Attachable>(entity);
-			SASSERT(!a);
-		}
 	}
+}
+
+void DrawPlayer(Player* player, Game* game)
+{
+	Texture2D* texture = &game->Resources.EntitySpriteSheet;
+	Sprite sprite = GetCreatureType(&player->Creature)->Sprite;
+	SDrawSprite(texture, sprite, player->TilePos, player->Color);
 }

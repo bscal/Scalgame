@@ -7,15 +7,14 @@
 #include "Structures/SHashMap.h"
 
 struct GameApplication;
+struct Game;
 struct CreatureEntity;
 struct ItemStack;
 
 constexpr global_var uint32_t INV_EMPTY = UINT32_MAX;
-
-#define INV_MAX_ITEMS 10
-#define INV_MAX_INV_TYPES 10
-#define EQUIPMENT_MAX_SLOTS 5
-
+constexpr global_var uint32_t ITEM_DB_MAX_ITEMS = 32;
+constexpr global_var uint16_t INV_MAX_SLOT_ID = 0xdfff;
+constexpr global_var uint16_t EQUIPMENT_MAX_SLOTS = 6;
 
 namespace Items
 {
@@ -27,8 +26,8 @@ inline uint16_t FIRE_STAFF;
 struct Item
 {
 	typedef ItemStack(*CreateDefaultStack)();
-	typedef void(*OnEquip)(CreatureEntity* creature, uint16_t slot, ItemStack* itemStack);
-	typedef void(*OnUnequip)(CreatureEntity* creature, uint16_t slot, ItemStack* itemStack);
+	typedef void(*OnEquip)(uint32_t uid, Creature* creature, ItemStack* stack, uint16_t slot);
+	typedef void(*OnUnequip)(uint32_t uid, Creature* creature, ItemStack* stack, uint16_t slot);
 	typedef void(*OnUpdate)(CreatureEntity* creature, ItemStack* itemStack);
 	typedef void(*OnUse)(CreatureEntity* creature, ItemStack* itemStack, int key);
 
@@ -65,18 +64,20 @@ enum class InventorySlotState : uint8_t
 	FILLED
 };
 
-struct Vector2i16
+union Equipment
 {
-	short x;
-	short y;
+	struct
+	{
+		ItemStack MainHand;
+		ItemStack OffHand;
+		ItemStack Head;
+		ItemStack Body;
+		ItemStack Legs;
+		ItemStack Feet;
+	};
+	ItemStack Stacks[EQUIPMENT_MAX_SLOTS];
 };
 
-static inline bool operator==(Vector2i16 left, Vector2i16 right)
-{
-	return  (left.x == right.x && left.y == right.y);
-}
-
-constexpr global_var uint16_t INVENTORY_SLOT_MAX = (0xffff >> 2);
 struct InventorySlot
 {
 	uint16_t InventoryStackIndex : 14;
@@ -89,7 +90,6 @@ struct InventoryStack
 	Vector2i16 Slot;
 	bool IsRotated;
 };
-
 
 struct Inventory
 {
@@ -110,45 +110,33 @@ struct Inventory
 	SList<Vector2i16> GetIntersectingSlots(Vector2i16 slot, Vector2i16 offset, const Item* item, bool rotated) const;
 };
 
-enum class EquipmentSlots : uint8_t
+struct ItemDB
 {
-	MAIN_HAND = 0,
-	OFF_HAND,
-
-	MAX_SLOTS
-};
-
-struct Equipment
-{
-	uint32_t EquipmentId;
-	StaticArray<ItemStack, (uint8_t)EquipmentSlots::MAX_SLOTS> Slots;
-
-	bool EquipItem(CreatureEntity* creature, ItemStack* stack, uint8_t slot);
-	bool UnequipItem(CreatureEntity* creature, uint8_t slot);
+	StaticArray<Item, ITEM_DB_MAX_ITEMS> Items;
+	uint16_t NextItemId;
 };
 
 struct InventoryMgr
 {
-	StaticArray<Item, INV_MAX_ITEMS> Items;
-
-	SHashMap<uint32_t, Inventory> Inventories;
-	SHashMap<uint32_t, Equipment> Equipments;
-	
+	SHashMap<uint32_t, Inventory> Inventories;	
 	uint32_t NextInventoryId;
-	uint32_t NextEquipmentId;
-	uint16_t NextItemId;
-
-	void Initialize();
-
-	uint16_t RegisterItem(Sprite sprite);
-	uint16_t RegisterItemFunc(Sprite sprite, void(*RegisterCallback)(Item* item));
-
-	Inventory* CreateInventory(uint32_t entity, Vector2i16 dimensions);
-	Inventory* CreateInventoryLayout(uint32_t entity, Vector2i16 dimensions, const InventorySlotState* layoutArray);
-	void DeleteInventory(Inventory* inv);
-
-	Equipment* CreateEquipment();
-	void DeleteEquipment(uint32_t id);
 };
 
+// Items
+void InitializeItems(Game* game);
+
+uint16_t RegisterItem(Sprite sprite);
+uint16_t RegisterItemFunc(Sprite sprite, void(*RegisterCallback)(Item* item));
+
 ItemStack ItemStackNew(uint16_t itemId, uint16_t itemCount);
+
+// Inventories
+Inventory* CreateInventory(Vector2i16 dimensions);
+Inventory* CreateInventoryLayout(Vector2i16 dimensions, const InventorySlotState* layout);
+
+void DeleteInventory(Inventory** inventory);
+
+Inventory* GetInventory(uint32_t inventoryId);
+
+bool EquipItem(uint32_t entityId, Creature* creature, Equipment* equipment, const ItemStack* stack, uint16_t slot);
+bool UnquipItem(uint32_t entityId, Creature* creature, Equipment* equipment, uint16_t slot);

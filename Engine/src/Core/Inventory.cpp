@@ -1,8 +1,6 @@
 #include "Inventory.h"
 
 #include "Game.h"
-#include "ComponentTypes.h"
-#include "Entity.h"
 
 uint32_t Inventory::FindItem(uint32_t item) const
 {
@@ -22,7 +20,7 @@ ItemStack* Inventory::GetStack(Vector2i16 slot)
 	uint32_t idx = slot.x + slot.y * Width;
 	SASSERT(idx < Slots.Count);
 	InventorySlot invSlot = Slots[idx];
-	SASSERT(invSlot.InventoryStackIndex < INVENTORY_SLOT_MAX);
+	SASSERT(invSlot.InventoryStackIndex < INV_MAX_SLOT_ID);
 
 	if (static_cast<InventorySlotState>(invSlot.State) == InventorySlotState::FILLED)
 		return &Contents[invSlot.InventoryStackIndex].Stack;
@@ -64,7 +62,7 @@ bool Inventory::InsertStack(Vector2i16 slot, Vector2i16 offset, ItemStack* stack
 	invStack->IsRotated = rotated;
 
 	uint32_t invStackIndex = Contents.LastIndex();
-	SASSERT(invStackIndex < INVENTORY_SLOT_MAX);
+	SASSERT(invStackIndex < INV_MAX_SLOT_ID);
 
 	for (short yPos = slot.y; yPos < yEnd; ++yPos)
 	{
@@ -132,7 +130,7 @@ bool Inventory::RemoveStack(Vector2i16 slot)
 	if (static_cast<InventorySlotState>(invSlot.State) != InventorySlotState::FILLED)
 		return false;
 
-	SASSERT(invSlot.InventoryStackIndex < INVENTORY_SLOT_MAX)
+	SASSERT(invSlot.InventoryStackIndex < INV_MAX_SLOT_ID)
 
 	InventoryStack& invStack = Contents[invSlot.InventoryStackIndex];
 	Item* item = invStack.Stack.GetItem();
@@ -250,11 +248,12 @@ void ItemStack::Remove()
 
 Item* ItemStack::GetItem() const
 {
-	SASSERT(ItemId < INV_MAX_ITEMS);
-	InventoryMgr* invMgr = &GetGame()->InventoryMgr;
-	SASSERT(invMgr);
-	Item& item = invMgr->Items[ItemId];
-	return &item;
+	SASSERT(ItemId < ITEM_DB_MAX_ITEMS);
+	if (ItemId < ITEM_DB_MAX_ITEMS)
+	{
+		return &GetGame()->ItemDB.Items[ItemId];
+	}
+	return nullptr;
 }
 
 bool ItemStack::Increment()
@@ -278,35 +277,45 @@ bool ItemStack::Deincrement()
 	return true;
 }
 
-bool Equipment::EquipItem(CreatureEntity* creature, ItemStack* stack, uint8_t slot)
+bool EquipItem(uint32_t entityId, Creature* creature, Equipment* equipment, const ItemStack* stack, uint16_t slot)
 {
 	SASSERT(creature);
+	SASSERT(equipment);
 	SASSERT(stack);
-	SASSERT(slot < (uint8_t)EquipmentSlots::MAX_SLOTS);
+	SASSERT(slot < EQUIPMENT_MAX_SLOTS);
 
-	Slots[slot] = *stack;
+	if (equipment && equipment->Stacks[slot].IsEmpty())
+	{
+		// TODO check equip conditions?
 
-	Item* item = stack->GetItem();
-	if (item->OnEquipCallback)
-		item->OnEquipCallback(creature, slot, stack);
+		equipment->Stacks[slot] = *stack;
 
-	return true;
+		Item* item = equipment->Stacks[slot].GetItem();
+		if (item->OnEquipCallback)
+			item->OnEquipCallback(entityId, creature, &equipment->Stacks[slot], slot);
+
+		return true;
+	}
+	return false;
 }
 
-bool Equipment::UnequipItem(CreatureEntity* creature, uint8_t slot)
+bool UnquipItem(uint32_t entityId, Creature* creature, Equipment* equipment, uint16_t slot)
 {
 	SASSERT(creature);
-	SASSERT(slot < (uint8_t)EquipmentSlots::MAX_SLOTS);
+	SASSERT(equipment);
+	SASSERT(slot < EQUIPMENT_MAX_SLOTS);
 
-	ItemStack* stack = &Slots[slot];
-	// TODO unequip callback
-	
-	bool hadStack = (stack);
-	SMemClear(stack, sizeof(ItemStack));	
-	return hadStack;
+	if (equipment && !equipment->Stacks[slot].IsEmpty())
+	{
+		ItemStack* stack = &equipment->Stacks[slot];
+		SMemClear(stack, sizeof(ItemStack));
+
+		return true;
+	}
+	return false;
 }
 
-void OnEquipTorch(CreatureEntity* creature, uint16_t slot, ItemStack* itemStack)
+void OnEquipTorch(uint32_t entityId, Creature* creature, ItemStack* stack, uint16_t slot)
 {
 	SLOG_INFO("EQUIPED");
 
@@ -336,7 +345,7 @@ void OnEquipTorch(CreatureEntity* creature, uint16_t slot, ItemStack* itemStack)
 	torchLight->Colors[1] = { 255, 200, 210, 200 };
 }
 
-void InventoryMgr::Initialize()
+void InitializeItems(Game* game)
 {
 	Items::AIR = RegisterItem({ 0 });
 	Items::TORCH = RegisterItemFunc({ 0, 32, 4, 4 }, [](Item* item)
@@ -354,46 +363,50 @@ void InventoryMgr::Initialize()
 		});
 }
 
-uint16_t InventoryMgr::RegisterItem(Sprite sprite)
+uint16_t RegisterItem(Sprite sprite)
 {
-	SASSERT(NextItemId < INV_MAX_ITEMS);
+	ItemDB* itemDB = &GetGame()->ItemDB;
 
-	if (NextItemId >= INV_MAX_ITEMS)
+	SASSERT(itemDB->NextItemId < ITEM_DB_MAX_ITEMS);
+
+	if (itemDB->NextItemId >= ITEM_DB_MAX_ITEMS)
 		return UINT16_MAX;
 
-	uint16_t id = NextItemId++;
-	Items[id] = {};
-	Items[id].Sprite = sprite;
+	uint16_t id = itemDB->NextItemId++;
+	itemDB->Items[id] = {};
+	itemDB->Items[id].Sprite = sprite;
 	return id;
 }
 
-uint16_t InventoryMgr::RegisterItemFunc(Sprite sprite, void(*RegisterCallback)(Item* item))
+uint16_t RegisterItemFunc(Sprite sprite, void(*RegisterCallback)(Item* item))
 {
 	uint16_t id = RegisterItem(sprite);
 
-	RegisterCallback(&Items[id]);
+	RegisterCallback(&GetGame()->ItemDB.Items[id]);
 
 	return id;
 }
 
-Inventory* InventoryMgr::CreateInventory(uint32_t entity, Vector2i16 dimensions)
+Inventory* CreateInventory(Vector2i16 dimensions)
 {
 	SASSERT(dimensions.x > 0);
 	SASSERT(dimensions.y > 0);
 
-	uint32_t id = NextInventoryId++;
-	Inventory* inv = Inventories.InsertKey(&id);
+	InventoryMgr* invMgr = &GetGame()->InventoryMgr;
+
+	uint32_t id = invMgr->NextInventoryId++;
+	Inventory* inv = invMgr->Inventories.InsertKey(&id);
 	inv->Width = dimensions.x;
 	inv->Height = dimensions.y;
 	inv->InventoryId = id;
-	inv->OwningEntity = entity;
+	inv->OwningEntity = ENT_NOT_FOUND;
 	inv->Slots.EnsureSize(inv->Width * inv->Height);
 	return inv;
 }
 
-Inventory* InventoryMgr::CreateInventoryLayout(uint32_t entity, Vector2i16 dimensions, const InventorySlotState* layoutArray)
+Inventory* CreateInventoryLayout(Vector2i16 dimensions, const InventorySlotState* layoutArray)
 {
-	Inventory* inv = CreateInventory(entity, dimensions);
+	Inventory* inv = CreateInventory(dimensions);
 	for (uint32_t i = 0; i < inv->Slots.Count; ++i)
 	{
 		inv->Slots[i].State = (uint16_t)layoutArray[i];
@@ -401,28 +414,20 @@ Inventory* InventoryMgr::CreateInventoryLayout(uint32_t entity, Vector2i16 dimen
 	return inv;
 }
 
-void InventoryMgr::DeleteInventory(Inventory* inventory)
+void DeleteInventory(Inventory** invPtr)
 {
-	SASSERT(inventory);
+	SASSERT(invPtr);
+	SASSERT(*invPtr);
+	Inventory* inventory = *invPtr;
 	if (inventory)
 	{
+		bool wasRemoved = GetGame()->InventoryMgr.Inventories.Remove(&inventory->InventoryId);
+		SASSERT(wasRemoved);
 		inventory->Slots.Free();
 		inventory->Contents.Free();
 		inventory->InventoryId = UINT32_MAX;
+		*invPtr = nullptr;
 	}
-}
-
-Equipment* InventoryMgr::CreateEquipment()
-{
-	uint32_t id = NextEquipmentId++;
-	Equipment* equipment = Equipments.InsertKey(&id);
-	equipment->EquipmentId = id;
-	return equipment;
-}
-
-void InventoryMgr::DeleteEquipment(uint32_t id)
-{
-	Equipments.Remove(&id);
 }
 
 ItemStack ItemStackNew(uint16_t itemId, uint16_t itemCount)
@@ -431,4 +436,12 @@ ItemStack ItemStackNew(uint16_t itemId, uint16_t itemCount)
 	res.ItemId = itemId;
 	res.ItemCount = itemCount;
 	return res;
+}
+
+Inventory* GetInventory(uint32_t inventoryId)
+{
+	InventoryMgr* invMgr = &GetGame()->InventoryMgr;
+	SASSERT(invMgr);
+
+	return invMgr->Inventories.Get(&inventoryId);
 }

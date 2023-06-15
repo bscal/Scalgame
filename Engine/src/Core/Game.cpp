@@ -446,12 +446,7 @@ Game* GetGame()
 
 PlayerEntity* GetClientPlayer()
 {
-	return &GetGame()->EntityMgr.Player;
-}
-
-EntityMgr* GetEntityMgr()
-{
-	return &GetGame()->EntityMgr;
+	return &GetEntityMgr()->Player;
 }
 
 SRandom* GetGlobalRandom()

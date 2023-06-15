@@ -1,87 +1,166 @@
 #include "Entity.h"
 
 #include "Game.h"
-#include "ComponentTypes.h"
+#include "Player.h"
+#include "Renderer.h"
 #include "Inventory.h"
 
 #include <raylib/src/raymath.h>
 
-void InitializeEntities(EntityMgr* entityMgr, ComponentMgr* componentMgr)
+global_var EntityManager EntityMgr;
+
+void EntityMgrInitialize(GameApplication* gameApp)
 {
-	componentMgr->Register<SpriteRenderer>();
-	componentMgr->Register<Attachable>();
-	componentMgr->Register<UpdatingLightSource>();
-	componentMgr->RegisterWithCallback<CreatureEntity>(CreatureEntity::OnAdd, CreatureEntity::OnRemove);
+	EntityMgr.Entities.Reserve(256);
+	EntityMgr.Monsters.Reserve(256);
 }
 
-void CreatePlayer(EntityMgr* entityMgr, ComponentMgr* componentMgr)
+EntityManager* GetEntityMgr()
 {
-	uint32_t entity = entityMgr->CreateEntity();
-	entityMgr->Player.EntityId = entity;
-
-	componentMgr->AddComponent<TransformComponent>(entity, {});
-
-	SpriteRenderer* renderable = componentMgr->AddComponent(entity, SpriteRenderer{});
-	renderable->Sprite = Sprites::PLAYER_SPRITE;
-	renderable->DstWidth = 16;
-	renderable->DstHeight = 16;
+	return &EntityMgr;
 }
 
-uint32_t EntityMgr::CreateEntity()
+internal void 
+MonsterUpdate(Monster* monster, Game* game)
 {
-	uint32_t result;
-	if (FreeIds.HasNext())
-		result = FreeIds.PopValue();
-	else
-		result = Entities.Count;
 
-	uint32_t id = GetId(result);
-	Entities.EnsureSize(id + 1);
-	Entities[id].Gen = GetGen(result);
-	Entities[id].IsAlive = true;
-
-	SLOG_INFO("Created %s", FMT_ENTITY(result));
-
-	return result;
 }
 
-void EntityMgr::RemoveEntity(uint32_t entity)
+void UpdateEntities(Game* game)
 {
-	uint32_t id = GetId(entity);
-	
-	if (!Entities[id].IsAlive)
-		return;
+	UpdatePlayer(&EntityMgr.Player, game);
 
-	SLOG_INFO("Removed %s", FMT_ENTITY(entity));
-
-	SList<ComponentArray>& components = GetGame()->ComponentMgr.Components;
-	for (uint32_t i = 0; i < components.Count; ++i)
+	for (uint32_t i = 0; i < EntityMgr.Monsters.Count; ++i)
 	{
-		ComponentArray& componentArray = components[i];
-		componentArray.Remove(entity);
+		MonsterUpdate(EntityMgr.Monsters[i], game);
+	}
+}
+
+void DrawEntities(Game* game)
+{
+	const Texture2D* spriteSheet = &game->Resources.EntitySpriteSheet;
+
+	for (uint32_t i = 0; i < EntityMgr.Monsters.Count; ++i)
+	{
+		Monster* monster = EntityMgr.Monsters[i];
+		Sprite sprite = GetCreatureType(&monster->Creature)->Sprite;
+		SDrawSprite(spriteSheet, sprite, monster->TilePos, monster->Color);
 	}
 
-	entity = IncGen(entity);
-	Entities[id].Gen = GetGen(entity);
-	Entities[id].IsAlive = false;
-	FreeIds.Push(&entity);
+	DrawPlayer(&EntityMgr.Player, game);
 }
 
-uint32_t EntityMgr::FindGen(uint32_t entityId)
+void CreatePlayer(Player* player)
 {
-	if (entityId >= Entities.Count)
-		return ENT_NOT_FOUND;
 
-	EntityStatus status = Entities[GetId(entityId)];
 	
-	if (!status.IsAlive)
-		return ENT_NOT_FOUND;
+	
 
-	return status.Gen;
 }
 
-bool EntityMgr::IsAlive(uint32_t entity) const
+internal void 
+NewEntity(uint32_t* uid, EntityTypes type, void* entityData)
 {
-	EntityStatus status = Entities[GetId(entity)];
-	return (status.IsAlive && status.Gen == GetGen(entity));
+	*uid = EntityMgr.NextUid++;
+	EntityMgr.Entities.Insert(uid, &entityData);
+}
+
+internal void
+InitializeCreature(Creature* creature, uint32_t uid, CreatureType type)
+{
+	SASSERT(creature);
+
+	creature->CreatureType = type;
+
+	CreatureData* creatureData = GetCreatureType(creature);
+
+	creature->Health = creatureData->MaxHealth;
+	creature->Energy = creatureData->MaxEnergy;
+	creature->Morale = 100;
+	creature->Stamina = 100;
+	creature->Sanity = 100;
+	creature->DisplayName = creatureData->DefaultDisplayName;
+	creature->InventoryId = GetGame()->InventoryMgr.CreateInventory(uid, { 8, 8 })->InventoryId;
+	creature->EquipmentId = GetGame()->InventoryMgr.CreateEquipment()->EquipmentId;
+}
+
+// TODO SpawnLocation, Type
+Monster* SpawnMonster()
+{
+	Monster* res = EntityMgr.MonsterPool.allocate();
+	SMemClear(res, sizeof(Monster));
+	
+	NewEntity(&res->Uid, EntityTypes::Monster, res);
+	InitializeCreature(&res->Creature, res->Uid, CreatureType::Human);
+
+	res->StorageIdx = EntityMgr.Monsters.Count;
+	EntityMgr.Monsters.Set(res->StorageIdx, &res);
+
+	SASSERT(res);
+	return res;
+}
+
+void DeleteMonster(Monster* monster)
+{
+	SASSERT(monster);
+	bool wasRemoved = EntityMgr.Entities.Remove(&monster->Uid);
+	if (wasRemoved)
+	{
+		Inventory* inv = GetGame()->InventoryMgr.Inventories.Get(&monster->Creature.InventoryId);
+		GetGame()->InventoryMgr.DeleteInventory(inv);
+		GetGame()->InventoryMgr.DeleteEquipment(monster->Creature.EquipmentId);
+
+		// Handle Removed
+		uint32_t removedIndex = monster->StorageIdx;
+		bool wasLast = removedIndex == EntityMgr.Monsters.LastIndex();
+		EntityMgr.Monsters.RemoveAtFast(removedIndex);
+
+		// Handle Last Spot moved
+		if (!wasLast)
+		{
+			uint32_t movedId = EntityMgr.Monsters[removedIndex]->Uid;
+			WorldEntity* movedEntity = (WorldEntity*)EntityMgr.Entities.Get(&movedId);
+			SASSERT(movedEntity->EntityType == EntityTypes::Monster);
+			movedEntity->StorageIdx = removedIndex;
+		}
+
+		EntityMgr.MonsterPool.destroy(monster);
+	}
+}
+
+void* GetEntity(uint32_t ent)
+{
+	if (ent == 0)
+		return &EntityMgr.Player;
+
+	return EntityMgr.Entities.Get(&ent);
+}
+
+bool DoesEntityExist(uint32_t ent)
+{
+	return EntityMgr.Entities.Contains(&ent);
+}
+
+CreatureData* GetCreatureType(Player* player)
+{
+	SASSERT(player);
+	uint16_t creatureId = player->Creature.CreatureType;
+	SASSERT(creatureId < EntityMgr.CreatureDB.Size());
+	return &EntityMgr.CreatureDB[creatureId];
+}
+
+CreatureData* GetCreatureType(Monster* monster)
+{
+	SASSERT(monster);
+	uint16_t creatureId = monster->Creature.CreatureType;
+	SASSERT(creatureId < EntityMgr.CreatureDB.Size());
+	return &EntityMgr.CreatureDB[creatureId];
+}
+
+CreatureData* GetCreatureType(Creature* creature)
+{
+	SASSERT(creature);
+	uint16_t creatureId = creature->CreatureType;
+	SASSERT(creatureId < EntityMgr.CreatureDB.Size());
+	return &EntityMgr.CreatureDB[creatureId];
 }

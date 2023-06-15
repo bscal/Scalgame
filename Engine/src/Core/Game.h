@@ -29,9 +29,8 @@ struct Game
     
     CommandMgr CommandMgr;
 
-    EntityMgr EntityMgr;
-    ComponentMgr ComponentMgr;
     InventoryMgr InventoryMgr;
+    ItemDB ItemDB;
 
     LightingState LightingState;
 
