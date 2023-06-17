@@ -53,60 +53,73 @@ struct BitArray
 
 struct BitList
 {
+
 	uint64_t* Memory;
+	uint32_t Capacity;
+	uint32_t SizeInBits;
 	SAllocator Allocator;
-	uint32_t Size;
 
-	inline void Initialize(SAllocator allocator, uint32_t size)
+	void Alloc(SAllocator allocator, uint32_t capacity)
 	{
-		Allocator = allocator;
-		Size = size;
+		Free();
 
-		size_t memSize = Size * sizeof(uint64_t);
+		Allocator = allocator;
+		Capacity = (capacity == 0) ? 1 : capacity;
+		SizeInBits = Capacity * 64;
+
+		size_t memSize = Capacity * sizeof(uint64_t);
 		Memory = (uint64_t*)SAlloc(Allocator, memSize, MemoryTag::Arrays);
 	}
 
-	inline void Free()
+	void Free()
 	{
 		if (Memory)
 		{
-			size_t memSize = Size * sizeof(uint64_t);
+			size_t memSize = Capacity * sizeof(uint64_t);
 			SFree(Allocator, Memory, memSize, MemoryTag::Arrays);
 			Memory = nullptr;
 		}
 	}
 
-	inline bool GetBit(uint64_t bit) const
+	_FORCE_INLINE_ int GetBit(uint64_t bit) const
 	{
-		SASSERT(bit < Size * 64);
+		if (bit >= SizeInBits)
+			return 0;
+
 		uint64_t index = bit / 64;
 		uint64_t indexBit = bit % 64;
-		return BitGet(Memory[index], indexBit);
+		return (int)BitGet(Memory[index], indexBit);
 	}
 
-	void SetBit(uint64_t bit)
+	_FORCE_INLINE_ void SetBit(uint64_t bit)
 	{
-		SASSERT(bit < Size * 64);
+		if (bit >= SizeInBits)
+			Alloc(Allocator, Capacity * 2);
+
+		SASSERT(bit < SizeInBits);
 		uint64_t index = bit / 64;
 		uint64_t indexBit = bit % 64;
-		BitSet(Memory[index], indexBit);
+		Memory[index] = BitSet(Memory[index], indexBit);
 	}
 
-
-	void ClearBit(uint64_t bit)
+	_FORCE_INLINE_ void ClearBit(uint64_t bit)
 	{
-		SASSERT(bit < Size * 64);
+		if (bit >= SizeInBits)
+			return;
+
 		uint64_t index = bit / 64;
 		uint64_t indexBit = bit % 64;
-		BitClear(Memory[index], indexBit);
+		Memory[index] = BitClear(Memory[index], indexBit);
 	}
 
-	inline void Toggle(uint64_t bit)
+	_FORCE_INLINE_ void Toggle(uint64_t bit)
 	{
-		SASSERT(bit < Size * 64);
+		if (bit >= SizeInBits)
+			Alloc(Allocator, Capacity * 2);
+
+		SASSERT(bit < SizeInBits);
 		uint64_t index = bit / 64;
 		uint64_t indexBit = bit % 64;
-		BitToggle(Memory[index], indexBit);
+		Memory[index] = BitToggle(Memory[index], indexBit);
 	}
-
 };

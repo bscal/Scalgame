@@ -8,9 +8,9 @@
 
 #include <functional>
 
-constexpr static uint32_t SHOOD_RESIZE = 2u;
-constexpr static float SHOOD_LOAD_FACTOR = 1.75f;
-constexpr static float SHOOD_LOAD_FACTOR_INVERSE = SHOOD_LOAD_FACTOR - 1.0f;
+constexpr static uint32_t HASHMAP_RESIZE = 2u;
+constexpr static float HASHMAP_LOAD_FACTOR = 1.75f;
+constexpr static float HASHMAP_LOAD_FACTOR = HASHMAP_LOAD_FACTOR - 1.0f;
 
 template<typename K>
 struct SHashMapLargeBucket
@@ -82,7 +82,7 @@ void SHashMapLarge<K, V, HashFunc, EqualsFunc>::Reserve(uint32_t capacity)
 	if (newCapacity <= Capacity)
 		return;
 
-	MaxSize = (uint32_t)((float)newCapacity * SHOOD_LOAD_FACTOR_INVERSE);
+	MaxSize = (uint32_t)((float)newCapacity * HASHMAP_LOAD_FACTOR);
 	uint32_t oldCapacity = Capacity;
 	Capacity = newCapacity;
 
@@ -165,7 +165,7 @@ void SHashMapLarge<K, V, HashFunc, EqualsFunc>::Insert(const K* key, const V* va
 
 	if (Size >= MaxSize)
 	{
-		Reserve(Capacity * SHOOD_RESIZE);
+		Reserve(Capacity * HASHMAP_RESIZE);
 	}
 
 	SASSERT(Buckets);
@@ -193,7 +193,7 @@ V* SHashMapLarge<K, V, HashFunc, EqualsFunc>::InsertKey(const K* key)
 
 	if (Size >= MaxSize)
 	{
-		Reserve(Capacity * SHOOD_RESIZE);
+		Reserve(Capacity * HASHMAP_RESIZE);
 	}
 
 	SASSERT(Buckets);

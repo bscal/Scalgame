@@ -7,9 +7,9 @@
 
 #include <functional>
 
-constexpr static uint32_t SHOOD_RESIZE = 2u;
-constexpr static float SHOOD_LOAD_FACTOR = 1.75f;
-constexpr static float SHOOD_LOAD_FACTOR_INVERSE = SHOOD_LOAD_FACTOR - 1.0f;
+constexpr global_var uint32_t HASHMAP_RESIZE = 2u;
+constexpr global_var uint32_t HASHMAP_NOT_FOUND = UINT32_MAX;
+constexpr global_var float HASHMAP_LOAD_FACTOR = 0.75f;
 
 template<typename K, typename V>
 struct SHashMapBucket
@@ -34,10 +34,9 @@ struct SHashMap
 	void Clear();
 	void Free();
 
-	void Insert(const K* key, const V* val);						// Inserts Key/Value
-	SHashMapBucket<K, V>* InsertAndGet(const K* key, const V* val);	// Inserts Key/Value returns bucket
-	V* InsertKey(const K* key);										// Inserts Key, returns ptr to value
-	V* Get(const K* key) const;										// Returns ptr to value
+	uint32_t Insert(const K* key, const V* val);	// Inserts Key/Value
+	V* InsertKey(const K* key);						// Inserts Key, returns ptr to value
+	V* Get(const K* key) const;						// Returns ptr to value
 	bool Contains(const K* key) const;
 	bool Remove(const K* key);
 
@@ -62,7 +61,7 @@ private:
 	_FORCE_INLINE_ uint32_t Hash(const K* key) const;
 	_ALWAYS_INLINE_ bool Equals(const K* k0, const K* k1) const { return *k0 == *k1; };
 
-	SHashMapBucket<K, V>* FindIndexAndInsert(SHashMapBucket<K, V>* swapBucket);
+	uint32_t FindIndexAndInsert(SHashMapBucket<K, V>* swapBucket);
 };
 
 template<typename K, typename V, typename Hasher>
@@ -70,43 +69,48 @@ void SHashMap<K, V, Hasher>::Reserve(uint32_t capacity)
 {
 	constexpr size_t stride = sizeof(SHashMapBucket<K, V>);
 
-	uint32_t newCapacity = (uint32_t)((float)capacity);
-	if (newCapacity == 0)
+	// Align capacity
+	uint32_t newCapacity;
+	if (capacity == 0)
 		newCapacity = 2;
-	else if (!IsPowerOf2_32(newCapacity))
-		newCapacity = AlignPowTwo32Ceil(newCapacity);
+	else if (!IsPowerOf2_32(capacity))
+		newCapacity = AlignPowTwo32Ceil(capacity);
+	else
+		newCapacity = capacity;
 
 	if (newCapacity <= Capacity)
 		return;
 
-	MaxSize = (uint32_t)((float)newCapacity * SHOOD_LOAD_FACTOR_INVERSE);
 	uint32_t oldCapacity = Capacity;
+	size_t oldSize = oldCapacity * stride;
+	size_t newSize = newCapacity * stride;
+
 	Capacity = newCapacity;
+	MaxSize = (uint32_t)((float)Capacity * HASHMAP_LOAD_FACTOR);
 
 	if (Size == 0)
 	{
-		size_t oldSize = oldCapacity * stride;
-		size_t newSize = newCapacity * stride;
 		Buckets = (SHashMapBucket<K, V>*)(SRealloc(Allocator, Buckets, oldSize, newSize, MemoryTag::Tables));
 	}
 	else
 	{
-		SHashMap<K, V, Hasher> tmpTable = {};
-		tmpTable.Allocator = Allocator;
+		SHashMap<K, V, Hasher> tmpTable;
 		tmpTable.Capacity = Capacity;
 		tmpTable.MaxSize = MaxSize;
-		tmpTable.Buckets = (SHashMapBucket<K, V>*)SAlloc(Allocator, newCapacity * stride, MemoryTag::Tables);
+		tmpTable.Size = 0;
+		tmpTable.Allocator = Allocator;
+		tmpTable.Buckets = (SHashMapBucket<K, V>*)SAlloc(tmpTable.Allocator, newSize, MemoryTag::Tables);
 
 		for (uint32_t i = 0; i < oldCapacity; ++i)
 		{
-			if (Buckets[i].Occupied == 1)
-			{
+			if (Buckets[i].Occupied)
 				tmpTable.Insert(&Buckets[i].Key, &Buckets[i].Value);
-			}
-			if (tmpTable.Size == Size) break;
+
+			if (tmpTable.Size == Size) 
+				break;
 		}
 
-		SFree(Allocator, Buckets, oldCapacity * stride, MemoryTag::Tables);
+		SFree(Allocator, Buckets, oldSize, MemoryTag::Tables);
 		SASSERT(Size == tmpTable.Size);
 		SLOG_DEBUG("SHashMap resized! From: %u, To: %u", oldCapacity, newCapacity);
 		*this = tmpTable;
@@ -137,15 +141,14 @@ SHashMap<K, V, Hasher>::Free()
 }
 
 template<typename K, typename V, typename Hasher>
-void 
-SHashMap<K, V, Hasher>::Insert(const K* key, const V* value)
+uint32_t SHashMap<K, V, Hasher>::Insert(const K* key, const V* value)
 {
 	SASSERT(key);
 	SASSERT(value);
 
 	if (Size >= MaxSize)
 	{
-		Reserve(Capacity * SHOOD_RESIZE);
+		Reserve(Capacity * HASHMAP_RESIZE);
 	}
 
 	SASSERT(Buckets);
@@ -155,35 +158,9 @@ SHashMap<K, V, Hasher>::Insert(const K* key, const V* value)
 	swapBucket.Value = *value;
 	swapBucket.Occupied = true;
 
-	SHashMapBucket<K, V>* result = FindIndexAndInsert(&swapBucket);
-	SASSERT(result);
-}
-
-template<typename K, typename V, typename Hasher>
-SHashMapBucket<K, V>* 
-SHashMap<K, V, Hasher>::InsertAndGet(const K* key, const V* value)
-{
-	SASSERT(key);
-	SASSERT(value);
-
-	if (!key)
-		return nullptr;
-
-	if (Size >= MaxSize)
-	{
-		Reserve(Capacity * SHOOD_RESIZE);
-	}
-
-	SASSERT(Buckets);
-
-	SHashMapBucket<K, V> swapBucket;
-	swapBucket.Key = *key;
-	swapBucket.Value = *value;
-	swapBucket.Occupied = true;
-
-	SHashMapBucket<K, V>* result = FindIndexAndInsert(&swapBucket);
-	SASSERT(result);
-	return result;
+	uint32_t index = FindIndexAndInsert(&swapBucket);
+	SASSERT(index != HASHMAP_NOT_FOUND);
+	return index;
 }
 
 template<typename K, typename V, typename Hasher>
@@ -196,7 +173,7 @@ V* SHashMap<K, V, Hasher>::InsertKey(const K* key)
 
 	if (Size >= MaxSize)
 	{
-		Reserve(Capacity * SHOOD_RESIZE);
+		Reserve(Capacity * HASHMAP_RESIZE);
 	}
 
 	SASSERT(Buckets);
@@ -205,9 +182,10 @@ V* SHashMap<K, V, Hasher>::InsertKey(const K* key)
 	swapBucket.Key = *key;
 	swapBucket.Occupied = true;
 
-	SHashMapBucket<K, V>* result = FindIndexAndInsert(&swapBucket);
-	SASSERT(result);
-	return &result->Value;
+	uint32_t index = FindIndexAndInsert(&swapBucket);
+	SASSERT(index != HASHMAP_NOT_FOUND);
+	SASSERT(index < Capacity);
+	return &Buckets[index].Value;
 }
 
 template<typename K, typename V, typename Hasher>
@@ -262,7 +240,7 @@ bool SHashMap<K, V, Hasher>::Remove(const K* key)
 	SASSERT(IsAllocated());
 	SASSERT(key);
 
-	uint64_t hash = Hash(key);
+	uint32_t hash = Hash(key);
 	uint32_t index = (uint32_t)hash;
 	while (true)
 	{
@@ -319,12 +297,12 @@ SHashMap<K, V, Hasher>::Hash(const K* key) const
 }
 
 template<typename K, typename V, typename Hasher>
-SHashMapBucket<K, V>* 
+uint32_t
 SHashMap<K, V, Hasher>::FindIndexAndInsert(SHashMapBucket<K, V>* swapBucket)
 {
 	SASSERT(swapBucket);
 
-	SHashMapBucket<K, V>* result = nullptr;
+	uint32_t insertIndex = HASHMAP_NOT_FOUND;
 
 	uint32_t index = Hash(&swapBucket->Key);
 	uint32_t probeLength = 0;
@@ -335,7 +313,7 @@ SHashMap<K, V, Hasher>::FindIndexAndInsert(SHashMapBucket<K, V>* swapBucket)
 		{
 			// Duplicate
 			if (Equals(&bucket->Key, &swapBucket->Key))
-				return bucket;
+				return index;
 
 			// Swaps swapBucket and larger element
 			if (probeLength > bucket->ProbeLength)
@@ -346,8 +324,8 @@ SHashMap<K, V, Hasher>::FindIndexAndInsert(SHashMapBucket<K, V>* swapBucket)
 				std::swap(*bucket, *swapBucket);
 
 				// We want to store pointer to our inserted element
-				if (!result)
-					result = bucket;
+				if (insertIndex == HASHMAP_NOT_FOUND)
+					insertIndex = index;
 			}
 
 			++probeLength;
@@ -363,14 +341,14 @@ SHashMap<K, V, Hasher>::FindIndexAndInsert(SHashMapBucket<K, V>* swapBucket)
 			++Size;
 
 			// We want to store pointer to our inserted element
-			if (!result)
-				result = bucket;
+			if (insertIndex == HASHMAP_NOT_FOUND)
+				insertIndex = index;
 			
 			// Exit's loop and properly returns result
 			break;
 		}
 	}
-	return result;
+	return insertIndex;
 }
 
 inline int TestSHoodTable()
@@ -383,7 +361,7 @@ inline int TestSHoodTable()
 	table.Insert(&k0, &v1);
 
 	SASSERT(table.Size == 1);
-	SASSERT(table.MaxSize == uint32_t((float)table.Capacity * SHOOD_LOAD_FACTOR_INVERSE));
+	SASSERT(table.MaxSize == uint32_t((float)table.Capacity * HASHMAP_LOAD_FACTOR));
 	SASSERT(table.Capacity == 2);
 
 	int* get0 = table.Get(&k0);
@@ -402,7 +380,7 @@ inline int TestSHoodTable()
 	}
 
 	SASSERT(table.Size == 17);
-	SASSERT(table.MaxSize == uint32_t((float)table.Capacity * SHOOD_LOAD_FACTOR_INVERSE));
+	SASSERT(table.MaxSize == uint32_t((float)table.Capacity * HASHMAP_LOAD_FACTOR));
 	SASSERT(table.Capacity == 32);
 
 	int* get1 = table.Get(&k0);
