@@ -2,12 +2,13 @@
 
 #include "Core.h"
 #include "Tile.h"
-#include "ComponentTypes.h"
+#include "Sprite.h"
 
 #include "Structures/StaticArray.h"
 
 struct Game;
 struct Resources;
+struct WorldEntity;
 
 struct BlurShader
 {
@@ -103,10 +104,9 @@ SDrawTextureF(const Texture2D& texture, const Rectangle& source,
 	const Rectangle& dest, const Vector4& tint);
 
 void
-SDrawSprite(const Texture2D* texture, const TransformComponent* transform, const SpriteRenderer* renderable, bool flip);
+SDrawSprite(Texture2D* texture, Rectangle source, Rectangle dest, Color color, bool flipX);
 
-void
-SDrawSprite(const Texture2D* texture, Sprite sprite, Vector2i tile, Color color);
+void SDrawSprite(Texture2D* texture, WorldEntity* entity, Vector2 pos, Sprite sprite);
 
 void 
 SDrawRectangleProF(Rectangle rec, Vector2 origin, float rotation, Vector4 color);

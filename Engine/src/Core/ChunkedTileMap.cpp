@@ -66,16 +66,13 @@ void Update(ChunkedTileMap* tilemap, Game* game)
 
 	PROFILE_BEGIN();
 
-	const PlayerEntity* player = GetClientPlayer();
+	const Player* player = GetClientPlayer();
 
 	Vector2i playerTilePos = player->TilePos;
 	Vector2i playerChunkPos = TileToChunkCoord(playerTilePos);
 
 	// View distance checks + chunk loading
-	if (player->HasMoved)
-	{
-		CheckChunksInLOS(tilemap, playerChunkPos);
-	}
+	CheckChunksInLOS(tilemap, playerChunkPos);
 
 	constexpr float viewDistanceSqr = ((float)VIEW_DISTANCE + 1.0f) * ((float)VIEW_DISTANCE + 1.0f);
 	for (uint32_t i = 0; i < tilemap->Chunks.Capacity; ++i)

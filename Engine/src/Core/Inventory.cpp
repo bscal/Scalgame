@@ -277,37 +277,37 @@ bool ItemStack::Deincrement()
 	return true;
 }
 
-bool EquipItem(uint32_t entityId, Creature* creature, Equipment* equipment, const ItemStack* stack, uint16_t slot)
+bool EquipItem(WorldEntity* entity, Creature* creature, const ItemStack* stack, uint16_t slot)
 {
+	SASSERT(entity);
 	SASSERT(creature);
-	SASSERT(equipment);
 	SASSERT(stack);
 	SASSERT(slot < EQUIPMENT_MAX_SLOTS);
 
-	if (equipment && equipment->Stacks[slot].IsEmpty())
+	if (creature && creature->Equipment.Stacks[slot].IsEmpty())
 	{
 		// TODO check equip conditions?
 
-		equipment->Stacks[slot] = *stack;
+		creature->Equipment.Stacks[slot] = *stack;
 
-		Item* item = equipment->Stacks[slot].GetItem();
+		Item* item = creature->Equipment.Stacks[slot].GetItem();
 		if (item->OnEquipCallback)
-			item->OnEquipCallback(entityId, creature, &equipment->Stacks[slot], slot);
+			item->OnEquipCallback(entity, &creature->Equipment.Stacks[slot], slot);
 
 		return true;
 	}
 	return false;
 }
 
-bool UnquipItem(uint32_t entityId, Creature* creature, Equipment* equipment, uint16_t slot)
+bool UnquipItem(WorldEntity* entity, Creature* creature, uint16_t slot)
 {
+	SASSERT(entity);
 	SASSERT(creature);
-	SASSERT(equipment);
 	SASSERT(slot < EQUIPMENT_MAX_SLOTS);
 
-	if (equipment && !equipment->Stacks[slot].IsEmpty())
+	if (creature && !creature->Equipment.Stacks[slot].IsEmpty())
 	{
-		ItemStack* stack = &equipment->Stacks[slot];
+		ItemStack* stack = &creature->Equipment.Stacks[slot];
 		SMemClear(stack, sizeof(ItemStack));
 
 		return true;
@@ -315,34 +315,21 @@ bool UnquipItem(uint32_t entityId, Creature* creature, Equipment* equipment, uin
 	return false;
 }
 
-void OnEquipTorch(uint32_t entityId, Creature* creature, ItemStack* stack, uint16_t slot)
+void OnEquipTorch(WorldEntity* entity, ItemStack* stack, uint16_t slot)
 {
-	SLOG_INFO("EQUIPED");
+	SLOG_INFO("EQUIPED, %u", entity->TilePos);
 
-	uint32_t torch = GetGame()->EntityMgr.CreateEntity();
-	TransformComponent* transform = GetGame()->ComponentMgr.GetComponent<TransformComponent>(creature->OwningEntity);
-	GetGame()->ComponentMgr.AddComponent<TransformComponent>(torch, *transform);
-
-	SpriteRenderer* torchRenderable = GetGame()->ComponentMgr.AddComponent(torch, SpriteRenderer{});
-	torchRenderable->Sprite.x = 0;
-	torchRenderable->Sprite.y = 32;
-	torchRenderable->Sprite.w = 4;
-	torchRenderable->Sprite.h = 4;
-	torchRenderable->DstWidth = 4;
-	torchRenderable->DstHeight = 4;
-
-	Attachable* torchAttachable = GetGame()->ComponentMgr.AddComponent(torch, Attachable{});
-	torchAttachable->ParentEntity = creature->OwningEntity;
-	torchAttachable->Target = { 8.0f, 8.0f };
-	torchAttachable->Local.Position.x = 4.0f;
-	torchAttachable->Local.Position.y = -4.0f;
-	torchAttachable->Width = 4;
-
-	UpdatingLightSource* torchLight = GetGame()->ComponentMgr.AddComponent(torch, UpdatingLightSource{});
-	torchLight->MinRadius = 6;
-	torchLight->MaxRadius = 7;
-	torchLight->Colors[0] = { 250, 190, 200, 200 };
-	torchLight->Colors[1] = { 255, 200, 210, 200 };
+	UpdatingLight light = {};
+	light.Pos = entity->AsPosition();
+	light.MinIntensity = 8.0f;
+	light.MaxIntensity = 9.0f;
+	light.Colors[0] = { 0xab, 0x16, 0x0a, 255 };
+	light.Colors[1] = { 0x89, 0x12, 0x08, 255 };
+	light.Colors[2] = { 0xd6, 0x1b, 0x0c, 255 };
+	light.Colors[3] = { 0xbf, 0x05, 0x00, 255 };
+	light.Color = light.Colors[0];
+	light.Radius = light.MaxIntensity;
+	LightsAddUpdating(light);
 }
 
 void InitializeItems(Game* game)
@@ -414,19 +401,17 @@ Inventory* CreateInventoryLayout(Vector2i16 dimensions, const InventorySlotState
 	return inv;
 }
 
-void DeleteInventory(Inventory** invPtr)
+void DeleteInventory(uint32_t inventoryId)
 {
-	SASSERT(invPtr);
-	SASSERT(*invPtr);
-	Inventory* inventory = *invPtr;
-	if (inventory)
+	SHashMap<uint32_t, Inventory>* inventoryMap = &GetGame()->InventoryMgr.Inventories;
+	Inventory* inv = inventoryMap->Get(&inventoryId);
+	if (inv)
 	{
-		bool wasRemoved = GetGame()->InventoryMgr.Inventories.Remove(&inventory->InventoryId);
+		inv->Slots.Free();
+		inv->Contents.Free();
+		inv->InventoryId = UINT32_MAX;
+		bool wasRemoved = inventoryMap->Remove(&inventoryId);
 		SASSERT(wasRemoved);
-		inventory->Slots.Free();
-		inventory->Contents.Free();
-		inventory->InventoryId = UINT32_MAX;
-		*invPtr = nullptr;
 	}
 }
 

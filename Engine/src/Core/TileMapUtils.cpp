@@ -121,8 +121,7 @@ IsInCone(SList<Vector2i>* tilesInLos, Vector2 line0, Vector2 line1)
 
 void GetTilesInLOS(SHashSet<Vector2i>* tiles, Vector2i pos, float distance, float fov)
 {
-	PlayerEntity* player = GetClientPlayer();
-	float playerAngleRadians = AngleFromTileDir(player->GetTransform()->LookDir);
+	float playerAngleRadians = AngleFromTileDir(GetClientPlayer()->LookDir);
 	float coneFov = (fov * DEG2RAD) / 2.0f;
 	float x = (float)pos.x + HALF_TILE_SIZE;
 	float y = (float)pos.y + HALF_TILE_SIZE;

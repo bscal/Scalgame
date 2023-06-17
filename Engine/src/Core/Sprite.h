@@ -8,6 +8,8 @@ struct Game;
 
 typedef int AnimationId;
 
+#define SPRITE_EMTPY { UINT16_MAX, UINT16_MAX, 0, 0 }
+
 union Sprite
 {
     uint16_t Region[4];

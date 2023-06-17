@@ -7,7 +7,7 @@
 #include <raylib/src/raymath.h>
 
 void
-PlayerUpdate(Player* player, Game* game)
+UpdatePlayer(Player* player, Game* game)
 {
 	SASSERT(player);
 	SASSERT(game);
@@ -53,7 +53,7 @@ PlayerUpdate(Player* player, Game* game)
 	{
 		if (game->IsInventoryOpen && !playerClient->CursorStack.IsEmpty())
 		{
-			Inventory* playerInv = game->InventoryMgr.Inventories.Get(&playerCreature->InventoryId);
+			Inventory* playerInv = GetInventory(player->Creature.InventoryId);
 			if (playerInv && playerInv->InsertStack(playerClient->CursorStackLastPos
 				, playerClient->ItemSlotOffsetSlot
 				, &playerClient->CursorStack
@@ -70,11 +70,8 @@ PlayerUpdate(Player* player, Game* game)
 
 	if (IsKeyPressed(KEY_NINE))
 	{
-		CreatureEntity* creature = game->ComponentMgr.AddComponent(GetClientPlayer()->EntityId, CreatureEntity {});
-		Inventory* playerInv = game->InventoryMgr.Inventories.Get(&creature->InventoryId);
+		Inventory* playerInv = GetInventory(player->Creature.InventoryId);
 		SASSERT(playerInv);
-		Equipment* playerEquipment = game->InventoryMgr.Equipments.Get(&creature->InventoryId);
-		SASSERT(playerEquipment);
 
 		ItemStack itemStack = ItemStackNew(Items::TORCH, 1);
 		playerInv->InsertStack({ 2, 2 }, { 0, 0 }, &itemStack, false);
@@ -82,7 +79,7 @@ PlayerUpdate(Player* player, Game* game)
 		playerInv->InsertStack({ 0, 2 }, { 0, 0 }, &itemStack2, false);
 
 		ItemStack stack = ItemStackNew(Items::TORCH, 1);
-		playerEquipment->EquipItem(creature, &stack, 0);
+		EquipItem(player, &player->Creature, &stack, 0);
 	}
 
 	if (IsKeyPressed(KEY_ZERO))
@@ -93,6 +90,21 @@ PlayerUpdate(Player* player, Game* game)
 void DrawPlayer(Player* player, Game* game)
 {
 	Texture2D* texture = &game->Resources.EntitySpriteSheet;
-	Sprite sprite = GetCreatureType(&player->Creature)->Sprite;
-	SDrawSprite(texture, sprite, player->TilePos, player->Color);
+	CreatureData* creature = GetCreatureType(player);
+	Vector2 worldPos = player->AsPosition();
+	SDrawSprite(texture, player, worldPos, creature->Sprite);
+
+	if (!player->Creature.Equipment.MainHand.IsEmpty())
+	{
+		Sprite sprite = player->Creature.Equipment.MainHand.GetItem()->Sprite;
+		Vector2 pos = Vector2Add(worldPos, player->Creature.Skeleton.RHand);
+		SDrawSprite(texture, player, pos, sprite);
+	}
+
+	if (!player->Creature.Equipment.OffHand.IsEmpty())
+	{
+		Sprite sprite = player->Creature.Equipment.OffHand.GetItem()->Sprite;
+		Vector2 pos = Vector2Add(worldPos, player->Creature.Skeleton.LHand);
+		SDrawSprite(texture, player, pos, sprite);
+	}
 }

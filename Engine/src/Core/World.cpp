@@ -15,7 +15,7 @@ void WorldInitialize(World* world, GameApplication* gameApp)
 
 void WorldLoad(World* world, Game* game)
 {
-	CreatePlayer(&game->EntityMgr, &game->ComponentMgr);
+	CreatePlayer(GetClientPlayer());
 
 	// FIXME: find better location for this
 	MapGenInitialize(&game->MapGen, 0);

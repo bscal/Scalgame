@@ -9,10 +9,12 @@
 
 global_var EntityManager EntityMgr;
 
-void EntityMgrInitialize(GameApplication* gameApp)
+void EntityMgrInitialize()
 {
 	EntityMgr.Entities.Reserve(256);
 	EntityMgr.Monsters.Reserve(256);
+
+	EntityMgr.CreatureDB[CreatureType::Human].Sprite = Sprites::PLAYER_SPRITE;
 }
 
 EntityManager* GetEntityMgr()
@@ -38,35 +40,34 @@ void UpdateEntities(Game* game)
 
 void DrawEntities(Game* game)
 {
-	const Texture2D* spriteSheet = &game->Resources.EntitySpriteSheet;
+	Texture2D* spriteSheet = &game->Resources.EntitySpriteSheet;
 
 	for (uint32_t i = 0; i < EntityMgr.Monsters.Count; ++i)
 	{
 		Monster* monster = EntityMgr.Monsters[i];
 		Sprite sprite = GetCreatureType(&monster->Creature)->Sprite;
-		SDrawSprite(spriteSheet, sprite, monster->TilePos, monster->Color);
+		Vector2 worldPos = monster->AsPosition();
+		SDrawSprite(spriteSheet, monster, worldPos, sprite);
 	}
 
 	DrawPlayer(&EntityMgr.Player, game);
 }
 
-void CreatePlayer(Player* player)
+internal void
+NewEntity(uint32_t* uid, WorldEntity* entity, EntityTypes type)
 {
+	entity->Color = WHITE;
+	entity->EntityType = type;
 
-	
-	
-
-}
-
-internal void 
-NewEntity(uint32_t* uid, EntityTypes type, void* entityData)
-{
-	*uid = EntityMgr.NextUid++;
-	EntityMgr.Entities.Insert(uid, &entityData);
+	if (type != EntityTypes::Player)
+	{
+		*uid = EntityMgr.NextUid++;
+		EntityMgr.Entities.Insert(uid, &entity);
+	}
 }
 
 internal void
-InitializeCreature(Creature* creature, uint32_t uid, CreatureType type)
+InitializeCreature(Creature* creature, CreatureType type)
 {
 	SASSERT(creature);
 
@@ -80,35 +81,55 @@ InitializeCreature(Creature* creature, uint32_t uid, CreatureType type)
 	creature->Stamina = 100;
 	creature->Sanity = 100;
 	creature->DisplayName = creatureData->DefaultDisplayName;
-	creature->InventoryId = GetGame()->InventoryMgr.CreateInventory(uid, { 8, 8 })->InventoryId;
-	creature->EquipmentId = GetGame()->InventoryMgr.CreateEquipment()->EquipmentId;
+	//creature->InventoryId = CreateInventory({ 8, 8 })->InventoryId;
+}
+
+void CreatePlayer(Player* player)
+{
+	NewEntity(&player->Uid, player, EntityTypes::Player);
+	InitializeCreature(&player->Creature, CreatureType::Human);
+
+	uint8_t layout[4 * 4] =
+	{
+		2, 0, 0, 2,
+		2, 0, 0, 2,
+		0, 0, 0, 0,
+		0, 0, 0, 0,
+	};
+	Inventory* inv = CreateInventoryLayout({ 4, 4 }, (InventorySlotState*)layout);
+	player->Creature.InventoryId = inv->InventoryId;
+
+	ItemStack stack = ItemStackNew(Items::FIRE_STAFF, 1);
+	inv->InsertStack({ 2, 2 }, {}, &stack, false);
 }
 
 // TODO SpawnLocation, Type
 Monster* SpawnMonster()
 {
+	PROFILE_BEGIN();
 	Monster* res = EntityMgr.MonsterPool.allocate();
 	SMemClear(res, sizeof(Monster));
 	
-	NewEntity(&res->Uid, EntityTypes::Monster, res);
-	InitializeCreature(&res->Creature, res->Uid, CreatureType::Human);
+	NewEntity(&res->Uid, res, EntityTypes::Monster);
+
+	InitializeCreature(&res->Creature, CreatureType::Human);
 
 	res->StorageIdx = EntityMgr.Monsters.Count;
 	EntityMgr.Monsters.Set(res->StorageIdx, &res);
 
 	SASSERT(res);
+	PROFILE_END();
 	return res;
 }
 
 void DeleteMonster(Monster* monster)
 {
+	PROFILE_BEGIN();
 	SASSERT(monster);
 	bool wasRemoved = EntityMgr.Entities.Remove(&monster->Uid);
 	if (wasRemoved)
 	{
-		Inventory* inv = GetGame()->InventoryMgr.Inventories.Get(&monster->Creature.InventoryId);
-		GetGame()->InventoryMgr.DeleteInventory(inv);
-		GetGame()->InventoryMgr.DeleteEquipment(monster->Creature.EquipmentId);
+		DeleteInventory(monster->Creature.InventoryId);
 
 		// Handle Removed
 		uint32_t removedIndex = monster->StorageIdx;
@@ -126,6 +147,7 @@ void DeleteMonster(Monster* monster)
 
 		EntityMgr.MonsterPool.destroy(monster);
 	}
+	PROFILE_END();
 }
 
 void* GetEntity(uint32_t ent)

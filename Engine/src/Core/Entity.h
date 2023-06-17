@@ -18,13 +18,21 @@ struct Game;
 
 constexpr global_var uint32_t ENT_PLAYER = { 0 };
 constexpr global_var uint32_t ENT_NOT_FOUND = UINT32_MAX;
+constexpr global_var int SKELETON_MAX_PARTS = 4;
 
 struct EntitySkeleton
 {
-	Vector2 Head;
-	Vector2 Body;
-	Vector2 LHand;
-	Vector2 RHand;
+	union
+	{
+		struct
+		{
+			Vector2 Head;
+			Vector2 Body;
+			Vector2 LHand;
+			Vector2 RHand;
+		};
+		Vector2 Positions[SKELETON_MAX_PARTS];
+	};
 };
 
 constexpr EntitySkeleton AsSkeleton(Vector2 head, Vector2 body, Vector2 lHand, Vector2 rHand)
@@ -118,14 +126,17 @@ struct WorldEntity
 	uint32_t StorageIdx;
 	TileDirection LookDir;
 	EntityTypes EntityType;
+
+	_ALWAYS_INLINE_ Vector2 AsPosition() const { return { TilePos.x * TILE_SIZE_F, TilePos.y * TILE_SIZE_F }; }
 };
 
 struct Creature
 {
 	SString DisplayName;	
 
+	EntitySkeleton Skeleton;	// Creatures current parts.
+
 	uint32_t InventoryId;	
-	uint32_t EquipmentId;
 
 	uint16_t CreatureType;
 	uint16_t Age;
@@ -166,8 +177,6 @@ struct Player : public WorldEntity
 	Creature Creature;
 	Character Character;
 	uint32_t Uid;
-
-	_FORCE_INLINE_ Vector2 AsPosition() const { return { TilePos.x * TILE_SIZE_F, TilePos.y * TILE_SIZE_F }; }
 };
 
 struct Monster : public WorldEntity
@@ -184,7 +193,7 @@ struct EntityManager
 	
 	uint32_t NextUid = 1; // 0 Is always player
 
-	SHashMap<uint32_t, void*> Entities;
+	SHashMap<uint32_t, WorldEntity*> Entities;
 	SList<Monster*> Monsters;
 
 	MemoryPool<Monster, MONSTER_BLOCK_SZ> MonsterPool;
@@ -192,7 +201,7 @@ struct EntityManager
 	StaticArray<CreatureData, CreatureType::MaxSize> CreatureDB;
 };
 
-void EntityManagerInitialize();
+void EntityMgrInitialize();
 EntityManager* GetEntityMgr();
 
 void UpdateEntities(Game* game);

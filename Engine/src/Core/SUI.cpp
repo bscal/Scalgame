@@ -69,15 +69,8 @@ void UpdateUI(UIState* state, GameApplication* gameApp, Game* game)
 
 	if (game->IsInventoryOpen)
 	{
-		CreatureEntity* creature = game->ComponentMgr.GetComponent<CreatureEntity>(GetClientPlayer()->EntityId);
-		if (creature)
-		{
-			Inventory* inv = game->InventoryMgr.Inventories.Get(&creature->InventoryId);
-			if (inv)
-			{
-				DrawInventory(&state->Ctx, inv);
-			}
-		}
+		Inventory* inv = GetInventory(GetClientPlayer()->Creature.InventoryId);
+		DrawInventory(&state->Ctx, inv);
 	}
 
 	if (state->IsConsoleOpen)
@@ -220,7 +213,7 @@ internal void
 DrawDebugPanel(UIState* state)
 {
 	struct nk_context* ctx = &state->Ctx;
-	PlayerEntity* p = GetClientPlayer();
+	Player* p = GetClientPlayer();
 
 	ctx->style.window.fixed_background.data.color = BG_COLOR;
 
@@ -253,12 +246,10 @@ DrawDebugPanel(UIState* state)
 			, GetGameApp()->NumOfLightsUpdated, GetNumOfLights());
 		nk_label(ctx, lightStr, NK_TEXT_LEFT);
 
-		const char* xy = TextFormat("Pos: %s", FMT_VEC2(p->GetTransform()->Position));
+		const char* xy = TextFormat("Pos: %s", FMT_VEC2(p->AsPosition()));
 		nk_label(ctx, xy, NK_TEXT_LEFT);
 
-		Vector2i v = Vector2i::FromVec2(p->GetTransform()->Position);
-		v = v.Divide({ TILE_SIZE, TILE_SIZE });
-		const char* tileXY = TextFormat("TilePos: %s", FMT_VEC2I(v));
+		const char* tileXY = TextFormat("TilePos: %s", FMT_VEC2I(p->TilePos));
 		nk_label(ctx, tileXY, NK_TEXT_LEFT);
 
 		nk_layout_row_dynamic(ctx, 16, 2);

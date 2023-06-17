@@ -5,6 +5,7 @@
 
 #include "Structures/StaticArray.h"
 #include "Structures/SList.h"
+#include "Structures/IndexArray.h"
 
 struct GameApplication;
 struct Game;
@@ -82,6 +83,8 @@ struct LightingState
     SList<StaticLight> StaticLights;
     SList<StaticLightType> StaticLightTypes;
 
+    IndexArray<UpdatingLight> Lights;
+
     Vector2 PlayerLookVector; // TODO maybe move this
     uint32_t NumOfLightsUpdatedThisFrame;
 
@@ -101,6 +104,6 @@ uint32_t GetNumOfLights();
 
 void LightsUpdateTileColor(int index, float distance, const Light* light);
 void LightsUpdateTileColorTile(Vector2i tileCoord, float distance, const Light* light);
-void DrawLightWithShadows(Vector2 pos, const UpdatingLightSource& light);
+//void DrawLightWithShadows(Vector2 pos, const UpdatingLightSource& light);
 bool FloodFillLighting(ChunkedTileMap* tilemap, Light* light);
 void FloodFillScanline(const Light* light, int x, int y, int width, int height, bool diagonal);//, bool (*test)(int, int)), void (*paint)(int, int))

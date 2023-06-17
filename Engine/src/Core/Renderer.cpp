@@ -1,6 +1,7 @@
 #include "Renderer.h"
 
 #include "Game.h"
+#include "Entity.h"
 #include "ResourceManager.h"
 
 #include "raylib/src/rlgl.h"
@@ -247,8 +248,8 @@ void LightingRenderer::Draw()
 	src.height = (float)ColorsTexture.texture.height;
 
 	Rectangle dst;
-	dst.x = GetGameApp()->CullXY.x - HALF_TILE_SIZE;
-	dst.y = GetGameApp()->CullXY.y - HALF_TILE_SIZE;
+	dst.x = GetGameApp()->CullRect.x - HALF_TILE_SIZE;
+	dst.y = GetGameApp()->CullRect.y - HALF_TILE_SIZE;
 	dst.width = (float)LightingTexture.texture.width;
 	dst.height = (float)LightingTexture.texture.height;
 
@@ -399,26 +400,24 @@ SDrawTextureF(const Texture2D& texture, const Rectangle& source,
 	rlSetTexture(0);
 }
 
-void
-SDrawSprite(const Texture2D* texture, Sprite sprite, Vector2i tile, Color color)
+void SDrawSprite(Texture2D* texture, WorldEntity* entity, Vector2 pos, Sprite sprite)
+{
+	SASSERT(texture);
+	SASSERT(entity);
+	Rectangle src = { (float)sprite.x, (float)sprite.x, (float)sprite.w, (float)sprite.h };
+	Rectangle dst = { pos.x, pos.y, (float)sprite.w, (float)sprite.h };
+	bool flip = (entity->LookDir == TileDirection::South || entity->LookDir == TileDirection::West) ? true : false;
+	SDrawSprite(texture, src, dst, entity->Color, flip);
+}
+
+void SDrawSprite(Texture2D* texture, Rectangle source, Rectangle dest, Color color, bool flipX)
 {
 	SASSERT(texture);
 	SASSERT(texture->id);
 
-	Rectangle src = { (float)sprite.x, (float)sprite.x, (float)sprite.w, (float)sprite.h };
-	Rectangle dst = { (float)tile.x * TILE_SIZE_F, (float)tile.y * TILE_SIZE_F, (float)sprite.w, (float)sprite.h };
-	DrawTexturePro(*texture, src, dst, {}, 0.0f, color);
-}
-
-void
-SDrawSprite(const Texture2D* texture, const TransformComponent* transform, const SpriteRenderer* renderable, bool flipX)
-{
-	SASSERT(texture->id);
-
+	float rotation = 0.0f;
 	float width = (float)texture->width;
 	float height = (float)texture->height;
-	Rectangle source = { (float)renderable->Sprite.x, (float)renderable->Sprite.y, (float)renderable->Sprite.w, (float)renderable->Sprite.h };
-	Rectangle dest = { transform->Position.x, transform->Position.y, (float)renderable->DstWidth, (float)renderable->DstHeight };
 
 	if (source.height < 0) source.y -= source.height;
 
@@ -428,10 +427,10 @@ SDrawSprite(const Texture2D* texture, const TransformComponent* transform, const
 	Vector2 bottomRight = { 0 };
 
 	// Only calculate rotation if needed
-	if (transform->Rotation == 0.0f)
+	if (rotation == 0.0f)
 	{
-		float x = dest.x - renderable->Origin.x;
-		float y = dest.y - renderable->Origin.y;
+		float x = dest.x - 0.0f;
+		float y = dest.y - 0.0f;
 		topLeft = Vector2{ x, y };
 		topRight = Vector2{ x + dest.width, y };
 		bottomLeft = Vector2{ x, y + dest.height };
@@ -439,12 +438,12 @@ SDrawSprite(const Texture2D* texture, const TransformComponent* transform, const
 	}
 	else
 	{
-		float sinRotation = sinf(transform->Rotation * DEG2RAD);
-		float cosRotation = cosf(transform->Rotation * DEG2RAD);
+		float sinRotation = sinf(rotation * DEG2RAD);
+		float cosRotation = cosf(rotation * DEG2RAD);
 		float x = dest.x;
 		float y = dest.y;
-		float dx = -renderable->Origin.x;
-		float dy = -renderable->Origin.y;
+		float dx = -0.0f;
+		float dy = -0.0f;
 
 		topLeft.x = x + dx * cosRotation - dy * sinRotation;
 		topLeft.y = y + dx * sinRotation + dy * cosRotation;
@@ -462,7 +461,7 @@ SDrawSprite(const Texture2D* texture, const TransformComponent* transform, const
 	rlSetTexture(texture->id);
 	rlBegin(RL_QUADS);
 
-	rlColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+	rlColor4ub(color.r, color.g, color.b, color.a);
 	rlNormal3f(0.0f, 0.0f, 1.0f);                          // Normal vector pointing towards viewer
 
 	// Top-left corner for texture and quad

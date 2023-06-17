@@ -65,8 +65,8 @@ struct GameApplication
 
     Vector2 ScreenXY; // Camera top left corner
     Vector2i ScreenXYTiles;
-    Vector2 CullXY;
     Vector2i CullXYTiles;
+    Rectangle CullRect;
     Rectangle UpdateRect;
     Vector2 HalfWidthHeight;
     
@@ -94,7 +94,7 @@ struct GameApplication
 
 GameApplication* GetGameApp();
 Game* GetGame();
-PlayerEntity* GetClientPlayer();
+Player* GetClientPlayer();
 
 void SetCameraPosition(Game* game, Vector3 pos);
 void SetCameraDistance(GameApplication* gameApp, float zoom);

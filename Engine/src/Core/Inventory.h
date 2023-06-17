@@ -8,7 +8,8 @@
 
 struct GameApplication;
 struct Game;
-struct CreatureEntity;
+struct WorldEntity;
+struct Creature;
 struct ItemStack;
 
 constexpr global_var uint32_t INV_EMPTY = UINT32_MAX;
@@ -26,10 +27,10 @@ inline uint16_t FIRE_STAFF;
 struct Item
 {
 	typedef ItemStack(*CreateDefaultStack)();
-	typedef void(*OnEquip)(uint32_t uid, Creature* creature, ItemStack* stack, uint16_t slot);
-	typedef void(*OnUnequip)(uint32_t uid, Creature* creature, ItemStack* stack, uint16_t slot);
-	typedef void(*OnUpdate)(CreatureEntity* creature, ItemStack* itemStack);
-	typedef void(*OnUse)(CreatureEntity* creature, ItemStack* itemStack, int key);
+	typedef void(*OnEquip)(WorldEntity* entity, ItemStack* stack, uint16_t slot);
+	typedef void(*OnUnequip)(WorldEntity* entity, ItemStack* stack, uint16_t slot);
+	typedef void(*OnUpdate)(Creature* creature, ItemStack* itemStack);
+	typedef void(*OnUse)(Creature* creature, ItemStack* itemStack, int key);
 
 	OnEquip OnEquipCallback;
 
@@ -59,9 +60,9 @@ global_var constexpr ItemStack AIR_ITEMSTACK = {};
 
 enum class InventorySlotState : uint8_t
 {
-	NOT_USED = 0,
-	EMPTY,
-	FILLED
+	EMPTY = 0,
+	FILLED,
+	NOT_USED,
 };
 
 union Equipment
@@ -134,9 +135,9 @@ ItemStack ItemStackNew(uint16_t itemId, uint16_t itemCount);
 Inventory* CreateInventory(Vector2i16 dimensions);
 Inventory* CreateInventoryLayout(Vector2i16 dimensions, const InventorySlotState* layout);
 
-void DeleteInventory(Inventory** inventory);
+void DeleteInventory(uint32_t inventoryId);
 
 Inventory* GetInventory(uint32_t inventoryId);
 
-bool EquipItem(uint32_t entityId, Creature* creature, Equipment* equipment, const ItemStack* stack, uint16_t slot);
-bool UnquipItem(uint32_t entityId, Creature* creature, Equipment* equipment, uint16_t slot);
+bool EquipItem(WorldEntity* entity, Creature* creature, const ItemStack* stack, uint16_t slot);
+bool UnquipItem(WorldEntity* entity, Creature* creature, uint16_t slot);

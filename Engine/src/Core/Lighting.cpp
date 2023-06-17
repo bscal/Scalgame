@@ -218,8 +218,8 @@ void LightsUpdate(LightingState* lightingState, Game* game)
 	//wi::jobsystem::Dispatch(ctx, lightingState->UpdatingLights.Count, 16, task, 0);
 
 	ChunkedTileMap* tilemap = &game->Universe.World.ChunkedTileMap;
-	Vector2i playerPos = GetClientPlayer()->GetTransform()->TilePos();
-	TileDirection playerDir = GetClientPlayer()->GetTransform()->LookDir;
+	Vector2i playerPos = GetClientPlayer()->TilePos;
+	TileDirection playerDir = GetClientPlayer()->LookDir;
 	Vector2i lookDir = Vec2i_NEIGHTBORS[(uint8_t)playerDir];
 	lightingState->PlayerLookVector = Vector2Normalize(lookDir.AsVec2());
 
@@ -236,10 +236,12 @@ void LightsUpdate(LightingState* lightingState, Game* game)
 		SASSERT(threadIndex < 4);
 
 		UpdatingLight* light = &lightingState->UpdatingLights[lightIndex];
-		TileCoord coord = WorldTileToCullTile(Vector2i::FromVec2(light->Pos));
-		int index = coord.x + coord.y * CULL_WIDTH_TILES;
-
-		ProcessLightUpdater(light, CULL_WIDTH_TILES, threadedLights.ColorArrayPtrs[threadIndex], tilemap);
+		if (CheckCollisionPointRec(light->Pos, GetGameApp()->CullRect))
+		{
+			TileCoord coord = WorldTileToCullTile(Vector2i::FromVec2(light->Pos));
+			int index = coord.x + coord.y * CULL_WIDTH_TILES;
+			ProcessLightUpdater(light, CULL_WIDTH_TILES, threadedLights.ColorArrayPtrs[threadIndex], tilemap);
+		}
 		PROFILE_BEGIN();
 	};
 	uint32_t num = (uint32_t)std::ceilf((float)lightingState->UpdatingLights.Count / 3.0f);
@@ -296,6 +298,25 @@ void LightsUpdate(LightingState* lightingState, Game* game)
 	}
 	PROFILE_END();
 
+	//for (uint32_t i = 0; i < lightingState->Lights.Data.Count;)
+	//{
+	//	UpdatingLight* light = lightingState->Lights.At(i);
+	//	if (light)
+	//	{
+	//		UpdatingLight* light = &lightingState->UpdatingLights[i];
+	//		if (!TileInsideCullRect(Vector2i::FromVec2(light->Pos))) continue;
+	//		light->Update(game);
+	//		//FloodFillLighting(tilemap, light);
+	//		SMemSet(lightingState->CheckedTiles.Data, 0, ArrayLength(lightingState->CheckedTiles));
+	//		LightsUpdateTileColorTile(Vector2i::FromVec2(light->Pos), 1.0, light);
+	//		for (uint8_t octant = 0; octant < 8; ++octant)
+	//		{
+	//			ComputeLightShadowCast(tilemap, light, octant, 1, { 1, 1 }, { 0, 1 });
+	//		}
+	//		++i;
+	//	}
+	//}
+
 #if USE_THREADED_LIGHTS
 	PROFILE_BEGIN_EX("LightsUpdate::WaitForLightsJob");
 	// Wait for lighting to finish updating
@@ -324,7 +345,7 @@ internal void SetVisible(ChunkedTileMap* tilemap, int x, int y, Vector2i origin,
 	newPos.y += x * TranslationTable[octant][2] + y * TranslationTable[octant][3];
 #if ENABLE_CONE_FOV
 	constexpr float coneFov = (80.0f * DEG2RAD);
-	Vector2i length = newPos.Subtract(GetClientPlayer()->GetTransform()->TilePos());
+	Vector2i length = newPos.Subtract(GetClientPlayer()->TilePos);
 
 	float dot = Vector2LineAngle(GetGame()->LightingState.PlayerLookVector, Vector2Normalize(length.AsVec2()));
 	if (dot < coneFov)
@@ -611,20 +632,20 @@ LightsUpdateTileColorTile(Vector2i tileCoord, float distance, const Light* light
 	GetGame()->LightingRenderer.Tiles[index].z += (float)light->Color.b * multiplier;
 }
 
-void DrawLightWithShadows(Vector2 pos, const UpdatingLightSource& src)
-{
-	ChunkedTileMap* tilemap = &GetGame()->Universe.World.ChunkedTileMap;
-	Light light = {};
-	light.Pos = pos;
-	light.Radius = src.Radius;
-	light.Color = src.FinalColor;
-	SMemSet(GetGame()->LightingState.CheckedTiles.Data, 0, ArrayLength(GetGame()->LightingState.CheckedTiles));
-	LightsUpdateTileColorTile(Vector2i::FromVec2(pos), 1.0, &light);
-	for (uint8_t octant = 0; octant < 8; ++octant)
-	{
-		ComputeLightShadowCast(tilemap, &light, octant, 1, { 1, 1 }, { 0, 1 });
-	}
-}
+//void DrawLightWithShadows(Vector2 pos, const UpdatingLightSource& src)
+//{
+//	ChunkedTileMap* tilemap = &GetGame()->Universe.World.ChunkedTileMap;
+//	Light light = {};
+//	light.Pos = pos;
+//	light.Radius = src.Radius;
+//	light.Color = src.FinalColor;
+//	SMemSet(GetGame()->LightingState.CheckedTiles.Data, 0, ArrayLength(GetGame()->LightingState.CheckedTiles));
+//	LightsUpdateTileColorTile(Vector2i::FromVec2(pos), 1.0, &light);
+//	for (uint8_t octant = 0; octant < 8; ++octant)
+//	{
+//		ComputeLightShadowCast(tilemap, &light, octant, 1, { 1, 1 }, { 0, 1 });
+//	}
+//}
 
 internal inline bool BlocksLight(ChunkedTileMap* tilemap, Vector2i pos)
 {
