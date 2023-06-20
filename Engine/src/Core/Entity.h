@@ -45,7 +45,7 @@ constexpr EntitySkeleton AsSkeleton(Vector2 head, Vector2 body, Vector2 lHand, V
 	return res;
 }
 
-constexpr global_var EntitySkeleton SKELETON_HUMAN = AsSkeleton({ 6.0f, 4.0f }, { 8.0f, 8.0f }, { 4.0f, 8.0f }, { 12.0f, 8.0f});
+constexpr global_var EntitySkeleton SKELETON_HUMAN = AsSkeleton({ 0.0f, -2.0f }, { 0.0f, 0.0f }, { 2.0f, 0.0f }, { -2.0f, 0.0f});
 
 enum class EntitySize : uint8_t
 {
@@ -134,7 +134,7 @@ struct Creature
 {
 	SString DisplayName;	
 
-	EntitySkeleton Skeleton;	// Creatures current parts.
+	//EntitySkeleton Skeleton;	// Creatures current parts.
 
 	uint32_t InventoryId;	
 

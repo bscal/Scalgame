@@ -404,9 +404,20 @@ void SDrawSprite(Texture2D* texture, WorldEntity* entity, Vector2 pos, Sprite sp
 {
 	SASSERT(texture);
 	SASSERT(entity);
-	Rectangle src = { (float)sprite.x, (float)sprite.x, (float)sprite.w, (float)sprite.h };
+	Rectangle src = { (float)sprite.x, (float)sprite.y, (float)sprite.w, (float)sprite.h };
 	Rectangle dst = { pos.x, pos.y, (float)sprite.w, (float)sprite.h };
 	bool flip = (entity->LookDir == TileDirection::South || entity->LookDir == TileDirection::West) ? true : false;
+	SDrawSprite(texture, src, dst, entity->Color, flip);
+}
+
+void SDrawSubSprite(Texture2D* texture, WorldEntity* entity, Vector2 pos, Vector2 offset, Sprite sprite)
+{
+	SASSERT(texture);
+	SASSERT(entity);
+	Rectangle src = { (float)sprite.x, (float)sprite.y, (float)sprite.w, (float)sprite.h };
+	Rectangle dst = { pos.x, pos.y + offset.y, (float)sprite.w, (float)sprite.h };
+	bool flip = (entity->LookDir == TileDirection::South || entity->LookDir == TileDirection::West) ? true : false;
+	dst.x += (flip) ? -offset.x + -sprite.w : offset.x;
 	SDrawSprite(texture, src, dst, entity->Color, flip);
 }
 

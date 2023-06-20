@@ -91,6 +91,18 @@ struct BitList
 		return (int)BitGet(Memory[index], indexBit);
 	}
 
+	_FORCE_INLINE_ int GetThenClearBit(uint64_t bit)
+	{
+		if (bit >= SizeInBits)
+			return 0;
+
+		uint64_t index = bit / 64;
+		uint64_t indexBit = bit % 64;
+		int val = (int)BitGet(Memory[index], indexBit);
+		BitClear(Memory[index], indexBit);
+		return val;
+	}
+
 	_FORCE_INLINE_ void SetBit(uint64_t bit)
 	{
 		if (bit >= SizeInBits)

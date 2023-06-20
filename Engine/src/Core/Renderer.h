@@ -103,10 +103,10 @@ void
 SDrawTextureF(const Texture2D& texture, const Rectangle& source,
 	const Rectangle& dest, const Vector4& tint);
 
-void
-SDrawSprite(Texture2D* texture, Rectangle source, Rectangle dest, Color color, bool flipX);
+void SDrawSprite(Texture2D* texture, Rectangle source, Rectangle dest, Color color, bool flipX);
 
 void SDrawSprite(Texture2D* texture, WorldEntity* entity, Vector2 pos, Sprite sprite);
+void SDrawSubSprite(Texture2D* texture, WorldEntity* entity, Vector2 pos, Vector2 offset, Sprite sprite);
 
 void 
 SDrawRectangleProF(Rectangle rec, Vector2 origin, float rotation, Vector4 color);

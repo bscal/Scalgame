@@ -15,7 +15,21 @@ struct ItemStack;
 constexpr global_var uint32_t INV_EMPTY = UINT32_MAX;
 constexpr global_var uint32_t ITEM_DB_MAX_ITEMS = 32;
 constexpr global_var uint16_t INV_MAX_SLOT_ID = 0xdfff;
-constexpr global_var uint16_t EQUIPMENT_MAX_SLOTS = 6;
+
+namespace EquipmentSlots
+{
+enum : uint8_t
+{
+	MAIN_HAND,
+	OFF_HAND,
+	HEAD,
+	CHEST,
+	LEG,
+	BOOTS,
+
+	MAX_SLOTS
+};
+}
 
 namespace Items
 {
@@ -27,8 +41,8 @@ inline uint16_t FIRE_STAFF;
 struct Item
 {
 	typedef ItemStack(*CreateDefaultStack)();
-	typedef void(*OnEquip)(WorldEntity* entity, ItemStack* stack, uint16_t slot);
-	typedef void(*OnUnequip)(WorldEntity* entity, ItemStack* stack, uint16_t slot);
+	typedef void(*OnEquip)(WorldEntity* entity, ItemStack* stack, uint8_t slot);
+	typedef void(*OnUnequip)(WorldEntity* entity, ItemStack* stack, uint8_t slot);
 	typedef void(*OnUpdate)(Creature* creature, ItemStack* itemStack);
 	typedef void(*OnUse)(Creature* creature, ItemStack* itemStack, int key);
 
@@ -76,7 +90,7 @@ union Equipment
 		ItemStack Legs;
 		ItemStack Feet;
 	};
-	ItemStack Stacks[EQUIPMENT_MAX_SLOTS];
+	ItemStack Stacks[EquipmentSlots::MAX_SLOTS];
 };
 
 struct InventorySlot
@@ -139,5 +153,5 @@ void DeleteInventory(uint32_t inventoryId);
 
 Inventory* GetInventory(uint32_t inventoryId);
 
-bool EquipItem(WorldEntity* entity, Creature* creature, const ItemStack* stack, uint16_t slot);
-bool UnquipItem(WorldEntity* entity, Creature* creature, uint16_t slot);
+bool EquipItem(WorldEntity* entity, Creature* creature, const ItemStack* stack, uint8_t slot);
+bool UnquipItem(WorldEntity* entity, Creature* creature, uint8_t slot);

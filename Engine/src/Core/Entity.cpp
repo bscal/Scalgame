@@ -15,6 +15,7 @@ void EntityMgrInitialize()
 	EntityMgr.Monsters.Reserve(256);
 
 	EntityMgr.CreatureDB[CreatureType::Human].Sprite = Sprites::PLAYER_SPRITE;
+	EntityMgr.CreatureDB[CreatureType::Human].Skeleton = SKELETON_HUMAN;
 }
 
 EntityManager* GetEntityMgr()
@@ -67,7 +68,7 @@ NewEntity(uint32_t* uid, WorldEntity* entity, EntityTypes type)
 }
 
 internal void
-InitializeCreature(Creature* creature, CreatureType type)
+InitializeCreature(WorldEntity* entity, Creature* creature, CreatureType type)
 {
 	SASSERT(creature);
 
@@ -81,24 +82,38 @@ InitializeCreature(Creature* creature, CreatureType type)
 	creature->Stamina = 100;
 	creature->Sanity = 100;
 	creature->DisplayName = creatureData->DefaultDisplayName;
-	//creature->InventoryId = CreateInventory({ 8, 8 })->InventoryId;
+
+	switch (entity->EntityType)
+	{
+		case (EntityTypes::Player):
+		{
+			uint8_t layout[4 * 4] =
+			{
+				2, 0, 0, 2,
+				2, 0, 0, 2,
+				0, 0, 0, 0,
+				0, 0, 0, 0,
+			};
+			Inventory* inv = CreateInventoryLayout({ 4, 4 }, (InventorySlotState*)layout);
+			creature->InventoryId = inv->InventoryId;
+		} break;
+
+		case (EntityTypes::Monster):
+		{
+			creature->InventoryId = CreateInventory({ 8, 8 })->InventoryId;
+		} break;
+
+		default:
+			break;
+	}
 }
 
 void CreatePlayer(Player* player)
 {
 	NewEntity(&player->Uid, player, EntityTypes::Player);
-	InitializeCreature(&player->Creature, CreatureType::Human);
+	InitializeCreature(player, &player->Creature, CreatureType::Human);
 
-	uint8_t layout[4 * 4] =
-	{
-		2, 0, 0, 2,
-		2, 0, 0, 2,
-		0, 0, 0, 0,
-		0, 0, 0, 0,
-	};
-	Inventory* inv = CreateInventoryLayout({ 4, 4 }, (InventorySlotState*)layout);
-	player->Creature.InventoryId = inv->InventoryId;
-
+	Inventory* inv = GetInventory(player->Creature.InventoryId);
 	ItemStack stack = ItemStackNew(Items::FIRE_STAFF, 1);
 	inv->InsertStack({ 2, 2 }, {}, &stack, false);
 }
@@ -112,7 +127,7 @@ Monster* SpawnMonster()
 	
 	NewEntity(&res->Uid, res, EntityTypes::Monster);
 
-	InitializeCreature(&res->Creature, CreatureType::Human);
+	InitializeCreature(res, &res->Creature, CreatureType::Human);
 
 	res->StorageIdx = EntityMgr.Monsters.Count;
 	EntityMgr.Monsters.Set(res->StorageIdx, &res);

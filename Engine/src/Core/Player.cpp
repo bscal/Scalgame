@@ -97,14 +97,14 @@ void DrawPlayer(Player* player, Game* game)
 	if (!player->Creature.Equipment.MainHand.IsEmpty())
 	{
 		Sprite sprite = player->Creature.Equipment.MainHand.GetItem()->Sprite;
-		Vector2 pos = Vector2Add(worldPos, player->Creature.Skeleton.RHand);
-		SDrawSprite(texture, player, pos, sprite);
+		Vector2 pos = Vector2Add(worldPos, { 8, 8 });
+		SDrawSubSprite(texture, player, pos, creature->Skeleton.LHand, sprite);
 	}
 
 	if (!player->Creature.Equipment.OffHand.IsEmpty())
 	{
 		Sprite sprite = player->Creature.Equipment.OffHand.GetItem()->Sprite;
-		Vector2 pos = Vector2Add(worldPos, player->Creature.Skeleton.LHand);
-		SDrawSprite(texture, player, pos, sprite);
+		Vector2 pos = Vector2Add(worldPos, { 8, 8 });
+		SDrawSubSprite(texture, player, pos, creature->Skeleton.RHand, sprite);
 	}
 }

@@ -44,6 +44,23 @@ struct IndexArray
 		--Size;
 	}
 
+	// Removes idx, but returns pointer to Data if slot was in use.
+	// Memory in Data is not clear so pointer is valid, useful if you
+	// need to use the contents to do more cleanup.
+	T* RemoveAndGetPtr(uint32_t idx)
+	{
+		SASSERT(Data.Capacity > idx);
+		int slotFull = IndexOccupied.GetThenClearBit(idx);
+		if (slotFull)
+		{
+			T* copy = &Data[idx];
+			FreeList.Push(&idx);
+			--Size;
+			return copy;
+		}
+		return nullptr;
+	}
+
 	T* At(uint32_t idx)
 	{
 		SASSERT(Data.Capacity > idx);

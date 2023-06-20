@@ -277,12 +277,12 @@ bool ItemStack::Deincrement()
 	return true;
 }
 
-bool EquipItem(WorldEntity* entity, Creature* creature, const ItemStack* stack, uint16_t slot)
+bool EquipItem(WorldEntity* entity, Creature* creature, const ItemStack* stack, uint8_t slot)
 {
 	SASSERT(entity);
 	SASSERT(creature);
 	SASSERT(stack);
-	SASSERT(slot < EQUIPMENT_MAX_SLOTS);
+	SASSERT(slot < EquipmentSlots::MAX_SLOTS);
 
 	if (creature && creature->Equipment.Stacks[slot].IsEmpty())
 	{
@@ -299,11 +299,11 @@ bool EquipItem(WorldEntity* entity, Creature* creature, const ItemStack* stack, 
 	return false;
 }
 
-bool UnquipItem(WorldEntity* entity, Creature* creature, uint16_t slot)
+bool UnquipItem(WorldEntity* entity, Creature* creature, uint8_t slot)
 {
 	SASSERT(entity);
 	SASSERT(creature);
-	SASSERT(slot < EQUIPMENT_MAX_SLOTS);
+	SASSERT(slot < EquipmentSlots::MAX_SLOTS);
 
 	if (creature && !creature->Equipment.Stacks[slot].IsEmpty())
 	{
@@ -315,7 +315,7 @@ bool UnquipItem(WorldEntity* entity, Creature* creature, uint16_t slot)
 	return false;
 }
 
-void OnEquipTorch(WorldEntity* entity, ItemStack* stack, uint16_t slot)
+void OnEquipTorch(WorldEntity* entity, ItemStack* stack, uint8_t slot)
 {
 	SLOG_INFO("EQUIPED, %u", entity->TilePos);
 

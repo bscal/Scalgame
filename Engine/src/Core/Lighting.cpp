@@ -137,6 +137,79 @@ void DrawStaticLavaLight(Vector2i tilePos, Color color)
 	}
 }
 
+void ProcessLights(LightingState* lightState, Game* game)
+{
+	ChunkedTileMap* tilemap = &game->Universe.World.ChunkedTileMap;
+
+	ThreadedLights threadedLights = {};
+	threadedLights.AllocateArrays(CULL_TOTAL_TILES);
+
+	wi::jobsystem::context ctx = {};
+
+	std::function<void(wi::jobsystem::JobArgs)> task = [&lightState, &tilemap, &threadedLights](wi::jobsystem::JobArgs job)
+	{
+		PROFILE_BEGIN_EX("LightsUpdate::LightThread");
+
+		uint32_t lightIndex = job.jobIndex;
+		uint32_t threadIndex = job.groupID;
+
+		SASSERT(lightIndex < lightState->UpdatingLights.Count);
+		SASSERT(threadIndex < 4);
+
+		UpdatingLight* light = &lightState->UpdatingLights[lightIndex];
+		if (CheckCollisionPointRec(light->Pos, GetGameApp()->CullRect))
+		{
+			TileCoord coord = WorldTileToCullTile(Vector2i::FromVec2(light->Pos));
+			ProcessLightUpdater(light, CULL_WIDTH_TILES, threadedLights.ColorArrayPtrs[threadIndex], tilemap);
+		}
+
+		PROFILE_BEGIN();
+	};
+
+	uint32_t totalLights = lightState->LightPtrs.Size;
+	uint32_t totalThreads = wi::jobsystem::GetThreadCount();
+	uint32_t num = (uint32_t)std::ceil(totalLights / totalThreads);
+	wi::jobsystem::Dispatch(ctx, totalLights, num, task, 0);
+}
+
+uint32_t LightAddUpdating(LightingState* lightState, UpdatingLight* light)
+{
+	UpdatingLight* lightDst = lightState->UpdatingLightPool.allocate();
+	SASSERT(lightDst);
+	
+	memcpy(lightDst, light, sizeof(UpdatingLight));
+
+	return lightState->LightPtrs.Add((Light**)&lightDst);
+}
+
+void LightRemove(LightingState* lightState, uint32_t lightId)
+{
+	Light** lightPtr = lightState->LightPtrs.RemoveAndGetPtr(lightId);
+	if (!lightPtr)
+		return;
+
+	Light* light = *lightPtr;
+	SASSERT(light);
+	switch (light->LightType)
+	{
+		case (0):
+		{
+			lightState->UpdatingLightPool.deallocate((UpdatingLight*)light);
+		} break;
+
+		case (1):
+		{
+			lightState->StaticLightPool.deallocate((StaticLight*)light);
+		} break;
+
+		default:
+		{
+			SASSERT_MSG(false, "Light removed with no matching type!");
+			SLOG_ERR("Light removed with no matching type!");
+		} break;
+	}
+}
+
 void LightsAddUpdating(const UpdatingLight& light)
 {
 	GetGame()->LightingState.UpdatingLights.Push(&light);

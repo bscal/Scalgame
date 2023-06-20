@@ -37,21 +37,27 @@ constexpr global_var int TranslationTable[8][4] =
     {  1,  0,  0,  1 },
 };
 
+typedef void(*LightUpdate)(uint8_t type, void* light);
+
 struct Light
 {
+    LightUpdate UpdateFunc;
     Vector2 Pos;
     float Radius;
     Color Color;
+    uint8_t LightType;
 };
 
 struct UpdatingLight : public Light
 {
-    static constexpr float UPDATE_RATE = 0.2f;
+    constexpr static float UPDATE_RATE = 0.2f;
 
-    struct Color Colors[4];
-    float MinIntensity;
-    float MaxIntensity;
-    float LastUpdate;
+    struct Color Colors[4]; // Colors chosen for light;
+    float MinIntensity;     // Min Radius 
+    float MaxIntensity;     // Max Radius - Set to 0 to always use Min Radius
+    float LastUpdate;       // Keeps track of internal update
+    uint32_t EntityId;      // Entity to sync positions with, ENTITY_NO_POS to disable
+    bool UseMultiColor;     // If false uses Color[0] only
 
     void Update(Game* game);
 };
@@ -79,6 +85,13 @@ struct StaticLight : public Light
 
 struct LightingState
 {
+    constexpr static size_t LIGHTS_CHUNK_SIZE = AlignPowTwo64Ceil(sizeof(StaticLight) * 256);
+
+    IndexArray<Light*> LightPtrs;
+
+    MemoryPool<UpdatingLight, 8192> UpdatingLightPool;
+    MemoryPool<StaticLight, 8192> StaticLightPool;
+
     SList<UpdatingLight> UpdatingLights;
     SList<StaticLight> StaticLights;
     SList<StaticLightType> StaticLightTypes;
@@ -90,6 +103,15 @@ struct LightingState
 
     StaticArray<bool, CULL_TOTAL_TILES> CheckedTiles;
 };
+
+void ProcessLights(LightingState* lightState);
+
+uint32_t LightAddUpdating(LightingState* lightState, UpdatingLight* light);
+void LightRemove(LightingState* lightState, uint32_t lightId);
+
+
+
+uint32_t LightAddEntityLight();
 
 void DrawStaticLights(ChunkedTileMap* tilemap, const StaticLight* light);
 void DrawStaticTileLight(Vector2i tilePos, Color color, StaticLightTypes type);
