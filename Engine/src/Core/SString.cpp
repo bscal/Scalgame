@@ -11,7 +11,7 @@ static_assert(sizeof(SString) == 32, "SString should equal 32.");
 // *****************
 
 SString::SString(SAllocator allocator) 
-	: m_Buffer({}), Length(0), Capacity(0), Allocator(allocator)
+	: Length(0), Capacity(0), Allocator(allocator), m_Buffer({})
 {
 }
 

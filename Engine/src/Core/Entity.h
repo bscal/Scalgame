@@ -6,12 +6,11 @@
 #include "SUtil.h"
 #include "SString.h"
 #include "Sprite.h"
+#include "SMemory.h"
 
 #include "Structures/StaticArray.h"
 #include "Structures/SHashMap.h"
 #include "Structures/SList.h"
-
-#include <MemoryPool/MemoryPool.h>
 
 struct GameApplication;
 struct Game;
@@ -20,19 +19,16 @@ constexpr global_var uint32_t ENT_PLAYER = { 0 };
 constexpr global_var uint32_t ENT_NOT_FOUND = UINT32_MAX;
 constexpr global_var int SKELETON_MAX_PARTS = 4;
 
-struct EntitySkeleton
+union EntitySkeleton
 {
-	union
+	struct
 	{
-		struct
-		{
-			Vector2 Head;
-			Vector2 Body;
-			Vector2 LHand;
-			Vector2 RHand;
-		};
-		Vector2 Positions[SKELETON_MAX_PARTS];
+		Vector2 Head;
+		Vector2 Body;
+		Vector2 LHand;
+		Vector2 RHand;
 	};
+	Vector2 Positions[SKELETON_MAX_PARTS];
 };
 
 constexpr EntitySkeleton AsSkeleton(Vector2 head, Vector2 body, Vector2 lHand, Vector2 rHand)

@@ -43,7 +43,7 @@ SAPI bool GameApplication::Start()
 	double initStart = GetTime();
 
 	size_t gameMemorySize = Megabytes(32);
-	size_t tempMemorySize = Megabytes(4);
+	size_t tempMemorySize = Megabytes(8);
 	SMemInitialize(this, gameMemorySize, tempMemorySize);
 
 	InitProfile("profile.spall");
@@ -127,7 +127,8 @@ internal bool GameInitialize(Game* game, GameApplication* gameApp)
 	return true;
 }
 
-internal void GameLoad(Game* game, GameApplication* gameApp)
+internal void 
+GameLoad(Game* game, GameApplication* gameApp)
 {
 	PROFILE_BEGIN();
 
@@ -373,7 +374,8 @@ HandleGameInput(GameApplication* gameApp, Game* game)
 			light.Colors[3] = { 0xbf, 0x05, 0x00, 255 };
 			light.Color = light.Colors[0];
 			light.Radius = light.MaxIntensity;
-			LightsAddUpdating(light);
+			//LightsAddUpdating(light);
+			LightAddUpdating(&GetGame()->LightingState, &light);
 		}
 	}
 	if (IsMouseButtonPressed(MOUSE_BUTTON_MIDDLE))

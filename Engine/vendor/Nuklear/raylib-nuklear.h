@@ -455,13 +455,13 @@ DrawNuklear(struct nk_context * ctx)
             case NK_COMMAND_CIRCLE: {
                 const struct nk_command_circle *c = (const struct nk_command_circle *)cmd;
                 Color color = ColorFromNuklear(c->color);
-                DrawEllipseLines((int)(c->x * scale + c->w * scale / 2.0f), (int)(c->y * scale + c->h * scale / 2.0f), (int)(c->w * scale / 2.0f), (int)(c->h * scale / 2.0f), color);
+                DrawEllipseLines((int)(c->x * scale + c->w * scale / 2.0f), (int)(c->y * scale + c->h * scale / 2.0f), c->w * scale / 2.0f, c->h * scale / 2.0f, color);
             } break;
 
             case NK_COMMAND_CIRCLE_FILLED: {
                 const struct nk_command_circle_filled *c = (const struct nk_command_circle_filled *)cmd;
                 Color color = ColorFromNuklear(c->color);
-                DrawEllipse((int)(c->x * scale + c->w * scale / 2.0f), (int)(c->y * scale + c->h * scale / 2.0f), (int)(c->w * scale / 2), (int)(c->h * scale / 2), color);
+                DrawEllipse((int)(c->x * scale + c->w * scale / 2.0f), (int)(c->y * scale + c->h * scale / 2.0f), c->w * scale / 2.0f, c->h * scale / 2.0f, color);
             } break;
 
             case NK_COMMAND_ARC: {

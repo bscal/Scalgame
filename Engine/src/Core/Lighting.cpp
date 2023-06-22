@@ -1,10 +1,12 @@
 #include "Lighting.h"
 
 #include "Game.h"
+#include "ThreadedLights.h"
 #include "Structures/SHashSet.h"
 #include "Structures/SLinkedList.h"
-#include "raylib/src/raymath.h"
 #include "WickedEngine/Jobs.h"
+
+#include <raylib/src/raymath.h>
 
 #include <cmath>
 #include <chrono>
@@ -18,7 +20,6 @@ void LightsInitialize(LightingState* lightingState)
 {
 	lightingState->UpdatingLights.Reserve(64);
 	lightingState->StaticLights.Reserve(64);
-	lightingState->StaticLightTypes.EnsureSize((uint8_t)StaticLightTypes::MaxTypes);
 
 	float table[] = {
 		0.0f, 0.0f, 0.1f, 0.0f, 0.0f,
@@ -139,65 +140,108 @@ void DrawStaticLavaLight(Vector2i tilePos, Color color)
 
 void ProcessLights(LightingState* lightState, Game* game)
 {
+	PROFILE_BEGIN();
+
+	double start = GetTime();
+
 	ChunkedTileMap* tilemap = &game->Universe.World.ChunkedTileMap;
 
+	uint32_t totalLights = lightState->LightPtrs.Capacity;
+	uint32_t totalThreads = wi::jobsystem::GetThreadCount();
+	if (totalThreads >= LIGHT_MAX_THEADS)
+		totalThreads = LIGHT_MAX_THEADS;
+
+	uint32_t groupSize = (uint32_t)std::ceil((float)totalLights / (float)totalThreads);
+
 	ThreadedLights threadedLights = {};
-	threadedLights.AllocateArrays(CULL_TOTAL_TILES);
+	threadedLights.AllocateArrays(CULL_TOTAL_TILES, totalThreads);
 
-	wi::jobsystem::context ctx = {};
-
-	std::function<void(wi::jobsystem::JobArgs)> task = [&lightState, &tilemap, &threadedLights](wi::jobsystem::JobArgs job)
+	std::function<void(wi::jobsystem::JobArgs)> task = [lightState, tilemap, &threadedLights](wi::jobsystem::JobArgs job)
 	{
 		PROFILE_BEGIN_EX("LightsUpdate::LightThread");
 
 		uint32_t lightIndex = job.jobIndex;
 		uint32_t threadIndex = job.groupID;
 
-		SASSERT(lightIndex < lightState->UpdatingLights.Count);
-		SASSERT(threadIndex < 4);
+		SASSERT(lightIndex < lightState->LightPtrs.Capacity);
+		SASSERT(threadIndex < LIGHT_MAX_THEADS);
 
-		UpdatingLight* light = &lightState->UpdatingLights[lightIndex];
-		if (CheckCollisionPointRec(light->Pos, GetGameApp()->CullRect))
+		auto lightPtr = &lightState->LightPtrs.Buckets[lightIndex];
+		if (lightPtr->Occupied)
 		{
-			TileCoord coord = WorldTileToCullTile(Vector2i::FromVec2(light->Pos));
-			ProcessLightUpdater(light, CULL_WIDTH_TILES, threadedLights.ColorArrayPtrs[threadIndex], tilemap);
+			Light* light = lightPtr->Value;
+			if (TileInsideCullRect(Vector2i::FromVec2(light->Pos)))
+			{
+				Vector3* threadArray = threadedLights.ColorArrayPtrs[threadIndex];
+				ThreadedLightUpdate(light, threadArray, tilemap, CULL_WIDTH_TILES);
+			}
 		}
-
-		PROFILE_BEGIN();
+		PROFILE_END();
 	};
 
-	uint32_t totalLights = lightState->LightPtrs.Size;
-	uint32_t totalThreads = wi::jobsystem::GetThreadCount();
-	uint32_t num = (uint32_t)std::ceil(totalLights / totalThreads);
-	wi::jobsystem::Dispatch(ctx, totalLights, num, task, 0);
+	wi::jobsystem::context ctx = {};
+	wi::jobsystem::Dispatch(ctx, totalLights, groupSize, task, 0);
+	wi::jobsystem::Wait(ctx);
+
+	threadedLights.UpdateLightColorArray(game->LightingRenderer.Tiles.Data, totalThreads);
+
+	GetGameApp()->DebugLightTime = GetTime() - start;
+
+	PROFILE_END();
 }
+
+static uint32_t LightIds;
 
 uint32_t LightAddUpdating(LightingState* lightState, UpdatingLight* light)
 {
+	SASSERT(lightState);
+	SASSERT(light);
 	UpdatingLight* lightDst = lightState->UpdatingLightPool.allocate();
 	SASSERT(lightDst);
 	
 	memcpy(lightDst, light, sizeof(UpdatingLight));
 
-	return lightState->LightPtrs.Add((Light**)&lightDst);
+	lightDst->LightType = LIGHT_UPDATING;
+
+	uint32_t id = LightIds++;
+	lightState->LightPtrs.Insert(&id, (Light**)&lightDst);
+	return id;
+	//return lightState->LightPtrs.Add((Light**)&lightDst);
+}
+
+uint32_t LightAddStatic(LightingState* lightState, StaticLight* light)
+{
+	SASSERT(lightState);
+	SASSERT(light);
+	StaticLight* lightDst = lightState->StaticLightPool.allocate();
+	SASSERT(lightDst);
+
+	memcpy(lightDst, light, sizeof(StaticLight));
+
+	lightDst->LightType = LIGHT_STATIC;
+	uint32_t id = LightIds++;
+	lightState->LightPtrs.Insert(&id, (Light**)&lightDst);
+	return id;
 }
 
 void LightRemove(LightingState* lightState, uint32_t lightId)
 {
-	Light** lightPtr = lightState->LightPtrs.RemoveAndGetPtr(lightId);
+	Light** lightPtr = lightState->LightPtrs.Get(&lightId);
 	if (!lightPtr)
 		return;
+
+	lightState->LightPtrs.Remove(&lightId);
 
 	Light* light = *lightPtr;
 	SASSERT(light);
 	switch (light->LightType)
 	{
-		case (0):
+		case (LIGHT_UPDATING):
 		{
 			lightState->UpdatingLightPool.deallocate((UpdatingLight*)light);
 		} break;
 
-		case (1):
+		case (LIGHT_STATIC):
 		{
 			lightState->StaticLightPool.deallocate((StaticLight*)light);
 		} break;
@@ -270,6 +314,9 @@ ComputeLightShadowCast(ChunkedTileMap* tilemap, const Light* light,
 
 void LightsUpdate(LightingState* lightingState, Game* game)
 {
+	ProcessLights(lightingState, game);
+	return;
+
 	PROFILE_BEGIN();
 
 	GetGameApp()->NumOfLightsUpdated = 0;
@@ -298,7 +345,7 @@ void LightsUpdate(LightingState* lightingState, Game* game)
 
 #if USE_THREADED_LIGHTS
 	ThreadedLights threadedLights = {};
-	threadedLights.AllocateArrays(CULL_TOTAL_TILES);
+	threadedLights.AllocateArrays(CULL_TOTAL_TILES, 4);
 	wi::jobsystem::context ctx = {};
 	std::function<void(wi::jobsystem::JobArgs)> task = [&lightingState, &tilemap, &threadedLights](wi::jobsystem::JobArgs job)
 	{
@@ -315,7 +362,7 @@ void LightsUpdate(LightingState* lightingState, Game* game)
 			int index = coord.x + coord.y * CULL_WIDTH_TILES;
 			ProcessLightUpdater(light, CULL_WIDTH_TILES, threadedLights.ColorArrayPtrs[threadIndex], tilemap);
 		}
-		PROFILE_BEGIN();
+		PROFILE_END();
 	};
 	uint32_t num = (uint32_t)std::ceilf((float)lightingState->UpdatingLights.Count / 3.0f);
 	wi::jobsystem::Dispatch(ctx, lightingState->UpdatingLights.Count, num, task, 0);
@@ -394,7 +441,7 @@ void LightsUpdate(LightingState* lightingState, Game* game)
 	PROFILE_BEGIN_EX("LightsUpdate::WaitForLightsJob");
 	// Wait for lighting to finish updating
 	wi::jobsystem::Wait(ctx);
-	threadedLights.UpdateLightColorArray(game->LightingRenderer.Tiles.Data);
+	threadedLights.UpdateLightColorArray(game->LightingRenderer.Tiles.Data, 4);
 	PROFILE_END();
 #endif
 

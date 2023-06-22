@@ -546,7 +546,7 @@ SLoadRenderTextureEx(int width, int height, PixelFormat format, bool useDepth)
 		rlEnableFramebuffer(target.id);
 
 		// Create color texture (default to RGBA)
-		target.texture.id = rlLoadTexture(NULL, width, height, format, 1);
+		target.texture.id = rlLoadTexture(nullptr, width, height, format, 1);
 		target.texture.width = width;
 		target.texture.height = height;
 		target.texture.format = format;

@@ -61,14 +61,14 @@ struct BitList
 
 	void Alloc(SAllocator allocator, uint32_t capacity)
 	{
-		Free();
+		size_t oldSize = Capacity * sizeof(uint64_t);
+
+		Capacity = (capacity == 0) ? 1 : capacity;
+		size_t newSize = Capacity * sizeof(uint64_t);
 
 		Allocator = allocator;
-		Capacity = (capacity == 0) ? 1 : capacity;
 		SizeInBits = Capacity * 64;
-
-		size_t memSize = Capacity * sizeof(uint64_t);
-		Memory = (uint64_t*)SAlloc(Allocator, memSize, MemoryTag::Arrays);
+		Memory = (uint64_t*)SRealloc(Allocator, Memory, oldSize, newSize, MemoryTag::Arrays);
 	}
 
 	void Free()

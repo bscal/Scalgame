@@ -2,6 +2,8 @@
 
 #include <stdint.h>
 
+#include <MemoryPool/MemoryPool.h>
+
 struct GameApplication;
 
 enum class SAllocator : uint8_t
@@ -86,7 +88,7 @@ uint64_t SMemGetAllocated();
 uint64_t SMemGetLastFrameTempUsage();
 
 #define SMEM_USE_TAGS 1
-#define SMEM_PRINT_ALLOCATIONS 0
+#define SMEM_PRINT_ALLOCATIONS 1
 
 #if SMEM_USE_TAGS
 

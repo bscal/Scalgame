@@ -205,7 +205,7 @@ RMEMAPI intptr_t BiStackMargins(BiStack destack);
 //----------------------------------------------------------------------------------
 static inline size_t __AlignSize(const size_t size, const size_t align)
 {
-    return (size + (align - 1)) & -align;
+    return (size + align - 1) & ~(align - 1);
 }
 
 static MemNode *__SplitMemNode(MemNode *const node, const size_t bytes)

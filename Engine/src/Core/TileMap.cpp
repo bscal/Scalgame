@@ -1,15 +1,9 @@
 #include "TileMap.h"
 
 #include "Game.h"
+#include "SUtil.h"
 
 #include <math.h>
-
-_FORCE_INLINE_ internal int
-IModNegative(int a, int b)
-{
-	int res = a % b;
-	return (res < 0) ? res + b : res;
-}
 
 void TileMap::Initialize()
 {
@@ -116,7 +110,7 @@ void TileMap::BuildChunk(TileChunk* chunk)
 
 	if (chunk->RenderTexture.texture.id != 0)
 	{
-		for (size_t i = 0; i < TileChunk::CHUNK_SIZE; ++i)
+		for (int i = 0; i < (int)TileChunk::CHUNK_SIZE; ++i)
 		{
 			if (chunk->TilesMarkedForRebuild.Get(i))
 			{

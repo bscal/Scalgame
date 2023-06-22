@@ -8,7 +8,6 @@
 #include <string.h>
 
 global_var constexpr uint32_t SSTR_SSO_ARRAY_SIZE = 16;
-global_var constexpr uint32_t SSTR_SSO_STR_LENGTH = SSTR_SSO_ARRAY_SIZE - 1; // room for null terminator
 global_var constexpr uint32_t SSTR_NO_POS = UINT32_MAX;
 
 bool SStrEquals(const char* str0, const char* str1);
@@ -174,7 +173,7 @@ struct SStringHasher
 
 struct CStrHasher
 {
-	[[nodiscard]] constexpr uint64_t operator()(const char* key) const noexcept
+	[[nodiscard]] uint64_t operator()(const char* key) const noexcept
 	{
 		return MurmurHash3_x64_128(0, key, strlen(key)).v0;
 	}

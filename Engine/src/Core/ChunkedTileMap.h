@@ -35,7 +35,7 @@ struct TileMapChunk
 	ChunkCoord ChunkCoord;
 	ChunkState State;
 	StaticArray<TileData, CHUNK_SIZE> Tiles;
-	//TileColor Colors[CHUNK_SIZE];
+	SList<uint32_t> TileLights;
 };
 
 struct ChunkedTileMap
@@ -57,6 +57,10 @@ void Load(ChunkedTileMap* tilemap);
 
 void Update(ChunkedTileMap* tilemap, Game* game);
 void LateUpdate(ChunkedTileMap* tilemap, Game* game);
+
+void InitChunk(ChunkedTileMap* tilemap, TileMapChunk* chunk);
+void CleanupChunk(ChunkedTileMap* tilemap, TileMapChunk* chunk);
+void UpdateChunk(ChunkedTileMap* tilemap, TileMapChunk* chunk);
 
 TileMapChunk* LoadChunk(ChunkedTileMap* tilemap, ChunkCoord coord);
 void UnloadChunk(ChunkedTileMap* tilemap, ChunkCoord coord);

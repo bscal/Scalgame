@@ -78,6 +78,8 @@ private:
     {
         value_type element;
         Slot_* next;
+
+        ~Slot_() = delete;
     };
 
     typedef char* data_pointer_;

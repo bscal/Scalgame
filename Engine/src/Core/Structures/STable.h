@@ -69,12 +69,17 @@ struct STable
 };
 
 template<typename K, typename V>
-STable<K, V>::STable(bool (*keyEqualsFunction)(const K* v0, const K* v1),
+STable<K, V>::STable(
+	bool (*keyEqualsFunction)(const K* v0, const K* v1),
 	uint64_t(*keyHashFunction)(const K* key))
-	: Entries(nullptr), Allocator(SAllocator::Game),
-		Size(0), Capacity(0), MaxSize(0), 
-		KeyEqualsFunction(keyEqualsFunction), KeyHashFunction(keyHashFunction)
 {
+	Entries = nullptr;
+	Size = 0;
+	Capacity = 0;
+	MaxSize = 0;
+	Allocator = SAllocator::Game;
+	KeyEqualsFunction = keyEqualsFunction;
+	KeyHashFunction = keyHashFunction;
 }
 
 template<typename K, typename V>

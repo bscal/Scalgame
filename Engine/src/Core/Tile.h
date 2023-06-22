@@ -34,6 +34,7 @@ struct TileSheetCoord
 struct Tile
 {
 	bool IsUsed;
+	bool EmitsLight;
 	TileType Type;
 
 	void(*OnUpdate)(Vector2i, TileData);

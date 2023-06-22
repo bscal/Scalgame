@@ -15,6 +15,7 @@ project "Engine"
         "src/**.c",
         "vendor/rpmalloc/*.c",
         "vendor/rpmalloc/*.h",
+        "vendor/MemoryPool.tcc"
     }
 
     defines
@@ -27,12 +28,18 @@ project "Engine"
         "src/",
         "vendor/",
         "vendor/raylib/src",
-        "vendor/rpmalloc/rpmalloc"
+        "vendor/rpmalloc/rpmalloc",
+    }
+
+    libdirs
+    {
+        "vendor/angelscript/lib"
     }
 
     links
     {
-        "raylib"
+        "raylib",
+        "angelscript64d"
     }
 
     filter "toolset:msc-ClangCL"

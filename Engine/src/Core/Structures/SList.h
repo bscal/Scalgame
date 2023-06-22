@@ -209,8 +209,8 @@ void SList<T>::PopAt(uint32_t index, T* valueDest)
 	if (index < Count)
 	{
 		size_t dstOffset = index * sizeof(T);
-		size_t srcOffset = (size_t)(index + 1) * sizeof(T);
-		size_t sizeTillEnd = (size_t)(Count - index) * sizeof(T);
+		size_t srcOffset = ((size_t)(index) + 1) * sizeof(T);
+		size_t sizeTillEnd = ((size_t)(Count) -(size_t)(index)) * sizeof(T);
 		char* mem = (char*)Memory;
 		SMemMove(mem + dstOffset, mem + srcOffset, sizeTillEnd);
 	}
@@ -249,8 +249,8 @@ bool SList<T>::RemoveAt(uint32_t index)
 	if (index != Count)
 	{
 		size_t dstOffset = index * sizeof(T);
-		size_t srcOffset = (size_t)(index + 1) * sizeof(T);
-		size_t sizeTillEnd = (size_t)(Count - index) * sizeof(T);
+		size_t srcOffset = ((size_t)(index) + 1) * sizeof(T);
+		size_t sizeTillEnd = ((size_t)(Count) -(size_t)(index)) * sizeof(T);
 		char* mem = (char*)Memory;
 		SMemMove(mem + dstOffset, mem + srcOffset, sizeTillEnd);
 		return true;

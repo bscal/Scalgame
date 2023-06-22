@@ -22,10 +22,11 @@ bool TileMgrInitialize(const Texture2D* tilesheetTexture)
 	TileMgrRegister(ROCKY_WALL, TileType::Solid);
 
 	uint16_t lava0 = TileMgrRegister(LAVA_0, TileType::Floor);
-	TileMgr.Tiles[lava0].OnUpdate = [](Vector2i pos, TileData data)
-	{
-		DrawStaticLavaLight(pos, RED);
-	};
+	TileMgr.Tiles[lava0].EmitsLight = true;
+	//TileMgr.Tiles[lava0].OnUpdate = [](Vector2i pos, TileData data)
+	//{
+	//	DrawStaticLavaLight(pos, RED);
+	//};
 
 	return true;
 }

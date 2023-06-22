@@ -54,15 +54,13 @@ void Free(ChunkedTileMap* tilemap)
 
 void Load(ChunkedTileMap* tilemap)
 {
-	CheckChunksInLOS(tilemap, { 0, 0 });
+	//CheckChunksInLOS(tilemap, { 0, 0 });
 }
 
 void Update(ChunkedTileMap* tilemap, Game* game)
 {
 	SASSERT(tilemap);
 	SASSERT(game);
-
-	SASSERT(tilemap->Chunks.IsAllocated());
 
 	PROFILE_BEGIN();
 
@@ -117,7 +115,7 @@ void LateUpdate(ChunkedTileMap* tilemap, Game* game)
 		tilemap->Chunks.Foreach([&screen](TileMapChunk* chunk)
 		{
 			const char* chunkPosStr = TextFormat("%d, %d", chunk->ChunkCoord.x, chunk->ChunkCoord.y);
-			DrawText(chunkPosStr, chunk->Bounds.x, chunk->Bounds.y, 32, WHITE);
+			DrawText(chunkPosStr, (int)chunk->Bounds.x, (int)chunk->Bounds.y, 32, WHITE);
 
 			if (CheckCollisionRecs(screen, chunk->Bounds))
 			{
@@ -127,13 +125,45 @@ void LateUpdate(ChunkedTileMap* tilemap, Game* game)
 	}
 }
 
+void InitChunk(ChunkedTileMap* tilemap, TileMapChunk* chunk)
+{
+	int idx = 0;
+	for (int y = 0; y < CHUNK_DIMENSIONS; ++y)
+	{
+		for (int x = 0; x < CHUNK_DIMENSIONS; ++x)
+		{
+			float worldX = (float)x + (float)chunk->ChunkCoord.x * (float)CHUNK_DIMENSIONS;
+			float worldY = (float)y + (float)chunk->ChunkCoord.y * (float)CHUNK_DIMENSIONS;
+
+			TileData data = chunk->Tiles[idx++];
+			Tile* tile = data.GetTile();
+
+			if (tile->EmitsLight)
+			{
+				StaticLight light;
+				light.Pos = { worldX, worldY };
+				light.Radius = 0.0f;
+				light.Color = GREEN;
+				light.UpdateFunc = nullptr;
+				light.StaticLightType = StaticLightTypes::Lava;
+				uint32_t lightId = LightAddStatic(&GetGame()->LightingState, &light);
+				chunk->TileLights.Push(&lightId);
+			}
+		}
+	}
+}
+
 TileMapChunk* LoadChunk(ChunkedTileMap* tilemap, ChunkCoord coord)
 {
-	if (!IsChunkInBounds(tilemap, coord)) return nullptr;
-	if (IsChunkLoaded(tilemap, coord)) return nullptr;
+	if (!IsChunkInBounds(tilemap, coord))
+		return nullptr;
+
+	if (IsChunkLoaded(tilemap, coord))
+		return nullptr;
 
 	TileMapChunk* chunk = tilemap->Chunks.InsertKey(&coord);
 	SASSERT(chunk);
+	SMemClear(chunk, sizeof(TileMapChunk));
 	chunk->ChunkCoord = coord;
 
 	constexpr float chunkDimensionsPixel = (float)CHUNK_DIMENSIONS * TILE_SIZE_F;
@@ -146,15 +176,25 @@ TileMapChunk* LoadChunk(ChunkedTileMap* tilemap, ChunkCoord coord)
 
 	chunk->State = ChunkState::Loaded;
 
+	InitChunk(tilemap, chunk);
+
 	SLOG_INFO("[ Chunk ] Loaded chunk (%s). State: %s", FMT_VEC2I(coord), ChunkStateToString(chunk->State));
 	return chunk;
 }
 
 void UnloadChunk(ChunkedTileMap* tilemap, ChunkCoord coord)
 {
-	bool removed = tilemap->Chunks.Remove(&coord);
-	if (removed)
+	TileMapChunk* chunk = tilemap->Chunks.Get(&coord);
+	if (chunk)
+	{
+		for (uint32_t i = 0; i < chunk->TileLights.Count; ++i)
+		{
+			LightRemove(&GetGame()->LightingState, chunk->TileLights[i]);
+		}
+		chunk->TileLights.Free();
+		tilemap->Chunks.Remove(&coord);
 		SLOG_INFO("[ Chunk ] Unloaded chunk (%s)", FMT_VEC2I(coord));
+	}
 }
 
 bool IsChunkLoaded(ChunkedTileMap* tilemap,
@@ -217,7 +257,6 @@ SetTile(ChunkedTileMap* tilemap, const TileData* tile, TileCoord tilePos)
 {
 	SASSERT(tilemap);
 	SASSERT(tile);
-	SASSERT(tilemap->Chunks.IsAllocated());
 	SASSERT(IsTileInBounds(tilemap, tilePos));
 
 	ChunkCoord chunkCoord = TileToChunkCoord(tilePos);

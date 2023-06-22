@@ -129,7 +129,7 @@ struct SparseSet
 
 	uint32_t Get(uint32_t id) const
 	{
-		if (id > MaxValue)
+		if (!Sparse || id > MaxValue)
 			return SPARSE_EMPTY_ID;
 
 		SparseBoundsCheck(Sparse, SparseCapacity, id);

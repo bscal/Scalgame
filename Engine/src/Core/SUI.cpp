@@ -24,7 +24,6 @@ internal void AppendMemoryUsage(UIState* state);
 internal void DrawConsole(UIState* state);
 internal void DrawChatBox(UIState* state, Game* game);
 
-internal struct nk_colorf Vec4ToColorf(Vector4 color);
 internal Vector4 ColorFToVec4(struct nk_colorf color);
 internal struct nk_color ColorFToColor(struct nk_colorf* color);
 internal bool ColorFEqual(const struct nk_colorf& v0, const struct nk_colorf& v1);
@@ -138,18 +137,6 @@ internal void DrawGameGUI(UIState* state, Game* game)
 		DrawChatBox(state, game);
 	}
 	nk_end(ctx);
-}
-
-internal nk_colorf
-Vec4ToColorF(const Vector4 color)
-{
-	return { color.x, color.y, color.z, color.w };
-}
-
-internal Vector4
-ColorFToVec4(struct nk_colorf color)
-{
-	return { color.r, color.g, color.b, color.a };
 }
 
 internal struct nk_color
@@ -409,7 +396,7 @@ DrawConsole(UIState* state)
 		{
 			SStringView sug = cmdMgr->Suggestions[0];
 			cmdMgr->Length = (int)sug.Length;
-			SMemCopy(cmdMgr->TextInputMemory, sug.Str, cmdMgr->Length);
+			SMemCopy(cmdMgr->TextInputMemory, sug.Str, (size_t)cmdMgr->Length);
 		}
 
 		// *** Command Input ***
@@ -488,7 +475,7 @@ DrawChatBox(UIState* state, Game* game)
 
 			for (uint32_t i = 0; i < state->ChatBoxStrings.PoolCapacity; ++i)
 			{
-				char* entryStr = state->ChatBoxStrings.Get(i);
+				//char* entryStr = state->ChatBoxStrings.Get(i);
 
 				// TODO: Look into not drawing label if no entry
 
@@ -573,7 +560,9 @@ DrawInventory(struct nk_context* ctx, Inventory* inv)
 		struct nk_vec2 invSlotsPos = { invPos.x, invPos.y };
 		struct nk_vec2 btnScreenCoord = nk_layout_space_to_screen(ctx, invSlotsPos);
 		Vector2 invClickedPos = Vector2Subtract(GetMousePosition(), { btnScreenCoord.x, btnScreenCoord.y });
-		Vector2i16 invClickedBtn = { (short)invClickedPos.x / (short)SLOT_SIZE, (short)invClickedPos.y / (short)SLOT_SIZE };
+		short btnX = (short)(invClickedPos.x / SLOT_SIZE);
+		short btnY = (short)(invClickedPos.y / SLOT_SIZE);
+		Vector2i16 invClickedBtn = { btnX, btnY };
 
 		bool canInsert = false;
 		SList<Vector2i16> intersectingTiles = {};
@@ -688,7 +677,9 @@ DrawInventory(struct nk_context* ctx, Inventory* inv)
 					struct nk_vec2 btnScreenCoord = nk_layout_space_to_screen(ctx, { baseRect.x, baseRect.y });
 					Vector2 btnScreenOffset = Vector2Subtract(GetMousePosition(), { btnScreenCoord.x, btnScreenCoord.y });
 
-					Vector2i16 slotOffset = { invClickedBtn.x - invStack->Slot.x, invClickedBtn.y - invStack->Slot.y };
+					Vector2i16 slotOffset;
+					slotOffset.x = invClickedBtn.x - invStack->Slot.x;
+					slotOffset.y = invClickedBtn.y - invStack->Slot.y;
 
 					playerClient->CursorStack = *slotStack;
 					playerClient->CursorStackLastPos = invClickedBtn;

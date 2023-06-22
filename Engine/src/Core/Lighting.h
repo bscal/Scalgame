@@ -2,10 +2,13 @@
 
 #include "Core.h"
 #include "Vector2i.h"
+#include "SMemory.h"
 
 #include "Structures/StaticArray.h"
 #include "Structures/SList.h"
 #include "Structures/IndexArray.h"
+#include "Structures/SparseArray.h"
+#include "Structures/SHashMap.h"    
 
 struct GameApplication;
 struct Game;
@@ -14,12 +17,15 @@ struct Light;
 struct UpdatingLight;
 struct UpdatingLightSource;
 
+#define LIGHT_UPDATING 0
+#define LIGHT_STATIC 1
+
 struct Slope
 {
     int y;
     int x;
 
-    inline bool Greater(int y, int x) { return this->y * x > this->x * y; }; // this > y/x
+    inline bool Greater(int y, int x) { return this->y * x > this->x * y; } // this > y/x
     inline bool GreaterOrEqual(int y, int x) { return this->y * x >= this->x * y; } // this >= y/x
     inline bool Less(int y, int x) { return this->y * x < this->x * y; } // this < y/x
 };
@@ -75,6 +81,7 @@ enum class StaticLightTypes : uint8_t
 {
     Basic = 0,
     Lava,
+
     MaxTypes
 };
 
@@ -85,16 +92,16 @@ struct StaticLight : public Light
 
 struct LightingState
 {
-    constexpr static size_t LIGHTS_CHUNK_SIZE = AlignPowTwo64Ceil(sizeof(StaticLight) * 256);
-
-    IndexArray<Light*> LightPtrs;
+    //IndexArray<Light*> LightPtrs;
+    //SparseArray<Light*> LightPtrs;
+    SHashMap<uint32_t, Light*> LightPtrs;
 
     MemoryPool<UpdatingLight, 8192> UpdatingLightPool;
-    MemoryPool<StaticLight, 8192> StaticLightPool;
+    MemoryPool<StaticLight, 8192 * 16> StaticLightPool;
 
     SList<UpdatingLight> UpdatingLights;
     SList<StaticLight> StaticLights;
-    SList<StaticLightType> StaticLightTypes;
+    StaticArray<StaticLightType, (size_t)StaticLightTypes::MaxTypes> StaticLightTypes;
 
     IndexArray<UpdatingLight> Lights;
 
@@ -104,9 +111,10 @@ struct LightingState
     StaticArray<bool, CULL_TOTAL_TILES> CheckedTiles;
 };
 
-void ProcessLights(LightingState* lightState);
+void ProcessLights(LightingState* lightState, Game* game);
 
 uint32_t LightAddUpdating(LightingState* lightState, UpdatingLight* light);
+uint32_t LightAddStatic(LightingState* lightState, StaticLight* light);
 void LightRemove(LightingState* lightState, uint32_t lightId);
 
 

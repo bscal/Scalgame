@@ -59,7 +59,7 @@ struct SHashMap
 
 private:
 	_FORCE_INLINE_ uint32_t Hash(const K* key) const;
-	_ALWAYS_INLINE_ bool Equals(const K* k0, const K* k1) const { return *k0 == *k1; };
+	_ALWAYS_INLINE_ bool Equals(const K* k0, const K* k1) const { return *k0 == *k1; }
 
 	uint32_t FindIndexAndInsert(SHashMapBucket<K, V>* swapBucket);
 };
@@ -321,7 +321,10 @@ SHashMap<K, V, Hasher>::FindIndexAndInsert(SHashMapBucket<K, V>* swapBucket)
 				// Note: Swap out current insert with bucket
 				swapBucket->ProbeLength = probeLength;
 				probeLength = bucket->ProbeLength;
-				std::swap(*bucket, *swapBucket);
+				SHashMapBucket<K, V> temp;
+				temp = *bucket;
+				*bucket = *swapBucket;
+				*swapBucket = temp;
 
 				// We want to store pointer to our inserted element
 				if (insertIndex == HASHMAP_NOT_FOUND)

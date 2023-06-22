@@ -357,18 +357,27 @@ uint64_t SMemGetLastFrameTempUsage()
 	return LastFrameTempMemoryUsage;
 }
 
-void* operator new(size_t sz)
+// no inline, required by [replacement.functions]/3
+void* operator new(std::size_t sz)
 {
 	SLOG_INFO("[ Memory ] " "new called, size %u", sz);
-	SASSERT(sz > 0);
-	return _aligned_malloc(sz, 16);
+	if (sz == 0)
+		++sz;
+
+	void* block = _aligned_malloc(sz, 16);
+	SASSERT(block);
+	return block;
 }
 
-void* operator new[](size_t sz)
+void* operator new[](std::size_t sz)
 {
 	SLOG_INFO("[ Memory ] " "new[] called, size %u", sz);
-	SASSERT(sz > 0);
-	return _aligned_malloc(sz, 16);
+	if (sz == 0)
+		++sz;
+
+	void* block = _aligned_malloc(sz, 16);
+	SASSERT(block);
+	return block;
 }
 
 void operator delete(void* ptr) noexcept

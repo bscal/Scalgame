@@ -19,35 +19,26 @@ struct LightUpdater
 	void SetColor(uint32_t index, float distance);
 };
 
-void ThreadedLights::AllocateArrays(size_t elementCount)
+void ThreadedLights::AllocateArrays(size_t elementCount, int numOfArrays)
 {
 	size_t size = elementCount * sizeof(Vector3);
-	for (int i = 0; i < 4; ++i)
+	for (int i = 0; i < numOfArrays; ++i)
 	{
 		ColorArrayPtrs[i] = (Vector3*)SMemTempAlloc(size);
 		SMemClear(ColorArrayPtrs[i], size);
 	}
 }
 
-void ThreadedLights::UpdateLightColorArray(Vector4* finalColors) const
+void ThreadedLights::UpdateLightColorArray(Vector4* finalColors, int numOfArrays) const
 {
 	for (int i = 0; i < CULL_TOTAL_TILES; ++i)
 	{
-		finalColors[i].x += ColorArrayPtrs[0][i].x;
-		finalColors[i].y += ColorArrayPtrs[0][i].y;
-		finalColors[i].z += ColorArrayPtrs[0][i].z;
-
-		finalColors[i].x += ColorArrayPtrs[1][i].x;
-		finalColors[i].y += ColorArrayPtrs[1][i].y;
-		finalColors[i].z += ColorArrayPtrs[1][i].z;
-
-		finalColors[i].x += ColorArrayPtrs[2][i].x;
-		finalColors[i].y += ColorArrayPtrs[2][i].y;
-		finalColors[i].z += ColorArrayPtrs[2][i].z;
-
-		finalColors[i].x += ColorArrayPtrs[3][i].x;
-		finalColors[i].y += ColorArrayPtrs[3][i].y;
-		finalColors[i].z += ColorArrayPtrs[3][i].z;
+		for (int j = 0; j < numOfArrays; ++j)
+		{
+			finalColors[i].x += ColorArrayPtrs[j][i].x;
+			finalColors[i].y += ColorArrayPtrs[j][i].y;
+			finalColors[i].z += ColorArrayPtrs[j][i].z;
+		}
 	}
 }
 
@@ -229,13 +220,39 @@ ProcessOctants(ThreadedUpdater* updater, uint8_t octant, int x, Slope top, Slope
 	}
 }
 
-internal void 
+constexpr global_var Vector2i LavaLightOffsets[9] =
+{
+	{-1, -1}, {0, -1}, {1,-1},
+	{-1, 0}, {0, 0}, {1,0},
+	{-1, 1}, {0, 1}, {1,1},
+};
+constexpr global_var float Inverse = 1.0f / 255.0f;
+constexpr global_var float LavaLightWeights[9] =
+{
+		0.05f * Inverse, 0.15f * Inverse, 0.05f * Inverse,
+		0.15f * Inverse, 0.25f * Inverse, 0.15f * Inverse,
+		0.05f * Inverse, 0.15f * Inverse, 0.05f * Inverse,
+};
+
+internal void
 ProcessStaticLight(ThreadedUpdater* updater, StaticLight* light)
 {
-
+	Vector2i cullPos = WorldTileToCullTile(updater->Origin);
+	for (int i = 0; i < 9; ++i)
+	{
+		Vector2i pos = cullPos + LavaLightOffsets[i];
+		size_t idx = (size_t)pos.x + (size_t)pos.y * (size_t)updater->Width;
+		if (idx < (size_t)CULL_TOTAL_TILES)
+		{
+			updater->ColorsArray[idx].x += (float)light->Color.r * LavaLightWeights[i];
+			updater->ColorsArray[idx].y += (float)light->Color.g * LavaLightWeights[i];
+			updater->ColorsArray[idx].z += (float)light->Color.b * LavaLightWeights[i];
+		}
+	}
 }
 
-void ThreadedLightUpdate(Light* light, Vector3* threadColorsArray, ChunkedTileMap* tilemap, uint32_t lightsScreenWidth)
+void 
+ThreadedLightUpdate(Light* light, Vector3* threadColorsArray, ChunkedTileMap* tilemap, uint32_t lightsScreenWidth)
 {
 	ThreadedUpdater updater = {};
 	updater.Light = light;
@@ -244,28 +261,25 @@ void ThreadedLightUpdate(Light* light, Vector3* threadColorsArray, ChunkedTileMa
 	updater.Origin = Vector2i::FromVec2(light->Pos);
 	updater.Width = lightsScreenWidth;
 
-	TileCoord coord = WorldTileToCullTile(updater.Origin);
-	uint32_t idx = coord.x + coord.y * updater.Width;
-	SetColor(updater.ColorsArray, idx, light->Color, 0.0f);
-
 	switch (light->LightType)
 	{
-		case (0): // Updating light
+		case (LIGHT_UPDATING): // Updating light
 		{
+			TileCoord coord = WorldTileToCullTile(updater.Origin);
+			uint32_t idx = coord.x + coord.y * updater.Width;
+			SetColor(updater.ColorsArray, idx, light->Color, 0.0f);
 			for (uint8_t octant = 0; octant < 8; ++octant)
 			{
 				ProcessOctants(&updater, octant, 1, { 1, 1 }, { 0, 1 });
 			}
 		} break;
-		
-		case (1): // Static light
-		{
 
+		case (LIGHT_STATIC): // Static light
+		{
+			ProcessStaticLight(&updater, (StaticLight*)updater.Light);
 		} break;
 
 		default:
 			break;
 	}
-
-
 }
