@@ -77,7 +77,7 @@ void SHashSet<K, HashFunc>::Reserve(uint32_t capacity)
 
 	if (Size == 0)
 	{
-		Buckets = (SHashSetBucket<K>*)SRealloc(Allocator, Buckets, oldSize, newSize, MemoryTag::Tables);
+		Buckets = (SHashSetBucket<K>*)SRealloc(Allocator, Buckets, oldSize, newSize, MemoryTag::Sets);
 	}
 	else
 	{
@@ -86,7 +86,7 @@ void SHashSet<K, HashFunc>::Reserve(uint32_t capacity)
 		tmpTable.MaxSize = MaxSize;
 		tmpTable.Size = 0;
 		tmpTable.Allocator = Allocator;
-		tmpTable.Buckets = (SHashSetBucket<K>*)SAlloc(tmpTable.Allocator, newSize, MemoryTag::Tables);
+		tmpTable.Buckets = (SHashSetBucket<K>*)SAlloc(tmpTable.Allocator, newSize, MemoryTag::Sets);
 
 		for (uint32_t i = 0; i < oldCapacity; ++i)
 		{
@@ -97,7 +97,7 @@ void SHashSet<K, HashFunc>::Reserve(uint32_t capacity)
 				break;
 		}
 
-		SFree(Allocator, Buckets, oldSize, MemoryTag::Tables);
+		SFree(Allocator, Buckets, oldSize, MemoryTag::Sets);
 
 		SASSERT(Size == tmpTable.Size);
 		SLOG_DEBUG("SHashMap resized! From: %u, To: %u", oldCapacity, Capacity);
@@ -114,7 +114,7 @@ template<typename K, typename HashFunc>
 void SHashSet<K, HashFunc>::Free()
 {
 	size_t size = Capacity * sizeof(SHashSetBucket<K>);
-	SFree(Allocator, Buckets, size, MemoryTag::Tables);
+	SFree(Allocator, Buckets, size, MemoryTag::Sets);
 	SMemClear(this, sizeof(SHashSet<K, HashFunc>));
 }
 

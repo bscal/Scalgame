@@ -3,8 +3,13 @@
 #include "Core/Core.h"
 #include "Core/SMemory.h"
 
-#define SLIST_DEFAULT_RESIZE 2
 #define SLIST_NO_FOUND UINT32_MAX
+
+enum class SListResizeType
+{
+	Double = 0,
+	IncreaseByOne
+};
 
 template<typename T>
 struct SList
@@ -12,11 +17,13 @@ struct SList
 	T* Memory;
 	uint32_t Capacity;
 	uint32_t Count;
+	SListResizeType ResizeType;
 	SAllocator Allocator;
 
 	void EnsureSize(uint32_t ensuredCount); // ensures capacity and count elements
 	void Free();
 	void Reserve(uint32_t capacity); // allocated memory based on capacity
+	void Resize(); // Resizes the array, if size = 0, then size will be 1
 
 	void Push(const T* valueSrc); // Checks resize, inserts and end of array
 	T* PushNew(); // Checks resize, default constructs next element, and returns pointer
@@ -85,8 +92,8 @@ void SList<T>::Free()
 template<typename T>
 void SList<T>::Reserve(uint32_t newCapacity)
 {
-	if (newCapacity == 0) newCapacity = 1;
-	if (newCapacity <= Capacity) return;
+	if (newCapacity <= Capacity)
+		return;
 
 	size_t oldSize = MemUsed();
 	size_t newSize = newCapacity * sizeof(T);
@@ -97,13 +104,25 @@ void SList<T>::Reserve(uint32_t newCapacity)
 }
 
 template<typename T>
+void SList<T>::Resize()
+{
+	uint32_t capacity = Capacity;
+	if (capacity == 0 || ResizeType == SListResizeType::IncreaseByOne)
+		++capacity;
+	else
+		capacity *= 2;
+
+	Reserve(capacity);
+}
+
+template<typename T>
 void SList<T>::Push(const T* valueSrc)
 {
 	SASSERT(valueSrc);
 	SASSERT(Count <= Capacity);
 	if (Count == Capacity)
 	{
-		Reserve(Capacity * SLIST_DEFAULT_RESIZE);
+		Resize();
 	}
 	Memory[Count] = *valueSrc;
 	++Count;
@@ -115,7 +134,7 @@ T* SList<T>::PushNew()
 	SASSERT(Count <= Capacity);
 	if (Count == Capacity)
 	{
-		Reserve(Capacity * SLIST_DEFAULT_RESIZE);
+		Resize();
 	}
 	
 	uint32_t index = Count;
@@ -132,7 +151,7 @@ void SList<T>::PushAt(uint32_t index, const T* valueSrc)
 	SASSERT(Count <= Capacity);
 	if (Count == Capacity)
 	{
-		Reserve(Capacity * SLIST_DEFAULT_RESIZE);
+		Resize();
 	}
 	if (index != Count)
 	{
@@ -153,7 +172,7 @@ void SList<T>::PushAtFast(uint32_t index, const T* valueSrc)
 	SASSERT(Count <= Capacity);
 	if (Count == Capacity)
 	{
-		Reserve(Capacity * SLIST_DEFAULT_RESIZE);
+		Resize();
 	}
 	if (Count > 1)
 	{

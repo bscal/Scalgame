@@ -7,7 +7,6 @@
 #include "Structures/StaticArray.h"
 #include "Structures/SList.h"
 #include "Structures/IndexArray.h"
-#include "Structures/SparseArray.h"
 #include "Structures/SHashMap.h"    
 
 struct GameApplication;
@@ -92,23 +91,14 @@ struct StaticLight : public Light
 
 struct LightingState
 {
-    //IndexArray<Light*> LightPtrs;
-    //SparseArray<Light*> LightPtrs;
-    SHashMap<uint32_t, Light*> LightPtrs;
-
+    IndexArray<Light*> LightPtrs;
     MemoryPool<UpdatingLight, 8192> UpdatingLightPool;
     MemoryPool<StaticLight, 8192 * 16> StaticLightPool;
 
-    SList<UpdatingLight> UpdatingLights;
-    SList<StaticLight> StaticLights;
     StaticArray<StaticLightType, (size_t)StaticLightTypes::MaxTypes> StaticLightTypes;
 
-    IndexArray<UpdatingLight> Lights;
-
-    Vector2 PlayerLookVector; // TODO maybe move this
-    uint32_t NumOfLightsUpdatedThisFrame;
-
-    StaticArray<bool, CULL_TOTAL_TILES> CheckedTiles;
+    uint32_t NumOfUpdatingLights;
+    uint32_t NumOfStaticLights;
 };
 
 void ProcessLights(LightingState* lightState, Game* game);
@@ -117,17 +107,11 @@ uint32_t LightAddUpdating(LightingState* lightState, UpdatingLight* light);
 uint32_t LightAddStatic(LightingState* lightState, StaticLight* light);
 void LightRemove(LightingState* lightState, uint32_t lightId);
 
-
-
-uint32_t LightAddEntityLight();
-
 void DrawStaticLights(ChunkedTileMap* tilemap, const StaticLight* light);
 void DrawStaticTileLight(Vector2i tilePos, Color color, StaticLightTypes type);
 void DrawStaticLavaLight(Vector2i tilePos, Color color);
 
 void LightsInitialize(LightingState* lightingState);
-void LightsAddUpdating(const UpdatingLight& light);
-void LightsAddStatic(const StaticLight& light);
 
 void LightsUpdate(LightingState* lightingState, Game* game);
 uint32_t GetNumOfLights();

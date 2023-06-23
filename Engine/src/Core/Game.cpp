@@ -374,7 +374,6 @@ HandleGameInput(GameApplication* gameApp, Game* game)
 			light.Colors[3] = { 0xbf, 0x05, 0x00, 255 };
 			light.Color = light.Colors[0];
 			light.Radius = light.MaxIntensity;
-			//LightsAddUpdating(light);
 			LightAddUpdating(&GetGame()->LightingState, &light);
 		}
 	}
@@ -384,19 +383,6 @@ HandleGameInput(GameApplication* gameApp, Game* game)
 		if (CTileMap::IsTileInBounds(&game->Universe.World.ChunkedTileMap, clickedTilePos))
 		{
 			CTileMap::GetTile(&game->Universe.World.ChunkedTileMap, clickedTilePos)->HasCeiling = true;
-		}
-	}
-	if (IsKeyPressed(KEY_SEMICOLON))
-	{
-		Vector2i clickedTilePos = GetTileFromMouse(game);
-		if (CTileMap::IsTileInBounds(&game->Universe.World.ChunkedTileMap, clickedTilePos))
-		{
-			StaticLight light = {};
-			light.Pos = clickedTilePos.AsVec2();
-			light.Radius = 5.0f;
-			light.Color = BLUE;
-			light.StaticLightType = StaticLightTypes::Lava;
-			LightsAddStatic(light);
 		}
 	}
 

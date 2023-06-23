@@ -329,7 +329,7 @@ void OnEquipTorch(WorldEntity* entity, ItemStack* stack, uint8_t slot)
 	light.Colors[3] = { 0xbf, 0x05, 0x00, 255 };
 	light.Color = light.Colors[0];
 	light.Radius = light.MaxIntensity;
-	LightsAddUpdating(light);
+	LightAddUpdating(&GetGame()->LightingState, &light);
 }
 
 void InitializeItems(Game* game)

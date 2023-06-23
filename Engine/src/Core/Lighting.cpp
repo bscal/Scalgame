@@ -1,6 +1,7 @@
 #include "Lighting.h"
 
 #include "Game.h"
+#include "Entity.h"
 #include "ThreadedLights.h"
 #include "Structures/SHashSet.h"
 #include "Structures/SLinkedList.h"
@@ -18,9 +19,6 @@
 
 void LightsInitialize(LightingState* lightingState)
 {
-	lightingState->UpdatingLights.Reserve(64);
-	lightingState->StaticLights.Reserve(64);
-
 	float table[] = {
 		0.0f, 0.0f, 0.1f, 0.0f, 0.0f,
 		0.0f, 0.1f, 0.2f, 0.1f, 0.0f,
@@ -146,8 +144,8 @@ void ProcessLights(LightingState* lightState, Game* game)
 
 	ChunkedTileMap* tilemap = &game->Universe.World.ChunkedTileMap;
 
-	uint32_t totalLights = lightState->LightPtrs.Capacity;
-	uint32_t totalThreads = wi::jobsystem::GetThreadCount();
+	uint32_t totalLights = lightState->LightPtrs.Data.Capacity;
+	uint32_t totalThreads = wi::jobsystem::GetThreadCount() - 1;
 	if (totalThreads >= LIGHT_MAX_THEADS)
 		totalThreads = LIGHT_MAX_THEADS;
 
@@ -156,6 +154,7 @@ void ProcessLights(LightingState* lightState, Game* game)
 	ThreadedLights threadedLights = {};
 	threadedLights.AllocateArrays(CULL_TOTAL_TILES, totalThreads);
 
+
 	std::function<void(wi::jobsystem::JobArgs)> task = [lightState, tilemap, &threadedLights](wi::jobsystem::JobArgs job)
 	{
 		PROFILE_BEGIN_EX("LightsUpdate::LightThread");
@@ -163,13 +162,13 @@ void ProcessLights(LightingState* lightState, Game* game)
 		uint32_t lightIndex = job.jobIndex;
 		uint32_t threadIndex = job.groupID;
 
-		SASSERT(lightIndex < lightState->LightPtrs.Capacity);
-		SASSERT(threadIndex < LIGHT_MAX_THEADS);
+		SASSERT(lightIndex < lightState->LightPtrs.Data.Capacity);
+		SASSERT(threadIndex < wi::jobsystem::GetThreadCount() - 1);
 
-		auto lightPtr = &lightState->LightPtrs.Buckets[lightIndex];
-		if (lightPtr->Occupied)
+		Light** lightPtr = lightState->LightPtrs.At(lightIndex);
+		if (lightPtr)
 		{
-			Light* light = lightPtr->Value;
+			Light* light = *lightPtr;
 			if (TileInsideCullRect(Vector2i::FromVec2(light->Pos)))
 			{
 				Vector3* threadArray = threadedLights.ColorArrayPtrs[threadIndex];
@@ -190,12 +189,11 @@ void ProcessLights(LightingState* lightState, Game* game)
 	PROFILE_END();
 }
 
-static uint32_t LightIds;
-
 uint32_t LightAddUpdating(LightingState* lightState, UpdatingLight* light)
 {
 	SASSERT(lightState);
 	SASSERT(light);
+
 	UpdatingLight* lightDst = lightState->UpdatingLightPool.allocate();
 	SASSERT(lightDst);
 	
@@ -203,8 +201,9 @@ uint32_t LightAddUpdating(LightingState* lightState, UpdatingLight* light)
 
 	lightDst->LightType = LIGHT_UPDATING;
 
-	uint32_t id = LightIds++;
-	lightState->LightPtrs.Insert(&id, (Light**)&lightDst);
+	++lightState->NumOfUpdatingLights;
+
+	uint32_t id = lightState->LightPtrs.Add((Light**)&lightDst);
 	return id;
 	//return lightState->LightPtrs.Add((Light**)&lightDst);
 }
@@ -219,18 +218,18 @@ uint32_t LightAddStatic(LightingState* lightState, StaticLight* light)
 	memcpy(lightDst, light, sizeof(StaticLight));
 
 	lightDst->LightType = LIGHT_STATIC;
-	uint32_t id = LightIds++;
-	lightState->LightPtrs.Insert(&id, (Light**)&lightDst);
+
+	++lightState->NumOfStaticLights;
+
+	uint32_t id = lightState->LightPtrs.Add((Light**)&lightDst);
 	return id;
 }
 
 void LightRemove(LightingState* lightState, uint32_t lightId)
 {
-	Light** lightPtr = lightState->LightPtrs.Get(&lightId);
+	Light** lightPtr = lightState->LightPtrs.RemoveAndGetPtr(lightId);
 	if (!lightPtr)
 		return;
-
-	lightState->LightPtrs.Remove(&lightId);
 
 	Light* light = *lightPtr;
 	SASSERT(light);
@@ -239,11 +238,13 @@ void LightRemove(LightingState* lightState, uint32_t lightId)
 		case (LIGHT_UPDATING):
 		{
 			lightState->UpdatingLightPool.deallocate((UpdatingLight*)light);
+			--lightState->NumOfUpdatingLights;
 		} break;
 
 		case (LIGHT_STATIC):
 		{
 			lightState->StaticLightPool.deallocate((StaticLight*)light);
+			--lightState->NumOfStaticLights;
 		} break;
 
 		default:
@@ -254,19 +255,10 @@ void LightRemove(LightingState* lightState, uint32_t lightId)
 	}
 }
 
-void LightsAddUpdating(const UpdatingLight& light)
-{
-	GetGame()->LightingState.UpdatingLights.Push(&light);
-}
-
-void LightsAddStatic(const StaticLight& light)
-{
-	GetGame()->LightingState.StaticLights.Push(&light);
-}
 
 uint32_t GetNumOfLights()
 {
-	return GetGame()->LightingState.UpdatingLights.Count + GetGame()->LightingState.StaticLights.Count;
+	return GetGame()->LightingState.NumOfUpdatingLights + GetGame()->LightingState.NumOfStaticLights;
 }
 
 void UpdatingLight::Update(Game* game)
@@ -316,7 +308,7 @@ void LightsUpdate(LightingState* lightingState, Game* game)
 {
 	ProcessLights(lightingState, game);
 	return;
-
+	/*
 	PROFILE_BEGIN();
 
 	GetGameApp()->NumOfLightsUpdated = 0;
@@ -341,7 +333,6 @@ void LightsUpdate(LightingState* lightingState, Game* game)
 	Vector2i playerPos = GetClientPlayer()->TilePos;
 	TileDirection playerDir = GetClientPlayer()->LookDir;
 	Vector2i lookDir = Vec2i_NEIGHTBORS[(uint8_t)playerDir];
-	lightingState->PlayerLookVector = Vector2Normalize(lookDir.AsVec2());
 
 #if USE_THREADED_LIGHTS
 	ThreadedLights threadedLights = {};
@@ -351,7 +342,6 @@ void LightsUpdate(LightingState* lightingState, Game* game)
 	{
 		PROFILE_BEGIN_EX("LightsUpdate::LightThread");
 		uint32_t lightIndex = job.jobIndex;
-		SASSERT(lightIndex < lightingState->UpdatingLights.Count);
 		uint32_t threadIndex = job.groupID;
 		SASSERT(threadIndex < 4);
 
@@ -447,6 +437,7 @@ void LightsUpdate(LightingState* lightingState, Game* game)
 
 	GetGameApp()->DebugLightTime = GetTime() - start;
 	PROFILE_END();
+	*/
 }
 
 
@@ -465,9 +456,9 @@ internal void SetVisible(ChunkedTileMap* tilemap, int x, int y, Vector2i origin,
 	newPos.y += x * TranslationTable[octant][2] + y * TranslationTable[octant][3];
 #if ENABLE_CONE_FOV
 	constexpr float coneFov = (80.0f * DEG2RAD);
-	Vector2i length = newPos.Subtract(GetClientPlayer()->TilePos);
-
-	float dot = Vector2LineAngle(GetGame()->LightingState.PlayerLookVector, Vector2Normalize(length.AsVec2()));
+	Vector2 lookVector = TileDirectionVectors[(uint8_t)GetClientPlayer()->LookDir];
+	Vector2 length = Vector2Normalize(newPos.Subtract(GetClientPlayer()->TilePos).AsVec2());
+	float dot = Vector2LineAngle(lookVector, length);
 	if (dot < coneFov)
 		CTileMap::SetVisible(tilemap, newPos);
 #else
@@ -683,11 +674,11 @@ ComputeLightShadowCast(ChunkedTileMap* tilemap, const Light* light,
 			{
 				TileCoord coord = WorldTileToCullTile(txty);
 				int index = coord.x + coord.y * CULL_WIDTH_TILES;
-				if (!GetGame()->LightingState.CheckedTiles[index])
-				{
-					GetGame()->LightingState.CheckedTiles[index] = true;
+				//if (!GetGame()->LightingState.CheckedTiles[index])
+				//{
+					//GetGame()->LightingState.CheckedTiles[index] = true;
 					LightsUpdateTileColor(index, distance, light);
-				}
+				//}
 			}
 
 			// NOTE: use the next line instead if you want the algorithm to be symmetrical

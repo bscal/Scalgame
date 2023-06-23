@@ -21,7 +21,9 @@ enum class MemoryTag : uint8_t
 	Unknown = 0,
 	Arrays,
 	Lists,
+	LinkedList,
 	Tables,
+	Sets,
 	Strings,
 	Game,
 	UI,
@@ -37,7 +39,9 @@ constexpr static const char* MemoryTagStrings[(uint8_t)MemoryTag::MaxTags] =
 	"Unknown",
 	"Arrays",
 	"Lists",
+	"LinkedList",
 	"Tables",
+	"Sets",
 	"Strings",
 	"Game",
 	"UI",
@@ -88,7 +92,7 @@ uint64_t SMemGetAllocated();
 uint64_t SMemGetLastFrameTempUsage();
 
 #define SMEM_USE_TAGS 1
-#define SMEM_PRINT_ALLOCATIONS 1
+#define SMEM_PRINT_ALLOCATIONS 0
 
 #if SMEM_USE_TAGS
 

@@ -38,7 +38,7 @@ SLinkedList<T>::CreateEntry(const T* value) const
 {
 	SASSERT(value);
 
-	SLinkedListEntry<T>* entry = (SLinkedListEntry<T>*)SAlloc(Allocator, Stride(), MemoryTag::Lists);
+	SLinkedListEntry<T>* entry = (SLinkedListEntry<T>*)SAlloc(Allocator, Stride(), MemoryTag::LinkedList);
 	SASSERT(entry);
 	entry->Next = First;
 	entry->Value = *value;
@@ -51,7 +51,7 @@ SLinkedList<T>::FreeEntry(SLinkedListEntry<T>* entry) const
 {
 	SASSERT(entry);
 	SLinkedListEntry<T>* next = entry->Next;
-	SFree(Allocator, entry, Stride(), MemoryTag::Lists);
+	SFree(Allocator, entry, Stride(), MemoryTag::LinkedList);
 	return next;
 }
 
