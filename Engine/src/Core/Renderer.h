@@ -28,14 +28,10 @@ struct TileMapRenderer
 	RenderTexture2D TileMapTexture;
 	RenderTexture2D TileDataTexture;
 
-	int UniformViewOffsetLoc;
-	int UniformViewPortSizeLoc;
-	int UniformInverseTileTextureSizeLoc;
-	int UniformInverseTileSizeLoc;
 	int UniformTilesLoc;
 	int UniformSpriteLoc;
-	int UniformInverseSpriteTextureSizeLoc;
-	int UniformTileSizeLoc;
+	int UniformMapTilesCountX;
+	int UniformMapTilesCountY;
 
 	StaticArray<TileTexValues, CULL_TOTAL_TILES> Tiles;
 
@@ -64,7 +60,7 @@ struct LightingRenderer
 
 	void Initialize(Game* game);
 	void Free();
-	void Draw();
+	void Draw(Rectangle dstRect);
 };
 
 struct Renderer

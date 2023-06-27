@@ -174,11 +174,16 @@ void TileMapRenderer::Initialize(Game* game)
 
 	UniformTilesLoc = GetShaderLocation(TileMapShader, "mapData");
 	UniformSpriteLoc = GetShaderLocation(TileMapShader, "textureAtlas");
+	UniformMapTilesCountX = GetShaderLocation(TileMapShader, "mapTilesCountX");
+	UniformMapTilesCountY = GetShaderLocation(TileMapShader, "mapTilesCountY");
 
-	int width = CULL_WIDTH;
-	int height = CULL_HEIGHT;
-	TileMapTexture = SLoadRenderTexture(width, height, PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
-	TileDataTexture = SLoadRenderTexture(width / TILE_SIZE, height / TILE_SIZE, PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
+	float mapTileCountX = CULL_WIDTH_TILES;
+	float mapTileCountY = CULL_HEIGHT_TILES;
+	SetShaderValue(TileMapShader, UniformMapTilesCountX, &mapTileCountX, RL_SHADER_UNIFORM_FLOAT);
+	SetShaderValue(TileMapShader, UniformMapTilesCountY, &mapTileCountY, RL_SHADER_UNIFORM_FLOAT);
+
+	TileMapTexture = SLoadRenderTexture(CULL_WIDTH, CULL_HEIGHT, PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
+	TileDataTexture = SLoadRenderTexture(CULL_WIDTH_TILES, CULL_HEIGHT_TILES, PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
 }
 
 void TileMapRenderer::Free()
@@ -225,10 +230,8 @@ void LightingRenderer::Initialize(Game* game)
 	LOSColor = { 0.0f, 0.0f, 0.0f };
 	LightIntensity = 1.0f;
 
-	int width = CULL_WIDTH;
-	int height = CULL_HEIGHT;
-	LightingTexture = SLoadRenderTexture(width, height, PIXELFORMAT_UNCOMPRESSED_R32G32B32A32);
-	ColorsTexture = SLoadRenderTexture(width / TILE_SIZE, height / TILE_SIZE, PIXELFORMAT_UNCOMPRESSED_R32G32B32A32);
+	LightingTexture = SLoadRenderTexture(CULL_WIDTH, CULL_HEIGHT, PIXELFORMAT_UNCOMPRESSED_R32G32B32A32);
+	ColorsTexture = SLoadRenderTexture(CULL_WIDTH_TILES, CULL_HEIGHT_TILES, PIXELFORMAT_UNCOMPRESSED_R32G32B32A32);
 }
 
 void LightingRenderer::Free()
@@ -238,7 +241,7 @@ void LightingRenderer::Free()
 	UnloadRenderTexture(LightingTexture);
 }
 
-void LightingRenderer::Draw()
+void LightingRenderer::Draw(Rectangle dstRect)
 {
 	PROFILE_BEGIN_EX("LightingRenderer::Draw");
 	Rectangle src;
@@ -246,12 +249,6 @@ void LightingRenderer::Draw()
 	src.y = 0;
 	src.width = (float)ColorsTexture.texture.width;
 	src.height = (float)ColorsTexture.texture.height;
-
-	Rectangle dst;
-	dst.x = GetGameApp()->CullRect.x - HALF_TILE_SIZE;
-	dst.y = GetGameApp()->CullRect.y - HALF_TILE_SIZE;
-	dst.width = (float)LightingTexture.texture.width;
-	dst.height = (float)LightingTexture.texture.height;
 
 	SASSERT(sizeof(Tiles[0]) == (sizeof(float) * 4));
 
@@ -274,7 +271,7 @@ void LightingRenderer::Draw()
 	SetShaderValue(LightingShader, UniformSunlight, &SunlightColor, SHADER_UNIFORM_VEC3);
 	SetShaderValue(LightingShader, UniformLOSColor, &LOSColor, SHADER_UNIFORM_VEC3);
 	SetShaderValueTexture(LightingShader, UniformWorldMap, GetGame()->TileMapRenderer.TileDataTexture.texture);
-	SDrawTextureProF(ColorsTexture.texture, src, dst, { 0 }, 0.0f, color);
+	SDrawTextureProF(ColorsTexture.texture, src, dstRect, { 0 }, 0.0f, color);
 	EndMode2D();
 
 	EndShaderMode();

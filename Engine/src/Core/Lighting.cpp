@@ -136,57 +136,34 @@ void DrawStaticLavaLight(Vector2i tilePos, Color color)
 	}
 }
 
-void ProcessLights(LightingState* lightState, Game* game)
+internal void UpdatingLightUpdate(Light* lightPtr, Game* game, float dt)
 {
-	PROFILE_BEGIN();
+	SASSERT(lightPtr);
+	SASSERT(game);
+	UpdatingLight* light = (UpdatingLight*)lightPtr;
 
-	double start = GetTime();
-
-	ChunkedTileMap* tilemap = &game->Universe.World.ChunkedTileMap;
-
-	uint32_t totalLights = lightState->LightPtrs.Data.Capacity;
-	uint32_t totalThreads = wi::jobsystem::GetThreadCount() - 1;
-	if (totalThreads >= LIGHT_MAX_THEADS)
-		totalThreads = LIGHT_MAX_THEADS;
-
-	uint32_t groupSize = (uint32_t)std::ceil((float)totalLights / (float)totalThreads);
-
-	ThreadedLights threadedLights = {};
-	threadedLights.AllocateArrays(CULL_TOTAL_TILES, totalThreads);
-
-
-	std::function<void(wi::jobsystem::JobArgs)> task = [lightState, tilemap, &threadedLights](wi::jobsystem::JobArgs job)
+	if (light->EntityId != ENT_NOT_FOUND)
 	{
-		PROFILE_BEGIN_EX("LightsUpdate::LightThread");
+		WorldEntity* entity = (WorldEntity*)GetEntity(light->EntityId);
+		SASSERT(entity);
+		if (entity)
+			light->Pos = entity->TilePos.AsVec2();
+	}
 
-		uint32_t lightIndex = job.jobIndex;
-		uint32_t threadIndex = job.groupID;
+	light->LastUpdate += dt;
+	if (light->LastUpdate > UpdatingLight::UPDATE_RATE)
+	{
+		light->LastUpdate = 0.0f;
 
-		SASSERT(lightIndex < lightState->LightPtrs.Data.Capacity);
-		SASSERT(threadIndex < wi::jobsystem::GetThreadCount() - 1);
-
-		Light** lightPtr = lightState->LightPtrs.At(lightIndex);
-		if (lightPtr)
+		SRandom* threadedRandom = GetThreadSRandom();
+		float rand = SRandNextFloat(threadedRandom);
+		if (rand < 0.35f)
 		{
-			Light* light = *lightPtr;
-			if (TileInsideCullRect(Vector2i::FromVec2(light->Pos)))
-			{
-				Vector3* threadArray = threadedLights.ColorArrayPtrs[threadIndex];
-				ThreadedLightUpdate(light, threadArray, tilemap, CULL_WIDTH_TILES);
-			}
+			uint64_t index = SRandNextRange(threadedRandom, 0, 3);
+			light->Color = light->Colors[index];
 		}
-		PROFILE_END();
-	};
-
-	wi::jobsystem::context ctx = {};
-	wi::jobsystem::Dispatch(ctx, totalLights, groupSize, task, 0);
-	wi::jobsystem::Wait(ctx);
-
-	threadedLights.UpdateLightColorArray(game->LightingRenderer.Tiles.Data, totalThreads);
-
-	GetGameApp()->DebugLightTime = GetTime() - start;
-
-	PROFILE_END();
+		light->Radius = SRandNextFloatRange(threadedRandom, light->MinIntensity, light->MaxIntensity);
+	}
 }
 
 uint32_t LightAddUpdating(LightingState* lightState, UpdatingLight* light)
@@ -200,6 +177,7 @@ uint32_t LightAddUpdating(LightingState* lightState, UpdatingLight* light)
 	memcpy(lightDst, light, sizeof(UpdatingLight));
 
 	lightDst->LightType = LIGHT_UPDATING;
+	lightDst->UpdateFunc = UpdatingLightUpdate;
 
 	++lightState->NumOfUpdatingLights;
 
@@ -261,22 +239,6 @@ uint32_t GetNumOfLights()
 	return GetGame()->LightingState.NumOfUpdatingLights + GetGame()->LightingState.NumOfStaticLights;
 }
 
-void UpdatingLight::Update(Game* game)
-{
-	LastUpdate -= GetDeltaTime();
-	if (LastUpdate < 0)
-	{
-		LastUpdate = UpdatingLight::UPDATE_RATE;
-		float rand = SRandNextFloat(GetGlobalRandom());
-		if (rand < 0.35f)
-		{
-			uint64_t index = SRandNextRange(GetGlobalRandom(), 0, 3);
-			Color = Colors[index];
-		}
-		Radius = SRandNextFloatRange(GetGlobalRandom(), MinIntensity, MaxIntensity);
-	}
-}
-
 // Cone Field of view
 
 #define ENABLE_CONE_FOV 1
@@ -304,10 +266,90 @@ internal void
 ComputeLightShadowCast(ChunkedTileMap* tilemap, const Light* light,
 	uint8_t octant, int x, Slope top, Slope bottom);
 
-void LightsUpdate(LightingState* lightingState, Game* game)
+void LightsUpdate(LightingState* lightState, Game* game)
 {
-	ProcessLights(lightingState, game);
-	return;
+	PROFILE_BEGIN();
+
+	double start = GetTime();
+
+	ChunkedTileMap* tilemap = &game->Universe.World.ChunkedTileMap;
+
+	// Threaded lighting
+
+	uint32_t totalLights = lightState->LightPtrs.Data.Capacity;
+	uint32_t totalThreads = wi::jobsystem::GetThreadCount() - 1;
+	if (totalThreads >= LIGHT_MAX_THEADS)
+		totalThreads = LIGHT_MAX_THEADS;
+
+	uint32_t groupSize = (uint32_t)std::ceil((float)totalLights / (float)totalThreads);
+
+	ThreadedLights threadedLights = {};
+	threadedLights.AllocateArrays(CULL_TOTAL_TILES, totalThreads);
+
+
+	std::function<void(wi::jobsystem::JobArgs)> task = [lightState, tilemap, &threadedLights](wi::jobsystem::JobArgs job)
+	{
+		PROFILE_BEGIN_EX("LightsUpdate::LightThread");
+
+		uint32_t lightIndex = job.jobIndex;
+		uint32_t threadIndex = job.groupID;
+
+		SASSERT(lightIndex < lightState->LightPtrs.Data.Capacity);
+		SASSERT(threadIndex < wi::jobsystem::GetThreadCount() - 1);
+
+		Light** lightPtr = lightState->LightPtrs.At(lightIndex);
+		if (lightPtr)
+		{
+			Light* light = *lightPtr;
+			if (TileInsideCullRect(Vector2i::FromVec2(light->Pos)))
+			{
+				Vector3* threadArray = threadedLights.ColorArrayPtrs[threadIndex];
+				ThreadedLightUpdate(light, threadArray, tilemap, CULL_WIDTH_TILES);
+			}
+		}
+		PROFILE_END();
+	};
+
+	wi::jobsystem::context ctx = {};
+	wi::jobsystem::Dispatch(ctx, totalLights, groupSize, task, 0);
+
+	// Line of sight
+
+	Vector2i playerPos = GetClientPlayer()->TilePos;
+	if (CTileMap::IsTileInBounds(tilemap, playerPos))
+	{
+		// Tiles around player are always visible
+		CTileMap::SetVisible(tilemap, playerPos);
+		for (int i = 0; i < ArrayLength(Vec2i_NEIGHTBORS); ++i)
+		{
+			Vector2i pos = Vec2i_NEIGHTBORS[i].Add(playerPos);
+			CTileMap::SetVisible(tilemap, pos);
+		}
+
+		// FOV visiblity
+#if ENABLE_CONE_FOV
+		uint8_t playerDirection = (uint8_t)GetClientPlayer()->LookDir;
+		for (uint8_t octant = 0; octant < 4; ++octant)
+		{
+			uint8_t trueOctant = OctantsForDirection[playerDirection][octant];
+			ComputeOctant(tilemap, trueOctant, playerPos, 16, 1, { 1, 1 }, { 0, 1 });
+		}
+#else
+		for (uint8_t octant = 0; octant < 8; ++octant)
+		{
+			ComputeOctant(tilemap, octant, playerPos, 16, 1, { 1, 1 }, { 0, 1 });
+		}
+#endif
+	}
+
+	wi::jobsystem::Wait(ctx);
+
+	threadedLights.UpdateLightColorArray(game->LightingRenderer.Tiles.Data, totalThreads);
+
+	GetGameApp()->DebugLightTime = GetTime() - start;
+
+	PROFILE_END();
+
 	/*
 	PROFILE_BEGIN();
 

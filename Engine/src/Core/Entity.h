@@ -118,12 +118,13 @@ struct CreatureData
 struct WorldEntity
 {
 	Vector2i TilePos;
-	Color Color;
+	uint32_t Uid;
 	uint32_t StorageIdx;
+	Color Color;
 	TileDirection LookDir;
 	EntityTypes EntityType;
 
-	_ALWAYS_INLINE_ Vector2 AsPosition() const { return { TilePos.x * TILE_SIZE_F, TilePos.y * TILE_SIZE_F }; }
+	_ALWAYS_INLINE_ Vector2 AsPosition() const { return { floorf(TilePos.x * TILE_SIZE_F), floorf(TilePos.y * TILE_SIZE_F) }; }
 };
 
 struct Creature
@@ -172,13 +173,11 @@ struct Player : public WorldEntity
 	PlayerClient PlayerClient;
 	Creature Creature;
 	Character Character;
-	uint32_t Uid;
 };
 
 struct Monster : public WorldEntity
 {
 	Creature Creature;
-	uint32_t Uid;
 };
 
 struct EntityManager

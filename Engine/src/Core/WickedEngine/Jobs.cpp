@@ -1,10 +1,7 @@
 #include "Jobs.h"
 
-
 #include "Core/Core.h"
 #include "Core/Structures/SList.h"
-
-//#include "rpmalloc/rpmalloc.h"
 
 #include <memory>
 #include <algorithm>
@@ -171,7 +168,7 @@ void Initialize(uint32_t maxThreadCount)
 	for (uint32_t threadID = 0; threadID < internal_state.numThreads; ++threadID)
 	{
 		std::thread* thread = internal_state.threads.PushNew();
-		*thread = std::thread(std::move([threadID]
+		*thread = std::thread([threadID]
 			{
 
 				while (internal_state.alive.load())
@@ -183,7 +180,7 @@ void Initialize(uint32_t maxThreadCount)
 					internal_state.wakeCondition.wait(lock);
 				}
 
-			}));
+			});
 
 		//std::thread* thread = internal_state.threads.PushNew();
 		//internal_state.threads.emplace_back([threadID]

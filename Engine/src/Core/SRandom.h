@@ -23,6 +23,8 @@ struct SRandom
 	uint64_t Seed3;
 };
 
+SRandom* GetThreadSRandom();
+
 void SRandomInitialize(SRandom* state, uint64_t seed);
 
 uint64_t SRandNext(SRandom* state);

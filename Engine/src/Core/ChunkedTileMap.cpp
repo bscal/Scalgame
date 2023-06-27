@@ -297,8 +297,8 @@ GetTile(ChunkedTileMap* tilemap, TileCoord tilePos)
 TileCoord WorldToTile(Vector2 pos)
 {
 	Vector2i v;
-	v.x = (int)(floorf(pos.x / TILE_SIZE_F));
-	v.y = (int)(floorf(pos.y / TILE_SIZE_F));
+	v.x = (int)floorf((pos.x / TILE_SIZE_F));
+	v.y = (int)floorf((pos.y / TILE_SIZE_F));
 	return v;
 }
 

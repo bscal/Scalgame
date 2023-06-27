@@ -63,11 +63,14 @@ struct GameApplication
     
     SRandom GlobalRandom;
 
+    Rectangle Viewport;
+    Rectangle CullRect;
+
     Vector2 ScreenXY; // Camera top left corner
+    Vector2 MapXY;
     Vector2i ScreenXYTiles;
     Vector2i CullXYTiles;
-    Rectangle CullRect;
-    Rectangle UpdateRect;
+
     Vector2 HalfWidthHeight;
     
     double RenderTime;

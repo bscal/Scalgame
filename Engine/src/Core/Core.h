@@ -114,36 +114,40 @@ struct MemorySizeData
 	char BytePrefix;
 };
 
-global_var constexpr float TAO = static_cast<float>(PI) * 2.0f;
+constexpr global_var float TAO = static_cast<float>(PI) * 2.0f;
 
-global_var constexpr size_t SIZEOF_I64_BITS = (sizeof(uint64_t) * 8);
+constexpr global_var size_t SIZEOF_I64_BITS = (sizeof(uint64_t) * 8);
+
+//1280 	720, 1600 900
 
 // TODO: should probably move resolution to another place
-global_var constexpr int SCREEN_WIDTH = 1600;
-global_var constexpr int SCREEN_HEIGHT = 900;
+//constexpr global_var int SCREEN_WIDTH = 1280;
+//constexpr global_var int SCREEN_HEIGHT = 720;
+//constexpr global_var Vector2 SCREEN_CENTER = { (float)SCREEN_WIDTH / 2.0f, (float)SCREEN_HEIGHT / 2.0f };
 
-global_var constexpr int TILE_SIZE = 16;
-global_var constexpr float TILE_SIZE_F = static_cast<float>(TILE_SIZE);
-global_var constexpr float INVERSE_TILE_SIZE = 1.0f / TILE_SIZE_F;
-global_var constexpr float HALF_TILE_SIZE = TILE_SIZE_F / 2.0f;
+constexpr global_var int TILE_SIZE = 16;
+constexpr global_var float TILE_SIZE_F = static_cast<float>(TILE_SIZE);
+constexpr global_var float INVERSE_TILE_SIZE = 1.0f / TILE_SIZE_F;
+constexpr global_var float HALF_TILE_SIZE = TILE_SIZE_F / 2.0f;
 
-global_var constexpr int SCREEN_WIDTH_TILES = SCREEN_WIDTH / TILE_SIZE;
-global_var constexpr int SCREEN_HEIGHT_TILES = SCREEN_HEIGHT / TILE_SIZE;
-global_var constexpr Vector2 SCREEN_CENTER = { (float)SCREEN_WIDTH / 2.0f, (float)SCREEN_HEIGHT / 2.0f };
+constexpr global_var int SCREEN_W = 1280;
+constexpr global_var int SCREEN_H = 720;
+constexpr global_var int SCREEN_WIDTH_TILES = ((SCREEN_W / TILE_SIZE) % 2 == 0) ? SCREEN_W / TILE_SIZE + 1 : SCREEN_W / TILE_SIZE + 1;
+constexpr global_var int SCREEN_HEIGHT_TILES = ((SCREEN_H / TILE_SIZE) % 2 == 0) ? SCREEN_H / TILE_SIZE +1 : SCREEN_H / TILE_SIZE + 1;
 
-global_var constexpr int CULL_PADDING_TOTAL_TILES = 4;
-global_var constexpr float CULL_PADDING_EDGE_PIXELS = 2 * TILE_SIZE_F;
-global_var constexpr int CULL_WIDTH_TILES = (SCREEN_WIDTH / TILE_SIZE) + CULL_PADDING_TOTAL_TILES;
-global_var constexpr int CULL_HEIGHT_TILES = (SCREEN_HEIGHT / TILE_SIZE) + CULL_PADDING_TOTAL_TILES;
-global_var constexpr int CULL_WIDTH = CULL_WIDTH_TILES * TILE_SIZE;
-global_var constexpr int CULL_HEIGHT = CULL_HEIGHT_TILES * TILE_SIZE;
-global_var constexpr int CULL_TOTAL_TILES = CULL_WIDTH_TILES * CULL_HEIGHT_TILES;
-
-global_var constexpr int CHUNK_DIMENSIONS = 64;
-global_var constexpr int CHUNK_SIZE = CHUNK_DIMENSIONS * CHUNK_DIMENSIONS;
+constexpr global_var int CULL_PADDING_TOTAL_TILES = 0;
+constexpr global_var float CULL_PADDING_EDGE_PIXELS = (CULL_PADDING_TOTAL_TILES / 2) * TILE_SIZE_F;
+constexpr global_var int CULL_WIDTH_TILES = SCREEN_WIDTH_TILES + CULL_PADDING_TOTAL_TILES;
+constexpr global_var int CULL_HEIGHT_TILES = SCREEN_HEIGHT_TILES + CULL_PADDING_TOTAL_TILES;
+constexpr global_var int CULL_WIDTH = CULL_WIDTH_TILES * TILE_SIZE;
+constexpr global_var int CULL_HEIGHT = CULL_HEIGHT_TILES * TILE_SIZE;
+constexpr global_var int CULL_TOTAL_TILES = CULL_WIDTH_TILES * CULL_HEIGHT_TILES;
+ 
+constexpr global_var int CHUNK_DIMENSIONS = 64;
+constexpr global_var int CHUNK_SIZE = CHUNK_DIMENSIONS * CHUNK_DIMENSIONS;
 
 // TODO: move to settings struct?
-global_var constexpr int VIEW_DISTANCE = 1;
+constexpr global_var int VIEW_DISTANCE = 1;
 
 // EntityId 
 #define SetId(entity, id) (entity | (0x00ffffff & id))
@@ -154,9 +158,9 @@ global_var constexpr int VIEW_DISTANCE = 1;
 
 namespace Colors
 {
-global_var constexpr Vector4 White = { 1.0f, 1.0f, 1.0f, 1.0f };
-global_var constexpr Vector4 Black = { 0.0f, 0.0f, 0.0f, 1.0f };
-global_var constexpr Vector4 Clear = { 0.0f, 0.0f, 0.0f, 0.0f };
+constexpr global_var Vector4 White = { 1.0f, 1.0f, 1.0f, 1.0f };
+constexpr global_var Vector4 Black = { 0.0f, 0.0f, 0.0f, 1.0f };
+constexpr global_var Vector4 Clear = { 0.0f, 0.0f, 0.0f, 0.0f };
 }
 
 enum class TileDirection : uint8_t

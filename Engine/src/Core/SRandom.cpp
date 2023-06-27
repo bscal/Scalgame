@@ -1,10 +1,24 @@
 #include "SRandom.h"
 
-#include <assert.h>
+#include <time.h>
+
+thread_local global_var SRandom GlobalRandom;
+thread_local global_var bool IsInitialized;
+
+SRandom* GetThreadSRandom()
+{
+	if (!IsInitialized)
+	{
+		IsInitialized = true;
+		time_t t = time(NULL);
+		SRandomInitialize(&GlobalRandom, (uint64_t)t);
+	}
+	return &GlobalRandom;
+}
 
 internal uint64_t SplitMixNext64(uint64_t val)
 {
-	uint64_t z = (val += 0x9e3779b97f4a7c15);
+	uint64_t z = val + 0x9e3779b97f4a7c15;
 	z = (z ^ (z >> 30)) * 0xbf58476d1ce4e5b9;
 	z = (z ^ (z >> 27)) * 0x94d049bb133111eb;
 	return z ^ (z >> 31);
@@ -38,8 +52,8 @@ void SRandomInitialize(SRandom* state, uint64_t seed)
 {
 	if (!state)
 	{
-		TraceLog(LOG_ERROR, "Xoroshiro128Random state was nullptr");
-		assert(state);
+		SLOG_ERR("Xoroshiro128Random state was nullptr");
+		SASSERT(state);
 		return;
 	}
 
@@ -51,7 +65,7 @@ void SRandomInitialize(SRandom* state, uint64_t seed)
 
 uint64_t SRandNext(SRandom* state)
 {
-	assert(state);
+	SASSERT(state);
 
 	#if SCAL_DEBUG
 	if (state->Seed0 == 0 && state->Seed1 == 0
@@ -108,7 +122,7 @@ uint64_t SRandNextRange(SRandom* state, uint64_t lower, uint64_t upper)
 	if (lower > upper)
 	{
 		SLOG_ERR("[ SRandom ] lower(%d) is > upper(%d)!", lower, upper);
-		assert(false);
+		SASSERT(false);
 		return 0;
 	}
 	uint64_t randomValue = SRandNext(state);
@@ -118,11 +132,11 @@ uint64_t SRandNextRange(SRandom* state, uint64_t lower, uint64_t upper)
 
 int64_t SRandNextRangeSigned(SRandom* state, int64_t lower, int64_t upper)
 {
-	assert(state);
+	SASSERT(state);
 	if (lower > upper)
 	{
 		SLOG_ERR("[ SRandom ] lower(%d) is > upper(%d)!", lower, upper);
-		assert(false);
+		SASSERT(false);
 		return 0;
 	}
 	int64_t randomValue = (int64_t)SRandNext(state);
@@ -131,7 +145,7 @@ int64_t SRandNextRangeSigned(SRandom* state, int64_t lower, int64_t upper)
 
 void SRandJump(SRandom* state)
 {
-	assert(state);
+	SASSERT(state);
 
 	constexpr static uint64_t JUMP[] =
 	{
@@ -167,7 +181,7 @@ void SRandJump(SRandom* state)
 
 void SRandLongJump(SRandom* state)
 {
-	assert(state);
+	SASSERT(state);
 
 	constexpr static uint64_t LONG_JUMP[] =
 	{
@@ -217,7 +231,7 @@ void X128PlusInitialize(X128PlusRandom* state, uint64_t seed)
 
 internal uint64_t X128PlusNext(X128PlusRandom* state)
 {
-	assert(state);
+	SASSERT(state);
 
 	#if SCAL_DEBUG
 	if (state->Seed[0] == 0 && state->Seed[1] == 0)
@@ -239,7 +253,7 @@ internal uint64_t X128PlusNext(X128PlusRandom* state)
 
 float X128PlusNextFloat(X128PlusRandom* state)
 {
-	assert(state);
+	SASSERT(state);
 	uint64_t randomValue = X128PlusNext(state);
 	uint32_t randomValue32 = uint32_t(randomValue >> 32);
 	return FloatFromBits(randomValue32);
@@ -251,7 +265,7 @@ float X128PlusNextFloat(X128PlusRandom* state)
    non-overlapping subsequences for parallel computations. */
 void X128PlusJump(X128PlusRandom* state)
 {
-	assert(state);
+	SASSERT(state);
 
 	constexpr static uint64_t JUMP[] =
 	{ 0xdf900294d8f554a5, 0x170865df4b3201fc };
@@ -278,7 +292,7 @@ void X128PlusJump(X128PlusRandom* state)
    subsequences for parallel distributed computations. */
 void X128PlusLongJump(X128PlusRandom* state)
 {
-	assert(state);
+	SASSERT(state);
 
 	constexpr static uint64_t LONG_JUMP[] =
 	{ 0xd2a98b26625eee7b, 0xdddf9b1090aa7ac1 };

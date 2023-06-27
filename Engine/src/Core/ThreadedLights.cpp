@@ -265,6 +265,9 @@ ThreadedLightUpdate(Light* light, Vector3* threadColorsArray, ChunkedTileMap* ti
 	{
 		case (LIGHT_UPDATING): // Updating light
 		{
+			SASSERT(light->UpdateFunc);
+			light->UpdateFunc(light, GetGame(), GetDeltaTime());
+
 			TileCoord coord = WorldTileToCullTile(updater.Origin);
 			uint32_t idx = coord.x + coord.y * updater.Width;
 			SetColor(updater.ColorsArray, idx, light->Color, 0.0f);

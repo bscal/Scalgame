@@ -7,7 +7,7 @@ struct UpdatingLight;
 struct Vector3;
 struct ChunkedTileMap;
 
-#define LIGHT_MAX_THEADS 6
+#define LIGHT_MAX_THEADS 4
 
 struct ThreadedLights
 {

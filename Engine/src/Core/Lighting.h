@@ -42,7 +42,7 @@ constexpr global_var int TranslationTable[8][4] =
     {  1,  0,  0,  1 },
 };
 
-typedef void(*LightUpdate)(uint8_t type, void* light);
+typedef void(*LightUpdate)(Light* light, Game* game, float dt);
 
 struct Light
 {
@@ -63,8 +63,6 @@ struct UpdatingLight : public Light
     float LastUpdate;       // Keeps track of internal update
     uint32_t EntityId;      // Entity to sync positions with, ENTITY_NO_POS to disable
     bool UseMultiColor;     // If false uses Color[0] only
-
-    void Update(Game* game);
 };
 
 struct StaticLightType
@@ -100,8 +98,6 @@ struct LightingState
     uint32_t NumOfUpdatingLights;
     uint32_t NumOfStaticLights;
 };
-
-void ProcessLights(LightingState* lightState, Game* game);
 
 uint32_t LightAddUpdating(LightingState* lightState, UpdatingLight* light);
 uint32_t LightAddStatic(LightingState* lightState, StaticLight* light);

@@ -320,13 +320,14 @@ void OnEquipTorch(WorldEntity* entity, ItemStack* stack, uint8_t slot)
 	SLOG_INFO("EQUIPED, %u", entity->TilePos);
 
 	UpdatingLight light = {};
+	light.EntityId = entity->Uid;
 	light.Pos = entity->AsPosition();
 	light.MinIntensity = 8.0f;
-	light.MaxIntensity = 9.0f;
-	light.Colors[0] = { 0xab, 0x16, 0x0a, 255 };
-	light.Colors[1] = { 0x89, 0x12, 0x08, 255 };
-	light.Colors[2] = { 0xd6, 0x1b, 0x0c, 255 };
-	light.Colors[3] = { 0xbf, 0x05, 0x00, 255 };
+	light.MaxIntensity = 10.0f;
+	light.Colors[0] = WHITE;
+	light.Colors[1] = GRAY;
+	light.Colors[2] = WHITE;
+	light.Colors[3] = BLUE;
 	light.Color = light.Colors[0];
 	light.Radius = light.MaxIntensity;
 	LightAddUpdating(&GetGame()->LightingState, &light);

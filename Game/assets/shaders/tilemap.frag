@@ -28,8 +28,8 @@ uniform float textureAtlasTexturesWidth = 512.0 / 16.0;
 
 // The width / height of the mapData in tiles. Set from outside
 // Set it to 2 less in both width / height than the mapData texture
-uniform float mapTilesCountX = 104.0;
-uniform float mapTilesCountY = 60.0;
+uniform float mapTilesCountX = 84.0;
+uniform float mapTilesCountY = 49.0;
 
 // The texture atlas
 uniform sampler2D textureAtlas;
