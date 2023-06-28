@@ -9,17 +9,16 @@
 
 void Renderer::Initialize()
 {
-	int sW = GetScreenWidth();
-	int sH = GetScreenHeight();
-	int screenW = CULL_WIDTH;
-	int screenH = CULL_HEIGHT;
-	int blurWidth = sW / 4;
-	int blurHeight = sH / 4;
+	int w = GetGameApp()->View.Resolution.x;
+	int h = GetGameApp()->View.Resolution.y;
+
+	int blurWidth = w / 4;
+	int blurHeight = h / 4;
 	BlurShader.Initialize(blurWidth, blurHeight);
 
-	WorldTexture = SLoadRenderTexture(screenW, screenH, PIXELFORMAT_UNCOMPRESSED_R32G32B32A32);
-	EffectTextureOne = SLoadRenderTexture(sW, sH, PIXELFORMAT_UNCOMPRESSED_R32G32B32A32);
-	EffectTextureTwo = SLoadRenderTexture(sW, sH, PIXELFORMAT_UNCOMPRESSED_R32G32B32A32);
+	WorldTexture = SLoadRenderTexture(w, h, PIXELFORMAT_UNCOMPRESSED_R32G32B32A32);
+	EffectTextureOne = SLoadRenderTexture(w, h, PIXELFORMAT_UNCOMPRESSED_R32G32B32A32);
+	EffectTextureTwo = SLoadRenderTexture(w, h, PIXELFORMAT_UNCOMPRESSED_R32G32B32A32);
 
 	UnlitShader = LoadShader(
 		"assets/shaders/tile_shader.vert",
@@ -168,6 +167,11 @@ void BlurShader::Free()
 
 void TileMapRenderer::Initialize(Game* game)
 {
+	int w = GetGameApp()->View.ResolutionInTiles.x;
+	int h = GetGameApp()->View.ResolutionInTiles.y;
+
+	Tiles.Initialize(w * h, SAllocator::Game);
+
 	TileMapShader = LoadShader(
 		"assets/shaders/tilemap.vert",
 		"assets/shaders/tilemap.frag");
@@ -177,13 +181,13 @@ void TileMapRenderer::Initialize(Game* game)
 	UniformMapTilesCountX = GetShaderLocation(TileMapShader, "mapTilesCountX");
 	UniformMapTilesCountY = GetShaderLocation(TileMapShader, "mapTilesCountY");
 
-	float mapTileCountX = CULL_WIDTH_TILES;
-	float mapTileCountY = CULL_HEIGHT_TILES;
+	float mapTileCountX = (float)w;
+	float mapTileCountY = (float)h;
 	SetShaderValue(TileMapShader, UniformMapTilesCountX, &mapTileCountX, RL_SHADER_UNIFORM_FLOAT);
 	SetShaderValue(TileMapShader, UniformMapTilesCountY, &mapTileCountY, RL_SHADER_UNIFORM_FLOAT);
 
-	TileMapTexture = SLoadRenderTexture(CULL_WIDTH, CULL_HEIGHT, PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
-	TileDataTexture = SLoadRenderTexture(CULL_WIDTH_TILES, CULL_HEIGHT_TILES, PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
+	TileMapTexture = SLoadRenderTexture((float)GetGameApp()->View.Resolution.x, (float)GetGameApp()->View.Resolution.y, PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
+	TileDataTexture = SLoadRenderTexture(w, h, PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
 }
 
 void TileMapRenderer::Free()
@@ -196,9 +200,9 @@ void TileMapRenderer::Free()
 void TileMapRenderer::Draw()
 {
 	PROFILE_BEGIN_EX("TileMapRenderer::Draw");
-	UpdateTexture(TileDataTexture.texture, Tiles.Data);
+	UpdateTexture(TileDataTexture.texture, Tiles.Memory);
 
-	Tiles.Fill({});
+	SMemClear(Tiles.Memory, Tiles.SizeOf());
 
 	BeginTextureMode(TileMapTexture);
 	BeginShaderMode(TileMapShader);
@@ -207,7 +211,7 @@ void TileMapRenderer::Draw()
 	SetShaderValueTexture(TileMapShader, UniformTilesLoc, TileDataTexture.texture);
 	const Texture2D& tileSprite = GetGame()->Resources.TileSprite;
 	Rectangle src = { 0, 0, (float)tileSprite.width, (float)tileSprite.height };
-	Rectangle dst = { 0, 0, (float)CULL_WIDTH,  (float)CULL_HEIGHT };
+	Rectangle dst = { 0, 0, (float)GetGameApp()->View.Resolution.x,  (float)GetGameApp()->View.Resolution.y};
 	DrawTexturePro(tileSprite, src, dst, { 0 }, 0.0f, WHITE);
 
 	EndShaderMode();
@@ -217,6 +221,11 @@ void TileMapRenderer::Draw()
 
 void LightingRenderer::Initialize(Game* game)
 {
+	int w = (int)GetGameApp()->View.ResolutionInTiles.x;
+	int h = (int)GetGameApp()->View.ResolutionInTiles.y;
+
+	Tiles.Initialize(w * h, SAllocator::Game);
+
 	LightingShader = LoadShader(
 		SHADERS_PATH "lighting_v2.vert",
 		SHADERS_PATH "lighting_v2.frag");
@@ -230,8 +239,8 @@ void LightingRenderer::Initialize(Game* game)
 	LOSColor = { 0.0f, 0.0f, 0.0f };
 	LightIntensity = 1.0f;
 
-	LightingTexture = SLoadRenderTexture(CULL_WIDTH, CULL_HEIGHT, PIXELFORMAT_UNCOMPRESSED_R32G32B32A32);
-	ColorsTexture = SLoadRenderTexture(CULL_WIDTH_TILES, CULL_HEIGHT_TILES, PIXELFORMAT_UNCOMPRESSED_R32G32B32A32);
+	LightingTexture = SLoadRenderTexture((int)GetGameApp()->View.Resolution.x, (int)GetGameApp()->View.Resolution.y, PIXELFORMAT_UNCOMPRESSED_R32G32B32A32);
+	ColorsTexture = SLoadRenderTexture(GetGameApp()->View.ResolutionInTiles.x, GetGameApp()->View.ResolutionInTiles.y, PIXELFORMAT_UNCOMPRESSED_R32G32B32A32);
 }
 
 void LightingRenderer::Free()
@@ -252,9 +261,9 @@ void LightingRenderer::Draw(Rectangle dstRect)
 
 	SASSERT(sizeof(Tiles[0]) == (sizeof(float) * 4));
 
-	UpdateTexture(ColorsTexture.texture, Tiles.Data);
+	UpdateTexture(ColorsTexture.texture, Tiles.Memory);
 
-	Tiles.Fill({});
+	SMemClear(Tiles.Memory, Tiles.SizeOf());
 
 	BeginTextureMode(LightingTexture);
 	ClearBackground(BLACK);
@@ -576,46 +585,3 @@ SLoadRenderTextureEx(int width, int height, PixelFormat format, bool useDepth)
 
 	return target;
 }
-
-
-void DrawTileMap(Texture2D texture, Rectangle dest)
-{
-	//SASSERT(texture.id > 0);
-
-	//rlBatch
-	//float width = (float)texture.width;
-	//float height = (float)texture.height;
-
-	//Vector2 topLeft = Vector2{ dest.x, dest.y };
-	//Vector2 topRight = Vector2{ dest.x + dest.width, dest.y };
-	//Vector2 bottomLeft = Vector2{ dest.x, dest.y + dest.height };
-	//Vector2 bottomRight = Vector2{ dest.x + dest.width, dest.y + dest.height };
-
-	//rlCheckRenderBatchLimit(4);     // Make sure there is enough free space on the batch buffer
-
-	//rlSetTexture(texture->id);
-	//rlBegin(RL_QUADS);
-
-	//rlColor4f(tint.x, tint.y, tint.z, tint.w);
-	//rlNormal3f(0.0f, 0.0f, 1.0f);                          // Normal vector pointing towards viewer
-
-	//rlTexCoord2f(source.x / width, source.y / height);
-	//rlVertex2f(topLeft.x, topLeft.y);
-
-	//rlTexCoord2f(source.x / width, (source.y + source.height) / height);
-	//rlVertex2f(bottomLeft.x, bottomLeft.y);
-
-	//rlTexCoord2f((source.x + source.width) / width, (source.y + source.height) / height);
-	//rlVertex2f(bottomRight.x, bottomRight.y);
-
-	//rlTexCoord2f((source.x + source.width) / width, source.y / height);
-	//rlVertex2f(topRight.x, topRight.y);
-
-	//rlEnd();
-	//rlSetTexture(0);
-
-}
-
-// Draw render batch
-// NOTE: We require a pointer to reset batch and increase current buffer (multi-buffer)
-//

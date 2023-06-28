@@ -59,6 +59,7 @@ struct View
     Vector2i ResolutionInTiles;
     Vector2 ScreenCenter;
     Vector2 ScreenXY;
+    Vector2i ScreenXYInTiles;
     int TotalTilesOnScreen;
 };
 
@@ -73,14 +74,6 @@ struct GameApplication
     SRandom GlobalRandom;
 
     View View;
-    //Rectangle CullRect;
-
-    //Vector2 ScreenXY; // Camera top left corner
-    //Vector2 MapXY;
-    //Vector2i ScreenXYTiles;
-    V//ector2i CullXYTiles;
-
-    //Vector2 HalfWidthHeight;
     
     double RenderTime;
     double UpdateWorldTime;

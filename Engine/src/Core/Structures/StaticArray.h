@@ -53,18 +53,19 @@ struct ConstArray
 
 	void Initialize(uint32_t capacity, SAllocator allocator)
 	{
-		SASSERT(!Memory);
 		SASSERT(Size == 0);
 
 		Size = capacity;
-		Allocator allocator;
-		Memory = SAlloc(Allocator, Size * sizeof(T), MemoryTag::Arrays);
+		Allocator = allocator;
+		Memory = (T*)SAlloc(Allocator, SizeOf(), MemoryTag::Arrays);
 	}
 
-	T* operator[](uint32_t idx)
+	T& operator[](uint32_t idx)
 	{
 		SASSERT(Memory);
 		SASSERT(idx < Size);
-		return &Memory[idx];
+		return Memory[idx];
 	}
+
+	_FORCE_INLINE_ size_t SizeOf() const { return Size * sizeof(T); }
 };

@@ -51,17 +51,21 @@ SAPI bool GameApplication::Start()
 	int monitor = GetCurrentMonitor();
 	int monitorWidth = GetMonitorWidth(monitor);
 	int monitorHeight = GetMonitorHeight(monitor);
+	int width = 1600;//monitorWidth;
+	int height = 900;//monitorHeight;
 
-	View.Resolution = { 1600, 900 };
-	View.ResolutionInTiles = View.Resolution / Vector2i{ TILE_SIZE, TILE_SIZE };
+	//SetConfigFlags(FLAG_WINDOW_RESIZABLE);
+	InitWindow(width, height, "Some roguelike game");
+	SetTargetFPS(144);
+	SetTraceLogLevel(LOG_ALL);
+
+	View.Resolution = { GetScreenWidth(), GetScreenHeight() };
+	View.ResolutionInTiles.x = (int)ceilf((float)View.Resolution.x / TILE_SIZE_F);
+	View.ResolutionInTiles.y = (int)ceilf((float)View.Resolution.y / TILE_SIZE_F);
+
 	View.ScreenCenter.x = (float)View.Resolution.x / 2.0f;
 	View.ScreenCenter.y = (float)View.Resolution.y / 2.0f;
 	View.TotalTilesOnScreen = (float)View.ResolutionInTiles.x * (float)View.ResolutionInTiles.y;
-
-	//SetConfigFlags(FLAG_WINDOW_RESIZABLE);
-	InitWindow(View.Resolution.x, View.Resolution.y, "Some roguelike game");
-	SetTargetFPS(144);
-	SetTraceLogLevel(LOG_ALL);
 
 	SRandomInitialize(&GlobalRandom, 0);
 
@@ -115,13 +119,9 @@ internal bool GameInitialize(Game* game, GameApplication* gameApp)
 
 	bool didResInit = InitializeResources(&game->Resources);
 	SASSERT(didResInit);
-	gameApp->HalfWidthHeight.x = (float)GetScreenWidth() / 2.0f;
-	gameApp->HalfWidthHeight.y = (float)GetScreenHeight() / 2.0f;
-	gameApp->MapXY.x = (float)CULL_WIDTH / 2.0f;
-	gameApp->MapXY.y = (float)CULL_HEIGHT / 2.0f;
 
-	gameApp->Game->WorldCamera.offset = gameApp->MapXY;
-	gameApp->Game->ViewCamera.offset = gameApp->HalfWidthHeight;
+	gameApp->Game->WorldCamera.offset = gameApp->View.ScreenCenter;
+	gameApp->Game->ViewCamera.offset = gameApp->View.ScreenCenter;
 
 	game->Renderer.Initialize();
 	game->TileMapRenderer.Initialize(game);
@@ -189,14 +189,13 @@ SAPI void GameApplication::Run()
 
 		GameUpdate(Game, this);
 
-		Rectangle srcRect = { 0.0f, 0.0f, CULL_WIDTH, -CULL_HEIGHT };
-		//Rectangle dstRectScreen = { ScreenXY.x, ScreenXY.y, CULL_WIDTH, CULL_HEIGHT };
-		Vector2 v = GetScreenToWorld2D({ }, Game->WorldCamera);
-		Rectangle dstRectCull = { v.x, v.y, CULL_WIDTH, CULL_HEIGHT };
-		//if ((SCREEN_W / TILE_SIZE) % 2 == 0)
-		//	dstRectCull.x -= HALF_TILE_SIZE;
-		//if ((SCREEN_H / TILE_SIZE) % 2 == 0)
-		//	dstRectCull.y -= HALF_TILE_SIZE;
+		Rectangle srcRect = { 0.0f, 0.0f, (float)View.Resolution.x, (float)-View.Resolution.y };
+		Rectangle dstRect = { View.ScreenXY.x, View.ScreenXY.y, (float)View.Resolution.x, (float)View.Resolution.y };
+		Rectangle dstMapRect = dstRect;
+		if (View.ResolutionInTiles.x % 2 == 0)
+			dstMapRect.x -= HALF_TILE_SIZE;
+		if (View.ResolutionInTiles.y % 2 == 0)
+			dstMapRect.y -= HALF_TILE_SIZE;
 		//Handles odd # tile cull rectangles.
 
 
@@ -207,7 +206,7 @@ SAPI void GameApplication::Run()
 
 		ClearBackground(BLACK);
 
-		DrawTexturePro(Game->TileMapRenderer.TileMapTexture.texture, srcRect, dstRectCull, { 0 }, 0.0f, WHITE);
+		DrawTexturePro(Game->TileMapRenderer.TileMapTexture.texture, srcRect, dstMapRect, { 0 }, 0.0f, WHITE);
 
 		UpdateEntities(Game);
 		DrawEntities(Game);
@@ -225,7 +224,7 @@ SAPI void GameApplication::Run()
 		// Post Process
 		// *****************
 
-		Game->LightingRenderer.Draw(dstRectCull);
+		Game->LightingRenderer.Draw(dstMapRect);
 		Game->Renderer.PostProcess(Game, Game->Renderer.WorldTexture, Game->LightingRenderer.LightingTexture);
 
 		// ***************
@@ -241,15 +240,9 @@ SAPI void GameApplication::Run()
 		rlPushMatrix();
 		rlScalef(GetScale(), GetScale(), 1.0f);
 
-		Rectangle dst;
-		dst.x = Game->ViewCamera.target.x - Game->ViewCamera.offset.x;
-		dst.y = Game->ViewCamera.target.y - Game->ViewCamera.offset.y;
-		dst.width = GetScreenWidth();
-		dst.height = GetScreenHeight();
-
 		SetShaderValueTexture(Game->Renderer.LitShader, Game->Renderer.UniformLightMapLoc, Game->LightingRenderer.LightingTexture.texture);
-		DrawTexturePro(Game->Renderer.WorldTexture.texture, srcRect, dst, { 0 }, 0.0f, WHITE);
-		Game->Renderer.DrawBloom(dst);
+		DrawTexturePro(Game->Renderer.WorldTexture.texture, srcRect, dstRect, { 0 }, 0.0f, WHITE);
+		Game->Renderer.DrawBloom(dstRect);
 
 		rlPopMatrix();
 
@@ -310,20 +303,14 @@ internal void GameUpdateCamera(Game* game, GameApplication* gameApp)
 		game->CameraLerpTime += GetDeltaTime();
 		if (game->CameraLerpTime > 1.0f) game->CameraLerpTime = 1.0f;
 
-		game->WorldCamera.target = Vector2Add(GetClientPlayer()->AsPosition(), { 0, 0 });
+		game->WorldCamera.target = Vector2Add(GetClientPlayer()->AsPosition(), { HALF_TILE_SIZE, HALF_TILE_SIZE });
 		game->ViewCamera.target = Vector2Multiply(game->WorldCamera.target, { GetScale(), GetScale() });
 	}
 
-	Vector2 d = Vector2Subtract(game->WorldCamera.target, game->ViewCamera.offset);
-
-	gameApp->ScreenXY = Vector2Subtract(game->WorldCamera.target, gameApp->MapXY);
-	gameApp->ScreenXYTiles.x = (int)floorf(gameApp->ScreenXY.x / TILE_SIZE_F);
-	gameApp->ScreenXYTiles.y = (int)floorf(gameApp->ScreenXY.y / TILE_SIZE_F);
-	gameApp->CullRect.x = d.x;
-	gameApp->CullRect.y = d.y;
-	gameApp->CullRect.width = CULL_WIDTH;
-	gameApp->CullRect.height = CULL_HEIGHT;
-	gameApp->CullXYTiles = gameApp->ScreenXYTiles;
+	gameApp->View.ScreenXY.x = game->WorldCamera.target.x - game->WorldCamera.offset.x;
+	gameApp->View.ScreenXY.y = game->WorldCamera.target.y - game->WorldCamera.offset.y;
+	gameApp->View.ScreenXYInTiles.x = (int)floorf(gameApp->View.ScreenXY.x / TILE_SIZE_F);
+	gameApp->View.ScreenXYInTiles.y = (int)floorf(gameApp->View.ScreenXY.y / TILE_SIZE_F);
 
 	PROFILE_END();
 }
@@ -385,7 +372,7 @@ HandleGameInput(GameApplication* gameApp, Game* game)
 		{
 			UpdatingLight light = {};
 			light.EntityId = ENT_NOT_FOUND;
-			light.Pos = clickedTilePos.AsVec2();
+			light.Pos = clickedTilePos;
 			light.MinIntensity = 7.0f;
 			light.MaxIntensity = 9.0f;
 			light.Colors[0] = { 0xab, 0x16, 0x0a, 255 };
@@ -485,8 +472,8 @@ Vector2i GetTileFromMouse(Game* game)
 	Vector2 mouse = GetMousePosition();
 	Vector2 mouseWorld = GetScreenToWorld2D(mouse, game->ViewCamera);
 	// Scales mouseWorld based on world scale
-	//mouseWorld.x = mouseWorld.x / GetScale();
-	//mouseWorld.y = mouseWorld.y / GetScale();
+	mouseWorld.x = mouseWorld.x / GetScale();
+	mouseWorld.y = mouseWorld.y / GetScale();
 	return CTileMap::WorldToTile(mouseWorld);
 }
 
@@ -500,7 +487,7 @@ void SetCameraPosition(Game* game, Vector3 pos)
 void SetCameraDistance(GameApplication* gameApp, float zoom)
 {
 	float ZOOM_MAX = 5.0f;
-	float ZOOM_MIN = 1.2f; // Min values are to stop tiles cutting off, maybe we fix some day
+	float ZOOM_MIN = 1.0f; // Min values are to stop tiles cutting off, maybe we fix some day
 	float ZOOM_SPD = .20f;
 
 	float newZoom = gameApp->Scale + zoom * ZOOM_SPD;
@@ -519,19 +506,25 @@ void SetCameraDistance(GameApplication* gameApp, float zoom)
 
 bool TileInsideCullRect(Vector2i coord)
 {
-	Vector2i offset = GetGameApp()->CullXYTiles;
-	return (coord.x >= offset.x
-		&& coord.y >= offset.y
-		&& coord.x < offset.x + CULL_WIDTH_TILES
-		&& coord.y < offset.y + CULL_HEIGHT_TILES);
+	View* view = &GetGameApp()->View;
+	return (coord.x >= view->ScreenXYInTiles.x
+		&& coord.y >= view->ScreenXYInTiles.y
+		&& coord.x < view->ScreenXYInTiles.x + view->ResolutionInTiles.x
+		&& coord.y < view->ScreenXYInTiles.y + view->ResolutionInTiles.y);
 }
 
 Vector2i WorldTileToCullTile(Vector2i coord)
 {
-	return coord.Subtract(GetGameApp()->CullXYTiles);
+	Vector2i res;
+	res.x = coord.x - GetGameApp()->View.ScreenXYInTiles.x;
+	res.y = coord.y - GetGameApp()->View.ScreenXYInTiles.y;
+	return res;
 }
 
 Vector2i CullTileToWorldTile(Vector2i coord)
 {
-	return coord.Add(GetGameApp()->CullXYTiles);
+	Vector2i res;
+	res.x = coord.x + GetGameApp()->View.ScreenXYInTiles.x;
+	res.y = coord.y + GetGameApp()->View.ScreenXYInTiles.y;
+	return res;
 }

@@ -321,7 +321,7 @@ void OnEquipTorch(WorldEntity* entity, ItemStack* stack, uint8_t slot)
 
 	UpdatingLight light = {};
 	light.EntityId = entity->Uid;
-	light.Pos = entity->AsPosition();
+	light.Pos = entity->TilePos;
 	light.MinIntensity = 8.0f;
 	light.MaxIntensity = 10.0f;
 	light.Colors[0] = WHITE;

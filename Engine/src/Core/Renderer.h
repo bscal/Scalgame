@@ -33,7 +33,7 @@ struct TileMapRenderer
 	int UniformMapTilesCountX;
 	int UniformMapTilesCountY;
 
-	StaticArray<TileTexValues, CULL_TOTAL_TILES> Tiles;
+	ConstArray<TileTexValues> Tiles;
 
 	void Initialize(Game* game);
 	void Free();
@@ -47,7 +47,7 @@ struct LightingRenderer
 	RenderTexture2D ColorsTexture;
 	RenderTexture2D LightingTexture;
 	
-	StaticArray<Vector4, CULL_TOTAL_TILES> Tiles;
+	ConstArray<Vector4> Tiles;
 
 	Vector3 AmbientLightColor;
 	Vector3 SunlightColor;
@@ -112,5 +112,3 @@ SLoadRenderTexture(int width, int height, PixelFormat format);
 
 RenderTexture2D
 SLoadRenderTextureEx(int width, int height, PixelFormat format, bool useDepth);
-
-void DrawTileMap(Texture2D texture, Rectangle dest);

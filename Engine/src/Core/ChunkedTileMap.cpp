@@ -107,8 +107,8 @@ void LateUpdate(ChunkedTileMap* tilemap, Game* game)
 	if (game->DebugTileView)
 	{
 		Rectangle screen;
-		screen.x = GetGameApp()->ScreenXY.x;
-		screen.y = GetGameApp()->ScreenXY.y;
+		screen.x = GetGameApp()->View.ScreenXY.x;
+		screen.y = GetGameApp()->View.ScreenXY.y;
 		screen.width = (float)GetScreenWidth();
 		screen.height = (float)GetScreenHeight();
 
@@ -137,18 +137,6 @@ void InitChunk(ChunkedTileMap* tilemap, TileMapChunk* chunk)
 
 			TileData data = chunk->Tiles[idx++];
 			Tile* tile = data.GetTile();
-
-			if (tile->EmitsLight)
-			{
-				StaticLight light;
-				light.Pos = { worldX, worldY };
-				light.Radius = 0.0f;
-				light.Color = GREEN;
-				light.UpdateFunc = nullptr;
-				light.StaticLightType = StaticLightTypes::Lava;
-				uint32_t lightId = LightAddStatic(&GetGame()->LightingState, &light);
-				chunk->TileLights.Push(&lightId);
-			}
 		}
 	}
 }
@@ -296,10 +284,9 @@ GetTile(ChunkedTileMap* tilemap, TileCoord tilePos)
 
 TileCoord WorldToTile(Vector2 pos)
 {
-	float scale = GetScale();
 	Vector2i v;
-	v.x = (int)floorf(pos.x / (TILE_SIZE_F * scale));
-	v.y = (int)floorf(pos.y / (TILE_SIZE_F * scale));
+	v.x = (int)floorf(pos.x / TILE_SIZE_F);
+	v.y = (int)floorf(pos.y / TILE_SIZE_F);
 	return v;
 }
 
@@ -311,7 +298,7 @@ void SetVisible(ChunkedTileMap* tilemap, TileCoord coord)
 {
 	if (!IsTileInBounds(tilemap, coord)) return;
 	Vector2i cullTile = WorldTileToCullTile(coord);
-	int index = cullTile.x + cullTile.y * CULL_WIDTH_TILES;
+	int index = cullTile.x + cullTile.y * GetGameApp()->View.ResolutionInTiles.x;
 	GetGame()->TileMapRenderer.Tiles[index].LOS = true;
 	//GetTile(tilemap, coord)->LOS = TileLOS::FullVision;
 }
@@ -345,9 +332,9 @@ UpdateTileMap(ChunkedTileMap* tilemap, TileMapRenderer* tilemapRenderer)
 {
 	PROFILE_BEGIN();
 	size_t idx = 0;
-	for (int y = 0; y < CULL_HEIGHT_TILES; ++y)
+	for (int y = 0; y < GetGameApp()->View.ResolutionInTiles.y; ++y)
 	{
-		for (int x = 0; x < CULL_WIDTH_TILES; ++x)
+		for (int x = 0; x < GetGameApp()->View.ResolutionInTiles.x; ++x)
 		{
 			Vector2i coord = CullTileToWorldTile({ x, y });
 

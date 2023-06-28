@@ -120,34 +120,21 @@ constexpr global_var size_t SIZEOF_I64_BITS = (sizeof(uint64_t) * 8);
 
 //1280 	720, 1600 900
 
-// TODO: should probably move resolution to another place
-//constexpr global_var int SCREEN_WIDTH = 1280;
-//constexpr global_var int SCREEN_HEIGHT = 720;
-//constexpr global_var Vector2 SCREEN_CENTER = { (float)SCREEN_WIDTH / 2.0f, (float)SCREEN_HEIGHT / 2.0f };
+constexpr global_var int MAX_WIDTH = 2560;
+constexpr global_var int MAX_HEIGHT = 1440;
 
 constexpr global_var int TILE_SIZE = 16;
 constexpr global_var float TILE_SIZE_F = static_cast<float>(TILE_SIZE);
 constexpr global_var float INVERSE_TILE_SIZE = 1.0f / TILE_SIZE_F;
 constexpr global_var float HALF_TILE_SIZE = TILE_SIZE_F / 2.0f;
 
-constexpr global_var int SCREEN_W = 1280;
-constexpr global_var int SCREEN_H = 720;
-constexpr global_var int SCREEN_WIDTH_TILES = ((SCREEN_W / TILE_SIZE) % 2 == 0) ? SCREEN_W / TILE_SIZE : SCREEN_W / TILE_SIZE;
-constexpr global_var int SCREEN_HEIGHT_TILES = ((SCREEN_H / TILE_SIZE) % 2 == 0) ? SCREEN_H / TILE_SIZE : SCREEN_H / TILE_SIZE;
-
-constexpr global_var int CULL_PADDING_TOTAL_TILES = 0;
-constexpr global_var float CULL_PADDING_EDGE_PIXELS = (CULL_PADDING_TOTAL_TILES / 2) * TILE_SIZE_F;
-constexpr global_var int CULL_WIDTH_TILES = SCREEN_WIDTH_TILES + CULL_PADDING_TOTAL_TILES;
-constexpr global_var int CULL_HEIGHT_TILES = SCREEN_HEIGHT_TILES + CULL_PADDING_TOTAL_TILES;
-constexpr global_var int CULL_WIDTH = CULL_WIDTH_TILES * TILE_SIZE;
-constexpr global_var int CULL_HEIGHT = CULL_HEIGHT_TILES * TILE_SIZE;
-constexpr global_var int CULL_TOTAL_TILES = CULL_WIDTH_TILES * CULL_HEIGHT_TILES;
+constexpr global_var int MAX_TILE_COUNT = ((MAX_WIDTH / TILE_SIZE) + 1) * ((MAX_HEIGHT / TILE_SIZE) + 1);
  
 constexpr global_var int CHUNK_DIMENSIONS = 64;
 constexpr global_var int CHUNK_SIZE = CHUNK_DIMENSIONS * CHUNK_DIMENSIONS;
 
 // TODO: move to settings struct?
-constexpr global_var int VIEW_DISTANCE = 1;
+constexpr global_var int VIEW_DISTANCE = 2;
 
 // EntityId 
 #define SetId(entity, id) (entity | (0x00ffffff & id))

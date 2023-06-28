@@ -8,7 +8,7 @@
 
 struct LightUpdater
 {
-	std::bitset<CULL_TOTAL_TILES> CheckedTiles;
+	std::bitset<MAX_TILE_COUNT> CheckedTiles;
 	UpdatingLight* Light;
 	Vector3* ColorsArray;
 	ChunkedTileMap* Tilemap;
@@ -19,36 +19,13 @@ struct LightUpdater
 	void SetColor(uint32_t index, float distance);
 };
 
-void ThreadedLights::AllocateArrays(size_t elementCount, int numOfArrays)
-{
-	size_t size = elementCount * sizeof(Vector3);
-	for (int i = 0; i < numOfArrays; ++i)
-	{
-		ColorArrayPtrs[i] = (Vector3*)SMemTempAlloc(size);
-		SMemClear(ColorArrayPtrs[i], size);
-	}
-}
-
-void ThreadedLights::UpdateLightColorArray(Vector4* finalColors, int numOfArrays) const
-{
-	for (int i = 0; i < CULL_TOTAL_TILES; ++i)
-	{
-		for (int j = 0; j < numOfArrays; ++j)
-		{
-			finalColors[i].x += ColorArrayPtrs[j][i].x;
-			finalColors[i].y += ColorArrayPtrs[j][i].y;
-			finalColors[i].z += ColorArrayPtrs[j][i].z;
-		}
-	}
-}
-
 void ProcessLightUpdater(UpdatingLight* light, uint32_t screenLightsWidth, Vector3* colorsArray, ChunkedTileMap* tilemap)
 {
 	LightUpdater updater = LightUpdater();
 	updater.Light = light;
 	updater.ColorsArray = colorsArray;
 	updater.Tilemap = tilemap;
-	updater.Origin = Vector2i::FromVec2(light->Pos);
+	updater.Origin = light->Pos;
 	updater.Width = screenLightsWidth;
 
 	TileCoord coord = WorldTileToCullTile(updater.Origin);
@@ -99,7 +76,7 @@ void LightUpdater::ProcessOctant(uint8_t octant, int x, Slope top, Slope bottom)
 			if (inRange)
 			{
 				TileCoord coord = WorldTileToCullTile(txty);
-				int index = coord.x + coord.y * CULL_WIDTH_TILES;
+				int index = coord.x + coord.y * GetGameApp()->View.ResolutionInTiles.x;
 				if (!CheckedTiles.test(index))
 				{
 					CheckedTiles.set(index);
@@ -136,11 +113,10 @@ void LightUpdater::ProcessOctant(uint8_t octant, int x, Slope top, Slope bottom)
 
 struct ThreadedUpdater
 {
-	std::bitset<CULL_TOTAL_TILES> CheckedTiles;
+	std::bitset<MAX_TILE_COUNT> CheckedTiles;
 	Light* Light;
 	Vector3* ColorsArray;
 	ChunkedTileMap* Tilemap;
-	Vector2i Origin;
 	uint32_t Width;
 };
 
@@ -174,7 +150,7 @@ ProcessOctants(ThreadedUpdater* updater, uint8_t octant, int x, Slope top, Slope
 		int wasOpaque = -1; // 0:false, 1:true, -1:not applicable
 		for (int y = topY; y >= bottomY; --y)
 		{
-			Vector2i txty = updater->Origin;
+			Vector2i txty = updater->Light->Pos;
 			txty.x += x * TranslationTable[octant][0] + y * TranslationTable[octant][1];
 			txty.y += x * TranslationTable[octant][2] + y * TranslationTable[octant][3];
 
@@ -185,7 +161,7 @@ ProcessOctants(ThreadedUpdater* updater, uint8_t octant, int x, Slope top, Slope
 			if (inRange)
 			{
 				TileCoord coord = WorldTileToCullTile(txty);
-				int index = coord.x + coord.y * CULL_WIDTH_TILES;
+				int index = coord.x + coord.y * GetGameApp()->View.ResolutionInTiles.x;
 				if (!updater->CheckedTiles.test(index))
 				{
 					updater->CheckedTiles.set(index);
@@ -220,33 +196,23 @@ ProcessOctants(ThreadedUpdater* updater, uint8_t octant, int x, Slope top, Slope
 	}
 }
 
-constexpr global_var Vector2i LavaLightOffsets[9] =
+void
+UpdateStaticLight(StaticLight* light, Vector3* threadColorsArray, size_t width)
 {
-	{-1, -1}, {0, -1}, {1,-1},
-	{-1, 0}, {0, 0}, {1,0},
-	{-1, 1}, {0, 1}, {1,1},
-};
-constexpr global_var float Inverse = 1.0f / 255.0f;
-constexpr global_var float LavaLightWeights[9] =
-{
-		0.05f * Inverse, 0.15f * Inverse, 0.05f * Inverse,
-		0.15f * Inverse, 0.25f * Inverse, 0.15f * Inverse,
-		0.05f * Inverse, 0.15f * Inverse, 0.05f * Inverse,
-};
-
-internal void
-ProcessStaticLight(ThreadedUpdater* updater, StaticLight* light)
-{
-	Vector2i cullPos = WorldTileToCullTile(updater->Origin);
+	SASSERT(light);
+	SASSERT(threadColorsArray);
+	SASSERT(width > 0);
+	Vector2i cullPos = WorldTileToCullTile(light->Pos);
 	for (int i = 0; i < 9; ++i)
 	{
 		Vector2i pos = cullPos + LavaLightOffsets[i];
-		size_t idx = (size_t)pos.x + (size_t)pos.y * (size_t)updater->Width;
-		if (idx < (size_t)CULL_TOTAL_TILES)
+		if (TileInsideCullRect(light->Pos + LavaLightOffsets[i]))
 		{
-			updater->ColorsArray[idx].x += (float)light->Color.r * LavaLightWeights[i];
-			updater->ColorsArray[idx].y += (float)light->Color.g * LavaLightWeights[i];
-			updater->ColorsArray[idx].z += (float)light->Color.b * LavaLightWeights[i];
+			size_t idx = (size_t)pos.x + (size_t)pos.y * width;
+			SASSERT(idx < GetGameApp()->View.TotalTilesOnScreen);
+			threadColorsArray[idx].x += (float)light->Color.r * LavaLightWeights[i];
+			threadColorsArray[idx].y += (float)light->Color.g * LavaLightWeights[i];
+			threadColorsArray[idx].z += (float)light->Color.b * LavaLightWeights[i];
 		}
 	}
 }
@@ -258,17 +224,16 @@ ThreadedLightUpdate(Light* light, Vector3* threadColorsArray, ChunkedTileMap* ti
 	updater.Light = light;
 	updater.ColorsArray = threadColorsArray;
 	updater.Tilemap = tilemap;
-	updater.Origin = Vector2i::FromVec2(light->Pos);
 	updater.Width = lightsScreenWidth;
 
 	switch (light->LightType)
 	{
-		case (LIGHT_UPDATING): // Updating light
+		case (LightType::Updating): // Updating light
 		{
 			SASSERT(light->UpdateFunc);
 			light->UpdateFunc(light, GetGame(), GetDeltaTime());
 
-			TileCoord coord = WorldTileToCullTile(updater.Origin);
+			TileCoord coord = WorldTileToCullTile(light->Pos);
 			uint32_t idx = coord.x + coord.y * updater.Width;
 			SetColor(updater.ColorsArray, idx, light->Color, 0.0f);
 			for (uint8_t octant = 0; octant < 8; ++octant)
@@ -277,9 +242,9 @@ ThreadedLightUpdate(Light* light, Vector3* threadColorsArray, ChunkedTileMap* ti
 			}
 		} break;
 
-		case (LIGHT_STATIC): // Static light
+		case (LightType::Static): // Static light
 		{
-			ProcessStaticLight(&updater, (StaticLight*)updater.Light);
+			UpdateStaticLight((StaticLight*)updater.Light, updater.ColorsArray, updater.Width);
 		} break;
 
 		default:

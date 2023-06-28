@@ -16,41 +16,21 @@ struct Light;
 struct UpdatingLight;
 struct UpdatingLightSource;
 
-#define LIGHT_UPDATING 0
-#define LIGHT_STATIC 1
-
-struct Slope
-{
-    int y;
-    int x;
-
-    inline bool Greater(int y, int x) { return this->y * x > this->x * y; } // this > y/x
-    inline bool GreaterOrEqual(int y, int x) { return this->y * x >= this->x * y; } // this >= y/x
-    inline bool Less(int y, int x) { return this->y * x < this->x * y; } // this < y/x
-};
-
-// Used to translate tile coordinates 
-constexpr global_var int TranslationTable[8][4] =
-{
-    {  1,  0,  0, -1 },
-    {  0,  1, -1,  0 },
-    {  0, -1, -1,  0 },
-    { -1,  0,  0, -1 },
-    { -1,  0,  0,  1 },
-    {  0, -1,  1,  0 },
-    {  0,  1,  1,  0 },
-    {  1,  0,  0,  1 },
-};
-
 typedef void(*LightUpdate)(Light* light, Game* game, float dt);
+
+enum class LightType : uint8_t
+{
+    Updating = 0,
+    Static
+};
 
 struct Light
 {
     LightUpdate UpdateFunc;
-    Vector2 Pos;
+    Vector2i Pos;
     float Radius;
     Color Color;
-    uint8_t LightType;
+    LightType LightType;
 };
 
 struct UpdatingLight : public Light
@@ -89,9 +69,12 @@ struct StaticLight : public Light
 
 struct LightingState
 {
+    constexpr static size_t UpdatingLightSize = AlignPowTwo64Ceil(sizeof(UpdatingLight) * 64);
+
     IndexArray<Light*> LightPtrs;
-    MemoryPool<UpdatingLight, 8192> UpdatingLightPool;
-    MemoryPool<StaticLight, 8192 * 16> StaticLightPool;
+    MemoryPool<UpdatingLight, UpdatingLightSize> UpdatingLightPool;
+
+    SList<StaticLight> StaticLights;
 
     StaticArray<StaticLightType, (size_t)StaticLightTypes::MaxTypes> StaticLightTypes;
 
@@ -99,21 +82,51 @@ struct LightingState
     uint32_t NumOfStaticLights;
 };
 
-uint32_t LightAddUpdating(LightingState* lightState, UpdatingLight* light);
-uint32_t LightAddStatic(LightingState* lightState, StaticLight* light);
-void LightRemove(LightingState* lightState, uint32_t lightId);
-
-void DrawStaticLights(ChunkedTileMap* tilemap, const StaticLight* light);
-void DrawStaticTileLight(Vector2i tilePos, Color color, StaticLightTypes type);
-void DrawStaticLavaLight(Vector2i tilePos, Color color);
-
 void LightsInitialize(LightingState* lightingState);
-
-void LightsUpdate(LightingState* lightingState, Game* game);
+uint32_t LightAddUpdating(LightingState* lightState, UpdatingLight* light);
 uint32_t GetNumOfLights();
+void DrawStaticLights(ChunkedTileMap* tilemap, const StaticLight* light);
+void LightRemove(LightingState* lightState, uint32_t lightId);
+void QueueStaticLight(const StaticLight* light);
+void DrawStaticLight(StaticLight* light);
+void LightsUpdate(LightingState* lightingState, Game* game);
 
-void LightsUpdateTileColor(int index, float distance, const Light* light);
-void LightsUpdateTileColorTile(Vector2i tileCoord, float distance, const Light* light);
-//void DrawLightWithShadows(Vector2 pos, const UpdatingLightSource& light);
-bool FloodFillLighting(ChunkedTileMap* tilemap, Light* light);
-void FloodFillScanline(const Light* light, int x, int y, int width, int height, bool diagonal);//, bool (*test)(int, int)), void (*paint)(int, int))
+// Types
+struct Slope
+{
+    int y;
+    int x;
+
+    _FORCE_INLINE_ bool Greater(int y, int x) { return this->y * x > this->x * y; } // this > y/x
+    _FORCE_INLINE_ bool GreaterOrEqual(int y, int x) { return this->y * x >= this->x * y; } // this >= y/x
+    _FORCE_INLINE_ bool Less(int y, int x) { return this->y * x < this->x * y; } // this < y/x
+};
+
+constexpr global_var Vector2i LavaLightOffsets[9] =
+{
+    {-1, -1}, {0, -1}, {1, -1},
+    {-1,  0}, {0,  0}, {1,  0},
+    {-1,  1}, {0,  1}, {1,  1},
+};
+
+constexpr global_var float Inverse = 1.0f / 255.0f;
+
+constexpr global_var float LavaLightWeights[9] =
+{
+        0.05f * Inverse, 0.15f * Inverse, 0.05f * Inverse,
+        0.15f * Inverse, 0.25f * Inverse, 0.15f * Inverse,
+        0.05f * Inverse, 0.15f * Inverse, 0.05f * Inverse,
+};
+
+// Used to translate tile coordinates 
+constexpr global_var int TranslationTable[8][4] =
+{
+    {  1,  0,  0, -1 },
+    {  0,  1, -1,  0 },
+    {  0, -1, -1,  0 },
+    { -1,  0,  0, -1 },
+    { -1,  0,  0,  1 },
+    {  0, -1,  1,  0 },
+    {  0,  1,  1,  0 },
+    {  1,  0,  0,  1 },
+};
