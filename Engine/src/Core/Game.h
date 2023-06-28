@@ -53,6 +53,15 @@ struct Game
     bool DebugTileView;
 };
 
+struct View
+{
+    Vector2i Resolution;
+    Vector2i ResolutionInTiles;
+    Vector2 ScreenCenter;
+    Vector2 ScreenXY;
+    int TotalTilesOnScreen;
+};
+
 struct GameApplication
 {
     Game* Game;
@@ -63,15 +72,15 @@ struct GameApplication
     
     SRandom GlobalRandom;
 
-    Rectangle Viewport;
-    Rectangle CullRect;
+    View View;
+    //Rectangle CullRect;
 
-    Vector2 ScreenXY; // Camera top left corner
-    Vector2 MapXY;
-    Vector2i ScreenXYTiles;
-    Vector2i CullXYTiles;
+    //Vector2 ScreenXY; // Camera top left corner
+    //Vector2 MapXY;
+    //Vector2i ScreenXYTiles;
+    V//ector2i CullXYTiles;
 
-    Vector2 HalfWidthHeight;
+    //Vector2 HalfWidthHeight;
     
     double RenderTime;
     double UpdateWorldTime;

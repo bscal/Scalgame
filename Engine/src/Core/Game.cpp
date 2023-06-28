@@ -51,13 +51,15 @@ SAPI bool GameApplication::Start()
 	int monitor = GetCurrentMonitor();
 	int monitorWidth = GetMonitorWidth(monitor);
 	int monitorHeight = GetMonitorHeight(monitor);
-	monitorWidth = 1280;
-	monitorHeight = 720;
-	Viewport.width = (float)monitorWidth;
-	Viewport.height = (float)monitorHeight;
+
+	View.Resolution = { 1600, 900 };
+	View.ResolutionInTiles = View.Resolution / Vector2i{ TILE_SIZE, TILE_SIZE };
+	View.ScreenCenter.x = (float)View.Resolution.x / 2.0f;
+	View.ScreenCenter.y = (float)View.Resolution.y / 2.0f;
+	View.TotalTilesOnScreen = (float)View.ResolutionInTiles.x * (float)View.ResolutionInTiles.y;
 
 	//SetConfigFlags(FLAG_WINDOW_RESIZABLE);
-	InitWindow(monitorWidth, monitorHeight, "Some roguelike game");
+	InitWindow(View.Resolution.x, View.Resolution.y, "Some roguelike game");
 	SetTargetFPS(144);
 	SetTraceLogLevel(LOG_ALL);
 
@@ -118,8 +120,7 @@ internal bool GameInitialize(Game* game, GameApplication* gameApp)
 	gameApp->MapXY.x = (float)CULL_WIDTH / 2.0f;
 	gameApp->MapXY.y = (float)CULL_HEIGHT / 2.0f;
 
-
-	gameApp->Game->WorldCamera.offset = gameApp->HalfWidthHeight;
+	gameApp->Game->WorldCamera.offset = gameApp->MapXY;
 	gameApp->Game->ViewCamera.offset = gameApp->HalfWidthHeight;
 
 	game->Renderer.Initialize();
@@ -132,7 +133,7 @@ internal bool GameInitialize(Game* game, GameApplication* gameApp)
 
 	game->WorldCamera.zoom = 1.0f;
 	game->ViewCamera.zoom = 1.0f;
-	gameApp->Scale = 2.0f;
+	gameApp->Scale = 1.0f;
 
 	SLOG_INFO("[ GAME ] Successfully initialized game!");
 	return true;
@@ -190,9 +191,12 @@ SAPI void GameApplication::Run()
 
 		Rectangle srcRect = { 0.0f, 0.0f, CULL_WIDTH, -CULL_HEIGHT };
 		//Rectangle dstRectScreen = { ScreenXY.x, ScreenXY.y, CULL_WIDTH, CULL_HEIGHT };
-		Vector2 v = GetScreenToWorld2D({}, Game->WorldCamera);
+		Vector2 v = GetScreenToWorld2D({ }, Game->WorldCamera);
 		Rectangle dstRectCull = { v.x, v.y, CULL_WIDTH, CULL_HEIGHT };
-		
+		//if ((SCREEN_W / TILE_SIZE) % 2 == 0)
+		//	dstRectCull.x -= HALF_TILE_SIZE;
+		//if ((SCREEN_H / TILE_SIZE) % 2 == 0)
+		//	dstRectCull.y -= HALF_TILE_SIZE;
 		//Handles odd # tile cull rectangles.
 
 
@@ -237,19 +241,15 @@ SAPI void GameApplication::Run()
 		rlPushMatrix();
 		rlScalef(GetScale(), GetScale(), 1.0f);
 
-		Viewport.x = CullRect.x;
-		Viewport.y = CullRect.y;
-		//Viewport.width = CULL_WIDTH;
-		//Viewport.height = CULL_HEIGHT;
-
-		constexpr global_var float tx = ((SCREEN_W / TILE_SIZE) % 2 == 0) ?8 : 0;
-		constexpr global_var float ty = ((SCREEN_H / TILE_SIZE) % 2 == 0) ? 8 : 0;
-		Viewport.x -= tx;
-		Viewport.y -= ty;
+		Rectangle dst;
+		dst.x = Game->ViewCamera.target.x - Game->ViewCamera.offset.x;
+		dst.y = Game->ViewCamera.target.y - Game->ViewCamera.offset.y;
+		dst.width = GetScreenWidth();
+		dst.height = GetScreenHeight();
 
 		SetShaderValueTexture(Game->Renderer.LitShader, Game->Renderer.UniformLightMapLoc, Game->LightingRenderer.LightingTexture.texture);
-		DrawTexturePro(Game->Renderer.WorldTexture.texture, srcRect, Viewport, { 0 }, 0.0f, WHITE);
-		Game->Renderer.DrawBloom(Viewport);
+		DrawTexturePro(Game->Renderer.WorldTexture.texture, srcRect, dst, { 0 }, 0.0f, WHITE);
+		Game->Renderer.DrawBloom(dst);
 
 		rlPopMatrix();
 
@@ -310,19 +310,20 @@ internal void GameUpdateCamera(Game* game, GameApplication* gameApp)
 		game->CameraLerpTime += GetDeltaTime();
 		if (game->CameraLerpTime > 1.0f) game->CameraLerpTime = 1.0f;
 
-		game->WorldCamera.target = Vector2Add(GetClientPlayer()->AsPosition(), { HALF_TILE_SIZE, HALF_TILE_SIZE });
+		game->WorldCamera.target = Vector2Add(GetClientPlayer()->AsPosition(), { 0, 0 });
 		game->ViewCamera.target = Vector2Multiply(game->WorldCamera.target, { GetScale(), GetScale() });
 	}
 
-	gameApp->ScreenXY = Vector2Subtract(game->WorldCamera.target, game->WorldCamera.offset);
+	Vector2 d = Vector2Subtract(game->WorldCamera.target, game->ViewCamera.offset);
+
+	gameApp->ScreenXY = Vector2Subtract(game->WorldCamera.target, gameApp->MapXY);
 	gameApp->ScreenXYTiles.x = (int)floorf(gameApp->ScreenXY.x / TILE_SIZE_F);
 	gameApp->ScreenXYTiles.y = (int)floorf(gameApp->ScreenXY.y / TILE_SIZE_F);
-	gameApp->CullRect.x = game->WorldCamera.target.x - gameApp->MapXY.x;
-	gameApp->CullRect.y = game->WorldCamera.target.y - gameApp->MapXY.y;
+	gameApp->CullRect.x = d.x;
+	gameApp->CullRect.y = d.y;
 	gameApp->CullRect.width = CULL_WIDTH;
 	gameApp->CullRect.height = CULL_HEIGHT;
-	gameApp->CullXYTiles.x = (int)floorf(gameApp->CullRect.x / TILE_SIZE_F);
-	gameApp->CullXYTiles.y = (int)floorf(gameApp->CullRect.y / TILE_SIZE_F);
+	gameApp->CullXYTiles = gameApp->ScreenXYTiles;
 
 	PROFILE_END();
 }
@@ -484,8 +485,8 @@ Vector2i GetTileFromMouse(Game* game)
 	Vector2 mouse = GetMousePosition();
 	Vector2 mouseWorld = GetScreenToWorld2D(mouse, game->ViewCamera);
 	// Scales mouseWorld based on world scale
-	mouseWorld.x = mouseWorld.x / GetScale();
-	mouseWorld.y = mouseWorld.y / GetScale();
+	//mouseWorld.x = mouseWorld.x / GetScale();
+	//mouseWorld.y = mouseWorld.y / GetScale();
 	return CTileMap::WorldToTile(mouseWorld);
 }
 
@@ -498,11 +499,12 @@ void SetCameraPosition(Game* game, Vector3 pos)
 
 void SetCameraDistance(GameApplication* gameApp, float zoom)
 {
-	const float ZOOM_MAX = 5.0f;
-	const float ZOOM_MIN = 1.0f;
-	const float ZOOM_SPD = .25f;
+	float ZOOM_MAX = 5.0f;
+	float ZOOM_MIN = 1.2f; // Min values are to stop tiles cutting off, maybe we fix some day
+	float ZOOM_SPD = .20f;
 
 	float newZoom = gameApp->Scale + zoom * ZOOM_SPD;
+
 	if (newZoom > ZOOM_MAX) newZoom = ZOOM_MAX;
 	else if (newZoom < ZOOM_MIN) newZoom = ZOOM_MIN;
 	gameApp->Scale = newZoom;

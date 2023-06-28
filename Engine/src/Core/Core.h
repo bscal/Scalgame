@@ -132,8 +132,8 @@ constexpr global_var float HALF_TILE_SIZE = TILE_SIZE_F / 2.0f;
 
 constexpr global_var int SCREEN_W = 1280;
 constexpr global_var int SCREEN_H = 720;
-constexpr global_var int SCREEN_WIDTH_TILES = ((SCREEN_W / TILE_SIZE) % 2 == 0) ? SCREEN_W / TILE_SIZE + 1 : SCREEN_W / TILE_SIZE + 1;
-constexpr global_var int SCREEN_HEIGHT_TILES = ((SCREEN_H / TILE_SIZE) % 2 == 0) ? SCREEN_H / TILE_SIZE +1 : SCREEN_H / TILE_SIZE + 1;
+constexpr global_var int SCREEN_WIDTH_TILES = ((SCREEN_W / TILE_SIZE) % 2 == 0) ? SCREEN_W / TILE_SIZE : SCREEN_W / TILE_SIZE;
+constexpr global_var int SCREEN_HEIGHT_TILES = ((SCREEN_H / TILE_SIZE) % 2 == 0) ? SCREEN_H / TILE_SIZE : SCREEN_H / TILE_SIZE;
 
 constexpr global_var int CULL_PADDING_TOTAL_TILES = 0;
 constexpr global_var float CULL_PADDING_EDGE_PIXELS = (CULL_PADDING_TOTAL_TILES / 2) * TILE_SIZE_F;
