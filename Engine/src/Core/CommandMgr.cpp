@@ -109,7 +109,7 @@ void CommandMgr::TryExecuteCommand(const SStringView input)
 	SStringView commandStrView = InputArgs[0];
 	InputArgs.RemoveAt(0);
 
-	SRawString tempString = TempRawString(commandStrView.Str, commandStrView.Length);
+	SRawString tempString = RawStringNewTemp(commandStrView.Str, commandStrView.Length);
 	Command* foundCommand = Commands.Get(&tempString);
 	if (foundCommand)
 	{		
@@ -150,7 +150,7 @@ GetArgString(uint32_t index, const SList<SStringView>& args)
 	Argument<SRawString> arg = {};
 	if (index < args.Count)
 	{
-		arg.Value = TempRawString(args[index].Str, args[index].Length);
+		arg.Value = RawStringNewTemp(args[index].Str, args[index].Length);
 		arg.IsPresent = true;
 	}
 	return arg;

@@ -1,9 +1,6 @@
 #include "SString.h"
 
-#include <string.h>
-#include <utility>
-
-static_assert(sizeof(char) == 1, "SString does not support char size > 1.");
+static_assert(sizeof(char) == sizeof(uint8_t), "SString does not support char size > 1.");
 static_assert(sizeof(SString) == 32, "SString should equal 32.");
 
 // *****************
@@ -248,16 +245,18 @@ SRawString RawStringNew(const char* cStr)
 {
 	SRawString res;
 	res.Length = (uint32_t)strlen(cStr);
+	res.Allocator = SAllocator::Game;
 	res.Data = (char*)SAlloc(SAllocator::Game, res.Length + 1, MemoryTag::Strings);
 	SMemCopy(res.Data, cStr, res.Length);
 	res.Data[res.Length] = '\0';
 	return res;
 }
 
-SRawString TempRawString(const char* cStr, uint32_t length)
+SRawString RawStringNewTemp(const char* cStr, uint32_t length)
 {
 	SRawString res;
 	res.Length = length;
+	res.Allocator = SAllocator::Temp;
 	res.Data = (char*)SAlloc(SAllocator::Temp, res.Length + 1, MemoryTag::Strings);
 	SMemCopy(res.Data, cStr, res.Length);
 	res.Data[res.Length] = '\0';
@@ -266,7 +265,8 @@ SRawString TempRawString(const char* cStr, uint32_t length)
 
 void RawStringFree(SRawString* string)
 {
-	SFree(SAllocator::Game, string->Data, string->Length + 1, MemoryTag::Strings);
+	SFree(string->Allocator, string->Data, string->Length + 1, MemoryTag::Strings);
+
 	string->Data = nullptr;
 	string->Length = 0;
 }

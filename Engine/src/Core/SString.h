@@ -129,13 +129,14 @@ struct SRawString
 {
 	char* Data;
 	uint32_t Length;
+	SAllocator Allocator;
 
 	inline bool operator==(const SRawString& other) const { return Length == other.Length && SStrEquals(Data, other.Data); }
 	inline bool operator!=(const SRawString& other) const { return Length != other.Length && !SStrEquals(Data, other.Data); }
 };
 
 SRawString RawStringNew(const char* cStr);
-SRawString TempRawString(const char* cStr, uint32_t length);
+SRawString RawStringNewTemp(const char* cStr, uint32_t length);
 void RawStringFree(SRawString* string);
 
 struct SStringsBuffer
@@ -156,34 +157,19 @@ struct SStringsBuffer
 
 struct SRawStringHasher
 {
-	[[nodiscard]] constexpr uint64_t operator()(const SRawString* key) const noexcept
+	[[nodiscard]] constexpr uint32_t operator()(const SRawString* key, size_t size) const noexcept
 	{
-		return MurmurHash3_x64_128(0, key->Data, key->Length).v0;
+		//size is sizeof(SRawString), we ignore because we want to compare string contents
+		return FNVHash32((const uint8_t*)key->Data, key->Length);
 	}
 };
 
 struct SStringHasher
 {
-	[[nodiscard]] uint64_t operator()(const SString* key) const noexcept
+	[[nodiscard]] constexpr uint32_t operator()(const SString* key, size_t size) const noexcept
 	{
-		const uint8_t* data = (const uint8_t*)key->Data();
-		return FNVHash64(data, key->Length);
-	}
-};
-
-struct CStrHasher
-{
-	[[nodiscard]] uint64_t operator()(const char* key) const noexcept
-	{
-		return MurmurHash3_x64_128(0, key, strlen(key)).v0;
-	}
-};
-
-struct CStrEquals
-{
-	[[nodiscard]] bool operator()(const char* k1, const char* k2) const noexcept
-	{
-		return SStrEquals(k1, k2);
+		//size is sizeof(SRawString), we ignore because we want to compare string contents
+		return FNVHash32((const uint8_t*)key->Data(), key->Length);
 	}
 };
 

@@ -14,6 +14,7 @@
 */
 
 static_assert(sizeof(size_t) == sizeof(uint64_t), "ScalEngine does not support 32bit");
+static_assert(sizeof(char) == sizeof(uint8_t), "ScalEngine does not support char with sizeof > 1");
 
 #define SCAL_ENABLE_PROFILING 0
 #include "Tools/Profiling.h"
@@ -104,7 +105,8 @@ typedef int bool32;
 
 #define SFATAL(msg, ...) \
 	TraceLog(LOG_ERROR, msg, __VA_ARGS__); \
-	TraceLog(LOG_FATAL, "Fatal error detected, program crashed! File: %s, Line: %s", __FILE__, __LINE__) \
+	TraceLog(LOG_FATAL, "Fatal error detected, program crashed! File: %s, Line: %s", __FILE__, __LINE__); \
+	DEBUG_BREAK(void) \
 
 #define CALL_CONSTRUCTOR(object) new (object)
 

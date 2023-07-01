@@ -418,7 +418,8 @@ SAPI void GameApplication::Shutdown()
 	ExitProfile();
 
 	CloseWindow();
-	SMemFree();
+
+	SMemShutdown(this);
 
 	GameAppPtr = nullptr;
 }

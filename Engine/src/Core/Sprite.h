@@ -3,16 +3,14 @@
 #include "Core.h"
 
 #include "Structures/SHashMap.h"
+#include "Structures/StaticArray.h"
 
 struct Game;
-
-typedef int AnimationId;
 
 #define SPRITE_EMTPY { UINT16_MAX, UINT16_MAX, 0, 0 }
 
 union Sprite
 {
-    uint16_t Region[4];
     struct
     {
         uint16_t x;
@@ -20,36 +18,41 @@ union Sprite
         uint16_t w;
         uint16_t h;
     };
-};
-
-struct SImage
-{
-    Sprite Src;
-    Sprite Dst;
-    Vector2 Origin;
+    uint16_t Region[4];
 };
 
 struct Animation
 {
-    Sprite* Frames;
-    uint16_t FramesCount;
+    ConstArray<uint16_t> Frames;
     uint16_t CurrentIdx;
     uint16_t TickSpeed;
 };
 
+struct TileSprite
+{
+    Animation Anim;
+    uint16_t Time;
+};
+
 struct Animator
 {
-    SHashMap<AnimationId, Animation> Animations;
+    SHashMap<uint16_t, Animation> Animations;
     Animation* IdleAnimation;
     Animation* CurrentAnimation;
     uint16_t CurrentCycleTick;
 
     void Update(Game* game);
-    void SetAnimation(AnimationId animId);
+    void SetAnimation(uint16_t animId);
     Sprite GetAnimation() const;
 };
 
-Animation CreateAnimation(uint16_t framesCount, uint16_t tickSpeed, Sprite frames...);
+Animation CreateAnimation(uint16_t tickSpeed, uint16_t framesCount, Sprite frames...);
+
+void SpritesInitialize(GameApplication* gameApp, const char* spriteDirPath);
+void SpritesFree();
+
+Sprite GetTileSprite(uint16_t spriteId);
+uint16_t GetAnimationsByName(SRawString name);
 
 namespace Sprites
 {

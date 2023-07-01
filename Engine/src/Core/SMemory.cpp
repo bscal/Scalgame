@@ -1,6 +1,5 @@
 #include "SMemory.h"
 
-#include "Core.h"
 #include "Game.h"
 #include "SUtil.h"
 
@@ -9,8 +8,6 @@
 
 //#include <rpmalloc/rpmalloc.h>
 //#include <rpnew.h>
-
-#include <stdlib.h>
 
 #if 0
 #define SMEM_LOG_ALLOC(type, size) SLOG_INFO("[ Memory ] %s %d bytes, %d mb", type, size, size / 1024 / 1024)
@@ -79,8 +76,10 @@ SMemInitialize(GameApplication* gameApp,
 		tempFormatSize.BytePrefix, TempMemoryStart);
 }
 
-void SMemFree()
+void
+SMemShutdown(GameApplication* gameApp)
 {
+
 }
 
 void* SMemAlloc(size_t size)
@@ -207,37 +206,41 @@ void* SMemReallocTag(uint8_t allocator, void* ptr, size_t oldSize, size_t newSiz
 
 void  SMemFreeTag(uint8_t allocator, void* ptr, size_t size, MemoryTag tag)
 {
+	SASSERT(allocator < (uint8_t)SAllocator::MaxTypes);
+	SASSERT(ptr);
+	SASSERT(size > 0);
 	SASSERT(tag != MemoryTag::Unknown);
-
-	if (!ptr)
-		return;
 
 	switch (allocator)
 	{
 		case((uint8_t)SAllocator::Game):
 		{
-			#if SMEM_USE_TAGS
+#if SMEM_USE_TAGS
 			MemoryTagUsage[(uint8_t)tag] -= size;
-			#endif
+#endif
 			SMemFree(ptr);
-		} break;
-
-		case((uint8_t)SAllocator::Temp):
-		{
 		} break;
 
 		case((uint8_t)SAllocator::Malloc):
 		{
-			#if SMEM_USE_TAGS
+			if (!ptr || size == 0)
+			{
+				SLOG_ERR("Using invalid ptr or size in SMemFreeTag -> SAllocator::Malloc. ptr: %p, size: %u"
+					, ptr, size);
+				break;
+			}
+#if SMEM_USE_TAGS
 			MemoryTagUsage[(uint8_t)MemoryTag::TrackedMalloc] -= size;
-			#endif
+#endif
 			_aligned_free(ptr);
 		} break;
 
+		case((uint8_t)SAllocator::Temp):
+			break;
+
 		default:
 		{
-			SLOG_ERR("Using an invalid allocator!");
-			SASSERT(false);
+			SFATAL("Using invalid SAllocator in SMemFreeTag! Allocator: %u", allocator);
 		} break;
 	}
 }
@@ -272,36 +275,6 @@ void  SMemFreeTagPrint(uint8_t allocator, void* ptr, size_t size, MemoryTag tag,
 		size, ptr, allocator, (uint8_t)tag, file, function, line);
 
 	return SMemFreeTag(allocator, ptr, size, tag);
-}
-
-void SMemCopy(void* dst, const void* src, size_t size)
-{
-	SASSERT(dst);
-	SASSERT(src);
-	SASSERT(size > 0);
-	memcpy(dst, src, size);
-}
-
-void SMemMove(void* dst, const void* src, size_t size)
-{
-	SASSERT(dst);
-	SASSERT(src);
-	SASSERT(size > 0);
-	memmove(dst, src, size);
-}
-
-void SMemSet(void* dst, int value, size_t size)
-{
-	SASSERT(dst);
-	SASSERT(size > 0);
-	memset(dst, value, size);
-}
-
-void SMemClear(void* dst, size_t size)
-{
-	SASSERT(dst);
-	SASSERT(size > 0);
-	memset(dst, 0, size);
 }
 
 bool ValidateMemory(SAllocator allocator, void* block)
