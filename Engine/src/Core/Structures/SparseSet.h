@@ -27,7 +27,7 @@ struct SparseSet
 	uint32_t MaxValue;
 	SAllocator Allocator;
 
-	inline bool IsAllocated() { return (Sparse && Dense); }
+	_FORCE_INLINE_ bool IsAllocated() const { return (Sparse && Dense); }
 
 	void Reserve(uint32_t maxValue, uint32_t size)
 	{
@@ -56,7 +56,8 @@ struct SparseSet
 	void ResizeSparse(uint32_t capacity)
 	{
 		SASSERT(capacity > SparseCapacity);
-		if (capacity <= SparseCapacity) return;
+		if (capacity <= SparseCapacity)
+			return;
 
 		size_t oldSize = SparseCapacity * sizeof(uint32_t);
 		size_t newSize = capacity * sizeof(uint32_t);
@@ -70,8 +71,8 @@ struct SparseSet
 
 	void ResizeDense(uint32_t capacity)
 	{
-		SASSERT(capacity > DenseCapacity);
-		if (capacity <= DenseCapacity) return;
+		if (capacity <= DenseCapacity)
+			return;
 
 		size_t oldSize = DenseCapacity * sizeof(uint32_t);
 		size_t newSize = capacity * sizeof(uint32_t);

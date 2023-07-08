@@ -47,7 +47,7 @@ template <typename T, size_t N>
 using StaticArray = SStaticArray<T, N>;
 
 template<typename T>
-struct ConstArray
+struct DynamicArray
 {
 	T* Memory;
 	uint32_t Count;

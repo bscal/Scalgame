@@ -39,12 +39,10 @@ struct SHashMap
 	V* Get(const K* key) const;						// Returns ptr to value
 	bool Contains(const K* key) const;
 	bool Remove(const K* key);
+	bool RemoveValue(const K* key, V* value);
 
 	_FORCE_INLINE_ bool IsAllocated() const { return Buckets; }
 	_FORCE_INLINE_ size_t MemoryUsed() const { return Capacity * sizeof(SHashMapBucket<K, V>); }
-
-	const SHashMapBucket<K, V>& operator[](size_t i) const { SASSERT(i < Capacity); return Buckets[i]; }
-	SHashMapBucket<K, V>& operator[](size_t i) { SASSERT(i < Capacity); return Buckets[i]; }
 
 	_FORCE_INLINE_ void Foreach(std::function<void(V*)> onElement)
 	{
@@ -196,8 +194,7 @@ V* SHashMap<K, V, Hasher>::Get(const K* key) const
 	if (!IsAllocated())
 		return nullptr;
 
-	uint64_t hash = Hash(key);
-	uint32_t index = (uint32_t)hash;
+	uint32_t index = Hash(key);
 	while (true)
 	{
 		SHashMapBucket<K, V>* bucket = &Buckets[index];
@@ -219,8 +216,7 @@ bool SHashMap<K, V, Hasher>::Contains(const K* key) const
 	if (!IsAllocated())
 		return false;
 
-	uint64_t hash = Hash(key);
-	uint32_t index = (uint32_t)hash;
+	uint32_t index = Hash(key);
 	while (true)
 	{
 		SHashMapBucket<K, V>* bucket = &Buckets[index];
@@ -240,8 +236,7 @@ bool SHashMap<K, V, Hasher>::Remove(const K* key)
 	SASSERT(IsAllocated());
 	SASSERT(key);
 
-	uint32_t hash = Hash(key);
-	uint32_t index = (uint32_t)hash;
+	uint32_t index = Hash(key);
 	while (true)
 	{
 		SHashMapBucket<K, V>* bucket = &Buckets[index];
@@ -249,6 +244,56 @@ bool SHashMap<K, V, Hasher>::Remove(const K* key)
 		{
 			if (Equals(key, &bucket->Key))
 			{
+				while (true) // Move any entries after index closer to their ideal probe length.
+				{
+					uint32_t lastIndex = index;
+					if (++index == Capacity)
+						index = 0;
+
+					SHashMapBucket<K, V>* nextBucket = &Buckets[index];
+					if (!nextBucket->Occupied || nextBucket->ProbeLength == 0) // No more entires to move
+					{
+						Buckets[lastIndex].ProbeLength = 0;
+						Buckets[lastIndex].Occupied = false;
+						--Size;
+						return true;
+					}
+					else
+					{
+						--nextBucket->ProbeLength;
+						Buckets[lastIndex] = *nextBucket;
+					}
+				}
+			}
+			else
+			{
+				if (++index == Capacity)
+					index = 0; // continue searching till 0 or found equals key
+			}
+		}
+		else
+		{
+			break; // No key found
+		}
+	}
+	return false;
+}
+
+template<typename K, typename V, typename Hasher>
+bool SHashMap<K, V, Hasher>::RemoveValue(const K* key, V* valuePtr)
+{
+	SASSERT(IsAllocated());
+	SASSERT(key);
+
+	uint32_t index = Hash(key);
+	while (true)
+	{
+		SHashMapBucket<K, V>* bucket = &Buckets[index];
+		if (bucket->Occupied)
+		{
+			if (Equals(key, &bucket->Key))
+			{
+				*valuePtr = bucket->Value;
 				while (true) // Move any entries after index closer to their ideal probe length.
 				{
 					uint32_t lastIndex = index;

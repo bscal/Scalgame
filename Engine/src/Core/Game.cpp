@@ -376,7 +376,9 @@ HandleGameInput(GameApplication* gameApp, Game* game)
 			light.MinIntensity = 7.0f;
 			light.MaxIntensity = 9.0f;
 			light.Colors[0] = { 0xab, 0x16, 0x0a, 255 };
-			light.Colors[1] = { 0x89, 0x12, 0x08, 255 };
+			light.Colors[1] = { 0x89, 0x12, 0x08
+				
+				, 255 };
 			light.Colors[2] = { 0xd6, 0x1b, 0x0c, 255 };
 			light.Colors[3] = { 0xbf, 0x05, 0x00, 255 };
 			light.Color = light.Colors[0];

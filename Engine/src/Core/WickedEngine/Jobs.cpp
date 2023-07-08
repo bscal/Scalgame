@@ -5,11 +5,12 @@
 
 #include <memory>
 #include <algorithm>
-#include <deque>
 #include <thread>
 #include <mutex>
 #include <condition_variable>
 #include <cmath>
+
+#include <moodycamel/ConcurrentQueue.h>
 
 #ifdef _WIN32
 #include "ThreadWin32.h"
@@ -58,27 +59,19 @@ struct Job
 };
 struct JobQueue
 {
-	std::deque<Job> queue;
-	std::mutex locker;
+	moodycamel::ConcurrentQueue<Job> queue;
 
 	inline void push_back(const Job& item)
 	{
-		std::scoped_lock lock(locker);
-		queue.push_back(item);
+		bool couldEnqueue = queue.try_enqueue(item);
+		SASSERT(couldEnqueue);
 	}
 
 	inline bool pop_front(Job& item)
 	{
-		std::scoped_lock lock(locker);
-		if (queue.empty())
-		{
-			return false;
-		}
-		item = std::move(queue.front());
-		queue.pop_front();
-		return true;
+		bool notEmpty = queue.try_dequeue(item);
+		return notEmpty;
 	}
-
 };
 
 // This structure is responsible to stop worker thread loops.

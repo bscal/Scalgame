@@ -33,7 +33,7 @@ struct TileMapRenderer
 	int UniformMapTilesCountX;
 	int UniformMapTilesCountY;
 
-	ConstArray<TileTexValues> Tiles;
+	DynamicArray<TileTexValues> Tiles;
 
 	void Initialize(Game* game);
 	void Free();
@@ -47,7 +47,7 @@ struct LightingRenderer
 	RenderTexture2D ColorsTexture;
 	RenderTexture2D LightingTexture;
 	
-	ConstArray<Vector4> Tiles;
+	DynamicArray<Vector4> Tiles;
 
 	Vector3 AmbientLightColor;
 	Vector3 SunlightColor;

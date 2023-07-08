@@ -37,7 +37,12 @@ struct Tile
 	bool EmitsLight;
 	TileType Type;
 
+	void(*OnAwake)(Vector2i, TileData);
+	void(*OnSleep)(Vector2i, TileData);
 	void(*OnUpdate)(Vector2i, TileData);
+	void(*OnRender)(Vector2i, TileData);
+	void(*OnStepOn)(Vector2i, TileData, void* worldEntity);
+	void(*OnStepOff)(Vector2i, TileData, void* worldEntity);
 };
 
 #define TILE_SHEET_WIDTH 512

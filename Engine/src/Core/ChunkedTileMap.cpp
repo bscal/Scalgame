@@ -75,7 +75,7 @@ void Update(ChunkedTileMap* tilemap, Game* game)
 	constexpr float viewDistanceSqr = ((float)VIEW_DISTANCE + 1.0f) * ((float)VIEW_DISTANCE + 1.0f);
 	for (uint32_t i = 0; i < tilemap->Chunks.Capacity; ++i)
 	{
-		const auto& chunk = tilemap->Chunks[i];
+		const auto& chunk = tilemap->Chunks.Buckets[i];
 		if (!chunk.Occupied)
 			continue;
 
@@ -327,6 +327,10 @@ CheckChunksInLOS(ChunkedTileMap* tilemap, Vector2i chunkCoord)
 	PROFILE_END();
 }
 
+#include "Scheduler.h"
+
+DistributedScheduler<std::function<void(Vector2i, TileData)>> TileUpdater;
+
 internal void
 UpdateTileMap(ChunkedTileMap* tilemap, TileMapRenderer* tilemapRenderer)
 {
@@ -350,6 +354,16 @@ UpdateTileMap(ChunkedTileMap* tilemap, TileMapRenderer* tilemapRenderer)
 
 				Tile* tile = tileData->GetTile();
 				if (tile->OnUpdate)
+				{
+					TileUpdater.DistributedSchedulerAdd(tile->OnUpdate);
+				}
+
+				if (tile->EmitsLight)
+				{
+
+				}
+
+				if (tile->OnUpdate)
 					tile->OnUpdate(coord, *tileData);
 			}
 			else
@@ -360,6 +374,9 @@ UpdateTileMap(ChunkedTileMap* tilemap, TileMapRenderer* tilemapRenderer)
 			++idx;
 		}
 	}
+
+	DistributedSchedulerUpdate(0, GetDeltaTime());
+
 	PROFILE_END();
 }
 

@@ -23,7 +23,7 @@ union Sprite
 
 struct Animation
 {
-    ConstArray<uint16_t> Frames;
+    DynamicArray<uint16_t> Frames;
     uint16_t CurrentIdx;
     uint16_t TickSpeed;
 };

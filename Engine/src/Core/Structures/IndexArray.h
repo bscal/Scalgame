@@ -69,7 +69,6 @@ struct IndexArray
 
 		return &Data[idx];
 	}
-
 };
 
 inline int TestIndexArray()

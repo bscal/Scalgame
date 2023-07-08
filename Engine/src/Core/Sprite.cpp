@@ -12,7 +12,7 @@ struct SpriteMgr
 {
 	RenderTexture2D SpriteAtlas;
 	SList<Sprite> Sprites;
-	ConstArray<TileSprite> TileSprites;
+	DynamicArray<TileSprite> TileSprites;
 	SHashMap<SRawString, uint16_t, SRawStringHasher> SpriteNameToIndex;
 	uint16_t NextId;
 } SpriteMgr;
