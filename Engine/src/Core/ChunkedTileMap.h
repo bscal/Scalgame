@@ -14,32 +14,9 @@ struct Game;
 
 global_var const Vector2i TILEMAP_ORIGIN = { 0, 0 };
 
-#define CHUNK_BAKE_FLAG_REBAKE_NEIGHBORS 1
-
-constexpr global_var int CHUNK_SIDE_FLAG_NORTH	= (1 << 0);
-constexpr global_var int CHUNK_SIDE_FLAG_EAST	= (1 << 1);
-constexpr global_var int CHUNK_SIDE_FLAG_SOUTH	= (1 << 2);
-constexpr global_var int CHUNK_SIDE_FLAG_WEST	= (1 << 3);
-constexpr global_var int CHUNK_SIDE_FLAG_ALL	= (CHUNK_SIDE_FLAG_NORTH | CHUNK_SIDE_FLAG_EAST | CHUNK_SIDE_FLAG_SOUTH | CHUNK_SIDE_FLAG_WEST);
-
-constexpr int GetNearSides(Vector2i v0, Vector2i v1)
-{
-	int xd = v0.x - v1.x;
-	int yd = v0.y - v1.y;
-
-	int res = 0;
-
-	if (xd > 0)
-		res |= CHUNK_SIDE_FLAG_EAST;
-	if (xd < 0)
-		res |= CHUNK_SIDE_FLAG_WEST;
-	if (yd > 0)
-		res |= CHUNK_SIDE_FLAG_SOUTH;
-	if (yd < 0)
-		res |= CHUNK_SIDE_FLAG_NORTH;
-
-	return res;
-}
+#define CHUNK_REBAKE_SELF (1 << 0)
+#define CHUNK_REBAKE_NEIGHBORS (1 << 1)
+#define CHUNK_REBAKE_ALL (CHUNK_REBAKE_SELF | CHUNK_REBAKE_NEIGHBORS)
 
 enum class ChunkState : uint8_t
 {
@@ -53,10 +30,11 @@ enum class ChunkState : uint8_t
 struct TileMapChunk
 {
 	Rectangle Bounds;
-	Vector2 ChunkCenter;
-	Vector2i ChunkStartXY;
+	Vector2i StartTile;
 	ChunkCoord ChunkCoord;
 	ChunkState State;
+	uint8_t RebakeFlags;
+	bool IsBaked;
 	StaticArray<TileData, CHUNK_SIZE> Tiles;
 	StaticArray<uint32_t, CHUNK_SIZE> TileUpdateIds;
 	StaticArray<Color, CHUNK_SIZE> TileColors;
@@ -89,7 +67,7 @@ void UpdateChunk(ChunkedTileMap* tilemap, TileMapChunk* chunk);
 TileMapChunk* LoadChunk(ChunkedTileMap* tilemap, ChunkCoord coord);
 void UnloadChunk(ChunkedTileMap* tilemap, ChunkCoord coord);
 
-void BakeChunkLighting(ChunkedTileMap* tilemap, TileMapChunk* chunk, int chunkBakeFlags, int chunkSideFlags);
+void BakeChunkLighting(ChunkedTileMap* tilemap, TileMapChunk* chunk, int chunkBakeFlags);
 
 TileMapChunk* GetChunk(ChunkedTileMap* tilemap, ChunkCoord coord);
 TileMapChunk* GetChunkByTile(ChunkedTileMap* tilemap, TileCoord tileCoord);

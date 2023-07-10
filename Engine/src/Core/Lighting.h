@@ -90,7 +90,7 @@ void DrawStaticLights(ChunkedTileMap* tilemap, const StaticLight* light);
 void LightRemove(LightingState* lightState, uint32_t lightId);
 void QueueStaticLight(const StaticLight* light);
 void DrawStaticLight(StaticLight* light);
-void StaticLightDrawToChunk(StaticLight* light, TileMapChunk* chunkDst, ChunkedTileMap* tilemap, int sideFlags);
+void StaticLightDrawToChunk(StaticLight* light, TileMapChunk* chunkDst, ChunkedTileMap* tilemap);
 void LightsUpdate(LightingState* lightingState, Game* game);
 
 // Types

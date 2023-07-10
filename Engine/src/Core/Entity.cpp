@@ -182,7 +182,7 @@ CreatureData* GetCreatureType(Player* player)
 {
 	SASSERT(player);
 	uint16_t creatureId = player->Creature.CreatureType;
-	SASSERT(creatureId < EntityMgr.CreatureDB.Size());
+	SASSERT(creatureId < EntityMgr.CreatureDB.Count());
 	return &EntityMgr.CreatureDB[creatureId];
 }
 
@@ -190,7 +190,7 @@ CreatureData* GetCreatureType(Monster* monster)
 {
 	SASSERT(monster);
 	uint16_t creatureId = monster->Creature.CreatureType;
-	SASSERT(creatureId < EntityMgr.CreatureDB.Size());
+	SASSERT(creatureId < EntityMgr.CreatureDB.Count());
 	return &EntityMgr.CreatureDB[creatureId];
 }
 
@@ -198,6 +198,6 @@ CreatureData* GetCreatureType(Creature* creature)
 {
 	SASSERT(creature);
 	uint16_t creatureId = creature->CreatureType;
-	SASSERT(creatureId < EntityMgr.CreatureDB.Size());
+	SASSERT(creatureId < EntityMgr.CreatureDB.Count());
 	return &EntityMgr.CreatureDB[creatureId];
 }

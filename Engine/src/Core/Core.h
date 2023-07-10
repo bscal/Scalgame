@@ -73,6 +73,7 @@ typedef int bool32;
 
 #define FlagTrue(state, flag) ((state & flag) == flag)
 #define FlagFalse(state, flag) ((state & flag) != flag)
+#define FlagAny(state, flag) ((state * flag) != 0)
 
 #define BitGet(state, bit) ((state >> bit) & 1ULL)
 #define BitSet(state, bit) (state | 1ULL << bit)

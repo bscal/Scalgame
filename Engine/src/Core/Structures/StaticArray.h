@@ -17,19 +17,19 @@ struct SStaticArray
 {
 	T Data[ElementCount];
 
-	inline const T& operator[](size_t idx) const
+	_FORCE_INLINE_ const T& operator[](size_t idx) const
 	{
 		BoundsCheck(Data, idx, ElementCount);
 		return Data[idx];
 	}
 
-	inline T& operator[](size_t idx)
+	_FORCE_INLINE_ T& operator[](size_t idx)
 	{
 		BoundsCheck(Data, idx, ElementCount);
 		return Data[idx];
 	}
 
-	inline void Fill(const T& value)
+	_FORCE_INLINE_ void Fill(const T& value)
 	{
 		for (size_t i = 0; i < ElementCount; ++i)
 		{
@@ -37,9 +37,14 @@ struct SStaticArray
 		}
 	}
 
-	inline size_t Size(void) const
+	_FORCE_INLINE_ size_t Count(void) const
 	{
 		return ElementCount;
+	}
+
+	_FORCE_INLINE_ size_t MemorySize() const
+	{
+		return ElementCount * sizeof(T);
 	}
 };
 
@@ -77,7 +82,7 @@ struct DynamicArray
 		va_end(ap);
 	}
 
-	T& operator[](uint32_t idx)
+	_FORCE_INLINE_ T& operator[](uint32_t idx)
 	{
 		SASSERT(Memory);
 		SASSERT(idx < Count);

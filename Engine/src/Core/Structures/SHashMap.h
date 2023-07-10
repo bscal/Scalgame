@@ -41,9 +41,9 @@ struct SHashMap
 	bool Remove(const K* key);
 	bool RemoveValue(const K* key, V* value);
 
+	_FORCE_INLINE_ V* Index(uint32_t i) { return (Buckets[i].Occupied) ? &Buckets[i].Value : nullptr; }
 	_FORCE_INLINE_ bool IsAllocated() const { return Buckets; }
 	_FORCE_INLINE_ size_t MemoryUsed() const { return Capacity * sizeof(SHashMapBucket<K, V>); }
-
 	_FORCE_INLINE_ void Foreach(std::function<void(V*)> onElement)
 	{
 		for (uint32_t i = 0; i < Capacity; ++i)

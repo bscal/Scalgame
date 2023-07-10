@@ -176,49 +176,26 @@ IsInBounds(Vector2i coord, Vector2i xy, Vector2i wh)
 }
 
 void 
-StaticLightDrawToChunk(StaticLight* light, TileMapChunk* chunkDst, ChunkedTileMap* tilemap, int sideFlags)
+StaticLightDrawToChunk(StaticLight* light, TileMapChunk* chunkDst, ChunkedTileMap* tilemap)
 {
 	PROFILE_BEGIN();
 
-	Vector2i wh = chunkDst->ChunkStartXY + Vector2i{ CHUNK_DIMENSIONS, CHUNK_DIMENSIONS };
+	Vector2i wh = chunkDst->StartTile + Vector2i{ CHUNK_DIMENSIONS, CHUNK_DIMENSIONS };
 
 	for (int i = 0; i < 9; ++i)
 	{
 		Vector2i pos = light->Pos + LavaLightOffsets[i];
-		size_t idx = CTileMap::GetTileLocalIndex(pos);
-		if (IsInBounds(pos, chunkDst->ChunkStartXY, wh))
+		if (IsInBounds(pos, chunkDst->StartTile, wh))
 		{
 			uint16_t r = (uint32_t)((float)light->Color.r * LavaLightWeights[i] * 255.0f);
 			uint16_t g = (uint32_t)((float)light->Color.g * LavaLightWeights[i] * 255.0f);
 			uint16_t b = (uint32_t)((float)light->Color.b * LavaLightWeights[i] * 255.0f);
+			uint16_t a = (uint32_t)((float)light->Color.b * LavaLightWeights[i] * 255.0f);
+			size_t idx = CTileMap::GetTileLocalIndex(pos);
 			chunkDst->TileColors[idx].r = Clamp0255(chunkDst->TileColors[idx].r, r);
 			chunkDst->TileColors[idx].g = Clamp0255(chunkDst->TileColors[idx].g, g);
 			chunkDst->TileColors[idx].b = Clamp0255(chunkDst->TileColors[idx].b, b);
-		}
-		else if (sideFlags > 0)
-		{
-			if (FlagFalse(sideFlags, CHUNK_SIDE_FLAG_ALL))
-			{
-				if (pos.y < chunkDst->ChunkStartXY.y && FlagFalse(sideFlags, CHUNK_SIDE_FLAG_NORTH))
-					continue;
-				if (pos.x > wh.x && FlagFalse(sideFlags, CHUNK_SIDE_FLAG_EAST))
-					continue;
-				if (pos.y < wh.y && FlagFalse(sideFlags, CHUNK_SIDE_FLAG_SOUTH))
-					continue;
-				if (pos.x < chunkDst->ChunkStartXY.x && FlagFalse(sideFlags, CHUNK_SIDE_FLAG_WEST))
-					continue;
-			}
-
-			TileMapChunk* borderChunk = CTileMap::GetChunkByTile(tilemap, pos);
-			if (borderChunk)
-			{
-				uint16_t r = (uint32_t)((float)light->Color.r * LavaLightWeights[i] * 255.0f);
-				uint16_t g = (uint32_t)((float)light->Color.g * LavaLightWeights[i] * 255.0f);
-				uint16_t b = (uint32_t)((float)light->Color.b * LavaLightWeights[i] * 255.0f);
-				borderChunk->TileColors[idx].r = Clamp0255(borderChunk->TileColors[idx].r, r);
-				borderChunk->TileColors[idx].g = Clamp0255(borderChunk->TileColors[idx].g, g);
-				borderChunk->TileColors[idx].b = Clamp0255(borderChunk->TileColors[idx].b, b);
-			}
+			chunkDst->TileColors[idx].a = 255;
 		}
 	}
 

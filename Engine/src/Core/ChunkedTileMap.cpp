@@ -37,7 +37,7 @@ void Initialize(ChunkedTileMap* tilemap)
 
 	SASSERT(tilemap->ViewDistance.x > 0);
 	SASSERT(tilemap->ViewDistance.y > 0);
-	constexpr uint32_t capacity = VIEW_DISTANCE * VIEW_DISTANCE * VIEW_DISTANCE * VIEW_DISTANCE * 2;
+	constexpr uint32_t capacity = 5 * 5 * 2;
 	static_assert(capacity > 0, "capactiy > 0");
 	tilemap->Chunks.Reserve(capacity);
 	
@@ -64,9 +64,6 @@ void Update(ChunkedTileMap* tilemap, Game* game)
 
 	PROFILE_BEGIN();
 
-	constexpr float viewDistance = VIEW_DISTANCE * VIEW_DISTANCE;
-	constexpr float viewDistanceSqr = viewDistance * viewDistance;
-
 	const Player* player = GetClientPlayer();
 
 	//Vector2 playerPos = player->AsPosition();
@@ -85,20 +82,30 @@ void Update(ChunkedTileMap* tilemap, Game* game)
 	
 	for (uint32_t i = 0; i < tilemap->Chunks.Capacity; ++i)
 	{
-		const auto& chunk = tilemap->Chunks.Buckets[i];
-
-		if (!chunk.Occupied)
-			continue;
-
-		++GetGameApp()->NumOfChunksUpdated;
-
-		float dist = Vector2DistanceSqr(playerChunkPos.AsVec2(), chunk.Value.ChunkCoord.AsVec2());
-
-		// TODO: revisit this, current chunks dont need to be updated outside
-		// view distance, but they might, or to handle rebuilds?
-		if (dist > viewDistanceSqr)
+		if (tilemap->Chunks.Buckets[i].Occupied)
 		{
-			tilemap->ChunksToUnload.Push(&chunk.Value.ChunkCoord);
+			TileMapChunk* chunk = &tilemap->Chunks.Buckets[i].Value;
+
+			GetGameApp()->NumOfChunksUpdated += 1;
+
+			constexpr float viewDistance = VIEW_DISTANCE * VIEW_DISTANCE;
+			constexpr float viewDistanceSqr = viewDistance * viewDistance;
+			float dist = Vector2DistanceSqr(playerChunkPos.AsVec2(), chunk->ChunkCoord.AsVec2());
+
+			// TODO: revisit this, current chunks dont need to be updated outside
+			// view distance, but they might, or to handle rebuilds?
+			if (dist > viewDistanceSqr)
+			{
+				tilemap->ChunksToUnload.Push(&chunk->ChunkCoord);
+			}
+			else
+			{
+				// Chunk Update
+				if (FlagTrue(chunk->RebakeFlags, CHUNK_REBAKE_SELF))
+				{
+					BakeChunkLighting(tilemap, chunk, FlagTrue(chunk->RebakeFlags, CHUNK_REBAKE_NEIGHBORS));
+				}
+			}
 		}
 	}
 
@@ -160,18 +167,16 @@ TileMapChunk* LoadChunk(ChunkedTileMap* tilemap, ChunkCoord coord)
 	chunk->ChunkCoord = coord;
 
 	constexpr float chunkDimensionsPixel = (float)CHUNK_DIMENSIONS * TILE_SIZE_F;
-	constexpr float halfChunkDimensionsPixel = chunkDimensionsPixel / 2.0f;
 
-	chunk->ChunkStartXY.x = coord.x * CHUNK_DIMENSIONS;
-	chunk->ChunkStartXY.y = coord.y * CHUNK_DIMENSIONS;
+	chunk->StartTile.x = coord.x * CHUNK_DIMENSIONS;
+	chunk->StartTile.y = coord.y * CHUNK_DIMENSIONS;
 
 	chunk->Bounds.x = (float)coord.x * chunkDimensionsPixel;
 	chunk->Bounds.y = (float)coord.y * chunkDimensionsPixel;
 	chunk->Bounds.width = chunkDimensionsPixel;
 	chunk->Bounds.height = chunkDimensionsPixel;
 
-	chunk->ChunkCenter.x = chunk->Bounds.x + halfChunkDimensionsPixel;
-	chunk->ChunkCenter.y = chunk->Bounds.y + halfChunkDimensionsPixel;
+	chunk->RebakeFlags = CHUNK_REBAKE_ALL;
 
 	MapGenGenerateChunk(&GetGame()->MapGen, tilemap, chunk);
 
@@ -196,8 +201,6 @@ TileMapChunk* LoadChunk(ChunkedTileMap* tilemap, ChunkCoord coord)
 		}
 	}
 
-	BakeChunkLighting(tilemap, chunk, CHUNK_BAKE_FLAG_REBAKE_NEIGHBORS, 0);
-
 	chunk->State = ChunkState::Loaded;
 
 	SLOG_INFO("[ Chunk ] Loaded chunk (%s). State: %s", FMT_VEC2I(coord), ChunkStateToString(chunk->State));
@@ -209,7 +212,7 @@ void UnloadChunk(ChunkedTileMap* tilemap, ChunkCoord coord)
 	TileMapChunk* chunk = tilemap->Chunks.Get(&coord);
 	if (chunk)
 	{
-		for (uint32_t i = 0; i < chunk->TileUpdateIds.Size(); ++i)
+		for (uint32_t i = 0; i < chunk->TileUpdateIds.Count(); ++i)
 		{
 			tilemap->TileUpdater.Actions.Remove(chunk->TileUpdateIds[i]);
 		}
@@ -219,49 +222,102 @@ void UnloadChunk(ChunkedTileMap* tilemap, ChunkCoord coord)
 	}
 }
 
-void BakeChunkLighting(ChunkedTileMap* tilemap, TileMapChunk* chunk, int chunkBakeFlags, int chunkSideFlags)
+void BakeChunkLighting(ChunkedTileMap* tilemap, TileMapChunk* chunk, int chunkBakeFlags)
 {
 	SASSERT(tilemap);
 	SASSERT(chunk);
 	SASSERT(IsChunkLoaded(tilemap, chunk->ChunkCoord));
 
-	int idx = 0;
-	for (int y = 0; y < CHUNK_DIMENSIONS; ++y)
+	if (chunk->IsBaked)
 	{
-		for (int x = 0; x < CHUNK_DIMENSIONS; ++x)
+		SMemClear(chunk->TileColors.Data, chunk->TileColors.MemorySize());
+	}
+
+	chunk->IsBaked = true;
+	chunk->RebakeFlags = 0;
+
+	Rectangle tileBounds;
+	tileBounds.x = (float)chunk->StartTile.x;
+	tileBounds.y = (float)chunk->StartTile.y;
+	tileBounds.width = CHUNK_DIMENSIONS;
+	tileBounds.height = CHUNK_DIMENSIONS;
+
+	// Bakes all lights inside current chunk and applies only
+	// to the current chunk.
+	{
+		int idx = 0;
+		for (int y = 0; y < CHUNK_DIMENSIONS; ++y)
 		{
-			Vector2i coord = chunk->ChunkStartXY + Vector2i{ x, y };
-			TileData* data = &chunk->Tiles[idx];
-			Tile* tile = data->GetTile();
-
-			if (tile->EmitsLight)
+			for (int x = 0; x < CHUNK_DIMENSIONS; ++x)
 			{
-				StaticLight light;
-				light.Color = RED;
-				light.LightType = LightType::Static;
-				light.Pos = coord;
-				light.Radius = 0;
-				light.StaticLightType = StaticLightTypes::Basic;
-				light.UpdateFunc = nullptr;
-				StaticLightDrawToChunk(&light, chunk, tilemap, chunkSideFlags);
-			}
+				Vector2i coord = chunk->StartTile + Vector2i{ x, y };
+				TileData* data = &chunk->Tiles[idx];
+				Tile* tile = data->GetTile();
 
-			++idx;
+				if (tile->EmitsLight)
+				{
+					StaticLight light;
+					light.Color = RED;
+					light.LightType = LightType::Static;
+					light.Pos = coord;
+					light.Radius = 0;
+					light.StaticLightType = StaticLightTypes::Basic;
+					light.UpdateFunc = nullptr;
+					StaticLightDrawToChunk(&light, chunk, tilemap);
+				}
+
+				++idx;
+			}
 		}
 	}
 
-	// If chunks around this chunk are already loaded before us,
-	// rebake them so they update our values.
-	if (chunkBakeFlags | CHUNK_BAKE_FLAG_REBAKE_NEIGHBORS)
+	// Bakes all lights for surrounding chunks and applies to only
+	// the current chunk. If using bakeFlag CHUNK_REBAKE_NEIGHBORS those
+	// neighbors will be marked to update themselves. A rectangle
+	// collision check is used to check if a light should be baked or not.
+	for (int i = 0; i < ArrayLength(Vec2i_NEIGHTBORS_CORNERS); ++i)
 	{
-		for (int i = 0; i < ArrayLength(Vec2i_NEIGHTBORS_CORNERS); ++i)
+		Vector2i neighborCoords = chunk->ChunkCoord + Vec2i_NEIGHTBORS_CORNERS[i];
+		TileMapChunk* neighborChunk = GetChunk(tilemap, neighborCoords);
+		if (neighborChunk)
 		{
-			Vector2i neighborCoords = chunk->ChunkCoord + Vec2i_NEIGHTBORS_CORNERS[i];
-			TileMapChunk* neighborChunk = GetChunk(tilemap, neighborCoords);
-			if (neighborChunk)
+			if (FlagTrue(chunkBakeFlags, CHUNK_REBAKE_NEIGHBORS))
 			{
-				int sideFlags = GetNearSides(neighborCoords, chunk->ChunkCoord);
-				BakeChunkLighting(tilemap, neighborChunk, 0, sideFlags);
+				neighborChunk->RebakeFlags = CHUNK_REBAKE_SELF;
+			}
+
+			int idx = 0;
+			for (int y = 0; y < CHUNK_DIMENSIONS; ++y)
+			{
+				for (int x = 0; x < CHUNK_DIMENSIONS; ++x)
+				{
+					Vector2i coord = neighborChunk->StartTile + Vector2i{ x, y };
+					TileData* data = &neighborChunk->Tiles[idx];
+					Tile* tile = data->GetTile();
+
+					if (tile->EmitsLight)
+					{
+						StaticLight light;
+						light.Color = RED;
+						light.LightType = LightType::Static;
+						light.Pos = coord;
+						light.Radius = 2;
+						light.StaticLightType = StaticLightTypes::Basic;
+						light.UpdateFunc = nullptr;
+
+						Rectangle lightBounds;
+						lightBounds.x = coord.x - light.Radius;
+						lightBounds.y = coord.y - light.Radius;
+						lightBounds.width = light.Radius * 2 + 1;
+						lightBounds.height = lightBounds.width;
+
+						if (CheckCollisionRecs(tileBounds, lightBounds))
+						{
+							StaticLightDrawToChunk(&light, chunk, tilemap);
+						}
+					}
+					++idx;
+				}
 			}
 		}
 	}
@@ -420,7 +476,7 @@ UpdateTileMap(ChunkedTileMap* tilemap, TileMapRenderer* tilemapRenderer)
 				GetGame()->LightingRenderer.Tiles[idx].x = (float)tileColor->r * colorInverse;
 				GetGame()->LightingRenderer.Tiles[idx].y = (float)tileColor->g * colorInverse;
 				GetGame()->LightingRenderer.Tiles[idx].z = (float)tileColor->b * colorInverse;
-
+				GetGame()->LightingRenderer.Tiles[idx].w = (float)tileColor->a * colorInverse;
 				// See SetVisible()
 				if (GetGame()->DebugDisableDarkess)
 					tilemapRenderer->Tiles[idx].LOS = 1;
