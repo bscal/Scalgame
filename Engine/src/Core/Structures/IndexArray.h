@@ -38,10 +38,13 @@ struct IndexArray
 
 	void Remove(uint32_t idx)
 	{
-		SASSERT(Data.Capacity > idx);
-		IndexOccupied.ClearBit(idx);
-		FreeList.Push(&idx);
-		--Size;
+		if (idx < Size && IndexOccupied.GetBit(idx))
+		{
+			SASSERT(Data.Capacity > idx);
+			IndexOccupied.ClearBit(idx);
+			FreeList.Push(&idx);
+			--Size;
+		}
 	}
 
 	// Removes idx, but returns pointer to Data if slot was in use.

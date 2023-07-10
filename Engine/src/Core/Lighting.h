@@ -12,6 +12,7 @@
 struct GameApplication;
 struct Game;
 struct ChunkedTileMap;
+struct TileMapChunk;
 struct Light;
 struct UpdatingLight;
 struct UpdatingLightSource;
@@ -89,6 +90,7 @@ void DrawStaticLights(ChunkedTileMap* tilemap, const StaticLight* light);
 void LightRemove(LightingState* lightState, uint32_t lightId);
 void QueueStaticLight(const StaticLight* light);
 void DrawStaticLight(StaticLight* light);
+void StaticLightDrawToChunk(StaticLight* light, TileMapChunk* chunkDst, ChunkedTileMap* tilemap, int sideFlags);
 void LightsUpdate(LightingState* lightingState, Game* game);
 
 // Types

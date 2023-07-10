@@ -46,6 +46,8 @@ SAPI bool GameApplication::Start()
 	size_t tempMemorySize = Megabytes(8);
 	SMemInitialize(this, gameMemorySize, tempMemorySize);
 
+	InitializeSideArrays();
+
 	InitProfile("profile.spall");
 
 	int monitor = GetCurrentMonitor();
@@ -56,7 +58,7 @@ SAPI bool GameApplication::Start()
 
 	//SetConfigFlags(FLAG_WINDOW_RESIZABLE);
 	InitWindow(width, height, "Some roguelike game");
-	SetTargetFPS(144);
+	SetTargetFPS(MAX_FPS);
 	SetTraceLogLevel(LOG_ALL);
 
 	View.Resolution = { GetScreenWidth(), GetScreenHeight() };

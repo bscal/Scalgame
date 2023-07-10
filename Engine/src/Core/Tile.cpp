@@ -23,7 +23,7 @@ bool TileMgrInitialize(const Texture2D* tilesheetTexture)
 
 	uint16_t lava0 = TileMgrRegister(LAVA_0, TileType::Floor);
 	TileMgr.Tiles[lava0].EmitsLight = true;
-	TileMgr.Tiles[lava0].OnUpdate = [](Vector2i pos, TileData data)
+	TileMgr.Tiles[lava0].OnRender = [](Vector2i pos, TileData data)
 	{
 		StaticLight light;
 		light.Color = RED;
@@ -33,6 +33,10 @@ bool TileMgrInitialize(const Texture2D* tilesheetTexture)
 		light.StaticLightType = StaticLightTypes::Basic;
 		light.UpdateFunc = nullptr;
 		QueueStaticLight(&light);
+	};
+	TileMgr.Tiles[lava0].OnUpdate = [](Vector2i pos, TileData data)
+	{
+		//SLOG_INFO("Updating tile at %s, id = %u", FMT_VEC2I(pos), TileMgrToTileId(data.AsCoord()));
 	};
 
 	return true;

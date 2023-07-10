@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Vector2i.h"
+
 #include "raylib/src/raylib.h"
 
 #include <stdint.h>
@@ -69,11 +71,14 @@ typedef int bool32;
 #define Megabytes(n) (Kilobytes(n) * 1024ULL)
 #define Gigabytes(n) (Megabytes(n) * 1024ULL)
 
+#define FlagTrue(state, flag) ((state & flag) == flag)
+#define FlagFalse(state, flag) ((state & flag) != flag)
+
 #define BitGet(state, bit) ((state >> bit) & 1ULL)
 #define BitSet(state, bit) (state | 1ULL << bit)
 #define BitClear(state, bit) (state & ~(1ULL << bit))
 #define BitToggle(state, bit) (state ^ 1ULL << bit)
-#define BitMask(state, mask) ((state & mask) == mask)
+#define BitMask(state, mask) (FlagTrue(state, mask))
 
 #define Swap(x, y, T) T temp = x; x = y; y = temp
 
@@ -122,6 +127,7 @@ constexpr global_var size_t SIZEOF_I64_BITS = (sizeof(uint64_t) * 8);
 
 //1280 	720, 1600 900
 
+constexpr global_var int MAX_FPS = 60;
 constexpr global_var int MAX_WIDTH = 2560;
 constexpr global_var int MAX_HEIGHT = 1440;
 
@@ -133,10 +139,12 @@ constexpr global_var float HALF_TILE_SIZE = TILE_SIZE_F / 2.0f;
 constexpr global_var int MAX_TILE_COUNT = ((MAX_WIDTH / TILE_SIZE) + 1) * ((MAX_HEIGHT / TILE_SIZE) + 1);
  
 constexpr global_var int CHUNK_DIMENSIONS = 64;
+constexpr global_var int CHUNK_SIDE_LENGTH = CHUNK_DIMENSIONS + 1;
 constexpr global_var int CHUNK_SIZE = CHUNK_DIMENSIONS * CHUNK_DIMENSIONS;
 
 // TODO: move to settings struct?
 constexpr global_var int VIEW_DISTANCE = 2;
+constexpr global_var float VIEW_DISTANCE_PIXELS = VIEW_DISTANCE * CHUNK_DIMENSIONS * TILE_SIZE_F;
 
 // EntityId 
 #define SetId(entity, id) (entity | (0x00ffffff & id))
@@ -150,6 +158,43 @@ namespace Colors
 constexpr global_var Vector4 White = { 1.0f, 1.0f, 1.0f, 1.0f };
 constexpr global_var Vector4 Black = { 0.0f, 0.0f, 0.0f, 1.0f };
 constexpr global_var Vector4 Clear = { 0.0f, 0.0f, 0.0f, 0.0f };
+}
+
+#define NORTH	0
+#define EAST	1
+#define SOUTH	2
+#define WEST	3
+
+inline Vector2i NORTH_EDGE[CHUNK_SIDE_LENGTH];
+inline Vector2i EAST_EDGE[CHUNK_SIDE_LENGTH];
+inline Vector2i SOUTH_EDGE[CHUNK_SIDE_LENGTH];
+inline Vector2i WEST_EDGE[CHUNK_SIDE_LENGTH];
+
+inline void InitializeSideArrays()
+{
+	for (int i = 0; i < CHUNK_SIDE_LENGTH; ++i)
+	{
+		NORTH_EDGE[i].x = i - 1;
+		NORTH_EDGE[i].y = -1;
+	}
+
+	for (int i = 0; i < CHUNK_SIDE_LENGTH; ++i)
+	{
+		EAST_EDGE[i].x = CHUNK_SIDE_LENGTH;
+		EAST_EDGE[i].y = i - 1;
+	}
+
+	for (int i = 0; i < CHUNK_SIDE_LENGTH; ++i)
+	{
+		SOUTH_EDGE[i].x = i - 1;
+		SOUTH_EDGE[i].y = CHUNK_SIDE_LENGTH;
+	}
+
+	for (int i = 0; i < CHUNK_SIDE_LENGTH; ++i)
+	{
+		SOUTH_EDGE[i].x = -1;
+		SOUTH_EDGE[i].y = i - 1;
+	}
 }
 
 enum class TileDirection : uint8_t

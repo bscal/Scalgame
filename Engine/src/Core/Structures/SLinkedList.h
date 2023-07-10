@@ -13,9 +13,9 @@ struct SLinkedListEntry
 template<typename T>
 struct SLinkedList
 {
-	SAllocator Allocator;
 	SLinkedListEntry<T>* First;
 	uint32_t Size;
+	SAllocator Allocator;
 
 	void Free();
 
@@ -24,8 +24,8 @@ struct SLinkedList
 	T* Peek() const;
 	[[nodiscard]] T PopValue();
 
-	inline bool HasNext() const { return (Size > 0); }
-	inline size_t Stride() const { return sizeof(SLinkedListEntry<T>); }
+	_FORCE_INLINE_ bool HasNext() const { return (Size > 0); }
+	_FORCE_INLINE_ size_t Stride() const { return sizeof(SLinkedListEntry<T>); }
 
 private:
 	SLinkedListEntry<T>* CreateEntry(const T* value) const;
