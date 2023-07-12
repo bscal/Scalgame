@@ -40,8 +40,6 @@ void Initialize(ChunkedTileMap* tilemap)
 	constexpr uint32_t capacity = 5 * 5 * 2;
 	static_assert(capacity > 0, "capactiy > 0");
 	tilemap->Chunks.Reserve(capacity);
-	
-	tilemap->TileUpdater.Interval = (float)(MAX_FPS / 4);
 }
 
 void Free(ChunkedTileMap* tilemap)
@@ -84,7 +82,7 @@ void Update(ChunkedTileMap* tilemap, Game* game)
 	{
 		if (tilemap->Chunks.Buckets[i].Occupied)
 		{
-			TileMapChunk* chunk = &tilemap->Chunks.Buckets[i].Value;
+			TileMapChunk* chunk = tilemap->Chunks.Buckets[i].Value;
 
 			GetGameApp()->NumOfChunksUpdated += 1;
 
@@ -105,6 +103,8 @@ void Update(ChunkedTileMap* tilemap, Game* game)
 				{
 					BakeChunkLighting(tilemap, chunk, FlagTrue(chunk->RebakeFlags, CHUNK_REBAKE_NEIGHBORS));
 				}
+
+				chunk->TileUpdater.Update(tilemap, chunk, GetDeltaTime());
 			}
 		}
 	}
@@ -116,16 +116,6 @@ void Update(ChunkedTileMap* tilemap, Game* game)
 	}
 
 	UpdateTileMap(tilemap, &game->TileMapRenderer);
-
-	tilemap->TileUpdater.Update(tilemap, GetDeltaTime());
-
-	static float counter = 0;
-	counter += GetDeltaTime();
-	if (counter > 1.0)
-	{
-		counter = 0;
-		SLOG_INFO("Updating %d tiles per frame. Interval: %f", tilemap->TileUpdater.UpdateCount, tilemap->TileUpdater.Interval);
-	}
 
 	PROFILE_END();
 }
@@ -140,8 +130,9 @@ void LateUpdate(ChunkedTileMap* tilemap, Game* game)
 		screen.width = (float)GetScreenWidth();
 		screen.height = (float)GetScreenHeight();
 
-		tilemap->Chunks.Foreach([&screen](TileMapChunk* chunk)
+		tilemap->Chunks.Foreach([&screen](TileMapChunk** chunkPtr)
 		{
+			TileMapChunk* chunk = *chunkPtr;
 			const char* chunkPosStr = TextFormat("%d, %d", chunk->ChunkCoord.x, chunk->ChunkCoord.y);
 			DrawText(chunkPosStr, (int)chunk->Bounds.x, (int)chunk->Bounds.y, 32, WHITE);
 
@@ -161,8 +152,10 @@ TileMapChunk* LoadChunk(ChunkedTileMap* tilemap, ChunkCoord coord)
 	if (IsChunkLoaded(tilemap, coord))
 		return nullptr;
 
-	TileMapChunk* chunk = tilemap->Chunks.InsertKey(&coord);
+	TileMapChunk* chunk = (TileMapChunk*)SAlloc(SAllocator::Game, sizeof(TileMapChunk), MemoryTag::Game);
 	SASSERT(chunk);
+	tilemap->Chunks.Insert(&coord, &chunk);
+
 	SMemClear(chunk, sizeof(TileMapChunk));
 	chunk->ChunkCoord = coord;
 
@@ -192,11 +185,6 @@ TileMapChunk* LoadChunk(ChunkedTileMap* tilemap, ChunkCoord coord)
 			TileData* data = &chunk->Tiles[idx];
 			Tile* tile = data->GetTile();
 
-			if (tile->OnUpdate)
-			{
-				chunk->TileUpdateIds[idx] = tilemap->TileUpdater.Add(coord, data);
-			}
-
 			++idx;
 		}
 	}
@@ -209,15 +197,16 @@ TileMapChunk* LoadChunk(ChunkedTileMap* tilemap, ChunkCoord coord)
 
 void UnloadChunk(ChunkedTileMap* tilemap, ChunkCoord coord)
 {
-	TileMapChunk* chunk = tilemap->Chunks.Get(&coord);
-	if (chunk)
+	TileMapChunk** chunkPtr = tilemap->Chunks.Get(&coord);
+	if (chunkPtr)
 	{
-		for (uint32_t i = 0; i < chunk->TileUpdateIds.Count(); ++i)
-		{
-			tilemap->TileUpdater.Actions.Remove(chunk->TileUpdateIds[i]);
-		}
+		TileMapChunk* chunk = *chunkPtr;
+		SASSERT(chunk);
 
 		tilemap->Chunks.Remove(&coord);
+
+		SFree(SAllocator::Game, chunk, sizeof(TileMapChunk), MemoryTag::Game);
+
 		SLOG_INFO("[ Chunk ] Unloaded chunk (%s)", FMT_VEC2I(coord));
 	}
 }
@@ -327,7 +316,7 @@ bool IsChunkLoaded(ChunkedTileMap* tilemap,
 	ChunkCoord coord)
 {
 	// TODO
-	return tilemap->Chunks.Contains(&coord);
+	return (tilemap->Chunks.Get(&coord));
 }
 
 bool IsTileInBounds(ChunkedTileMap* tilemap, TileCoord tilePos)
@@ -349,7 +338,8 @@ bool IsChunkInBounds(ChunkedTileMap* tilemap, ChunkCoord chunkPos)
 TileMapChunk* 
 GetChunk(ChunkedTileMap* tilemap, ChunkCoord coord)
 {
-	return tilemap->Chunks.Get(&coord);
+	TileMapChunk** chunkPtr = tilemap->Chunks.Get(&coord);
+	return (chunkPtr) ? *chunkPtr : nullptr;
 }
 
 TileMapChunk* 

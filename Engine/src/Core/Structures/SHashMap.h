@@ -37,7 +37,6 @@ struct SHashMap
 	uint32_t Insert(const K* key, const V* val);	// Inserts Key/Value
 	V* InsertKey(const K* key);						// Inserts Key, returns ptr to value
 	V* Get(const K* key) const;						// Returns ptr to value
-	bool Contains(const K* key) const;
 	bool Remove(const K* key);
 	bool RemoveValue(const K* key, V* value);
 
@@ -206,28 +205,6 @@ V* SHashMap<K, V, Hasher>::Get(const K* key) const
 			if (++index == Capacity) index = 0;
 	}
 	return nullptr;
-}
-
-template<typename K, typename V, typename Hasher>
-bool SHashMap<K, V, Hasher>::Contains(const K* key) const
-{
-	SASSERT(key);
-
-	if (!IsAllocated())
-		return false;
-
-	uint32_t index = Hash(key);
-	while (true)
-	{
-		SHashMapBucket<K, V>* bucket = &Buckets[index];
-		if (bucket->Occupied == 0)
-			return false;
-		else if (Equals(key, &bucket->Key))
-			return true;
-		else
-			if (++index == Capacity) index = 0;
-	}
-	return false;
 }
 
 template<typename K, typename V, typename Hasher>
@@ -424,7 +401,7 @@ inline int TestSHoodTable()
 
 	for (int i = 0; i < 17; ++i)
 	{
-		SASSERT(table.Contains(&i));
+		SASSERT(table.Get(&i));
 	}
 
 	SASSERT(table.Size == 17);
@@ -443,7 +420,7 @@ inline int TestSHoodTable()
 	int remove2 = 9;
 	table.Remove(&remove2);
 
-	SASSERT(!table.Contains(&k0));
+	SASSERT(!table.Get(&k0));
 	SASSERT(table.Size == 15);
 
 	for (int i = 0; i < 4; ++i)

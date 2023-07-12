@@ -3,11 +3,11 @@
 #include "Core.h"
 #include "Vector2i.h"
 #include "SMemory.h"
+#include "SUtil.h"
 
 #include "Structures/StaticArray.h"
 #include "Structures/SList.h"
 #include "Structures/IndexArray.h"
-#include "Structures/SHashMap.h"    
 
 struct GameApplication;
 struct Game;
@@ -75,21 +75,15 @@ struct LightingState
     IndexArray<Light*> LightPtrs;
     MemoryPool<UpdatingLight, UpdatingLightSize> UpdatingLightPool;
 
-    SList<StaticLight> StaticLights;
-
     StaticArray<StaticLightType, (size_t)StaticLightTypes::MaxTypes> StaticLightTypes;
 
     uint32_t NumOfUpdatingLights;
-    uint32_t NumOfStaticLights;
 };
 
 void LightsInitialize(LightingState* lightingState);
 uint32_t LightAddUpdating(LightingState* lightState, UpdatingLight* light);
 uint32_t GetNumOfLights();
-void DrawStaticLights(ChunkedTileMap* tilemap, const StaticLight* light);
 void LightRemove(LightingState* lightState, uint32_t lightId);
-void QueueStaticLight(const StaticLight* light);
-void DrawStaticLight(StaticLight* light);
 void StaticLightDrawToChunk(StaticLight* light, TileMapChunk* chunkDst, ChunkedTileMap* tilemap);
 void LightsUpdate(LightingState* lightingState, Game* game);
 

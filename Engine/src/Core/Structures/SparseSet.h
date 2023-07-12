@@ -37,10 +37,10 @@ struct SparseSet
 
 	void Free()
 	{
-		SFree(Allocator, Sparse, SparseCapacity * sizeof(uint32_t), MemoryTag::Lists);
+		SFree(Allocator, Sparse, SparseCapacity * sizeof(uint32_t), MemoryTag::SparseSet);
 		Sparse = nullptr;
 		SparseCapacity = 0;
-		SFree(Allocator, Dense, DenseCapacity * sizeof(uint32_t), MemoryTag::Lists);
+		SFree(Allocator, Dense, DenseCapacity * sizeof(uint32_t), MemoryTag::SparseSet);
 		Dense = nullptr;
 		DenseCapacity = 0;
 		Count = 0;
@@ -61,7 +61,7 @@ struct SparseSet
 
 		size_t oldSize = SparseCapacity * sizeof(uint32_t);
 		size_t newSize = capacity * sizeof(uint32_t);
-		Sparse = (uint32_t*)SRealloc(Allocator, Sparse, oldSize, newSize, MemoryTag::Lists);
+		Sparse = (uint32_t*)SRealloc(Allocator, Sparse, oldSize, newSize, MemoryTag::SparseSet);
 		SASSERT(Sparse);
 		SMemSet((void*)(Sparse + Count), SPARSE_EMPTY_ID, newSize - oldSize);
 
@@ -76,7 +76,7 @@ struct SparseSet
 
 		size_t oldSize = DenseCapacity * sizeof(uint32_t);
 		size_t newSize = capacity * sizeof(uint32_t);
-		Dense = (uint32_t*)SRealloc(Allocator, Dense, oldSize, newSize, MemoryTag::Lists);
+		Dense = (uint32_t*)SRealloc(Allocator, Dense, oldSize, newSize, MemoryTag::SparseSet);
 		SASSERT(Dense);
 
 		DenseCapacity = capacity;

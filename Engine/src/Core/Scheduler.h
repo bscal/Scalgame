@@ -10,6 +10,7 @@
 #include <math.h>
 
 struct ChunkedTileMap;
+struct TileMapChunk;
 
 template<typename Action>
 struct DistributedScheduler
@@ -52,19 +53,12 @@ struct DistributedScheduler
 
 struct DistributedTileUpdater
 {
-	struct TileUpdaterData
-	{
-		Vector2i Pos;
-		void(*OnUpdate)(Vector2i, TileData);
-	};
+	constexpr static int COUNT = CHUNK_SIZE;
+	constexpr static float INTERVAL = 60.0f / 2.0f;
+	constexpr static float UPDATES_PER_SEC = (float)COUNT / INTERVAL;
 
-	IndexArray<TileUpdaterData> Actions;
 	int Index;
-	int UpdateCount;
-	float Interval;
 	float UpdateAccumulator;
 
-	void Update(ChunkedTileMap* tilemap, float dt);
-	uint32_t Add(Vector2i coord, TileData* data);
+	void Update(ChunkedTileMap* tilemap, TileMapChunk* chunk, float dt);
 };
-

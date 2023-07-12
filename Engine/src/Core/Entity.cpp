@@ -175,7 +175,7 @@ void* GetEntity(uint32_t ent)
 
 bool DoesEntityExist(uint32_t ent)
 {
-	return EntityMgr.Entities.Contains(&ent);
+	return (EntityMgr.Entities.Get(&ent));
 }
 
 CreatureData* GetCreatureType(Player* player)

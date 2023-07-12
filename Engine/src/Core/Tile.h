@@ -31,6 +31,8 @@ struct TileSheetCoord
 #define ROCKY_WALL TileSheetCoord{20, 2}
 #define LAVA_0 TileSheetCoord{31,54}
 
+typedef void(*OnUpdate)(uint32_t, TileData);
+
 struct Tile
 {
 	bool IsUsed;
@@ -39,8 +41,7 @@ struct Tile
 
 	void(*OnAwake)(Vector2i, TileData);
 	void(*OnSleep)(Vector2i, TileData);
-	void(*OnUpdate)(Vector2i, TileData);
-	void(*OnRender)(Vector2i, TileData);
+	OnUpdate OnUpdateCB;
 	void(*OnStepOn)(Vector2i, TileData, void* worldEntity);
 	void(*OnStepOff)(Vector2i, TileData, void* worldEntity);
 };

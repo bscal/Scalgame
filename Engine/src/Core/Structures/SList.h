@@ -88,7 +88,7 @@ template<typename T>
 void SList<T>::Free()
 {
 	if (Memory)
-		SFree(Allocator, Memory, MemUsed(), MemoryTag::Arrays);
+		SFree(Allocator, Memory, MemUsed(), MemoryTag::Lists);
 	Memory = nullptr;
 	Capacity = 0;
 	Count = 0;
@@ -102,7 +102,7 @@ void SList<T>::Reserve(uint32_t newCapacity)
 
 	size_t oldSize = MemUsed();
 	size_t newSize = newCapacity * sizeof(T);
-	Memory = (T*)SRealloc(Allocator, Memory, oldSize, newSize, MemoryTag::Arrays);
+	Memory = (T*)SRealloc(Allocator, Memory, oldSize, newSize, MemoryTag::Lists);
 	Capacity = newCapacity;
 	SASSERT(Memory);
 	SASSERT(Count <= newCapacity);

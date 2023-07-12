@@ -36,8 +36,6 @@ ComputeOctant(ChunkedTileMap* tilemap, uint8_t octant,
 void 
 LightsInitialize(LightingState* lightingState)
 {
-	lightingState->StaticLights.Reserve(GetGameApp()->View.TotalTilesOnScreen);
-
 	float table[] = {
 		0.0f, 0.0f, 0.1f, 0.0f, 0.0f,
 		0.0f, 0.1f, 0.2f, 0.1f, 0.0f,
@@ -63,104 +61,6 @@ LightsInitialize(LightingState* lightingState)
 	lightingState->StaticLightTypes[(uint8_t)StaticLightTypes::Lava].Width = 3;
 	lightingState->StaticLightTypes[(uint8_t)StaticLightTypes::Lava].Height = 3;
 }
-
-void 
-DrawStaticLights(ChunkedTileMap* tilemap, const StaticLight* light)
-{
-	StaticLightType* lightType = &GetGame()->LightingState.StaticLightTypes[(uint8_t)light->StaticLightType];
-
-	Vector2i startPos = light->Pos + Vector2i{ lightType->x, lightType->y };
-
-	uint8_t i = 0;
-	for (uint8_t y = 0; y < lightType->Height; ++y)
-	{
-		for (uint8_t x = 0; x < lightType->Width; ++x)
-		{
-			Vector2i curWorld = startPos + Vector2i{ x, y };
-			if (CTileMap::IsTileInBounds(tilemap, curWorld))
-			{
-				Vector2i curCull = WorldTileToCullTile(curWorld);
-				size_t index = curCull.x + curCull.y * GetGameApp()->View.ResolutionInTiles.x;
-				float multiplier = lightType->LightModifers[i];
-				constexpr float inverse = 1.0f / 255.0f;
-				GetGame()->LightingRenderer.Tiles[index].x += (float)light->Color.r * inverse * multiplier;
-				GetGame()->LightingRenderer.Tiles[index].y += (float)light->Color.g * inverse * multiplier;
-				GetGame()->LightingRenderer.Tiles[index].z += (float)light->Color.b * inverse * multiplier;
-			}
-			++i;
-		}
-	}
-}
-
-void 
-QueueStaticLight(const StaticLight* light)
-{
-	SASSERT(light->LightType == LightType::Static)
-	GetGame()->LightingState.StaticLights.Push(light);
-}
-
-void 
-DrawStaticLight(StaticLight* light)
-{
-	SASSERT(light);
-
-	GameApplication* gameApp = GetGameApp();
-	
-	Vector2i cullPos = WorldTileToCullTile(light->Pos);
-
-	switch (light->StaticLightType)
-	{
-		case (StaticLightTypes::Basic):
-		{
-			for (int i = 0; i < 9; ++i)
-			{
-				Vector2i pos = cullPos + LavaLightOffsets[i];
-				if (TileInsideCullRect(light->Pos + LavaLightOffsets[i]))
-				{
-					size_t idx = (size_t)pos.x + (size_t)pos.y * (size_t)gameApp->View.ResolutionInTiles.x;
-					SASSERT(idx < gameApp->View.TotalTilesOnScreen);
-					gameApp->Game->LightingRenderer.Tiles[idx].x += (float)light->Color.r * LavaLightWeights[i];
-					gameApp->Game->LightingRenderer.Tiles[idx].y += (float)light->Color.g * LavaLightWeights[i];
-					gameApp->Game->LightingRenderer.Tiles[idx].z += (float)light->Color.b * LavaLightWeights[i];
-				}
-			}
-		} break;
-
-		default:
-		{
-			SASSERT_MSG(false, "Using an invalid StaticLightType");
-		} break;
-	}
-}
-
-/*
-* 			ChunkedTileMap* tilemap = &GetGame()->Universe.World.ChunkedTileMap;
-			StaticLightType* lightType = &GetGame()->LightingState.StaticLightTypes[(uint8_t)type];
-
-			Vector2i startPos = tilePos + Vector2i{ lightType->x, lightType->y };
-			startPos = WorldTileToCullTile(startPos);
-			uint8_t i = 0;
-			for (uint8_t y = 0; y < lightType->Height; ++y)
-			{
-				for (uint8_t x = 0; x < lightType->Width; ++x)
-				{
-					float multiplier = lightType->LightModifers[i++];
-					if (multiplier > 0.f)
-					{
-						Vector2i cur = startPos + Vector2i{ x, y };
-						size_t index = cur.x + cur.y * GetGameApp()->View.ResolutionInTiles.x;
-						if (index >= (size_t)GetGameApp()->View.TotalTilesOnScreen)
-							continue;
-
-						constexpr float inverse = 1.0f / 255.0f;
-						float m = inverse * multiplier;
-						GetGame()->LightingRenderer.Tiles[index].x += (float)color.r * m;
-						GetGame()->LightingRenderer.Tiles[index].y += (float)color.g * m;
-						GetGame()->LightingRenderer.Tiles[index].z += (float)color.b * m;
-					}
-				}
-			}
-*/
 
 internal constexpr unsigned char
 Clamp0255(uint16_t val0, uint16_t val1)
@@ -278,28 +178,15 @@ LightRemove(LightingState* lightState, uint32_t lightId)
 		return;
 
 	Light* light = *lightPtr;
-	SASSERT(light);
-	switch (light->LightType)
-	{
-		case (LightType::Updating):
-		{
-			lightState->UpdatingLightPool.deallocate((UpdatingLight*)light);
-			--lightState->NumOfUpdatingLights;
-		} break;
-
-		default:
-		{
-			SASSERT_MSG(false, "Light removed with no matching type!");
-			SLOG_ERR("Light removed with no matching type!");
-		} break;
-	}
+	lightState->UpdatingLightPool.deallocate((UpdatingLight*)light);
+	--lightState->NumOfUpdatingLights;
 }
 
 
 uint32_t 
 GetNumOfLights()
 {
-	return GetGame()->LightingState.NumOfUpdatingLights + GetGame()->LightingState.NumOfStaticLights;
+	return GetGame()->LightingState.NumOfUpdatingLights;
 }
 
 void 
@@ -322,35 +209,8 @@ LightsUpdate(LightingState* lightState, Game* game)
 		SMemClear(colorArrayPtrs[i], size);
 	}
 
-	uint32_t totalStaticLights = lightState->StaticLights.Count;
-	uint32_t groupStaticSize = (uint32_t)std::ceil((float)totalStaticLights / (float)LIGHT_STATIC_THREADS);
-
 	uint32_t totalUpdatingLights = lightState->LightPtrs.Data.Capacity;
 	uint32_t groupUpdateSize = (uint32_t)std::ceil((float)totalUpdatingLights / (float)LIGHT_UPDATE_THREADS);
-
-	// Static Lights
-	// Note: Uses only 1 thread, we process updating lights after and los after
-	// but we still lose ~.2ms with no other lights. We should probably hook into
-	// threaded lights array and have each thread use is own color array if we
-	// wanted to use multiple threads.
-	std::function<void(wi::jobsystem::JobArgs)> staticLightTask = [lightState, &colorArrayPtrs](wi::jobsystem::JobArgs job)
-	{
-		PROFILE_BEGIN_EX("LightsUpdate::StaticLights");
-
-		uint32_t lightIndex = job.jobIndex;
-		uint32_t threadIndex = job.groupID;
-
-		SASSERT(lightIndex < lightState->StaticLights.Count);
-		SASSERT(threadIndex < LIGHT_STATIC_THREADS);
-
-		StaticLight* light = lightState->StaticLights.PeekAt(lightIndex);
-		Vector3* threadArray = colorArrayPtrs[threadIndex];
-		UpdateStaticLight(light, threadArray, GetGameApp()->View.ResolutionInTiles.x);
-
-		PROFILE_END();
-	};
-	wi::jobsystem::context staticLightCtx = {};
-	wi::jobsystem::Dispatch(staticLightCtx, totalStaticLights, groupStaticSize, staticLightTask);
 
 	std::function<void(wi::jobsystem::JobArgs)> task = [lightState, tilemap, &colorArrayPtrs](wi::jobsystem::JobArgs job)
 	{
@@ -407,10 +267,6 @@ LightsUpdate(LightingState* lightState, Game* game)
 		}
 #endif
 	}
-
-	// Wait static lights
-	wi::jobsystem::Wait(staticLightCtx);
-	lightState->StaticLights.Clear();
 
 	// Wait updating lights
 	wi::jobsystem::Wait(ctx);

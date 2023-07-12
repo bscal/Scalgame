@@ -22,6 +22,7 @@ enum class MemoryTag : uint8_t
 {
 	Unknown = 0,
 	Arrays,
+	SparseSet,
 	Lists,
 	LinkedList,
 	Tables,
@@ -40,6 +41,7 @@ constexpr static const char* MemoryTagStrings[(uint8_t)MemoryTag::MaxTags] =
 {
 	"Unknown",
 	"Arrays",
+	"SparseSet",
 	"Lists",
 	"LinkedList",
 	"Tables",

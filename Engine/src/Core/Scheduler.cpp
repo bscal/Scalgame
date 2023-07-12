@@ -2,42 +2,25 @@
 
 #include "ChunkedTileMap.h"
 
-void DistributedTileUpdater::Update(ChunkedTileMap* tilemap, float dt)
+void DistributedTileUpdater::Update(ChunkedTileMap* tilemap, TileMapChunk* chunk, float dt)
 {
-	float updatesPerSecond = (float)Actions.Size / Interval;
-	float updatesPerFrame = updatesPerSecond * dt;
+	float updatesPerFrame = UPDATES_PER_SEC * dt;
 
-	UpdateAccumulator = fminf(UpdateAccumulator + updatesPerFrame, (float)Actions.Size);
+	UpdateAccumulator = fminf(UpdateAccumulator + updatesPerFrame, (float)COUNT);
 
-	UpdateCount = UpdateAccumulator;
+	int updateCount = (int)UpdateAccumulator;
 
-	for (int i = 0; i < UpdateCount; ++i)
+	for (int i = 0; i < updateCount; ++i)
 	{
-		TileUpdaterData* actionPtr = Actions.At(Index);
-		if (actionPtr)
+		TileData data = chunk->Tiles[Index];
+		OnUpdate onUpdateCB = data.GetTile()->OnUpdateCB;
+		if (onUpdateCB)
 		{
-			TileData* tileData = CTileMap::GetTile(tilemap, actionPtr->Pos);
-			actionPtr->OnUpdate(actionPtr->Pos, *tileData);
+			onUpdateCB(Index, data);
 		}
 
-		Index = (Index + 1) % Actions.Size;
+		Index = (Index + 1) % COUNT;
 	}
 
-	UpdateAccumulator -= (float)UpdateCount;
-}
-
-uint32_t DistributedTileUpdater::Add(Vector2i coord, TileData* data)
-{
-	SASSERT(data);
-
-	if (data->GetTile()->OnUpdate)
-	{
-		TileUpdaterData entry;
-		entry.Pos = coord;
-		entry.OnUpdate = data->GetTile()->OnUpdate;
-
-		return Actions.Add(&entry);
-	}
-
-	return UINT32_MAX;
+	UpdateAccumulator -= (float)updateCount;
 }

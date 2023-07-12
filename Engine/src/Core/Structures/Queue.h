@@ -24,14 +24,14 @@ struct Queue
 		Tail = nullptr;
 
 		size_t size = sizeof(T) * Capacity;
-		Memory = (T*)SAlloc(Allocator, size, MemoryTag::Lists);
+		Memory = (T*)SAlloc(Allocator, size, MemoryTag::Arrays);
 	}
 
 	void Free()
 	{
 		SASSERT(Memory);
 		size_t size = sizeof(T) * Capacity;
-		SFree(Allocator, Memory, size, MemoryTag::Lists);
+		SFree(Allocator, Memory, size, MemoryTag::Arrays);
 	}
 
 	inline int GetSize() const

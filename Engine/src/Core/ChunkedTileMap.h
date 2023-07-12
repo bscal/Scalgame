@@ -6,6 +6,7 @@
 #include "Scheduler.h"
 
 #include "Structures/SHashMap.h"
+#include "Structures/SHashMapDense.h"
 #include "Structures/SLinkedList.h"
 #include "Structures/StaticArray.h"
 
@@ -30,19 +31,19 @@ enum class ChunkState : uint8_t
 struct TileMapChunk
 {
 	Rectangle Bounds;
+	DistributedTileUpdater TileUpdater;
 	Vector2i StartTile;
 	ChunkCoord ChunkCoord;
 	ChunkState State;
 	uint8_t RebakeFlags;
 	bool IsBaked;
 	StaticArray<TileData, CHUNK_SIZE> Tiles;
-	StaticArray<uint32_t, CHUNK_SIZE> TileUpdateIds;
 	StaticArray<Color, CHUNK_SIZE> TileColors;
 };
 
 struct ChunkedTileMap
 {
-	SHashMap<Vector2i, TileMapChunk> Chunks;
+	SHashMap<Vector2i, TileMapChunk*> Chunks;
 	SLinkedList<ChunkCoord> ChunksToUnload;
 
 	DistributedTileUpdater TileUpdater;
