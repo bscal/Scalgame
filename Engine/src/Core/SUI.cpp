@@ -42,11 +42,6 @@ bool InitializeUI(UIState* state, GameApplication* gameApp)
 
 	state->ChatBoxStrings.Initialize(64, 64);
 
-	// Initialize ConsoleEntries
-	state->ConsoleEntries.Allocator = SAllocator::Game;
-	state->ConsoleEntries.Reserve(CONSOLE_MAX_LENGTH);
-
-
 	SLOG_INFO("[ UI ] Initialized");
 
 	return true;
@@ -347,13 +342,12 @@ DrawConsole(UIState* state)
 	local_var int heightAnimValue;
 	local_var float SuggestionPanelSize;
 
-	if (!state->IsConsoleAlreadyOpen)
+	bool wasConsoleAlreadyOpen = state->IsConsoleAlreadyOpen;
+	if (!wasConsoleAlreadyOpen)
 		heightAnimValue = 0;
-
 	state->IsConsoleAlreadyOpen = true;
 
 	constexpr int CONSOLE_ANIM_SPEED = 900 * 6;
-	constexpr int MAX_CONSOLE_HISTORY = 128;
 	constexpr float INPUT_HEIGHT = 36.0f;
 	constexpr float INPUT_WIDTH = INPUT_HEIGHT + 12.0f;
 	constexpr int SCROLL_BAR_OFFSET = 16;
@@ -379,70 +373,77 @@ DrawConsole(UIState* state)
 	struct nk_rect bounds = { paddingX, 0.0f, paddingW, (float)h };
 	if (nk_begin(ctx, "Console", bounds, NK_WINDOW_NO_SCROLLBAR))
 	{
+		CommandMgr* cmdMgr = &GetGame()->CommandMgr;
+		
+		if (!wasConsoleAlreadyOpen)
+		{
+			if (cmdMgr->ConsoleEntries.StringCount >= uint32_t(h / TEXT_ENTRY_HEIGHT_WITH_PADDING))
+			{
+				nk_group_set_scroll(ctx, "Messages", 0, cmdMgr->ConsoleEntries.StringCount * TEXT_ENTRY_HEIGHT_WITH_PADDING);
+			}
+		}
+
 		nk_layout_row_static(ctx, h - INPUT_WIDTH - SuggestionPanelSize, (int)paddingW - SCROLL_BAR_OFFSET, 1);
 
 		if (nk_group_begin(ctx, "Messages", 0))
 		{
 			nk_layout_row_dynamic(ctx, TEXT_ENTRY_HEIGHT, 1);
-			for (uint32_t i = 0; i < state->ConsoleEntries.Count; ++i)
+			for (int i = cmdMgr->ConsoleEntries.StringCount - 1; i >= 0; --i)
 			{
-				nk_label(ctx, state->ConsoleEntries[i].Data(), NK_TEXT_LEFT);
+				nk_label(ctx, cmdMgr->ConsoleEntries.StringsMemory[i], NK_TEXT_LEFT);
 			}
 			nk_group_end(ctx);
 		}
-
-		CommandMgr* cmdMgr = &GetGame()->CommandMgr;
-		if (IsKeyPressed(KEY_TAB) && cmdMgr->Suggestions.Count > 0)
+		
+		if (IsKeyPressed(KEY_TAB))
 		{
-			SStringView sug = cmdMgr->Suggestions[0];
-			cmdMgr->Length = (int)sug.Length;
-			SMemCopy(cmdMgr->TextInputMemory, sug.Str, (size_t)cmdMgr->Length);
+			if (cmdMgr->Suggestions.Count > 0)
+			{
+				SMemCopy(cmdMgr->Input, cmdMgr->Suggestions[0].Str, cmdMgr->Suggestions[0].Length);
+				cmdMgr->Length = cmdMgr->Suggestions[0].Length;
+				cmdMgr->Input[CONSOLE_STR_LENGTH - 1] = '\0';
+			}
+		}
+		else if (IsKeyPressed(KEY_ENTER))
+		{
+			char* line = cmdMgr->ConsoleEntries.Push();
+			SMemCopy(line, cmdMgr->Input, sizeof(cmdMgr->Input));
+			SMemClear(cmdMgr->Input, sizeof(cmdMgr->Input));
+
+			SStringView input(line, cmdMgr->Length);
+
+			cmdMgr->Length = 0;
+
+			cmdMgr->TryExecuteCommand(input);
+
+			if (cmdMgr->ConsoleEntries.StringCount >= uint32_t(h / TEXT_ENTRY_HEIGHT_WITH_PADDING))
+			{
+				nk_group_set_scroll(ctx, "Messages", 0, cmdMgr->ConsoleEntries.StringCount * TEXT_ENTRY_HEIGHT_WITH_PADDING);
+			}
 		}
 
 		// *** Command Input ***
 		nk_layout_row_static(ctx, INPUT_HEIGHT, (int)paddingW, 1);
 		nk_edit_string(&state->Ctx,
 			NK_EDIT_SIMPLE,
-			cmdMgr->TextInputMemory,
+			cmdMgr->Input,
 			&cmdMgr->Length,
-			sizeof(cmdMgr->TextInputMemory) - 1,
+			cmdMgr->ConsoleEntries.StringCapacity,
 			nk_filter_default);
 
-		if (IsKeyPressed(KEY_ENTER))
-		{
-			if (state->ConsoleEntries.Count > MAX_CONSOLE_HISTORY)
-			{
-				state->ConsoleEntries.RemoveAt(0);
-			}
-
-			SString* string = state->ConsoleEntries.PushNew();
-			string->Assign(cmdMgr->TextInputMemory);
-
-			cmdMgr->TryExecuteCommand(SStringView(cmdMgr->TextInputMemory, cmdMgr->Length));
-
-			if (state->ConsoleEntries.Count >= uint32_t(h / TEXT_ENTRY_HEIGHT_WITH_PADDING))
-			{
-				nk_group_set_scroll(ctx, "Messages", 0, state->ConsoleEntries.Count * TEXT_ENTRY_HEIGHT_WITH_PADDING);
-			}
-		}
-
-		if (cmdMgr->Length != cmdMgr->LastLength)
-		{
-			cmdMgr->LastLength = cmdMgr->Length;
-			cmdMgr->PopulateSuggestions(SStringView(cmdMgr->TextInputMemory, cmdMgr->Length));
-		}
+		SuggestionPanelSize = 0;
 		if (cmdMgr->Length > 0)
 		{
+			SStringView input(cmdMgr->Input, cmdMgr->Length);
+
+			cmdMgr->PopulateSuggestions(input);
+
 			SuggestionPanelSize = (float)(cmdMgr->Suggestions.Count) * 24.0f;
 			nk_layout_row_dynamic(ctx, TEXT_ENTRY_HEIGHT, 1);
 			for (uint32_t i = 0; i < cmdMgr->Suggestions.Count; ++i)
 			{
 				nk_label(ctx, cmdMgr->Suggestions[i].Str, NK_TEXT_LEFT);
 			}
-		}
-		else
-		{
-			SuggestionPanelSize = 0.0f;
 		}
 	}
 	nk_end(&state->Ctx);
@@ -473,7 +474,7 @@ DrawChatBox(UIState* state, Game* game)
 		{
 			nk_layout_row_dynamic(ctx, 16, 1);
 
-			for (uint32_t i = 0; i < state->ChatBoxStrings.PoolCapacity; ++i)
+			for (uint32_t i = 0; i < state->ChatBoxStrings.StringCount; ++i)
 			{
 				//char* entryStr = state->ChatBoxStrings.Get(i);
 
@@ -495,6 +496,7 @@ DrawFPS(struct nk_context* ctx)
 	struct nk_rect bounds = { w - 96.0f, 0.0f, w, 24.0f };
 	if (nk_begin(ctx, "FPS", bounds, NK_WINDOW_NO_SCROLLBAR | NK_WINDOW_NO_INPUT))
 	{
+		ctx->style.window.fixed_background.data.color = { 55, 55, 55, 255 };
 		ctx->style.window.fixed_background.data.color = {};
 		nk_layout_row_dynamic(ctx, 24.0f, 1);
 		nk_label(ctx, TextFormat("FPS: %d", GetFPS()), NK_TEXT_LEFT);

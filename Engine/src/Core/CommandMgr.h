@@ -4,26 +4,31 @@
 
 #include "SString.h"
 #include "SUtil.h"
+
+#include "Structures/StaticArray.h"
 #include "Structures/SList.h"
 #include "Structures/SHashMap.h"
-
-global_var constexpr uint32_t MAX_SUGGESTIONS = 6;
 
 struct Command
 {
 	int(*Execute)(const SStringView cmd, const SList<SStringView>& args);
 };
 
+constexpr global_var int CONSOLE_STR_LENGTH = 60;
+constexpr global_var int CONSOLE_MAX_SUGGETIONS = 5;
+
 struct CommandMgr
 {
-	SHashMap<SRawString, Command> Commands;
+	char Input[CONSOLE_STR_LENGTH];
+	int Length;
+
+	SStringsBuffer ConsoleEntries;
+
+	SHashMap<SRawString, Command, SRawStringHasher> Commands;
 	SList<SStringView> CommandNames;
+
 	SList<SStringView> Suggestions;
 	SList<SStringView> InputArgs;
-
-	int Length;
-	int LastLength;
-	char TextInputMemory[96];
 
 	CommandMgr();
 

@@ -29,7 +29,6 @@ struct UIState
     bool IsConsoleOpen;
 	bool IsConsoleAlreadyOpen;
 	bool IsChatBoxShowing;
-	SList<SString> ConsoleEntries;
 	UIUserData UserData;
 };
 

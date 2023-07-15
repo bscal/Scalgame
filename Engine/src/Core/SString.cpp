@@ -202,7 +202,7 @@ SStringView::SStringView(const SStringView* string, uint32_t offset)
 }
 
 SStringView::SStringView(const SString* string)
-	: SStringView(string->Data(), string->Length, 0)
+	: SStringView(string->Data(), string->Length - 1, 0)
 {
 }
 
@@ -244,9 +244,9 @@ uint32_t SStringView::Find(const char* cString) const
 SRawString RawStringNew(const char* cStr)
 {
 	SRawString res;
-	res.Length = (uint32_t)strlen(cStr);
+	res.Length = (uint32_t)strlen(cStr) + 1;
 	res.Allocator = SAllocator::Game;
-	res.Data = (char*)SAlloc(SAllocator::Game, res.Length + 1, MemoryTag::Strings);
+	res.Data = (char*)SAlloc(SAllocator::Game, res.Length, MemoryTag::Strings);
 	SMemCopy(res.Data, cStr, res.Length);
 	res.Data[res.Length] = '\0';
 	return res;
@@ -255,9 +255,9 @@ SRawString RawStringNew(const char* cStr)
 SRawString RawStringNewTemp(const char* cStr, uint32_t length)
 {
 	SRawString res;
-	res.Length = length;
+	res.Length = length + 1;
 	res.Allocator = SAllocator::Temp;
-	res.Data = (char*)SAlloc(SAllocator::Temp, res.Length + 1, MemoryTag::Strings);
+	res.Data = (char*)SAlloc(SAllocator::Temp, res.Length, MemoryTag::Strings);
 	SMemCopy(res.Data, cStr, res.Length);
 	res.Data[res.Length] = '\0';
 	return res;
@@ -265,7 +265,7 @@ SRawString RawStringNewTemp(const char* cStr, uint32_t length)
 
 void RawStringFree(SRawString* string)
 {
-	SFree(string->Allocator, string->Data, string->Length + 1, MemoryTag::Strings);
+	SFree(string->Allocator, string->Data, string->Length, MemoryTag::Strings);
 
 	string->Data = nullptr;
 	string->Length = 0;
@@ -273,71 +273,62 @@ void RawStringFree(SRawString* string)
 
 bool SStrEquals(const char* str1, const char* str2)
 {
-	// NOTE: I am not sure what I want to do about
-	// strings with null pointers. So right now, if
-	// either are null just return false
-	if (!str1 || !str2) return false;
-	if (str1 == str2) return true;
+	if (!str1 || !str2)
+		return false;
+	if (str1 == str2)
+		return true;
 	return (strcmp(str1, str2) == 0);
 }
 
-void SStringsBuffer::Initialize(uint32_t poolCapacity, uint32_t stringCapacity)
+void SStringsBuffer::Initialize(uint32_t stringCount, uint32_t stringCapacity)
 {
-	SASSERT(poolCapacity > 0);
+	SASSERT(stringCount > 0);
 	SASSERT(stringCapacity > 0);
 
-	PoolCapacity = poolCapacity;
-	StringStride = sizeof(char) * stringCapacity;
-	Head = 0;
-	 
-	size_t arraySize = StringStride * PoolCapacity;
-	StringsMemory = (char*)SAlloc(SAllocator::Game, arraySize, MemoryTag::Strings);
-	SMemClear(StringsMemory, arraySize);
+	StringCount = stringCount;
+	StringCapacity = stringCapacity;
+
+	size_t size = sizeof(char*) * stringCount;
+	size_t stride = sizeof(char) * stringCapacity;
+
+	StringsMemory = (char**)SAlloc(SAllocator::Game, size, MemoryTag::Arrays);
+
+	for (size_t i = 0; i < StringCount; ++i)
+	{
+		StringsMemory[i] = (char*)SAlloc(SAllocator::Game, stride, MemoryTag::Strings);
+		SMemClear(StringsMemory[i], stride);
+	}
 }
 
 void SStringsBuffer::Free()
 {
-	size_t arraySize = StringStride * PoolCapacity;
-	SFree(SAllocator::Game, StringsMemory, arraySize, MemoryTag::Strings);
-}
+	size_t size = sizeof(char*) * StringCount;
+	size_t stride = sizeof(char) * StringCapacity;
 
-void SStringsBuffer::Clear()
-{
-	if (StringsMemory)
+	for (size_t i = 0; i < StringCount; ++i)
 	{
-		size_t arraySize = StringStride * PoolCapacity;
-		SMemClear(StringsMemory, arraySize);
+		SFree(SAllocator::Game, StringsMemory[i], stride, MemoryTag::Strings);
 	}
+	SFree(SAllocator::Game, StringsMemory, size, MemoryTag::Arrays);
+	StringsMemory = 0;
 }
 
-char* SStringsBuffer::Next()
+char* SStringsBuffer::Push()
 {
 	SASSERT(StringsMemory);
+	SASSERT(StringCount > 0);
+	SASSERT(StringCapacity > 0);
 
-	uint32_t head = Head;
-	Head = (Head + 1) % PoolCapacity;
+	char* last = StringsMemory[StringCount - 1];
+	SMemClear(last, StringCapacity);
 
-	uint32_t offset = head * StringStride;
-	char* ptr = StringsMemory + offset;
-	SASSERT(ptr >= StringsMemory);
-	SASSERT(ptr < (StringsMemory + (StringStride * PoolCapacity)));
-	return ptr;
-}
+	void** dst = (void**)(StringsMemory + 1);
+	void** src = (void**)(StringsMemory);
+	size_t size = (StringCount - 1) * sizeof(char*);
 
-void SStringsBuffer::Copy(const char* string)
-{
-	// -1 makes sure the last character is null terminated
-	memcpy(Next(), string, StringStride - 1);
-}
+	SMemMove(dst, src, size);
 
-char* SStringsBuffer::Get(uint32_t idx)
-{
-	SASSERT(StringsMemory);
+	StringsMemory[0] = last;
 
-	uint32_t offset = idx * StringStride;
-	char* ptr = StringsMemory + offset;
-	SASSERT(ptr >= StringsMemory);
-	SASSERT(ptr < (StringsMemory + (StringStride * PoolCapacity)));
-	SASSERT(ptr[StringStride - 1] == '\0');
-	return ptr;
+	return last;
 }

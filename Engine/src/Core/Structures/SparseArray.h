@@ -2,74 +2,41 @@
 
 #include "Core/Core.h"
 
-#include "SparseSet.h"
-#include "SList.h"
+#define SparseArrayOffset(ptr, stride, idx) (((uint8_t*)ptr) + (stride * idx))
+#define SparseArrayIndex(idx, T) (((T*)Values)[idx])
+#define SparseArrayGet(arr, idx, stride, T) ((T*)Arr.Get(idx, stride))
 
-template<typename T>
 struct SparseArray
 {
-	SparseSet Set;
-	SList<T> Values;
+	constexpr static uint16_t EMPTY_ID = UINT16_MAX;
 
-	_FORCE_INLINE_ bool IsAllocated() const { return Set.IsAllocated() && Values.IsAllocated(); }
-	_FORCE_INLINE_ uint32_t GetCount() const { return Values.Count; }
-	_FORCE_INLINE_ T* Index(uint32_t idx) { return Values.PeekAt(idx); }
+	void* Values;
+	uint16_t* Ids;
+	uint16_t* Indices;
+	uint16_t IdsCapacity;
+	uint16_t IndicesCapacity;
+	uint16_t Count;
+	uint16_t LastStride;
 
-	// maxId - Highest id to store in sparse set, SparseSet::Sparse array capacity will be maxId + 1
-	// valueCapacity - Capacity and Count for SparseSet::Dense array and Values array. Using 0 will ignore setting these.
-	void Reserve(uint32_t maxId, uint32_t valueCapacity)
+	void SetIdArraySize(uint16_t capacity);
+
+	void SetValueArraySize(uint16_t capacity, uint32_t stride);
+
+	void Free(uint16_t stride);
+
+	uint16_t Add(uint16_t id, const void* value, uint32_t stride);
+
+	void* Get(uint16_t id, uint32_t stride);
+
+	uint16_t Remove(uint16_t id, uint32_t stride);
+
+	bool Contains(uint16_t id) const;
+
+	_FORCE_INLINE_ uint16_t IsAllocated() const noexcept { return (Values && Ids && Indices); }
+
+	template<typename T>
+	_FORCE_INLINE_ T* GetTyped(uint16_t idx)
 	{
-		Set.Reserve(maxId, valueCapacity);
-		Values.EnsureSize(valueCapacity);
-	}
-
-	void Free()
-	{
-		Set.Free();
-		Values.Free();
-	}
-
-	T* Add(uint32_t id, const T* value)
-	{
-		uint32_t idx = Set.Get(id);
-		if (idx > Set.MaxValue || idx == SPARSE_EMPTY_ID)
-		{
-			idx = GetCount();
-
-			Set.Add(id);
-			Values.Push(value);
-		}
-		return Values.PeekAt(idx);
-	}
-
-	bool Remove(uint32_t id)
-	{
-		uint32_t idx = Set.Get(id);
-		if (idx > Set.MaxValue || idx == SPARSE_EMPTY_ID)
-		{
-			return false;
-		}
-		else
-		{
-			Set.Remove(idx);
-			Values.RemoveAtFast(idx);
-			return true;
-		}
-	}
-
-	T* Get(uint32_t id)
-	{
-		uint32_t idx = Set.Get(id);
-		if (idx > Set.MaxValue || idx == SPARSE_EMPTY_ID)
-			return nullptr;
-		else
-			return Values.PeekAt(idx);
-	}
-
-	bool Contains(uint32_t id) const
-	{
-		uint32_t idx = Set.Get(id);
-		return (idx <= Set.MaxValue && idx != SPARSE_EMPTY_ID);
+		return (T*)Get(idx, sizeof(T));
 	}
 };
-

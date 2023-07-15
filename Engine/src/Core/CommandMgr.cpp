@@ -54,7 +54,9 @@ internal int TestExecute2(const SStringView cmd, const SList<SStringView>& args)
 
 CommandMgr::CommandMgr()
 {
-	Suggestions.Reserve(MAX_SUGGESTIONS);
+	ConsoleEntries.Initialize(100, CONSOLE_STR_LENGTH);
+
+	Suggestions.Reserve(CONSOLE_MAX_SUGGETIONS);
 	InputArgs.Reserve(5);
 
 	Command testCommand = {};
@@ -76,7 +78,7 @@ void CommandMgr::RegisterCommand(const char* cmdName, const Command& cmd)
 	SRawString string = RawStringNew(cmdName);
 	Commands.Insert(&string, &cmd);
 
-	SStringView cmdNameView(string.Data, string.Length);
+	SStringView cmdNameView(string.Data, string.Length - 1);
 	CommandNames.Push(&cmdNameView);
 
 	SLOG_INFO("[ Commands ] Registered command %s", cmdName);
@@ -84,13 +86,15 @@ void CommandMgr::RegisterCommand(const char* cmdName, const Command& cmd)
 
 void CommandMgr::TryExecuteCommand(const SStringView input)
 {
-	if (input.Empty()) return;
+	SASSERT(input.Str);
+	if (input.Empty())
+		return;
 
 	InputArgs.Clear();
 
 	// Handle getting command and
 	// splitting arguments
-	const char delim = ' ';
+	char delim = ' ';
 	uint32_t start = 0;
 	uint32_t end = 0;
 	while ((end = input.FindChar(delim, start)) != SSTR_NO_POS)
@@ -99,7 +103,7 @@ void CommandMgr::TryExecuteCommand(const SStringView input)
 		InputArgs.Push(&subStr);
 		start = end + 1;
 	}
-	SStringView subStr = input.SubString(start, input.EndIdx());
+	SStringView subStr = input.SubString(start, input.Length - start);
 	InputArgs.Push(&subStr);
 
 	// NOTE: The command name is the 1st
@@ -123,20 +127,21 @@ void CommandMgr::TryExecuteCommand(const SStringView input)
 			SLOG_ERR("[ Command ] Error: %s", LastCmdError);
 		}
 	}
-	SMemClear(TextInputMemory, sizeof(TextInputMemory));
-	Length = 0;
-	LastLength = 0;
-	Suggestions.Clear();
 }
 
 void CommandMgr::PopulateSuggestions(const SStringView input)
 {
-	if (Length <= 0) return;
+	SASSERT(input.Str);
+
+	if (input.Empty())
+		return;
 
 	Suggestions.Clear();
 	for (uint32_t i = 0; i < CommandNames.Count; ++i)
 	{
-		if (Suggestions.Count == MAX_SUGGESTIONS) break;
+		if (Suggestions.Count == CONSOLE_MAX_SUGGETIONS)
+			break;
+
 		if (CommandNames[i].Find(input.Str) != SSTR_NO_POS)
 		{
 			Suggestions.Push(CommandNames.PeekAt(i));

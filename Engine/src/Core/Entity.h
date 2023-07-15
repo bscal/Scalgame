@@ -168,6 +168,22 @@ struct PlayerClient
 	bool IsCursorStackFlipped;
 };
 
+struct SEntity
+{
+	Vector2i TilePos;
+	Vector2 Origin;
+	uint32_t Uid;
+	uint32_t StorageIdx;
+	Color Color;
+	TileDirection LookDir;
+	EntityTypes EntityType;
+
+	union
+	{
+
+	};
+};
+
 struct Player : public WorldEntity
 {
 	PlayerClient PlayerClient;

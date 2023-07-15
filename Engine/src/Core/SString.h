@@ -112,8 +112,7 @@ struct SStringView
 	SStringView& operator=(const char* cString) = delete;
 
 	inline bool Empty() const { return Length == 0; }
-	inline uint32_t LastCharIdx() const { return (Length == 0) ? 0 : Length - 1; }
-	inline uint32_t EndIdx() const { return Length; }
+	inline uint32_t End() const { return (Length == 0) ? 0 : Length - 1; }
 
 	inline bool operator==(const SStringView& other) const { return SStrEquals(Str, other.Str); }
 	inline bool operator!=(const SStringView& other) const { return !SStrEquals(Str, other.Str); }
@@ -141,18 +140,14 @@ void RawStringFree(SRawString* string);
 
 struct SStringsBuffer
 {
-	char* StringsMemory;
-	uint32_t PoolCapacity;
-	uint32_t StringStride;
-	uint32_t Head;
+	char** StringsMemory;
+	uint32_t StringCount;
+	uint32_t StringCapacity;
 
-	void Initialize(uint32_t poolCapacity, uint32_t stringCapacity);
+	void Initialize(uint32_t stringCount, uint32_t stringCapacity);
 	void Free();
-	void Clear();
 
-	char* Next();
-	void Copy(const char* string);
-	char* Get(uint32_t idx);
+	char* Push();
 };
 
 struct SRawStringHasher
@@ -228,7 +223,7 @@ inline int TestStringImpls()
 
 	SStringView testStrView(&testStr);
 	SASSERT(testStrView == "Assigning!12345");
-	SASSERT(testStrView.Length == 15);
+	SASSERT(testStrView.Length == 14);
 
 	SLOG_INFO("[ Test ] String test passed!");
 
