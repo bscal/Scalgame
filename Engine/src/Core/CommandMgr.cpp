@@ -15,7 +15,7 @@ int SetCmdError(const char* err)
 	return CMD_FAILURE;
 }
 
-internal int TestStringExecute(const SStringView cmd, const SList<SStringView>& args)
+internal int TestStringExecute(const SString cmd, const SList<SString>& args)
 {
 	SLOG_INFO("TEST COMMAND EXECUTE!");
 
@@ -31,14 +31,14 @@ internal int TestStringExecute(const SStringView cmd, const SList<SStringView>& 
 	return CMD_SUCCESS;
 }
 
-internal int TestExecute(const SStringView cmd, const SList<SStringView>& args)
+internal int TestExecute(const SString cmd, const SList<SString>& args)
 {
 	SLOG_INFO("TEST COMMAND EXECUTE!");
 
 	return CMD_SUCCESS;
 }
 
-internal int TestExecute2(const SStringView cmd, const SList<SStringView>& args)
+internal int TestExecute2(const SString cmd, const SList<SString>& args)
 {
 	SLOG_INFO("TEST 2 COMMAND EXECUTE!");
 
@@ -64,8 +64,11 @@ CommandMgr::CommandMgr()
 
 	Command testCommand2 = {};
 	testCommand2.Execute = TestExecute2;
+	testCommand2.ArgString = RawStringNew("[int] [float]", SAllocator::Game);
 
-	Command stringCommand = { TestStringExecute };
+	Command stringCommand = {};
+	stringCommand.Execute = TestStringExecute;
+	stringCommand.ArgString = RawStringNew("[arg0(String)] [arg1(Vector2)]", SAllocator::Game);
 
 	RegisterCommand("test", testCommand);
 	RegisterCommand("test_command", testCommand);
@@ -75,18 +78,16 @@ CommandMgr::CommandMgr()
 
 void CommandMgr::RegisterCommand(const char* cmdName, const Command& cmd)
 {
-	SRawString string = RawStringNew(cmdName);
-	Commands.Insert(&string, &cmd);
+	SRawString string = RawStringNew(cmdName, SAllocator::Game);
 
-	SStringView cmdNameView(string.Data, string.Length - 1);
-	CommandNames.Push(&cmdNameView);
+	Commands.Insert(&string, &cmd);
+	CommandNames.Push(&string);
 
 	SLOG_INFO("[ Commands ] Registered command %s", cmdName);
 }
 
-void CommandMgr::TryExecuteCommand(const SStringView input)
+void CommandMgr::TryExecuteCommand(SString input)
 {
-	SASSERT(input.Str);
 	if (input.Empty())
 		return;
 
@@ -94,30 +95,29 @@ void CommandMgr::TryExecuteCommand(const SStringView input)
 
 	// Handle getting command and
 	// splitting arguments
-	char delim = ' ';
 	uint32_t start = 0;
 	uint32_t end = 0;
-	while ((end = input.FindChar(delim, start)) != SSTR_NO_POS)
+	while ((end = input.Substring(' ', start)) != SSTR_NO_POS)
 	{
-		SStringView subStr = input.SubString(start, end);
-		InputArgs.Push(&subStr);
+		SString slice = input.Slice(start, end, SAllocator::Temp);
+		InputArgs.Push(&slice);
 		start = end + 1;
 	}
-	SStringView subStr = input.SubString(start, input.Length - start);
-	InputArgs.Push(&subStr);
+	SString slice = input.Slice(start, input.Length, SAllocator::Temp);
+	InputArgs.Push(&slice);
 
 	// NOTE: The command name is the 1st
 	// argument, so we remove and set
 	// InputCommandStr as it
 	
-	SStringView commandStrView = InputArgs[0];
+	SString cmdStr = InputArgs[0];
 	InputArgs.RemoveAt(0);
 
-	SRawString tempString = RawStringNewTemp(commandStrView.Str, commandStrView.Length);
-	Command* foundCommand = Commands.Get(&tempString);
+	SRawString tmp = RawStringNew(cmdStr.Data(), cmdStr.Length, SAllocator::Temp);
+	Command* foundCommand = Commands.Get(&tmp);
 	if (foundCommand)
 	{		
-		int ret = foundCommand->Execute(commandStrView, InputArgs);
+		int ret = foundCommand->Execute(cmdStr, InputArgs);
 		if (ret == CMD_SUCCESS)
 		{
 			SLOG_INFO("Success cmd");
@@ -129,10 +129,8 @@ void CommandMgr::TryExecuteCommand(const SStringView input)
 	}
 }
 
-void CommandMgr::PopulateSuggestions(const SStringView input)
+void CommandMgr::PopulateSuggestions(SString input)
 {
-	SASSERT(input.Str);
-
 	if (input.Empty())
 		return;
 
@@ -142,31 +140,57 @@ void CommandMgr::PopulateSuggestions(const SStringView input)
 		if (Suggestions.Count == CONSOLE_MAX_SUGGETIONS)
 			break;
 
-		if (CommandNames[i].Find(input.Str) != SSTR_NO_POS)
+		uint32_t idx = StrFind(CommandNames[i].Data, input.Data());
+		if (idx != SSTR_NO_POS)
 		{
-			Suggestions.Push(CommandNames.PeekAt(i));
+			SString sug = SString(CommandNames[i].Data, CommandNames[i].Length, SAllocator::Temp);
+			Suggestions.Push(&sug);
 		}
 	}
 }
 
+const char* CommandMgr::PopulateArgSuggestions(SString input)
+{
+	if (input.Empty())
+		return nullptr;
+
+	// Get first word
+	uint32_t find = input.Substring(' ', 0);
+	if (find == SSTR_NO_POS)
+		find = input.Length;
+
+	SString cmdStr = input.Slice(0, find, SAllocator::Temp);
+
+	if (cmdStr.Empty())
+		return nullptr;
+
+	SRawString tmp = RawStringNew(cmdStr.Data(), cmdStr.Length, SAllocator::Temp);
+	Command* cmd = Commands.Get(&tmp);
+	
+	if (cmd)
+		return cmd->ArgString.Data;
+	else
+		return nullptr;
+}
+
 Argument<SRawString>
-GetArgString(uint32_t index, const SList<SStringView>& args)
+GetArgString(uint32_t index, const SList<SString>& args)
 {
 	Argument<SRawString> arg = {};
 	if (index < args.Count)
 	{
-		arg.Value = RawStringNewTemp(args[index].Str, args[index].Length);
+		arg.Value = RawStringNew(args[index].Data(), args[index].Length, SAllocator::Temp);
 		arg.IsPresent = true;
 	}
 	return arg;
 }
 
 Argument<int>
-GetArgInt(uint32_t index, const SList<SStringView>& args)
+GetArgInt(uint32_t index, const SList<SString>& args)
 {
 	Argument<int> arg = {};
 	if (index >= args.Count) return arg;
-	arg.Value = strtol(args[index].Str, NULL, 10);
+	arg.Value = strtol(args[index].Data(), NULL, 10);
 	arg.IsPresent = true;
 	if (errno)
 	{
@@ -177,11 +201,11 @@ GetArgInt(uint32_t index, const SList<SStringView>& args)
 }
 
 Argument<float>
-GetArgFloat(uint32_t index, const SList<SStringView>& args)
+GetArgFloat(uint32_t index, const SList<SString>& args)
 {
 	Argument<float> arg = {};
 	if (index >= args.Count) return arg;
-	arg.Value = strtof(args[index].Str, NULL);
+	arg.Value = strtof(args[index].Data(), NULL);
 	arg.IsPresent = true;
 	if (errno)
 	{
@@ -192,17 +216,17 @@ GetArgFloat(uint32_t index, const SList<SStringView>& args)
 }
 
 Argument<Vector2>
-GetArgVec2(uint32_t index, const SList<SStringView>& args)
+GetArgVec2(uint32_t index, const SList<SString>& args)
 {
 	Argument<Vector2> arg = {};
 	if (index >= args.Count) return arg;
-	SStringView strView = args[index];
+	SString strView = args[index];
 	uint32_t found = strView.FindChar(',');
 	if (found != SSTR_NO_POS)
 	{
-		SStringView xStr = strView.SubString(0, found);
-		SStringView yStr = strView.SubString(found + 1, strView.Length);
-		arg.Value.x = strtof(xStr.Str, NULL);
+		SString xStr = strView.FirstTemp(0, found);
+		SString yStr = strView.FirstTemp(found + 1, strView.Length);
+		arg.Value.x = strtof(xStr.Data(), NULL);
 
 		if (errno)
 		{
@@ -210,7 +234,7 @@ GetArgVec2(uint32_t index, const SList<SStringView>& args)
 			SLOG_ERR("GetArgVec2(X field): %s", strerror_s(buffer, errno));
 		}
 
-		arg.Value.y = strtof(yStr.Str, NULL);
+		arg.Value.y = strtof(yStr.Data(), NULL);
 
 		if (errno)
 		{

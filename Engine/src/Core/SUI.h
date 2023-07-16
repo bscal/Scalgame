@@ -33,6 +33,8 @@ struct UIState
 };
 
 bool InitializeUI(UIState* state, GameApplication* gameApp);
+void FreeUI(UIState* state);
+
 void HandleGUIInput(UIState* state, GameApplication* gameApp);
 void UpdateUI(UIState* state, GameApplication* gameApp, Game* game);
 void DrawUI(UIState* state);

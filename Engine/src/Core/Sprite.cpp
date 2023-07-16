@@ -71,7 +71,7 @@ void SpritesInitialize(GameApplication* gameApp, const char* spriteDirPath)
 				rects.emplace_back(rect_xywh{ 0, 0, texture.width, texture.height });
 
 				const char* filename = GetFileNameWithoutExt(path);
-				SRawString str = RawStringNew(filename);
+				SRawString str = RawStringNew(filename, SAllocator::Game);
 				uint16_t id = SpriteMgr.NextId++;
 				SpriteMgr.SpriteNameToIndex.Insert(&str, &id);
 			}

@@ -7,8 +7,8 @@
 #include <stdint.h>
 #include <string.h>
 
-global_var constexpr uint32_t SSTR_SSO_ARRAY_SIZE = 16;
-global_var constexpr uint32_t SSTR_NO_POS = UINT32_MAX;
+constexpr global_var uint32_t SSTR_SSO_ARRAY_SIZE = 16;
+constexpr global_var uint32_t SSTR_NO_POS = UINT32_MAX;
 
 bool SStrEquals(const char* str0, const char* str1);
 
@@ -22,14 +22,14 @@ struct SString
 		char ShortStringBuf[SSTR_SSO_ARRAY_SIZE];
 	};
 
-	uint32_t Length;
-	uint32_t Capacity;
-	SAllocator Allocator;
+	uint32_t Length : 24;
+	uint32_t Capacity : 24;
+	uint32_t Allocator : 8;
 
 	SString() = default;
 	SString(SAllocator allocator);
 	SString(const char* str);
-	SString(const char* str, uint32_t length);
+	SString(const char* str, uint32_t length, SAllocator allocator);
 	SString(const SString& other);
 	SString(SString&& other) noexcept;
 
@@ -38,9 +38,9 @@ struct SString
 
 	void SetCapacity(uint32_t capacity);
 
-	void Assign(const char* cStr, uint32_t length);
-	void Assign(const char* cStr);
-	void Assign(const SString& other);
+	void Assign(const char* cStr, uint32_t length, SAllocator allocator);
+	void Assign(const char* cStr, SAllocator allocator);
+	void Assign(const SString& other, SAllocator allocator);
 
 	void Append(const char* str);
 	void Append(const char* str, uint32_t length);
@@ -48,8 +48,12 @@ struct SString
 	uint32_t FindChar(char c) const;
 	uint32_t Find(const char* cString) const;
 
+	uint32_t Substring(char delimiter, uint32_t offset) const;
+	SString FirstNew(char delimiter, uint32_t offset) const;
+	SString FirstTemp(char delimiter, uint32_t offset) const;
+	SString Slice(uint32_t start, uint32_t end, SAllocator allocator) const;
+
 	SString& operator=(const SString& other);
-	SString& operator=(const SStringView& other);
 	SString& operator=(const char* cString);
 
 	inline bool operator==(const SString& other) const { return SStrEquals(Data(), other.Data()); }
@@ -59,34 +63,45 @@ struct SString
 
 	friend SString operator+(const SString& lhs, const SString& rhs)
 	{
-		SString str(lhs);
-		str.Append(rhs.Data(), rhs.Length);
-		return str;
+		size_t length = lhs.Length + rhs.Length;
+
+		SString res = SString((SAllocator)lhs.Allocator);
+		res.SetCapacity(length + 1); // +1 for null terminator
+
+		res.Append(lhs.Data(), lhs.Length);
+		res.Append(rhs.Data(), rhs.Length);
+
+		return res;
 	}
 
 	friend SString operator+(const SString& lhs, const char* rhs)
 	{
-		SString str(lhs);
-		size_t length = strlen(rhs) - 1;
-		SASSERT(length > 0);
-		str.Append(rhs, static_cast<uint32_t>(length));
-		return str;
+		size_t cStrLength = strlen(rhs);
+		size_t length = lhs.Length + cStrLength;
+
+		SString res = SString((SAllocator)lhs.Allocator);
+		res.SetCapacity(length + 1); // +1 for null terminator
+
+		res.Append(lhs.Data(), lhs.Length);
+		res.Append(rhs, cStrLength);
+
+		return res;
 	}
 
-	inline bool IsAllocated() const { return Capacity > SSTR_SSO_ARRAY_SIZE;  }
-	inline bool Empty() const { return Length == 0; }
-	inline uint32_t Last() const { return Length - 1; }
-	inline char* begin() { return Data(); }
-	inline char* end() { return Data() + Length; }
+	_FORCE_INLINE_ bool IsAllocated() const { return Capacity > SSTR_SSO_ARRAY_SIZE;  }
+	_FORCE_INLINE_ bool Empty() const { return Length == 0 || Data()[0] == '\0'; }
+	_FORCE_INLINE_ uint32_t Last() const { return Length - 1; }
+	_FORCE_INLINE_ char* begin() { return Data(); }
+	_FORCE_INLINE_ char* end() { return Data() + Length; }
 
-	inline const char* Data() const
+	_FORCE_INLINE_ const char* Data() const
 	{
-		return (IsAllocated()) ? m_Buffer.StrMemory : m_Buffer.ShortStringBuf;
+		return (Capacity > SSTR_SSO_ARRAY_SIZE) ? m_Buffer.StrMemory : m_Buffer.ShortStringBuf;
 	}
 
-	inline char* Data()
+	_FORCE_INLINE_ char* Data()
 	{
-		return (IsAllocated()) ? m_Buffer.StrMemory : m_Buffer.ShortStringBuf;
+		return (Capacity > SSTR_SSO_ARRAY_SIZE) ? m_Buffer.StrMemory : m_Buffer.ShortStringBuf;
 	}
 
 private:
@@ -96,33 +111,33 @@ private:
 	StringMemory m_Buffer; 
 };
 
-struct SStringView
-{
-	const char* Str;
-	uint32_t Length;
-
-	SStringView() = default;
-	SStringView(const char* str);
-	SStringView(const char* str, uint32_t length);
-	SStringView(const char* str, uint32_t length, uint32_t offset);
-	SStringView(const SString* string);
-	SStringView(const SStringView* string, uint32_t offset);
-
-	SStringView& operator=(const SString& other) = delete;
-	SStringView& operator=(const char* cString) = delete;
-
-	inline bool Empty() const { return Length == 0; }
-	inline uint32_t End() const { return (Length == 0) ? 0 : Length - 1; }
-
-	inline bool operator==(const SStringView& other) const { return SStrEquals(Str, other.Str); }
-	inline bool operator!=(const SStringView& other) const { return !SStrEquals(Str, other.Str); }
-
-	SStringView SubString(uint32_t start, uint32_t end) const;
-
-	uint32_t FindChar(char c) const;
-	uint32_t FindChar(char c, uint32_t start) const;
-	uint32_t Find(const char* cString) const;
-};
+//struct SStringView
+//{
+//	const char* Str;
+//	uint32_t Length;
+//
+//	SStringView() = default;
+//	SStringView(const char* str);
+//	SStringView(const char* str, uint32_t length);
+//	SStringView(const char* str, uint32_t length, uint32_t offset);
+//	SStringView(const SString* string);
+//	SStringView(const SStringView* string, uint32_t offset);
+//
+//	SStringView& operator=(const SString& other) = delete;
+//	SStringView& operator=(const char* cString) = delete;
+//
+//	inline bool Empty() const { return (Length == 0 || Str[0] == '\0'); }
+//	inline uint32_t End() const { return (Length == 0) ? 0 : Length - 1; }
+//
+//	inline bool operator==(const SStringView& other) const { return SStrEquals(Str, other.Str); }
+//	inline bool operator!=(const SStringView& other) const { return !SStrEquals(Str, other.Str); }
+//
+//	SStringView SubString(uint32_t start, uint32_t end) const;
+//
+//	uint32_t FindChar(char c) const;
+//	uint32_t FindChar(char c, uint32_t start) const;
+//	uint32_t Find(const char* cString) const;
+//};
 
 struct SRawString
 {
@@ -134,9 +149,11 @@ struct SRawString
 	inline bool operator!=(const SRawString& other) const { return Length != other.Length && !SStrEquals(Data, other.Data); }
 };
 
-SRawString RawStringNew(const char* cStr);
-SRawString RawStringNewTemp(const char* cStr, uint32_t length);
+SRawString RawStringNew(const char* cStr, SAllocator allocator);
+SRawString RawStringNew(const char* cStr, uint32_t length, SAllocator allocator);
 void RawStringFree(SRawString* string);
+
+uint32_t StrFind(const char* str, const char* find);
 
 struct SStringsBuffer
 {
@@ -207,9 +224,6 @@ inline int TestStringImpls()
 	SASSERT(string2.Length == 29);
 	SASSERT(string2.Capacity == 30);
 
-	SStringView view(&string2);
-	SASSERT(SStrEquals(view.Str, string2.Data()));
-	SASSERT(view.Str == string2.Data());
 
 	SString testStr("String working!!");
 	SASSERT(testStr == "String working!!");
@@ -221,9 +235,6 @@ inline int TestStringImpls()
 	SASSERT(testStr.Length == 15);
 	SASSERT(!testStr.IsAllocated());
 
-	SStringView testStrView(&testStr);
-	SASSERT(testStrView == "Assigning!12345");
-	SASSERT(testStrView.Length == 14);
 
 	SLOG_INFO("[ Test ] String test passed!");
 

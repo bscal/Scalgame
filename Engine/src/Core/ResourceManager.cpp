@@ -38,8 +38,10 @@ bool InitializeResources(Resources* resources)
 void FreeResouces(Resources* resources)
 {
     UnloadFont(resources->FontSilver);
+    UnloadFont(resources->MainFontS);
     UnloadFont(resources->MainFontM);
     UnloadTexture(resources->TileSheet);
+    UnloadTexture(resources->TileSprite);
     UnloadTexture(resources->EntitySpriteSheet);
     //resources->Atlas.Unload();
 }

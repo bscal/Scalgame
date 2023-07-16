@@ -11,7 +11,9 @@
 
 struct Command
 {
-	int(*Execute)(const SStringView cmd, const SList<SStringView>& args);
+	int(*Execute)(const SString cmd, const SList<SString>& args);
+
+	SRawString ArgString;
 };
 
 constexpr global_var int CONSOLE_STR_LENGTH = 60;
@@ -25,16 +27,19 @@ struct CommandMgr
 	SStringsBuffer ConsoleEntries;
 
 	SHashMap<SRawString, Command, SRawStringHasher> Commands;
-	SList<SStringView> CommandNames;
+	SList<SRawString> CommandNames;
 
-	SList<SStringView> Suggestions;
-	SList<SStringView> InputArgs;
+	SList<SString> Suggestions;
+	SList<SString> SuggestionsArgs;
+
+	SList<SString> InputArgs;
 
 	CommandMgr();
 
 	void RegisterCommand(const char* CmdName, const Command& cmd);
-	void TryExecuteCommand(const SStringView input);
-	void PopulateSuggestions(const SStringView input);
+	void TryExecuteCommand(SString input);
+	void PopulateSuggestions(SString input);
+	const char* PopulateArgSuggestions(SString input);
 };
 
 /// Copies err to a global error state 
@@ -52,13 +57,13 @@ struct Argument
 /// This means that the string is temporary and the null 
 /// terminator is at the end of the command not the string!
 Argument<SRawString>
-GetArgString(uint32_t index, const SList<SStringView>& args);
+GetArgString(uint32_t index, const SList<SString>& args);
 
 Argument<int>
-GetArgInt(uint32_t index, const SList<SStringView>& args);
+GetArgInt(uint32_t index, const SList<SString>& args);
 
 Argument<float>
-GetArgFloat(uint32_t index, const SList<SStringView>& args);
+GetArgFloat(uint32_t index, const SList<SString>& args);
 
 Argument<Vector2>
-GetArgVec2(uint32_t index, const SList<SStringView>& args);
+GetArgVec2(uint32_t index, const SList<SString>& args);

@@ -33,5 +33,5 @@ struct SpriteAtlas
 	{
 		return SpritesArray[index];
 	}
-	Rectangle GetRectByName(SStringView tileName) const;
+	Rectangle GetRectByName(SString& tileName) const;
 };

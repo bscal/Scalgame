@@ -26,13 +26,6 @@ SStringHash(const SString* key)
 	return FNVHash64(data, key->Length);
 }
 
-_FORCE_INLINE_ uint64_t
-SStringViewHash(const SStringView* key)
-{
-	const uint8_t* const data = (const uint8_t* const)key->Str;
-	return FNVHash64(data, key->Length);
-}
-
 _FORCE_INLINE_ constexpr size_t
 AlignPowTwo64(size_t num)
 {

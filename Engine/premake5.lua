@@ -10,11 +10,8 @@ project "Engine"
     files
     {
         "src/**.cpp",
-        "src/**.h",
-        "src/**.hpp",
         "src/**.c",
         "vendor/rpmalloc/*.c",
-        "vendor/rpmalloc/*.h",
         "vendor/MemoryPool.tcc"
     }
 

@@ -541,11 +541,12 @@ DrawNuklear(struct nk_context * ctx)
             case NK_COMMAND_TEXT: {
                 const struct nk_command_text *text = (const struct nk_command_text*)cmd;
                 Color color = ColorFromNuklear(text->foreground);
+                
                 float fontSize = text->font->height * scale;
                 Font* font = (Font*)text->font->userdata.ptr;
                 if (font != NULL) {
                     Vector2 position = {(float)text->x * scale, (float)text->y * scale};
-                    DrawTextEx(*font, (const char*)text->string, position, fontSize, fontSize / 10.0f, color);
+                    DrawTextEx(*font, (const char*)text->string, position, fontSize, fontSize / font->baseSize, color);
                 }
                 else {
                     DrawText((const char*)text->string, (int)(text->x * scale), (int)(text->y * scale), (int)fontSize, color);

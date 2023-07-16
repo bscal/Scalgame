@@ -14,8 +14,6 @@
 global_var const int CONSOLE_MAX_LENGTH = 128;
 global_var const struct nk_color BG_COLOR = ColorToNuklear({ 17, 17, 17, 155 });
 
-internal void InitializeNuklear(nk_context* nkCtxToInit, UIState* state, Font* font, float fontSize);
-
 internal void DrawGameGUI(UIState* state, Game* game);
 internal void DrawFPS(struct nk_context* ctx);
 internal void DrawInventory(struct nk_context* ctx, Inventory* inv);
@@ -33,7 +31,36 @@ internal struct nk_sprite GetSprite(Texture2D* texture, Item* item, bool isRotat
 
 bool InitializeUI(UIState* state, GameApplication* gameApp)
 {
-	InitializeNuklear(&state->Ctx, state, &gameApp->Game->Resources.FontSilver, 16.0f);
+	// Initialize Nuklear
+
+	Font* font = &gameApp->Game->Resources.FontSilver;
+
+	state->Font.userdata = nk_handle_ptr(font);
+	state->Font.height = font->baseSize;
+	state->Font.width = CalculateTextWidth;
+
+	state->Ctx.clip.copy = nk_raylib_clipboard_copy;
+	state->Ctx.clip.paste = nk_raylib_clipboard_paste;
+	state->Ctx.clip.userdata = nk_handle_ptr(0);
+
+	state->UIMemorySize = Megabytes(4);
+	state->UIMemory = SAlloc(SAllocator::Game, state->UIMemorySize, MemoryTag::UI);
+	if (!nk_init_fixed(&state->Ctx, state->UIMemory,
+		state->UIMemorySize, &state->Font))
+	{
+		SLOG_ERR("[ UI ] Nuklear failed to initialized");
+		SASSERT(false);
+	}
+
+	// Set the internal user data.
+	state->UserData.Scale = 1.0f;
+
+	nk_handle userDataHandle;
+	userDataHandle.id = 1;
+	userDataHandle.ptr = &state->UserData;
+	nk_set_user_data(&state->Ctx, userDataHandle);
+
+	SLOG_INFO("[ UI ] Initialized Nuklear");
 
 	state->GUIRect.x = 0;
 	state->GUIRect.y = 0;
@@ -153,43 +180,34 @@ internal bool ColorFEqual(const struct nk_colorf& v0, const struct nk_colorf& v1
 internal float
 CalculateTextWidth(nk_handle handle, float height, const char* text, int len)
 {
-	if (len == 0) return 0.0f;
-	// Grab the text with the cropped length so that it only measures the desired string length.
+	if (len == 0) return
+		0.0f;
+
+	SASSERT(handle.ptr);
+	SASSERT(height > 0.0f);
+	SASSERT(text);
+	SASSERT(len > 0);
+
+	Font* font = (Font*)handle.ptr;
+	
+	float baseSize = (float)font->baseSize;
+	if (height < baseSize)
+		height = baseSize;
+
+	int spacing = height / baseSize;
+
 	const char* subtext = TextSubtext(text, 0, len);
+
+	Vector2 textSize = MeasureTextEx(*font, subtext, height, spacing);
+	return textSize.x;
+
+	// Grab the text with the cropped length so that it only measures the desired string length.
+	//const char* subtext = TextSubtext(text, 0, len);
 	// Spacing is determined by the font size divided by 10.
-	return MeasureTextEx(*(Font*)handle.ptr, subtext, height, height / 10.0f).x;
+	//return MeasureTextEx(*(Font*)handle.ptr, subtext, height, height / 10.0f).x;
 }
 
-internal void
-InitializeNuklear(nk_context* nkCtxToInit, UIState* state, Font* font, float fontSize)
-{
-	state->Font.userdata = nk_handle_ptr(font);
-	state->Font.height = fontSize;
-	state->Font.width = CalculateTextWidth;
 
-	nkCtxToInit->clip.copy = nk_raylib_clipboard_copy;
-	nkCtxToInit->clip.paste = nk_raylib_clipboard_paste;
-	nkCtxToInit->clip.userdata = nk_handle_ptr(0);
-
-	state->UIMemorySize = Megabytes(4);
-	state->UIMemory = SAlloc(SAllocator::Game, state->UIMemorySize, MemoryTag::UI);
-	if (!nk_init_fixed(nkCtxToInit, state->UIMemory,
-		state->UIMemorySize, &state->Font))
-	{
-		SLOG_ERR("[ UI ] Nuklear failed to initialized");
-		SASSERT(false);
-	}
-
-	// Set the internal user data.
-	state->UserData.Scale = 1.0f;
-
-	nk_handle userDataHandle;
-	userDataHandle.id = 1;
-	userDataHandle.ptr = &state->UserData;
-	nk_set_user_data(nkCtxToInit, userDataHandle);
-
-	SLOG_INFO("[ UI ] Initialized Nuklear");
-}
 
 internal void
 DrawDebugPanel(UIState* state)
@@ -399,7 +417,7 @@ DrawConsole(UIState* state)
 		{
 			if (cmdMgr->Suggestions.Count > 0)
 			{
-				SMemCopy(cmdMgr->Input, cmdMgr->Suggestions[0].Str, cmdMgr->Suggestions[0].Length);
+				SMemCopy(cmdMgr->Input, cmdMgr->Suggestions[0].Data(), cmdMgr->Suggestions[0].Length);
 				cmdMgr->Length = cmdMgr->Suggestions[0].Length;
 				cmdMgr->Input[CONSOLE_STR_LENGTH - 1] = '\0';
 			}
@@ -410,7 +428,7 @@ DrawConsole(UIState* state)
 			SMemCopy(line, cmdMgr->Input, sizeof(cmdMgr->Input));
 			SMemClear(cmdMgr->Input, sizeof(cmdMgr->Input));
 
-			SStringView input(line, cmdMgr->Length);
+			SString input = SString(line, cmdMgr->Length, SAllocator::Temp);
 
 			cmdMgr->Length = 0;
 
@@ -423,26 +441,40 @@ DrawConsole(UIState* state)
 		}
 
 		// *** Command Input ***
-		nk_layout_row_static(ctx, INPUT_HEIGHT, (int)paddingW, 1);
-		nk_edit_string(&state->Ctx,
-			NK_EDIT_SIMPLE,
+		//nk_layout_row_dynamic(ctx, INPUT_HEIGHT, 2);
+		nk_layout_row_begin(ctx, NK_STATIC, INPUT_HEIGHT, 2);
+
+		float width = CalculateTextWidth(ctx->style.font->userdata, 16.0f, cmdMgr->Input, cmdMgr->Length);
+		width += 32.0f;
+		nk_layout_row_push(ctx, width);
+
+		nk_edit_string(ctx,
+			NK_EDIT_FIELD,
 			cmdMgr->Input,
 			&cmdMgr->Length,
 			cmdMgr->ConsoleEntries.StringCapacity,
 			nk_filter_default);
 
+		SString input = SString(cmdMgr->Input, cmdMgr->Length, SAllocator::Temp);
+
+		nk_layout_row_push(ctx, 128.0f);
+
+		const char* commandArgSuggestionString = cmdMgr->PopulateArgSuggestions(input);
+		if (commandArgSuggestionString)
+			nk_label_colored(ctx, commandArgSuggestionString, NK_TEXT_LEFT, { 255, 0, 0, 255 });
+
+		nk_layout_row_end(ctx);
+
 		SuggestionPanelSize = 0;
 		if (cmdMgr->Length > 0)
 		{
-			SStringView input(cmdMgr->Input, cmdMgr->Length);
-
 			cmdMgr->PopulateSuggestions(input);
 
 			SuggestionPanelSize = (float)(cmdMgr->Suggestions.Count) * 24.0f;
 			nk_layout_row_dynamic(ctx, TEXT_ENTRY_HEIGHT, 1);
 			for (uint32_t i = 0; i < cmdMgr->Suggestions.Count; ++i)
 			{
-				nk_label(ctx, cmdMgr->Suggestions[i].Str, NK_TEXT_LEFT);
+				nk_label(ctx, cmdMgr->Suggestions[i].Data(), NK_TEXT_LEFT);
 			}
 		}
 	}
