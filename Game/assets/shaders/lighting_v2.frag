@@ -3,8 +3,8 @@
 in vec2 fragTexCoord;
 in vec4 fragColor;
 
-uniform sampler2D texture0; // Color map
-uniform sampler2D tileDataMap; // World map
+uniform sampler2D texture0; //tileColorTexture
+uniform sampler2D tileDataTexture;
 
 uniform vec3 sunlightColor;
 uniform vec3 losColor;
@@ -13,18 +13,25 @@ out vec4 finalColor;
 
 void main()
 {
-	vec4 lightColor = texture(texture0, fragTexCoord);
-	vec4 tileData = texture(tileDataMap, fragTexCoord);
+	vec4 tileColor = texture(texture0, fragTexCoord);
+	vec4 tileData = texture(tileDataTexture, fragTexCoord);
 
-	float hasCeilingFactor = 1.0 - clamp(tileData.z * 255.0, 0.0, 1.0);
-	float losFactor = tileData.w;
+	float hasLos = float(tileData.r > 0.0);
+	float hasCeilingFactor = float(tileData.g > 0.0);
+	float intensity = fragColor.a;
 
-	vec3 color = lightColor.rgb * fragColor.a;
-	color += fragColor.rgb;
-	color += sunlightColor * hasCeilingFactor;
+	// TODO
+	// make sunlght los vec4, update uis
+	// new uniform for intensity?
+	// seperate alpha for fragColor (ambientLight)
+	// los fade out?
+	// los dithering?
 
-	if (losFactor > 0)
-		finalColor = vec4(color, 1.0);
-	else
-		finalColor = vec4(losColor, 1.0);
+	vec4 light = tileColor * intensity;
+	vec4 ambientLight = vec4(fragColor.rgb, 1.0);
+	vec4 sunLight = vec4(sunlightColor * hasCeilingFactor, 0.0);
+	//vec4 losLight = vec4(losColor * hasLos, 1.0);
+
+	finalColor = (light + ambientLight + sunLight) * hasLos;
+	//finalColor = tileData;
 }

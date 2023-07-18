@@ -40,14 +40,34 @@ struct TileMapRenderer
 	void Draw();
 };
 
+// NOTE: I originally ran into problem using bitfield or 
+// 2 u8's with bit shifts to store 4 bit per channel.
+// It seemed the rgba format from color was reverse to abgr?
+// I don't know? And I can't find anything related to it, so
+// I am either dumb or something weird happens. But because,
+// I don't want to deal with a possible memory layout per system
+// bug I just will use 2 u8's for now.
+struct TileLightData
+{
+	uint8_t r; // LOS - Keep between 0-15
+	uint8_t g; // Cieling - Keep betwen 0-15
+};
+
 struct LightingRenderer
 {
 	Shader LightingShader;
 
-	RenderTexture2D ColorsTexture;
-	RenderTexture2D LightingTexture;
+	RenderTexture2D LightMapTexture;
+
+	//RenderTexture2D ColorsTexture;
+	//RenderTexture2D LightingTexture;
+
+	RenderTexture2D TileColorsTexture;
+	RenderTexture2D TileLightDataTexture;
 	
-	DynamicArray<Vector4> Tiles;
+	//DynamicArray<Vector3> Tiles;
+	DynamicArray<Color> TileColors;
+	DynamicArray<TileLightData> TileData;
 
 	Vector3 AmbientLightColor;
 	Vector3 SunlightColor;
@@ -56,7 +76,8 @@ struct LightingRenderer
 
 	int UniformSunlight;
 	int UniformLOSColor;
-	int UniformWorldMap;
+	int UniformTileColorTexture;
+	int UniformTileDataTexture;
 
 	void Initialize(Game* game);
 	void Free();
@@ -112,3 +133,5 @@ SLoadRenderTexture(int width, int height, PixelFormat format);
 
 RenderTexture2D
 SLoadRenderTextureEx(int width, int height, PixelFormat format, bool useDepth);
+
+Font Scal_LoadBMFont(const char* fileName, Texture2D fontTexture, Vector2 offset);

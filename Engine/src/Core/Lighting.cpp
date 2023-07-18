@@ -66,7 +66,7 @@ internal constexpr unsigned char
 Clamp0255(uint16_t val0, uint16_t val1)
 {
 	uint16_t res = val0 + val1;
-	return (unsigned char)((res > 255) ? 255 : res);
+	return (unsigned char)((res >= UINT8_MAX) ? UINT8_MAX : res);
 }
 
 internal constexpr bool
@@ -87,15 +87,15 @@ StaticLightDrawToChunk(StaticLight* light, TileMapChunk* chunkDst, ChunkedTileMa
 		Vector2i pos = light->Pos + LavaLightOffsets[i];
 		if (IsInBounds(pos, chunkDst->StartTile, wh))
 		{
-			uint16_t r = (uint32_t)((float)light->Color.r * LavaLightWeights[i] * 255.0f);
-			uint16_t g = (uint32_t)((float)light->Color.g * LavaLightWeights[i] * 255.0f);
-			uint16_t b = (uint32_t)((float)light->Color.b * LavaLightWeights[i] * 255.0f);
-			uint16_t a = (uint32_t)((float)light->Color.b * LavaLightWeights[i] * 255.0f);
+			uint16_t r = (uint16_t)((float)light->Color.r * LavaLightWeights[i]);
+			uint16_t g = (uint16_t)((float)light->Color.g * LavaLightWeights[i]);
+			uint16_t b = (uint16_t)((float)light->Color.b * LavaLightWeights[i]);
+			uint16_t a = (uint16_t)((float)light->Color.a * LavaLightWeights[i]);
 			size_t idx = CTileMap::GetTileLocalIndex(pos);
 			chunkDst->TileColors[idx].r = Clamp0255(chunkDst->TileColors[idx].r, r);
 			chunkDst->TileColors[idx].g = Clamp0255(chunkDst->TileColors[idx].g, g);
 			chunkDst->TileColors[idx].b = Clamp0255(chunkDst->TileColors[idx].b, b);
-			chunkDst->TileColors[idx].a = 255;
+			chunkDst->TileColors[idx].a = Clamp0255(chunkDst->TileColors[idx].a, a);
 		}
 	}
 
@@ -109,13 +109,15 @@ StaticLightRemoveFromChunk(StaticLight* light, TileMapChunk* chunkDst, TileMapCh
 	for (int i = 0; i < 9; ++i)
 	{
 		Vector2i pos = lightPos + LavaLightOffsets[i];
-		size_t idx = (size_t)pos.x + (size_t)pos.y * CHUNK_DIMENSIONS;
-		uint16_t r = (uint32_t)((float)light->Color.r * LavaLightWeights[i] * 255.0f);
-		uint16_t g = (uint32_t)((float)light->Color.g * LavaLightWeights[i] * 255.0f);
-		uint16_t b = (uint32_t)((float)light->Color.b * LavaLightWeights[i] * 255.0f);
-		chunkDst->TileColors[idx].r = Clamp0255(chunkDst->TileColors[idx].r, -r);
-		chunkDst->TileColors[idx].g = Clamp0255(chunkDst->TileColors[idx].g, -g);
-		chunkDst->TileColors[idx].b = Clamp0255(chunkDst->TileColors[idx].b, -b);
+		uint16_t r = (uint16_t)((float)light->Color.r * LavaLightWeights[i]);
+		uint16_t g = (uint16_t)((float)light->Color.g * LavaLightWeights[i]);
+		uint16_t b = (uint16_t)((float)light->Color.b * LavaLightWeights[i]);
+		uint16_t a = (uint16_t)((float)light->Color.a * LavaLightWeights[i]);
+		size_t idx = CTileMap::GetTileLocalIndex(pos);
+		chunkDst->TileColors[idx].r = Clamp0255(chunkDst->TileColors[idx].r, r);
+		chunkDst->TileColors[idx].g = Clamp0255(chunkDst->TileColors[idx].g, g);
+		chunkDst->TileColors[idx].b = Clamp0255(chunkDst->TileColors[idx].b, b);
+		chunkDst->TileColors[idx].a = Clamp0255(chunkDst->TileColors[idx].a, a);
 	}
 }
 
@@ -200,12 +202,11 @@ LightsUpdate(LightingState* lightState, Game* game)
 
 	// Threaded lighting
 
-	Vector3* colorArrayPtrs[LIGHT_MAX_THEADS];
-
-	size_t size = GetGameApp()->View.TotalTilesOnScreen * sizeof(Vector3);
+	Color* colorArrayPtrs[LIGHT_MAX_THEADS];
+	size_t size = GetGameApp()->View.TotalTilesOnScreen * sizeof(Color);
 	for (int i = 0; i < LIGHT_MAX_THEADS; ++i)
 	{
-		colorArrayPtrs[i] = (Vector3*)SMemTempAlloc(size);
+		colorArrayPtrs[i] = (Color*)SMemTempAlloc(size);
 		SMemClear(colorArrayPtrs[i], size);
 	}
 
@@ -229,7 +230,7 @@ LightsUpdate(LightingState* lightState, Game* game)
 			Light* light = *lightPtr;
 			if (TileInsideCullRect(light->Pos))
 			{
-				Vector3* threadArray = colorArrayPtrs[threadIndex];
+				Color* threadArray = colorArrayPtrs[threadIndex];
 				ThreadedLightUpdate(light, threadArray, tilemap, GetGameApp()->View.ResolutionInTiles.x);
 			}
 		}
@@ -276,10 +277,12 @@ LightsUpdate(LightingState* lightState, Game* game)
 	{
 		for (int j = 0; j < LIGHT_MAX_THEADS; ++j)
 		{
-			game->LightingRenderer.Tiles.Memory[i].x += colorArrayPtrs[j][i].x;
-			game->LightingRenderer.Tiles.Memory[i].y += colorArrayPtrs[j][i].y;
-			game->LightingRenderer.Tiles.Memory[i].z += colorArrayPtrs[j][i].z;
+			game->LightingRenderer.TileColors.Memory[i].r = Clamp0255(game->LightingRenderer.TileColors.Memory[i].r, colorArrayPtrs[j][i].r);
+			game->LightingRenderer.TileColors.Memory[i].g = Clamp0255(game->LightingRenderer.TileColors.Memory[i].g, colorArrayPtrs[j][i].g);
+			game->LightingRenderer.TileColors.Memory[i].b = Clamp0255(game->LightingRenderer.TileColors.Memory[i].b, colorArrayPtrs[j][i].b);
+			game->LightingRenderer.TileColors.Memory[i].a = Clamp0255(game->LightingRenderer.TileColors.Memory[i].a, colorArrayPtrs[j][i].a);
 		}
+
 	}
 
 	GetGameApp()->DebugLightTime = GetTime() - start;

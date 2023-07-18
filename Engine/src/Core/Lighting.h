@@ -107,11 +107,18 @@ constexpr global_var Vector2i LavaLightOffsets[9] =
 
 constexpr global_var float Inverse = 1.0f / 255.0f;
 
-constexpr global_var float LavaLightWeights[9] =
+constexpr global_var float LavaLightWeightsInverse[9] =
 {
         0.05f * Inverse, 0.15f * Inverse, 0.05f * Inverse,
         0.15f * Inverse, 0.25f * Inverse, 0.15f * Inverse,
         0.05f * Inverse, 0.15f * Inverse, 0.05f * Inverse,
+};
+
+constexpr global_var float LavaLightWeights[9] =
+{
+        0.05f, 0.15f, 0.05f,
+        0.15f, 0.25f, 0.15f,
+        0.05f, 0.15f, 0.05f,
 };
 
 // Used to translate tile coordinates 

@@ -4,6 +4,8 @@
 #include "Entity.h"
 #include "ResourceManager.h"
 
+#include <string.h>
+
 #include "raylib/src/rlgl.h"
 #include "raylib/src/raymath.h"
 
@@ -109,6 +111,13 @@ void BlurShader::Initialize(int width, int height)
 	SetShaderValue(BlurShader, targetWidthLoc, &targetWidth, SHADER_UNIFORM_FLOAT);
 }
 
+void BlurShader::Free()
+{
+	UnloadRenderTexture(TextureHorizontal);
+	UnloadRenderTexture(TextureVert);
+	UnloadShader(BlurShader);
+}
+
 void BlurShader::Draw(const Texture2D& lightingTexture) const
 {
 	Rectangle srcRect =
@@ -156,13 +165,6 @@ void BlurShader::Draw(const Texture2D& lightingTexture) const
 	EndTextureMode();
 
 	EndShaderMode();
-}
-
-void BlurShader::Free()
-{
-	UnloadRenderTexture(TextureHorizontal);
-	UnloadRenderTexture(TextureVert);
-	UnloadShader(BlurShader);
 }
 
 void TileMapRenderer::Initialize(Game* game)
@@ -224,7 +226,8 @@ void LightingRenderer::Initialize(Game* game)
 	int w = (int)GetGameApp()->View.ResolutionInTiles.x;
 	int h = (int)GetGameApp()->View.ResolutionInTiles.y;
 
-	Tiles.Initialize(w * h, SAllocator::Game);
+	TileColors.Initialize(w * h, SAllocator::Game);
+	TileData.Initialize(w * h, SAllocator::Game);
 
 	LightingShader = LoadShader(
 		SHADERS_PATH "lighting_v2.vert",
@@ -232,22 +235,27 @@ void LightingRenderer::Initialize(Game* game)
 
 	UniformSunlight = GetShaderLocation(LightingShader, "sunlightColor");
 	UniformLOSColor = GetShaderLocation(LightingShader, "losColor");
-	UniformWorldMap = GetShaderLocation(LightingShader, "tileDataMap");
+	UniformTileDataTexture = GetShaderLocation(LightingShader, "tileDataTexture");
 
 	AmbientLightColor = { 25.0f / 255.0f, 20.0f / 255.0f, 45.0f / 255.0f };
 	SunlightColor = { 0.0f, 0.0f, 0.0f };
 	LOSColor = { 0.0f, 0.0f, 0.0f };
 	LightIntensity = 1.0f;
 
-	LightingTexture = SLoadRenderTexture((int)GetGameApp()->View.Resolution.x, (int)GetGameApp()->View.Resolution.y, PIXELFORMAT_UNCOMPRESSED_R32G32B32A32);
-	ColorsTexture = SLoadRenderTexture(GetGameApp()->View.ResolutionInTiles.x, GetGameApp()->View.ResolutionInTiles.y, PIXELFORMAT_UNCOMPRESSED_R32G32B32A32);
+	Vector2i lightMapReso = GetGameApp()->View.Resolution;
+	LightMapTexture = SLoadRenderTexture(lightMapReso.x, lightMapReso.y, PIXELFORMAT_UNCOMPRESSED_R32G32B32);
+
+	Vector2i tileReso = GetGameApp()->View.ResolutionInTiles;
+	TileColorsTexture = SLoadRenderTexture(tileReso.x, tileReso.y, PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
+	TileLightDataTexture = SLoadRenderTexture(tileReso.x, tileReso.y, PIXELFORMAT_UNCOMPRESSED_GRAY_ALPHA);
 }
 
 void LightingRenderer::Free()
 {
 	UnloadShader(LightingShader);
-	UnloadRenderTexture(ColorsTexture);
-	UnloadRenderTexture(LightingTexture);
+	UnloadRenderTexture(LightMapTexture);
+	UnloadRenderTexture(TileColorsTexture);
+	UnloadRenderTexture(TileLightDataTexture);
 }
 
 void LightingRenderer::Draw(Rectangle dstRect)
@@ -256,16 +264,19 @@ void LightingRenderer::Draw(Rectangle dstRect)
 	Rectangle src;
 	src.x = 0;
 	src.y = 0;
-	src.width = (float)ColorsTexture.texture.width;
-	src.height = (float)ColorsTexture.texture.height;
+	src.width = (float)TileColorsTexture.texture.width;
+	src.height = (float)TileColorsTexture.texture.height;
 
-	SASSERT(sizeof(Tiles[0]) == (sizeof(float) * 4));
+	SASSERT(sizeof(TileColors[0]) == 4);
+	SASSERT(sizeof(TileData[0]) == 2);
 
-	UpdateTexture(ColorsTexture.texture, Tiles.Memory);
+	UpdateTexture(TileColorsTexture.texture, TileColors.Memory);
+	SMemClear(TileColors.Memory, TileColors.SizeOf());
 
-	SMemClear(Tiles.Memory, Tiles.SizeOf());
+	UpdateTexture(TileLightDataTexture.texture, TileData.Memory);
+	SMemClear(TileData.Memory, TileData.SizeOf());
 
-	BeginTextureMode(LightingTexture);
+	BeginTextureMode(LightMapTexture);
 	ClearBackground(BLACK);
 
 	BeginShaderMode(LightingShader);
@@ -277,10 +288,14 @@ void LightingRenderer::Draw(Rectangle dstRect)
 	color.w = LightIntensity;
 
 	BeginMode2D(GetGame()->WorldCamera);
+
 	SetShaderValue(LightingShader, UniformSunlight, &SunlightColor, SHADER_UNIFORM_VEC3);
 	SetShaderValue(LightingShader, UniformLOSColor, &LOSColor, SHADER_UNIFORM_VEC3);
-	SetShaderValueTexture(LightingShader, UniformWorldMap, GetGame()->TileMapRenderer.TileDataTexture.texture);
-	SDrawTextureProF(ColorsTexture.texture, src, dstRect, { 0 }, 0.0f, color);
+	SetShaderValueTexture(LightingShader, UniformTileDataTexture, TileLightDataTexture.texture);
+
+	// Draw as texture for tex coordinates
+	SDrawTextureProF(TileColorsTexture.texture, src, dstRect, { 0 }, 0.0f, color);
+
 	EndMode2D();
 
 	EndShaderMode();
@@ -305,10 +320,10 @@ SDrawTextureProF(const Texture2D& texture, Rectangle source, const Rectangle& de
 		if (source.width < 0) { flipX = true; source.width *= -1; }
 		if (source.height < 0) source.y -= source.height;
 
-		Vector2 topLeft = { 0 };
-		Vector2 topRight = { 0 };
-		Vector2 bottomLeft = { 0 };
-		Vector2 bottomRight = { 0 };
+		Vector2 topLeft;
+		Vector2 topRight;
+		Vector2 bottomLeft;
+		Vector2 bottomRight;
 
 		// Only calculate rotation if needed
 		if (rotation == 0.0f)
@@ -510,17 +525,12 @@ void SDrawSprite(Texture2D* texture, Rectangle source, Rectangle dest, Color col
 void
 SDrawRectangleProF(Rectangle rec, Vector2 origin, float rotation, Vector4 color)
 {
-	Vector2 topLeft = { 0 };
-	Vector2 topRight = { 0 };
-	Vector2 bottomLeft = { 0 };
-	Vector2 bottomRight = { 0 };
-
 	float x = rec.x - origin.x;
 	float y = rec.y - origin.y;
-	topLeft = Vector2{ x, y };
-	topRight = Vector2{ x + rec.width, y };
-	bottomLeft = Vector2{ x, y + rec.height };
-	bottomRight = Vector2{ x + rec.width, y + rec.height };
+	Vector2 topLeft = Vector2{ x, y };
+	Vector2 topRight = Vector2{ x + rec.width, y };
+	Vector2 bottomLeft = Vector2{ x, y + rec.height };
+	Vector2 bottomRight = Vector2{ x + rec.width, y + rec.height };
 
 	rlBegin(RL_TRIANGLES);
 		rlColor4f(color.x, color.y, color.z, color.w);
@@ -584,4 +594,136 @@ SLoadRenderTextureEx(int width, int height, PixelFormat format, bool useDepth)
 	else TRACELOG(LOG_WARNING, "FBO: Framebuffer object can not be created");
 
 	return target;
+}
+
+// Read a line from memory
+// REQUIRES: memcpy()
+// NOTE: Returns the number of bytes read
+static int GetLine(const char* origin, char* buffer, int maxLength)
+{
+	int count = 0;
+	for (; count < maxLength; count++) if (origin[count] == '\n') break;
+	memcpy(buffer, origin, count);
+	return count;
+}
+
+// Load a BMFont file (AngelCode font file)
+// REQUIRES: strstr(), sscanf(), strrchr(), memcpy()
+Font Scal_LoadBMFont(const char* fileName, Texture2D fontTexture, Vector2 offset)
+{
+#define MAX_BUFFER_SIZE     256
+
+	Font font = { 0 };
+
+	char buffer[MAX_BUFFER_SIZE] = { 0 };
+	char* searchPoint = NULL;
+
+	int fontSize = 0;
+	int glyphCount = 0;
+
+	int imWidth = 0;
+	int imHeight = 0;
+	char imFileName[129] = { 0 };
+
+	int base = 0;   // Useless data
+
+	char* fileText = LoadFileText(fileName);
+
+	if (fileText == NULL) return font;
+
+	char* fileTextPtr = fileText;
+
+	// NOTE: We skip first line, it contains no useful information
+	int lineBytes = GetLine(fileTextPtr, buffer, MAX_BUFFER_SIZE);
+	fileTextPtr += (lineBytes + 1);
+
+	// Read line data
+	lineBytes = GetLine(fileTextPtr, buffer, MAX_BUFFER_SIZE);
+	searchPoint = strstr(buffer, "lineHeight");
+	sscanf(searchPoint, "lineHeight=%i base=%i scaleW=%i scaleH=%i", &fontSize, &base, &imWidth, &imHeight);
+	fileTextPtr += (lineBytes + 1);
+
+	TRACELOGD("FONT: [%s] Loaded font info:", fileName);
+	TRACELOGD("    > Base size: %i", fontSize);
+	TRACELOGD("    > Texture scale: %ix%i", imWidth, imHeight);
+
+	lineBytes = GetLine(fileTextPtr, buffer, MAX_BUFFER_SIZE);
+	searchPoint = strstr(buffer, "file");
+	sscanf(searchPoint, "file=\"%128[^\"]\"", imFileName);
+	fileTextPtr += (lineBytes + 1);
+
+	TRACELOGD("    > Texture filename: %s", imFileName);
+
+	lineBytes = GetLine(fileTextPtr, buffer, MAX_BUFFER_SIZE);
+	searchPoint = strstr(buffer, "count");
+	sscanf(searchPoint, "count=%i", &glyphCount);
+	fileTextPtr += (lineBytes + 1);
+
+	TRACELOGD("    > Chars count: %i", glyphCount);
+
+	// Compose correct path using route of .fnt file (fileName) and imFileName
+	char* imPath = NULL;
+	char* lastSlash = NULL;
+
+	lastSlash = (char*)strrchr(fileName, '/');
+	if (lastSlash == NULL) lastSlash = (char*)strrchr(fileName, '\\');
+
+	if (lastSlash != NULL)
+	{
+		// NOTE: We need some extra space to avoid memory corruption on next allocations!
+		imPath = (char*)RL_CALLOC(TextLength(fileName) - TextLength(lastSlash) + TextLength(imFileName) + 4, 1);
+		memcpy(imPath, fileName, TextLength(fileName) - TextLength(lastSlash) + 1);
+		memcpy(imPath + TextLength(fileName) - TextLength(lastSlash) + 1, imFileName, TextLength(imFileName));
+	}
+	else imPath = imFileName;
+
+	TRACELOGD("    > Image loading path: %s", imPath);
+
+	font.texture = fontTexture;
+
+	if (lastSlash != NULL) RL_FREE(imPath);
+
+	Image imFont = LoadImageFromTexture(font.texture);
+
+	// Fill font characters info data
+	font.baseSize = fontSize;
+	font.glyphCount = glyphCount;
+	font.glyphPadding = 0;
+	font.glyphs = (GlyphInfo*)RL_MALLOC(glyphCount * sizeof(GlyphInfo));
+	font.recs = (Rectangle*)RL_MALLOC(glyphCount * sizeof(Rectangle));
+
+	int charId, charX, charY, charWidth, charHeight, charOffsetX, charOffsetY, charAdvanceX;
+
+	for (int i = 0; i < glyphCount; i++)
+	{
+		lineBytes = GetLine(fileTextPtr, buffer, MAX_BUFFER_SIZE);
+		sscanf(buffer, "char id=%i x=%i y=%i width=%i height=%i xoffset=%i yoffset=%i xadvance=%i",
+			&charId, &charX, &charY, &charWidth, &charHeight, &charOffsetX, &charOffsetY, &charAdvanceX);
+		fileTextPtr += (lineBytes + 1);
+
+		// Get character rectangle in the font atlas texture
+		font.recs[i] = (Rectangle){ (float)charX + offset.x, (float)charY + offset.y, (float)charWidth, (float)charHeight };
+
+		// Save data properly in sprite font
+		font.glyphs[i].value = charId;
+		font.glyphs[i].offsetX = charOffsetX;
+		font.glyphs[i].offsetY = charOffsetY;
+		font.glyphs[i].advanceX = charAdvanceX;
+
+		// Fill character image data from imFont data
+		font.glyphs[i].image = ImageFromImage(imFont, font.recs[i]);
+	}
+
+	UnloadImage(imFont);
+	UnloadFileText(fileText);
+
+	if (font.texture.id == 0)
+	{
+		UnloadFont(font);
+		font = GetFontDefault();
+		TRACELOG(LOG_WARNING, "FONT: [%s] Failed to load texture, reverted to default font", fileName);
+	}
+	else TRACELOG(LOG_INFO, "FONT: [%s] Font loaded successfully (%i glyphs)", fileName, font.glyphCount);
+
+	return font;
 }

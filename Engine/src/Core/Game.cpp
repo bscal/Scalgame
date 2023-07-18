@@ -227,7 +227,7 @@ SAPI void GameApplication::Run()
 		// *****************
 
 		Game->LightingRenderer.Draw(dstMapRect);
-		Game->Renderer.PostProcess(Game, Game->Renderer.WorldTexture, Game->LightingRenderer.LightingTexture);
+		//Game->Renderer.PostProcess(Game, Game->Renderer.WorldTexture, Game->LightingRenderer.LightMapTexture);
 
 		// ***************
 		// Draws to buffer
@@ -242,7 +242,7 @@ SAPI void GameApplication::Run()
 		rlPushMatrix();
 		rlScalef(GetScale(), GetScale(), 1.0f);
 
-		SetShaderValueTexture(Game->Renderer.LitShader, Game->Renderer.UniformLightMapLoc, Game->LightingRenderer.LightingTexture.texture);
+		SetShaderValueTexture(Game->Renderer.LitShader, Game->Renderer.UniformLightMapLoc, Game->LightingRenderer.LightMapTexture.texture);
 		DrawTexturePro(Game->Renderer.WorldTexture.texture, srcRect, dstRect, { 0 }, 0.0f, WHITE);
 		Game->Renderer.DrawBloom(dstRect);
 

@@ -427,7 +427,9 @@ void SetVisible(ChunkedTileMap* tilemap, TileCoord coord)
 	if (!IsTileInBounds(tilemap, coord)) return;
 	Vector2i cullTile = WorldTileToCullTile(coord);
 	int index = cullTile.x + cullTile.y * GetGameApp()->View.ResolutionInTiles.x;
-	GetGame()->TileMapRenderer.Tiles[index].LOS = true;
+	//GetGame()->TileMapRenderer.Tiles[index].LOS = true;
+	GetGame()->LightingRenderer.TileData[index].r = 1;
+	//TileLighDataLOSSet(GetGame()->LightingRenderer.TileData[index], 1);
 	//GetTile(tilemap, coord)->LOS = TileLOS::FullVision;
 }
 
@@ -442,6 +444,8 @@ bool BlocksLight(ChunkedTileMap* tilemap, TileCoord coord)
 internal void
 UpdateTileMap(ChunkedTileMap* tilemap, TileMapRenderer* tilemapRenderer)
 {
+	LightingRenderer* lightRenderer = &GetGame()->LightingRenderer;
+
 	PROFILE_BEGIN();
 	size_t idx = 0;
 	for (int y = 0; y < GetGameApp()->View.ResolutionInTiles.y; ++y)
@@ -460,16 +464,17 @@ UpdateTileMap(ChunkedTileMap* tilemap, TileMapRenderer* tilemapRenderer)
 				TileData* tileData = &chunk->Tiles[localIdx];
 				Color* tileColor = &chunk->TileColors[localIdx];
 
-				SMemCopy(&tilemapRenderer->Tiles[idx], tileData, 3ULL);
+				tilemapRenderer->Tiles[idx].x = tileData->TexX;
+				tilemapRenderer->Tiles[idx].y = tileData->TexY;
 
-				constexpr float colorInverse = 1.f / 255.f;
-				GetGame()->LightingRenderer.Tiles[idx].x = (float)tileColor->r * colorInverse;
-				GetGame()->LightingRenderer.Tiles[idx].y = (float)tileColor->g * colorInverse;
-				GetGame()->LightingRenderer.Tiles[idx].z = (float)tileColor->b * colorInverse;
-				GetGame()->LightingRenderer.Tiles[idx].w = (float)tileColor->a * colorInverse;
+				lightRenderer->TileData[idx].g = (uint8_t)tileData->HasCeiling;
+				//TileLighDataCeilingSet(lightRenderer->TileData[idx], (uint8_t)tileData->HasCeiling);
+
+				SMemCopy(&lightRenderer->TileColors[idx], tileColor, sizeof(Color));
+
 				// See SetVisible()
 				if (GetGame()->DebugDisableDarkess)
-					tilemapRenderer->Tiles[idx].LOS = 1;
+					lightRenderer->TileData[idx].r = 1;
 			}
 			else
 			{
