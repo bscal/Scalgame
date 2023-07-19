@@ -2,36 +2,25 @@
 
 #include "Core.h"
 #include "SString.h"
-#include "Structures/SList.h"
-#include "Structures/STable.h"
-#include "SUtil.h"
+#include "Structures/SHashMap.h"
 
-constexpr const char* Stone = "Tile1";
+struct Rect16
+{
+	uint16_t x;
+	uint16_t y;
+	uint16_t w;
+	uint16_t h;
+};
 
 struct SpriteAtlas
 {
-	struct AtlasInfo
-	{
-		int X;
-		int Y;
-		int TileW;
-		int TileH;
-	};
-
 	Texture2D Texture;
-	SString TextureName;
-	SString AtlasFilePath;
-	SList<Rectangle> SpritesArray;
-	STable<SString, uint32_t> SpritesByName = STable<SString, uint32_t>(STableDefaultKeyEquals, SStringHash);
-	bool IsLoaded;
-
-	bool Load(const char* atlasDataPath, uint64_t estimatedSprites);
-	void Unload();
-
-	inline uint64_t Size() const { return SpritesArray.Count; }
-	inline const Rectangle& GetRect(uint64_t index) const
-	{
-		return SpritesArray[index];
-	}
-	Rectangle GetRectByName(SString& tileName) const;
+	Rect16* Rects;
+	SHashMap<SRawString, uint16_t, SRawStringHasher> NameToIdx;
+	uint16_t Length;
+	SRawString TextureName;
 };
+
+SpriteAtlas SpriteAtlasLoad(const char* dirPath, const char* atlasFile);
+void SpriteAtlasUnload(SpriteAtlas* atlas);
+Rectangle SpriteAtlasRect(SpriteAtlas* atlas, const SRawString name);

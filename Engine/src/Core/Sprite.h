@@ -63,3 +63,15 @@ constexpr global_var Sprite ROGUE_SPRITE = { 16, 0, 16, 16 };
 constexpr global_var Sprite FIRE_STAFF = { 4, 32, 4, 16 };
 
 }
+
+struct SpriteAtlasT
+{
+    RenderTexture2D RenderTexture;
+    Sprite* Sprites;
+    uint32_t Length;
+    uint16_t NextIdx;
+    SHashMap<SRawString, uint16_t, SRawStringHasher> NameToSpriteIdx;
+};
+
+void SpriteAtlasLoadT(SpriteAtlasT* atlas, const char* directoryPath);
+void SpriteAtlasFreeT(SpriteAtlasT* atlas);

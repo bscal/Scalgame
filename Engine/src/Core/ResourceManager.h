@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core.h"
+#include "SpriteAtlas.h"
 
 #define ASSET_PATH "assets/"
 #define SHADERS_PATH ASSET_PATH "shaders/"
@@ -14,10 +15,10 @@ struct SDFFont
 
 struct Resources
 {
+	SpriteAtlas UIAtlas;
 	Texture2D EntitySpriteSheet;
 	Texture2D TileSheet;
 	Texture2D TileSprite;
-	//SpriteAtlas Atlas;
 	Font MainFontM;
 	Font MainFontS;
 	Font FontSilver;

@@ -7,19 +7,10 @@
 #include <rectpack2D/src/finders_interface.h>
 
 using namespace rectpack2D;
-
-struct SpriteMgr
+/*
+void SpriteAtlasLoad(SpriteAtlas* atlas, const char* spriteDirPath)
 {
-	RenderTexture2D SpriteAtlas;
-	SList<Sprite> Sprites;
-	DynamicArray<TileSprite> TileSprites;
-	SHashMap<SRawString, uint16_t, SRawStringHasher> SpriteNameToIndex;
-	uint16_t NextId;
-} SpriteMgr;
-
-void SpritesInitialize(GameApplication* gameApp, const char* spriteDirPath)
-{
-	SASSERT(gameApp);
+	SASSERT(atlas);
 	SASSERT(spriteDirPath);
 
 	constexpr bool allow_flip = false;
@@ -72,24 +63,29 @@ void SpritesInitialize(GameApplication* gameApp, const char* spriteDirPath)
 
 				const char* filename = GetFileNameWithoutExt(path);
 				SRawString str = RawStringNew(filename, SAllocator::Game);
-				uint16_t id = SpriteMgr.NextId++;
-				SpriteMgr.SpriteNameToIndex.Insert(&str, &id);
+				uint16_t id = atlas->NextIdx++;
+				atlas->NameToSpriteIdx.Insert(&str, &id);
 			}
 		}
 	}
 
 	rect_wh result_size = find_best_packing<spaces_type>(rects, input);
 
-	SpriteMgr.SpriteAtlas = LoadRenderTexture(result_size.w, result_size.h);
+	atlas->RenderTexture = LoadRenderTexture(result_size.w, result_size.h);
 
-	BeginTextureMode(SpriteMgr.SpriteAtlas);
+	atlas->Length = textures.Count;
+	size_t spritesSize = sizeof(Sprite) * atlas->Length;
+	atlas->Sprites = (Sprite*)SAlloc(SAllocator::Game, spritesSize, MemoryTag::Arrays);
+
+	BeginTextureMode(atlas->RenderTexture);
 
 	for (uint32_t i = 0; i < textures.Count; ++i)
 	{
 		Texture2D text = textures[i];
 		rect_xywh rect = rects[i];
 		Sprite sprite = { (uint16_t)rect.x, (uint16_t)rect.y, (uint16_t)rect.w, (uint16_t)rect.h };
-		SpriteMgr.Sprites.Push(&sprite);
+		
+		SMemCopy(atlas->Sprites + i, &sprite, sizeof(Sprite));
 
 		Rectangle src = { (float)rect.x, (float)rect.y, (float)rect.w, (float)rect.h };
 		DrawTextureRec(text, src, { src.x, src.y }, WHITE);
@@ -108,9 +104,11 @@ void SpritesInitialize(GameApplication* gameApp, const char* spriteDirPath)
 	SLOG_INFO("[ SpriteAtlas ] Succesfully Initialized!");
 }
 
-void SpritesFree()
+void SpriteAtlasFree(SpriteAtlas* atlas)
 {
-	UnloadRenderTexture(SpriteMgr.SpriteAtlas);
+	UnloadRenderTexture(atlas->RenderTexture);
+	SFree(SAllocator::Game, atlas->Sprites, atlas->Length * sizeof(Sprite), MemoryTag::Game);
+	atlas->NameToSpriteIdx.Free();
 }
 
 void SpritesUpdate()
@@ -210,3 +208,4 @@ Animation CreateAnimation(uint16_t tickSpeed, uint16_t framesCount, uint16_t fra
 
 	return animation;
 }
+*/
