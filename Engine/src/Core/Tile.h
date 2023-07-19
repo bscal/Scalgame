@@ -30,8 +30,10 @@ struct TileSheetCoord
 #define DARK_STONE_FLOOR TileSheetCoord{14, 0}
 #define ROCKY_WALL TileSheetCoord{20, 2}
 #define LAVA_0 TileSheetCoord{31,54}
-
-typedef void(*OnUpdate)(uint32_t, TileData);
+			  
+typedef void (*OnUpdate)(uint32_t, TileData);
+typedef void (*OnStepOn)(Vector2i, void* entity);
+typedef void (*OnStepOff)(Vector2i, void* entity);
 
 struct Tile
 {
@@ -39,11 +41,9 @@ struct Tile
 	bool EmitsLight;
 	TileType Type;
 
-	void(*OnAwake)(Vector2i, TileData);
-	void(*OnSleep)(Vector2i, TileData);
 	OnUpdate OnUpdateCB;
-	void(*OnStepOn)(Vector2i, TileData, void* worldEntity);
-	void(*OnStepOff)(Vector2i, TileData, void* worldEntity);
+	OnStepOn OnStepOnCB;
+	OnStepOff OnStepOff;
 };
 
 #define TILE_SHEET_WIDTH 512

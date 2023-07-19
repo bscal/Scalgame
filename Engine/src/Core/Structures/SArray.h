@@ -28,3 +28,4 @@ SAPI void ArrayClear(SArray* sArray);
 SAPI void ArrayRemove(SArray* sArray);
 SAPI bool ArrayRemoveAt(SArray* sArray, uint32_t index);
 
+#define ArrayEmptyTyped(T, allocator) (SArray{ nullptr, 0, 0, sizeof(T), (uint8_t)allocator })

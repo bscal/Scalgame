@@ -343,6 +343,16 @@ uint32_t StrFind(const char* str, const char* find)
 	return (text == -1) ? SSTR_NO_POS : (uint32_t)text;
 }
 
+void RemoveWhitespace(char* s)
+{
+	char* d = s;
+	do {
+		while (*d == ' ') {
+			++d;
+		}
+	} while (*s++ = *d++);
+}
+
 bool SStrEquals(const char* str1, const char* str2)
 {
 	if (!str1 || !str2)

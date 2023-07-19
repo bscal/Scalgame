@@ -18,6 +18,9 @@ enum class SAllocator : uint8_t
 	MaxTypes,
 };
 
+#define ALLOC_GAME SAllocator::Game
+#define ALLOC_TEMP SAllocator::Temp
+
 enum class MemoryTag : uint8_t
 {
 	Unknown = 0,

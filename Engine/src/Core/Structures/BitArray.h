@@ -13,71 +13,86 @@ struct BitFlags
 	inline void Toggle(uint64_t index) { SASSERT(index < 64); BitToggle(Flag, index); }
 };
 
-template<uint64_t Size>
+constexpr static uint64_t
+CeilBitsToU64(uint64_t v)
+{
+	float num = (float)v / 64.0f;
+	return ((uint64_t)num == num) ? (uint64_t)num : (uint64_t)num + ((num > 0) ? 1 : 0);
+}
+
+template<uint64_t SizeInBits>
 struct BitArray
 {
-	uint64_t Memory[Size];
+	constexpr static uint64_t ElementCount = CeilBitsToU64(SizeInBits);
 
-	inline bool Get(uint64_t bit) const
+	uint64_t Memory[ElementCount];
+
+	_FORCE_INLINE_ bool Get(uint64_t bit) const
 	{
-		SASSERT(bit < Size * 64);
+		SASSERT(bit < SizeInBits);
 		uint64_t index = bit / 64;
 		uint64_t indexBit = bit % 64;
 		return BitGet(Memory[index], indexBit);
 	}
 
-	inline void Set(uint64_t bit)
+	_FORCE_INLINE_ void Set(uint64_t bit)
 	{
-		SASSERT(bit < Size * 64);
+		SASSERT(bit < SizeInBits);
 		uint64_t index = bit / 64;
 		uint64_t indexBit = bit % 64;
-		BitSet(Memory[index], indexBit);
+		Memory[index] = BitSet(Memory[index], indexBit);
 	}
 
-	inline void Clear(uint64_t bit)
+	_FORCE_INLINE_ void Clear(uint64_t bit)
 	{
-		SASSERT(bit < Size * 64);
+		SASSERT(bit < SizeInBits);
 		uint64_t index = bit / 64;
 		uint64_t indexBit = bit % 64;
-		BitClear(Memory[index], indexBit);
+		Memory[index] = BitClear(Memory[index], indexBit);
 	}
 
-	inline void Toggle(uint64_t bit)
+	_FORCE_INLINE_ void Toggle(uint64_t bit)
 	{
-		SASSERT(bit < Size * 64);
+		SASSERT(bit < SizeInBits);
 		uint64_t index = bit / 64;
 		uint64_t indexBit = bit % 64;
-		BitToggle(Memory[index], indexBit);
+		Memory[index] = BitToggle(Memory[index], indexBit);
 	}
 };
 
+// Dynamic, growable array of u64's
 struct BitList
 {
-
 	uint64_t* Memory;
 	uint32_t Capacity;
 	uint32_t SizeInBits;
 	SAllocator Allocator;
 
-	void Alloc(SAllocator allocator, uint32_t capacity)
+	void Alloc(SAllocator allocator, uint64_t bitsNeeded)
 	{
-		size_t oldSize = Capacity * sizeof(uint64_t);
+		size_t oldSize = (size_t)Capacity * sizeof(uint64_t);
 
-		Capacity = (capacity == 0) ? 1 : capacity;
-		size_t newSize = Capacity * sizeof(uint64_t);
+		uint64_t capacity = CeilBitsToU64(bitsNeeded);
+		if (capacity == 0)
+			capacity = 1;
+		
+		Capacity = (uint32_t)capacity;
+
+		size_t newSize = (size_t)Capacity * sizeof(uint64_t);
 
 		Allocator = allocator;
 		SizeInBits = Capacity * 64;
 		Memory = (uint64_t*)SRealloc(Allocator, Memory, oldSize, newSize, MemoryTag::Arrays);
+		SASSERT(Memory);
 	}
 
 	void Free()
 	{
 		if (Memory)
 		{
-			size_t memSize = Capacity * sizeof(uint64_t);
-			SFree(Allocator, Memory, memSize, MemoryTag::Arrays);
+			SFree(Allocator, Memory, (size_t)Capacity * sizeof(uint64_t), MemoryTag::Arrays);
 			Memory = nullptr;
+			Capacity = 0;
 		}
 	}
 
@@ -99,14 +114,14 @@ struct BitList
 		uint64_t index = bit / 64;
 		uint64_t indexBit = bit % 64;
 		int val = (int)BitGet(Memory[index], indexBit);
-		BitClear(Memory[index], indexBit);
+		Memory[index] = BitClear(Memory[index], indexBit);
 		return val;
 	}
 
 	_FORCE_INLINE_ void SetBit(uint64_t bit)
 	{
 		if (bit >= SizeInBits)
-			Alloc(Allocator, Capacity * 2);
+			Alloc(Allocator, bit);
 
 		SASSERT(bit < SizeInBits);
 		uint64_t index = bit / 64;
@@ -127,7 +142,7 @@ struct BitList
 	_FORCE_INLINE_ void Toggle(uint64_t bit)
 	{
 		if (bit >= SizeInBits)
-			Alloc(Allocator, Capacity * 2);
+			Alloc(Allocator, bit);
 
 		SASSERT(bit < SizeInBits);
 		uint64_t index = bit / 64;

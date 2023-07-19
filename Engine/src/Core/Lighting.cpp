@@ -78,7 +78,7 @@ IsInBounds(Vector2i coord, Vector2i xy, Vector2i wh)
 void 
 StaticLightDrawToChunk(StaticLight* light, TileMapChunk* chunkDst, ChunkedTileMap* tilemap)
 {
-	PROFILE_BEGIN();
+	//PROFILE_BEGIN();
 
 	Vector2i wh = chunkDst->StartTile + Vector2i{ CHUNK_DIMENSIONS, CHUNK_DIMENSIONS };
 
@@ -99,7 +99,7 @@ StaticLightDrawToChunk(StaticLight* light, TileMapChunk* chunkDst, ChunkedTileMa
 		}
 	}
 
-	PROFILE_END();
+	//PROFILE_END();
 }
 
 void
@@ -194,8 +194,6 @@ GetNumOfLights()
 void 
 LightsUpdate(LightingState* lightState, Game* game)
 {
-	PROFILE_BEGIN();
-
 	double start = GetTime();
 
 	ChunkedTileMap* tilemap = &game->Universe.World.ChunkedTileMap;
@@ -215,7 +213,7 @@ LightsUpdate(LightingState* lightState, Game* game)
 
 	std::function<void(wi::jobsystem::JobArgs)> task = [lightState, tilemap, &colorArrayPtrs](wi::jobsystem::JobArgs job)
 	{
-		PROFILE_BEGIN_EX("LightsUpdate::UpdatingLights");
+		//PROFILE_BEGIN_EX("LightsUpdate::UpdatingLights");
 
 		uint32_t lightIndex = job.jobIndex;
 		uint32_t threadIndex = job.groupID + LIGHT_STATIC_THREADS;
@@ -234,7 +232,7 @@ LightsUpdate(LightingState* lightState, Game* game)
 				ThreadedLightUpdate(light, threadArray, tilemap, GetGameApp()->View.ResolutionInTiles.x);
 			}
 		}
-		PROFILE_END();
+		//PROFILE_END();
 	};
 
 	wi::jobsystem::context ctx = {};
@@ -286,8 +284,6 @@ LightsUpdate(LightingState* lightState, Game* game)
 	}
 
 	GetGameApp()->DebugLightTime = GetTime() - start;
-
-	PROFILE_END();
 }
 
 internal bool 

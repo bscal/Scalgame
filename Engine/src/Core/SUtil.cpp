@@ -2,6 +2,8 @@
 
 #include "World.h"
 
+#include <ctype.h> // isspace
+
 Vector4 Vec4Add(const Vector4& v0, const Vector4& v1)
 {
 	Vector4 v;
@@ -75,3 +77,85 @@ QueryTilesRadius(World* world, Vector2i center, float radius)
 	return positions;
 }
 
+Color IntToColor(int colorInt)
+{
+	Color c = {};
+	c.r |= colorInt >> 24;
+	c.g |= colorInt >> 16;
+	c.b |= colorInt >> 8;
+	c.a |= colorInt;
+	return c;
+}
+
+void TextSplitBuffered(const char* text, char delimiter, int* count, char* buffer, int bufferLength, char** splitBuffer, int splitBufferLength)
+{
+	splitBuffer[0] = buffer;
+	int counter = 0;
+
+	if (text != NULL)
+	{
+		counter = 1;
+
+		// Count how many substrings we have on text and point to every one
+		for (int i = 0; i < bufferLength; i++)
+		{
+			buffer[i] = text[i];
+			if (buffer[i] == '\0') break;
+			else if (buffer[i] == delimiter)
+			{
+				buffer[i] = '\0';   // Set an end of string at this point
+				splitBuffer[counter] = buffer + i + 1;
+				counter++;
+
+				if (counter == splitBufferLength) break;
+			}
+		}
+	}
+
+	*count = counter;
+}
+
+STR2INT Str2Int(int* out, const char* s, int base)
+{
+	char* end;
+	if (s[0] == '\0' || isspace(s[0]))
+		return STR2INT_INCONVERTIBLE;
+	errno = 0;
+	long l = strtol(s, &end, base);
+	/* Both checks are needed because INT_MAX == LONG_MAX is possible. */
+	if (l > INT_MAX || (errno == ERANGE && l == LONG_MAX))
+		return STR2INT_OVERFLOW;
+	if (l < INT_MIN || (errno == ERANGE && l == LONG_MIN))
+		return STR2INT_UNDERFLOW;
+	if (*end != '\0')
+		return STR2INT_INCONVERTIBLE;
+	*out = l;
+	return STR2INT_SUCCESS;
+}
+
+STR2INT Str2UInt(uint32_t* out, const char* s, int base)
+{
+	char* end;
+#if SCAL_DEBUG
+	if (s[0] == '\0' || isspace(s[0]))
+		return STR2INT_INCONVERTIBLE;
+	errno = 0;
+#endif
+	uint32_t l = strtoul(s, &end, base);
+#if SCAL_DEBUG
+	if (*end != '\0')
+		return STR2INT_INCONVERTIBLE;
+#endif
+	*out = l;
+	return STR2INT_SUCCESS;
+}
+
+
+int FastAtoi(const char* str)
+{
+	int val = 0;
+	while (*str) {
+		val = val * 10 + (*str++ - '0');
+	}
+	return val;
+}

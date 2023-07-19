@@ -107,7 +107,7 @@ void SMemFree(void* block)
 }
 
 void* SMemTempAlloc(size_t size)
-{
+{	
 	void* ptr = BiStackAllocFront(TemporaryMemoryPtr, size);
 	SASSERT(ptr);
 	SMemClear(ptr, size);

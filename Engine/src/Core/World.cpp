@@ -42,13 +42,11 @@ void WorldFree(World* world)
 
 void WorldUpdate(World* world, Game* game)
 {
-	PROFILE_BEGIN();
 	GetGameApp()->NumOfChunksUpdated = 0;
 
 	//CTileMap::Update(&world->ChunkedTileMap, game);
 
 	GetGameApp()->NumOfLoadedChunks = (int)world->ChunkedTileMap.Chunks.Size;
-	PROFILE_END();
 }
 
 void WorldLateUpdate(World* world, Game* game)

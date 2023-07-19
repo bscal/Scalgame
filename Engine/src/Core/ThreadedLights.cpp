@@ -3,12 +3,11 @@
 #include "Game.h"
 #include "ChunkedTileMap.h"
 #include "Lighting.h"
-
-#include <bitset>
+#include "Structures/BitArray.h"
 
 struct LightUpdater
 {
-	std::bitset<MAX_TILE_COUNT> CheckedTiles;
+	BitArray<MAX_TILE_COUNT> CheckedTiles;
 	UpdatingLight* Light;
 	Vector3* ColorsArray;
 	ChunkedTileMap* Tilemap;
@@ -77,9 +76,9 @@ void LightUpdater::ProcessOctant(uint8_t octant, int x, Slope top, Slope bottom)
 			{
 				TileCoord coord = WorldTileToCullTile(txty);
 				int index = coord.x + coord.y * GetGameApp()->View.ResolutionInTiles.x;
-				if (!CheckedTiles.test(index))
+				if (!CheckedTiles.Get(index))
 				{
-					CheckedTiles.set(index);
+					CheckedTiles.Set(index);
 					SetColor(index, distance);
 				}
 			}
@@ -111,17 +110,35 @@ void LightUpdater::ProcessOctant(uint8_t octant, int x, Slope top, Slope bottom)
 	}
 }
 
+_FORCE_INLINE_ internal
+Color Clamp0255(Color c0, Color c1, float attenuation)
+{
+	Color res;
+
+	float r = ((float)c0.r + ((float)c1.r * attenuation));
+	float g = ((float)c0.g + ((float)c1.g * attenuation));
+	float b = ((float)c0.b + ((float)c1.b * attenuation));
+	float a = ((float)c0.a + ((float)c1.a * attenuation));
+
+	res.r = (r > 255.0f) ? UINT8_MAX : (uint8_t)r;
+	res.g = (g > 255.0f) ? UINT8_MAX : (uint8_t)g;
+	res.b = (b > 255.0f) ? UINT8_MAX : (uint8_t)b;
+	res.a = (a > 255.0f) ? UINT8_MAX : (uint8_t)a;
+
+	return res;
+}
+
 struct ThreadedUpdater
 {
-	std::bitset<MAX_TILE_COUNT> CheckedTiles;
 	Light* Light;
-	Vector3* ColorsArray;
+	Color* ColorsArray;
 	ChunkedTileMap* Tilemap;
 	uint32_t Width;
+	BitArray<MAX_TILE_COUNT> CheckedTiles;
 };
 
 internal void
-SetColor(Vector3* colorsArray, uint32_t index, Color color, float distance)
+SetColor(Color* colorsArray, uint32_t index, Color color, float distance)
 {
 	// https://www.desmos.com/calculator/nmnaud1hrw
 	constexpr float a = 0.0f;
@@ -130,9 +147,8 @@ SetColor(Vector3* colorsArray, uint32_t index, Color color, float distance)
 	float attenuation = 1.0f / (1.0f + a * distance + b * distance * distance);
 
 	constexpr float inverse = 1.0f / 255.0f;
-	colorsArray[index].x += (float)color.r * inverse * attenuation;
-	colorsArray[index].y += (float)color.g * inverse * attenuation;
-	colorsArray[index].z += (float)color.b * inverse * attenuation;
+
+	colorsArray[index] = Clamp0255(colorsArray[index], color, attenuation);
 }
 
 internal void
@@ -162,9 +178,9 @@ ProcessOctants(ThreadedUpdater* updater, uint8_t octant, int x, Slope top, Slope
 			{
 				TileCoord coord = WorldTileToCullTile(txty);
 				int index = coord.x + coord.y * GetGameApp()->View.ResolutionInTiles.x;
-				if (!updater->CheckedTiles.test(index))
+				if (!updater->CheckedTiles.Get(index))
 				{
-					updater->CheckedTiles.set(index);
+					updater->CheckedTiles.Set(index);
 					SetColor(updater->ColorsArray, index, updater->Light->Color, distance);
 				}
 			}
@@ -197,7 +213,7 @@ ProcessOctants(ThreadedUpdater* updater, uint8_t octant, int x, Slope top, Slope
 }
 
 void
-UpdateStaticLight(StaticLight* light, Vector3* threadColorsArray, size_t width)
+UpdateStaticLight(StaticLight* light, Color* threadColorsArray, size_t width)
 {
 	SASSERT(light);
 	SASSERT(threadColorsArray);
@@ -210,15 +226,13 @@ UpdateStaticLight(StaticLight* light, Vector3* threadColorsArray, size_t width)
 		{
 			size_t idx = (size_t)pos.x + (size_t)pos.y * width;
 			SASSERT(idx < GetGameApp()->View.TotalTilesOnScreen);
-			threadColorsArray[idx].x += (float)light->Color.r * LavaLightWeights[i];
-			threadColorsArray[idx].y += (float)light->Color.g * LavaLightWeights[i];
-			threadColorsArray[idx].z += (float)light->Color.b * LavaLightWeights[i];
+			threadColorsArray[idx] = Clamp0255(threadColorsArray[idx], light->Color, LavaLightWeights[i]);
 		}
 	}
 }
 
 void 
-ThreadedLightUpdate(Light* light, Vector3* threadColorsArray, ChunkedTileMap* tilemap, uint32_t lightsScreenWidth)
+ThreadedLightUpdate(Light* light, Color* threadColorsArray, ChunkedTileMap* tilemap, uint32_t lightsScreenWidth)
 {
 	ThreadedUpdater updater = {};
 	updater.Light = light;

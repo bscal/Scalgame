@@ -155,6 +155,8 @@ void RawStringFree(SRawString* string);
 
 uint32_t StrFind(const char* str, const char* find);
 
+void RemoveWhitespace(char* s);
+
 struct SStringsBuffer
 {
 	char** StringsMemory;

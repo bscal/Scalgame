@@ -121,7 +121,6 @@ void CreatePlayer(Player* player)
 // TODO SpawnLocation, Type
 Monster* SpawnMonster()
 {
-	PROFILE_BEGIN();
 	Monster* res = EntityMgr.MonsterPool.allocate();
 	SMemClear(res, sizeof(Monster));
 	
@@ -133,13 +132,11 @@ Monster* SpawnMonster()
 	EntityMgr.Monsters.Set(res->StorageIdx, &res);
 
 	SASSERT(res);
-	PROFILE_END();
 	return res;
 }
 
 void DeleteMonster(Monster* monster)
 {
-	PROFILE_BEGIN();
 	SASSERT(monster);
 	bool wasRemoved = EntityMgr.Entities.Remove(&monster->Uid);
 	if (wasRemoved)
@@ -162,7 +159,6 @@ void DeleteMonster(Monster* monster)
 
 		EntityMgr.MonsterPool.destroy(monster);
 	}
-	PROFILE_END();
 }
 
 void* GetEntity(uint32_t ent)

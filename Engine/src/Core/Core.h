@@ -18,7 +18,7 @@
 static_assert(sizeof(size_t) == sizeof(uint64_t), "ScalEngine does not support 32bit");
 static_assert(sizeof(char) == sizeof(uint8_t), "ScalEngine does not support char with sizeof > 1");
 
-#define SCAL_ENABLE_PROFILING 0
+#define SCAL_ENABLE_PROFILING 1
 #include "Tools/Profiling.h"
 
 #define SCAL_GAME_TESTS 1
@@ -65,6 +65,9 @@ typedef int bool32;
 #define SAPI
 #endif
 
+#define Stringify(x) #x
+#define Expand(x) Stringify(x)
+
 #define ArrayLength(arr) (sizeof(arr) / sizeof(arr[0]))
 
 #define Kilobytes(n) (n * 1024ULL)
@@ -108,6 +111,9 @@ typedef int bool32;
 
 #define SLOG_INFO(msg, ...) TraceLog(LOG_INFO, msg, __VA_ARGS__)
 #define SLOG_ERR(msg, ...) TraceLog(LOG_ERROR, msg, __VA_ARGS__)
+
+#define SWARN(void) 0
+#define SERR(void) 0
 
 #define SFATAL(msg, ...) \
 	TraceLog(LOG_ERROR, msg, __VA_ARGS__); \

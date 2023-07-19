@@ -60,8 +60,6 @@ void Update(ChunkedTileMap* tilemap, Game* game)
 	SASSERT(tilemap);
 	SASSERT(game);
 
-	PROFILE_BEGIN();
-
 	const Player* player = GetClientPlayer();
 
 	//Vector2 playerPos = player->AsPosition();
@@ -116,8 +114,6 @@ void Update(ChunkedTileMap* tilemap, Game* game)
 	}
 
 	UpdateTileMap(tilemap, &game->TileMapRenderer);
-
-	PROFILE_END();
 }
 
 void LateUpdate(ChunkedTileMap* tilemap, Game* game)
@@ -446,7 +442,6 @@ UpdateTileMap(ChunkedTileMap* tilemap, TileMapRenderer* tilemapRenderer)
 {
 	LightingRenderer* lightRenderer = &GetGame()->LightingRenderer;
 
-	PROFILE_BEGIN();
 	size_t idx = 0;
 	for (int y = 0; y < GetGameApp()->View.ResolutionInTiles.y; ++y)
 	{
@@ -485,7 +480,6 @@ UpdateTileMap(ChunkedTileMap* tilemap, TileMapRenderer* tilemapRenderer)
 			++idx;
 		}
 	}
-	PROFILE_END();
 }
 
 }

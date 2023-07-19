@@ -1,76 +1,108 @@
 #include "Profiling.h"
 
-#if ENABLE_PROFILING
+#if SCAL_ENABLE_PROFILING
 
 #include "Core/SMemory.h"
 
-#include <thread>
-
 global_var SpallProfile SpallCtx;
 
+#define USE_THREAD 1
+#if USE_THREAD 
 
-struct ProfileBuffer
+#include <thread>
+
+struct ThreadedProfiler
 {
-	SpallBuffer SpallData;
-	int ThreadId;
-	bool IsInitialized;
+	SpallBuffer Buffer;
+	uint32_t ThreadId;
+	double Timer;
 
-	inline void TryInit()
+	ThreadedProfiler()
 	{
-		if (!IsInitialized)
-		{
+		Buffer.length = Megabytes(1);
+		Buffer.data = SMemAllocTag((uint8_t)SAllocator::Malloc, Buffer.length, MemoryTag::Profiling);
+		SASSERT(Buffer.data);
+		bool spallBufferInit = spall_buffer_init(&SpallCtx, &Buffer);
+		SASSERT(spallBufferInit);
 
-			IsInitialized = true;
-			SpallData.length = Megabytes(1);
-			SpallData.data = SMemAllocTag(SAllocator::Game, SpallData.length, MemoryTag::Profiling);
-			bool spallBufferInit = spall_buffer_init(&SpallCtx, &SpallData);
-			SASSERT(spallBufferInit);
+		std::thread::id id = std::this_thread::get_id();
+		ThreadId = std::hash<std::thread::id>{}(id);
 
-			std::thread::id id = std::this_thread::get_id();
-			std::hash<std::thread::id> hasher = {};
-			ThreadId = hasher(id);
-		}
+		Timer = 0.0f;
 	}
 
-	~ProfileBuffer()
+	~ThreadedProfiler()
 	{
-		IsInitialized = false;
-		spall_buffer_quit(&SpallCtx, &SpallData);
-		SMemFreeTag(SAllocator::Game, SpallData.data, SpallData.length, MemoryTag::Profiling);
+		spall_buffer_quit(&SpallCtx, &Buffer);
+		SMemFree(Buffer.data);
 	}
+
 };
 
-global_var thread_local ProfileBuffer Buffer;
+thread_local ThreadedProfiler SpallData;
 
+#else
+
+global_var SpallBuffer SpallData;
+
+#endif
 
 void SpallBegin(const char* name, uint32_t len, double time)
 {
-	Buffer.TryInit();
-
-	spall_buffer_begin_ex(&SpallCtx, &Buffer.SpallData, name, len, time, Buffer.ThreadId, 0);
+#if USE_THREAD
+	spall_buffer_begin_ex(&SpallCtx, &SpallData.Buffer, name, len, time, SpallData.ThreadId, 0);
+	double curTime = GetTime();
+	double timeDiff = curTime - SpallData.Timer;
+	if (timeDiff >= 5.0)
+	{
+		SpallData.Timer = curTime;
+		spall_buffer_flush(&SpallCtx, &SpallData.Buffer);
+	}
+#else
+	spall_buffer_begin(&SpallCtx, &SpallData, name, len, time);
+#endif
 }
 
 void SpallEnd(double time)
 {
-	spall_buffer_end_ex(&SpallCtx, &Buffer.SpallData, time, Buffer.ThreadId, 0);
+#if USE_THREAD
+	spall_buffer_end_ex(&SpallCtx, &SpallData.Buffer, time, SpallData.ThreadId, 0);
+#else
+	spall_buffer_end(&SpallCtx, &SpallData, time);
+#endif
 }
 
 #endif
 
 void InitProfile(const char* filename)
 {
-	#if ENABLE_PROFILING
+#if SCAL_ENABLE_PROFILING
 	SpallCtx = spall_init_file(filename, 1);
+	
+#if !USE_THREAD
+	#define BUFFER_SIZE (64 * 1024 * 1024)
+	void* buffer = SAlloc(SAllocator::Malloc, BUFFER_SIZE, MemoryTag::Profiling);
+	memset(buffer, 1, BUFFER_SIZE);
+
+	SpallData = {};
+	SpallData.length = BUFFER_SIZE;
+	SpallData.data = buffer;
+
+	spall_buffer_init(&SpallCtx, &SpallData);
+#endif
+
 	SLOG_INFO("[ PROFILING ] Spall profiling initialized");
-	#endif
+#endif
 }
 
 void ExitProfile()
 {
-	#if ENABLE_PROFILING
-	Buffer = {};
+#if SCAL_ENABLE_PROFILING
+#if !USE_THREAD
+	spall_buffer_quit(&SpallCtx, &SpallData);
+#endif
 	spall_quit(&SpallCtx);
-	#endif
+#endif
 }
 
 

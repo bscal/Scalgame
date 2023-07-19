@@ -558,9 +558,8 @@ DrawNuklear(struct nk_context * ctx)
                 Texture texture = *(Texture*)i->img.handle.ptr;
                 Rectangle source = { (float)i->img.region[0], (float)i->img.region[1], (float)i->img.region[2], (float)i->img.region[3] };
                 Rectangle dest = {(float)i->x * scale, (float)i->y * scale, (float)i->w * scale, (float)i->h * scale};
-                Vector2 origin = {0, 0};
                 Color tint = ColorFromNuklear(i->col);
-                DrawTexturePro(texture, source, dest, origin, 0, tint);
+                DrawTexturePro(texture, source, dest, { 0, 0 }, 0, tint);
             } break;
 
             case NK_COMMAND_SCAL_SPRITE: {

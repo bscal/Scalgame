@@ -128,3 +128,34 @@ QueryTilesRect(World* world, Vector2i start, Vector2i end);
 // Returns a temporary array of tile positions
 SList<Vector2i>
 QueryTilesRadius(World* world, Vector2i center, float radius);
+
+Color IntToColor(int colorInt);
+
+/*
+*	Split string into multiple strings
+*
+*	buffer - buffer to put the split string text
+*	splitBuffer - buffer to store split char*'s
+*/
+void TextSplitBuffered(const char* text, char delimiter, int* count, char* buffer, int bufferLength, char** splitBuffer, int splitBufferLength);
+
+typedef enum
+{
+	STR2INT_SUCCESS,
+	STR2INT_OVERFLOW,
+	STR2INT_UNDERFLOW,
+	STR2INT_INCONVERTIBLE
+} STR2INT;
+
+/* Convert string s to int out
+ * 
+ * out cannot be null
+ * cannot be empty
+ * no leading whitespaces
+ * no trailing chars
+ */
+STR2INT Str2Int(int* out, const char* s, int base);
+
+STR2INT Str2UInt(uint32_t* out, const char* s, int base);
+
+int FastAtoi(const char* str);
