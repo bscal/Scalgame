@@ -66,7 +66,7 @@ TileData TileMgrCreate(uint16_t tileId)
 	tile.TexX = x;
 	tile.TexY = y;
 	tile.HasCeiling = false;
-	tile.LOS = TileLOS::NoVision;
+	tile.Ununsed = 0;
 	return tile;
 }
 

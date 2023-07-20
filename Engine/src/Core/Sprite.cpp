@@ -1,12 +1,66 @@
 #include "Sprite.h"
 
 #include "Game.h"
-#include "SMemory.h"
-#include "SString.h"
 
-#include <rectpack2D/src/finders_interface.h>
+void SpriteDBSetDefaultId(uint16_t id)
+{
+	if (id < MAX_SPRITES)
+	{
+		SpriteDB.DefaultId = id;
+	}
+	else
+	{
+		SLOG_ERR("[SpriteDB] ERROR: DefaultSpriteId, %d, is not < MAX_SPRITES, %d", id, MAX_SPRITES);
+		SASSERT(id < MAX_SPRITES);
+	}
+}
 
-using namespace rectpack2D;
+Sprite SpriteGet(uint16_t id)
+{
+	SASSERT(id < SpriteDB.NextId);
+	return SpriteDB.Sprites[id];
+}
+
+Rectangle SpriteGetRec(uint16_t id)
+{
+	Sprite sprite;
+	if (id < SpriteDB.NextId)
+	{
+		sprite = SpriteGet(id);
+	}
+	else
+	{
+		sprite = SpriteDB.Sprites[SpriteDB.DefaultId];
+	}
+	return Rectangle{ (float)sprite.x, (float)sprite.y, (float)sprite.w, (float)sprite.h };
+}
+
+//    _FORCE_INLINE_ Rectangle AsRec() const { return Rectangle{ (float)x, (float)y, (float)w, (float)h }; }
+AnimatedSprite AnimatedSpriteCreate(uint8_t startIdx, uint8_t tickSpeed, uint8_t frameCount, uint16_t frames...)
+{
+	SASSERT(frameCount > 0);
+
+	AnimatedSprite sprite = {};
+	sprite.Frames.FromVarArgs(frameCount, frames);
+	sprite.TickSpeed = tickSpeed;
+	sprite.StartIdx = startIdx;
+	sprite.CurrentIdx = sprite.StartIdx;
+	sprite.CurrentTick = 0;
+
+	return sprite;
+}
+
+void AnimtedSpriteTick(AnimatedSprite* sprite, Game* game)
+{
+	++sprite->CurrentTick;
+	if (sprite->CurrentTick > sprite->TickSpeed)
+	{
+		sprite->CurrentTick = 0;
+		
+		sprite->CurrentIdx = (sprite->CurrentIdx + 1) % sprite->Frames.Count;
+	}
+}
+
 /*
 void SpriteAtlasLoad(SpriteAtlas* atlas, const char* spriteDirPath)
 {

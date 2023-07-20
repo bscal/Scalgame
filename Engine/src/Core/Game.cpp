@@ -42,17 +42,12 @@ SAPI bool GameApplication::Start()
 
 	double initStart = GetTime();
 
-	size_t gameMemorySize = Megabytes(32);
-	size_t tempMemorySize = Megabytes(8);
+	size_t gameMemorySize = Megabytes(16);
+	size_t tempMemorySize = Megabytes(16);
 	SMemInitialize(this, gameMemorySize, tempMemorySize);
-
-	InitializeSideArrays();
 
 	InitProfile("profile.spall");
 
-	int monitor = GetCurrentMonitor();
-	int monitorWidth = GetMonitorWidth(monitor);
-	int monitorHeight = GetMonitorHeight(monitor);
 	int width = 1600;//monitorWidth;
 	int height = 900;//monitorHeight;
 
@@ -144,24 +139,21 @@ internal bool GameInitialize(Game* game, GameApplication* gameApp)
 internal void 
 GameLoad(Game* game, GameApplication* gameApp)
 {
-	PROFILE_BEGIN();
 
 	LightsInitialize(&game->LightingState);
 
 	UniverseInitialize(&game->Universe, gameApp);
 	UniverseLoad(&game->Universe, gameApp);
-
-	PROFILE_END();
 }
 
 SAPI void GameApplication::Run()
 {
+	
 	TraceLog(LOG_INFO, "Game Running...");
 	IsRunning = true;
-
 	while (!WindowShouldClose())
 	{
-		PROFILE_BEGIN_EX("Run");
+		PROFILE_BEGIN_EX("UpdateLoop");
 
 		double updateWorldStart = GetTime();
 
@@ -253,6 +245,8 @@ SAPI void GameApplication::Run()
 
 		DrawUI(UIState);
 
+		DrawRichText(Game->Resources.FontSilver, "Test " RichTextColor(f0f2ffff) "Some color. ${0,ff0000ff}A new color?\nMulti ${0,004444ff}lines! And\nimages with tooltips.${2,This is a\ntooltip!,32,32}${1,0,32,32}", { 800, 500 }, 16, 1, GREEN);
+		
 		DrawTime = GetTime() - drawTime;
 
 		// Swap buffers
@@ -263,13 +257,12 @@ SAPI void GameApplication::Run()
 		PROFILE_END();
 	}
 	IsRunning = false;
+	
 }
 
 internal void
 GameUpdate(Game* game, GameApplication* gameApp)
 {
-	PROFILE_BEGIN();
-
 	if (game->IsPlayersTurn)
 	{
 		// Waits for play to make their move
@@ -291,14 +284,10 @@ GameUpdate(Game* game, GameApplication* gameApp)
 
 	UniverseUpdate(&game->Universe, game);
 	LightsUpdate(&game->LightingState, game);
-
-	PROFILE_END();
 }
 
 internal void GameUpdateCamera(Game* game, GameApplication* gameApp)
 {
-	PROFILE_BEGIN();
-
 	// Handle Camera Move
 	if (!game->IsFreeCam)
 	{
@@ -313,16 +302,12 @@ internal void GameUpdateCamera(Game* game, GameApplication* gameApp)
 	gameApp->View.ScreenXY.y = game->WorldCamera.target.y - game->WorldCamera.offset.y;
 	gameApp->View.ScreenXYInTiles.x = (int)floorf(gameApp->View.ScreenXY.x / TILE_SIZE_F);
 	gameApp->View.ScreenXYInTiles.y = (int)floorf(gameApp->View.ScreenXY.y / TILE_SIZE_F);
-
-	PROFILE_END();
 }
 
 internal void
 GameLateUpdate(Game* game)
 {
-	PROFILE_BEGIN();
 	WorldLateUpdate(&game->Universe.World, game);
-	PROFILE_END();
 }
 
 internal void

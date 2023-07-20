@@ -10,6 +10,29 @@ struct Game;
 struct Resources;
 struct WorldEntity;
 
+#define RICHTEXT_COLOR_ID 0
+#define RICHTEXT_IMG_ID 1
+#define RICHTEXT_TOOLTIP_ID 2
+
+enum RichTextTypes
+{
+	RICHTEXT_COLOR = RICHTEXT_COLOR_ID,
+	RICHTEXT_IMG = RICHTEXT_IMG_ID,
+	RICHTEXT_TOOLTIP = RICHTEXT_TOOLTIP_ID,
+};
+
+#define RichTextColorExpand(type, hex) "${" type "," #hex "}"
+#define RichTextColor(hex) RichTextColorExpand(Expand(RICHTEXT_COLOR_ID), hex)
+
+#define RichTextImgExpand(type, id, w, h) "${" type "," #id "," #w "," #h "}"
+#define RichTextImg(id, w, h) RichTextImgExpand(Expand(RICHTEXT_IMG_ID), id, w, h)
+
+#define RichTextTooltipExpand(type, str)  "${" type "," str "}"
+#define RichTextTooltip(str) RichTextTooltipExpand(Expand(RICHTEXT_TOOLTIP_ID), str)
+
+#define RichTextTooltipExExpand(type, str, w, h)  "${" type "," str "," #w "," #h "}"
+#define RichTextTooltipEx(str, w, h) RichTextTooltipWHExpand(Expand(RICHTEXT_TOOLTIP_ID), str, w, h)
+
 struct BlurShader
 {
 	Shader BlurShader;
@@ -135,3 +158,9 @@ RenderTexture2D
 SLoadRenderTextureEx(int width, int height, PixelFormat format, bool useDepth);
 
 Font Scal_LoadBMFont(const char* fileName, Texture2D fontTexture, Vector2 offset);
+
+// Draws text that can handle special keywords in the text.
+// Keywords and their parameters follow this format. ${0,param1,paaram2}
+// Keywords are a character following the ${ . I might switch to using a string
+// for them. There characters are found in RichTextTypes enum
+void DrawRichText(Font font, const char* text, Vector2 position, float fontSize, float spacing, Color tint);

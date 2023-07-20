@@ -36,6 +36,8 @@ struct Game
 
     MapGenerator MapGen;
     
+    PlayerClient Client;
+
     Universe Universe;
 
     uint64_t GameTick;

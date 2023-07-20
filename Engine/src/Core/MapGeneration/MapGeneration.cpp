@@ -31,7 +31,7 @@ void MapGenGenerateChunk(MapGenerator* generator, ChunkedTileMap* tilemap, TileM
 			chunk->Tiles[idx].TexX = coord.x;
 			chunk->Tiles[idx].TexY = coord.y;
 			chunk->Tiles[idx].HasCeiling = false;
-			chunk->Tiles[idx].LOS = TileLOS::NoVision;
+			chunk->Tiles[idx].Ununsed = 0;
 			++idx;
 		}
 	}

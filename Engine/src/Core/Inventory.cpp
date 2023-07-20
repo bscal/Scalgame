@@ -343,7 +343,7 @@ void InitializeItems(Game* game)
 			item->MaxStackSize = 1;
 			item->OnEquipCallback = OnEquipTorch;
 		});
-	Items::FIRE_STAFF = RegisterItemFunc(Sprites::FIRE_STAFF, [](Item* item)
+	Items::FIRE_STAFF = RegisterItemFunc(SpriteGet(Sprites::FIRE_STAFF), [](Item* item)
 		{
 			item->Width = 1;
 			item->Height = 2;

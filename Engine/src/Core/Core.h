@@ -74,6 +74,8 @@ typedef int bool32;
 #define Megabytes(n) (Kilobytes(n) * 1024ULL)
 #define Gigabytes(n) (Megabytes(n) * 1024ULL)
 
+#define Bit(x) (1ULL<<(x))
+
 #define FlagTrue(state, flag) ((state & flag) == flag)
 #define FlagFalse(state, flag) ((state & flag) != flag)
 #define FlagAny(state, flag) ((state * flag) != 0)
@@ -172,54 +174,12 @@ constexpr global_var Vector4 Clear = { 0.0f, 0.0f, 0.0f, 0.0f };
 #define SOUTH	2
 #define WEST	3
 
-inline Vector2i NORTH_EDGE[CHUNK_SIDE_LENGTH];
-inline Vector2i EAST_EDGE[CHUNK_SIDE_LENGTH];
-inline Vector2i SOUTH_EDGE[CHUNK_SIDE_LENGTH];
-inline Vector2i WEST_EDGE[CHUNK_SIDE_LENGTH];
-
-inline void InitializeSideArrays()
-{
-	for (int i = 0; i < CHUNK_SIDE_LENGTH; ++i)
-	{
-		NORTH_EDGE[i].x = i - 1;
-		NORTH_EDGE[i].y = -1;
-	}
-
-	for (int i = 0; i < CHUNK_SIDE_LENGTH; ++i)
-	{
-		EAST_EDGE[i].x = CHUNK_SIDE_LENGTH;
-		EAST_EDGE[i].y = i - 1;
-	}
-
-	for (int i = 0; i < CHUNK_SIDE_LENGTH; ++i)
-	{
-		SOUTH_EDGE[i].x = i - 1;
-		SOUTH_EDGE[i].y = CHUNK_SIDE_LENGTH;
-	}
-
-	for (int i = 0; i < CHUNK_SIDE_LENGTH; ++i)
-	{
-		SOUTH_EDGE[i].x = -1;
-		SOUTH_EDGE[i].y = i - 1;
-	}
-}
-
 enum class TileDirection : uint8_t
 {
 	North,
 	East,
 	South,
 	West
-};
-
-union UID
-{
-	struct
-	{
-		uint32_t Id : 24;
-		uint32_t Gen : 8;
-	};
-	uint32_t Mask;
 };
 
 constexpr global_var float

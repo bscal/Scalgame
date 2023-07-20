@@ -32,7 +32,7 @@ internal struct nk_sprite GetSprite(Texture2D* texture, Item* item, bool isRotat
 bool InitializeUI(UIState* state, GameApplication* gameApp)
 {
 	// Initialize Nuklear
-
+	
 	Font* font = &gameApp->Game->Resources.FontSilver;
 
 	state->Font.userdata = nk_handle_ptr(font);
@@ -70,13 +70,12 @@ bool InitializeUI(UIState* state, GameApplication* gameApp)
 	state->ChatBoxStrings.Initialize(64, 64);
 
 	SLOG_INFO("[ UI ] Initialized");
-
+	
 	return true;
 }
 
 void UpdateUI(UIState* state, GameApplication* gameApp, Game* game)
 {
-	PROFILE_BEGIN();
 	SASSERT_MSG(state->Ctx.memory.needed < state->Ctx.memory.size,
 		"UI needed memory is larger then memory allocated!");
 
@@ -98,8 +97,6 @@ void UpdateUI(UIState* state, GameApplication* gameApp, Game* game)
 		DrawConsole(state);
 	else
 		state->IsConsoleAlreadyOpen = false;
-
-	PROFILE_END();
 }
 
 void HandleGUIInput(UIState* state, GameApplication* gameApp)
@@ -143,9 +140,7 @@ void HandleGUIInput(UIState* state, GameApplication* gameApp)
 
 void DrawUI(UIState* state)
 {
-	PROFILE_BEGIN();
 	DrawNuklear(&state->Ctx);
-	PROFILE_END();
 }
 
 internal void DrawGameGUI(UIState* state, Game* game)
@@ -502,6 +497,8 @@ DrawChatBox(UIState* state, Game* game)
 		nk_layout_space_begin(ctx, NK_STATIC, chatBoxRect.h, INT_MAX);
 		nk_layout_space_push(ctx, chatBoxRect);
 
+		
+
 		if (nk_group_begin(ctx, "ChatBox", 0))
 		{
 			nk_layout_row_dynamic(ctx, 16, 1);
@@ -544,8 +541,6 @@ constexpr global_var float BORDER_SIZE = 2.0f;
 internal void
 DrawInventory(struct nk_context* ctx, Inventory* inv)
 {
-	PROFILE_BEGIN();
-
 	Texture2D* spriteSheet = &GetGame()->Resources.EntitySpriteSheet;
 	PlayerClient* playerClient = &GetClientPlayer()->PlayerClient;
 
@@ -752,7 +747,6 @@ DrawInventory(struct nk_context* ctx, Inventory* inv)
 		nk_layout_space_end(ctx);
 	}
 	nk_end(ctx);
-	PROFILE_END();
 }
 
 internal struct nk_rect

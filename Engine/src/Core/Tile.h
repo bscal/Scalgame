@@ -60,8 +60,8 @@ struct TileTexValues
 {
 	uint8_t x;
 	uint8_t y;
-	uint8_t HasCeiling;
-	uint8_t LOS;
+	uint8_t Unused;
+	uint8_t Unused2;
 };
 
 struct TileData
@@ -69,7 +69,7 @@ struct TileData
 	uint8_t TexX;
 	uint8_t TexY;
 	bool HasCeiling;
-	TileLOS LOS;
+	uint8_t Ununsed;
 
 	inline constexpr TileSheetCoord AsCoord() const { return { TexX, TexY }; }
 

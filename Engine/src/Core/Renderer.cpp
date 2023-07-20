@@ -60,8 +60,6 @@ void Renderer::Free()
 void Renderer::PostProcess(Game* game, const RenderTexture2D& worldTexture,
 	const RenderTexture2D& lightingTexture) const
 {
-	PROFILE_BEGIN_EX("Renderer::PostProcess");
-
 	float screenW = (float)GetScreenWidth();
 	float screenH = (float)GetScreenHeight();
 	Rectangle srcRect = { 0.0f, 0.0f, (float)lightingTexture.texture.width, -(float)lightingTexture.texture.height};
@@ -79,8 +77,6 @@ void Renderer::PostProcess(Game* game, const RenderTexture2D& worldTexture,
 
 	// Blur pass
 	BlurShader.Draw(EffectTextureTwo.texture);
-
-	PROFILE_END();
 }
 
 void Renderer::DrawBloom(Rectangle dest)
@@ -201,7 +197,6 @@ void TileMapRenderer::Free()
 
 void TileMapRenderer::Draw()
 {
-	PROFILE_BEGIN_EX("TileMapRenderer::Draw");
 	UpdateTexture(TileDataTexture.texture, Tiles.Memory);
 
 	SMemClear(Tiles.Memory, Tiles.SizeOf());
@@ -218,7 +213,6 @@ void TileMapRenderer::Draw()
 
 	EndShaderMode();
 	EndTextureMode();
-	PROFILE_END();
 }
 
 void LightingRenderer::Initialize(Game* game)
@@ -260,7 +254,6 @@ void LightingRenderer::Free()
 
 void LightingRenderer::Draw(Rectangle dstRect)
 {
-	PROFILE_BEGIN_EX("LightingRenderer::Draw");
 	Rectangle src;
 	src.x = 0;
 	src.y = 0;
@@ -301,7 +294,6 @@ void LightingRenderer::Draw(Rectangle dstRect)
 	EndShaderMode();
 
 	EndTextureMode();
-	PROFILE_END();
 }
 
 void
@@ -726,4 +718,159 @@ Font Scal_LoadBMFont(const char* fileName, Texture2D fontTexture, Vector2 offset
 	else TRACELOG(LOG_INFO, "FONT: [%s] Font loaded successfully (%i glyphs)", fileName, font.glyphCount);
 
 	return font;
+}
+
+void DrawRichText(Font font, const char* text, Vector2 position, float fontSize, float spacing, Color tint)
+{
+	PROFILE_BEGIN();
+	if (font.texture.id == 0) font = GetFontDefault();  // Security check in case of not valid font
+
+	int size = TextLength(text);    // Total size in bytes of the text, scanned by codepoints in loop
+
+	int textOffsetY = 0;            // Offset between lines (on linebreak '\n')
+	float textOffsetX = 0.0f;       // Offset X to next character to draw
+
+	float scaleFactor = fontSize / font.baseSize;         // Character quad scaling factor
+
+	for (int i = 0; i < size;)
+	{
+		// Get next codepoint from byte string and glyph index in font
+		int codepointByteCount = 1;
+		int codepoint = text[i];
+
+		if (codepoint == '$' && text[i + 1] == '{')
+		{
+			const char* keywordStart = &text[i + 2];
+
+			// Copies over the input ignoreing ${} chars.
+			// If no } is found in length, then abort.
+			short end = -1;
+			char input[32] = {};
+			for (short c = 0; c < ArrayLength(input); ++c)
+			{
+				char val = *(keywordStart + c);
+				if (val == '}')
+				{
+					end = c;
+					break;
+				}
+				else
+					input[c] = val;
+			}
+
+			if (end == -1)
+			{
+				i += codepointByteCount;
+				continue;
+			}
+
+			int params = 0;
+			const char** split = TextSplit(input, ',', &params);
+			SASSERT(params > 0);
+			SASSERT(strlen(split[0]) == 1);
+
+			int type = FastAtoi(split[0]);
+			switch (type)
+			{
+			case(RICHTEXT_COLOR):
+			{
+				SASSERT(params == 2);
+				uint32_t colorInt;
+				Str2UInt(&colorInt, split[1], 16);
+				tint = IntToColor(colorInt);
+			}
+			break;
+
+			case(RICHTEXT_IMG):
+			{
+				SASSERT(params == 4);
+				int id = FastAtoi(split[1]);
+				int w = FastAtoi(split[2]);
+				int h = FastAtoi(split[3]);
+
+				Rectangle src = { 2, 52, 16, 16 };
+				Rectangle dst = { position.x + textOffsetX, position.y + textOffsetY, (float)w, (float)h };
+				DrawTexturePro(font.texture, src, dst, {}, 0, WHITE);
+
+				textOffsetX += w * scaleFactor + spacing;
+			}
+			break;
+
+			case(RICHTEXT_TOOLTIP):
+			{
+				SASSERT(params >= 2);
+				// Seach spaces until we find space
+				Rectangle wordRect;
+				wordRect.x = position.x + textOffsetX;
+				wordRect.y = position.y + textOffsetY;
+				if (params > 2)
+				{
+					wordRect.width = (float)FastAtoi(split[2]);
+					wordRect.height = (float)FastAtoi(split[3]);
+				}
+				else
+				{
+					wordRect.width = 32 * 10;
+					wordRect.height = fontSize;
+
+					for (short c = 0; c < 32; ++c)
+					{
+						char val = keywordStart[end + c];
+						if (val == ' ')
+						{
+							wordRect.width = (float)c * 10;
+							break;
+						}
+					}
+				}
+
+				Vector2 mouse = GetMousePosition();
+				if (CheckCollisionPointRec(mouse, wordRect))
+				{
+					const char* tooltip = split[1];
+					//Vector2 textSize = MeasureTextEx(font, tooltip, fontSize, spacing);
+					Vector2 dst;
+					dst.x = mouse.x + wordRect.width + 2;
+					dst.y = mouse.y + wordRect.height + 2;
+					DrawTextEx(font, tooltip, dst, fontSize, spacing, WHITE);
+				}
+			}
+			break;
+
+			default:
+				SLOG_WARN("Using invalid type for RichType. Type: %d", type);
+				break;
+			}
+			// +3 for ${ and } chars
+			i += end + 3;
+		}
+		else
+		{
+			int index = GetGlyphIndex(font, codepoint);
+			// NOTE: Normally we exit the decoding sequence as soon as a bad byte is found (and return 0x3f)
+			// but we need to draw all the bad bytes using the '?' symbol moving one byte
+			if (codepoint == 0x3f) codepointByteCount = 1;
+
+			if (codepoint == '\n')
+			{
+				// NOTE: Fixed line spacing of 1.5 line-height
+				// TODO: Support custom line spacing defined by user
+				textOffsetY += (int)((font.baseSize + font.baseSize / 2.0f) * scaleFactor);
+				textOffsetX = 0.0f;
+			}
+			else
+			{
+				if ((codepoint != ' ') && (codepoint != '\t'))
+				{
+					DrawTextCodepoint(font, codepoint, (Vector2) { position.x + textOffsetX, position.y + textOffsetY }, fontSize, tint);
+				}
+
+				if (font.glyphs[index].advanceX == 0) textOffsetX += ((float)font.recs[index].width * scaleFactor + spacing);
+				else textOffsetX += ((float)font.glyphs[index].advanceX * scaleFactor + spacing);
+			}
+
+			i += codepointByteCount;   // Move text bytes counter to next codepoint
+		}
+	}
+	PROFILE_END();
 }
