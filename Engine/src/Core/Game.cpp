@@ -5,7 +5,7 @@
 #include "SUI.h"
 #include "SUtil.h"
 #include "SString.h"
-#include "Entity.h"
+#include "SEntity.h"
 
 #include "Structures/SArray.h"
 #include "Structures/SList.h"
@@ -43,7 +43,7 @@ SAPI bool GameApplication::Start()
 	double initStart = GetTime();
 
 	size_t gameMemorySize = Megabytes(16);
-	size_t tempMemorySize = Megabytes(16);
+	size_t tempMemorySize = Megabytes(8);
 	SMemInitialize(this, gameMemorySize, tempMemorySize);
 
 	InitProfile("profile.spall");
@@ -124,7 +124,7 @@ internal bool GameInitialize(Game* game, GameApplication* gameApp)
 	game->TileMapRenderer.Initialize(game);
 	game->LightingRenderer.Initialize(game);
 
-	EntityMgrInitialize();
+	EntitiesInitialize();
 	InitializeItems(game);
 	TileMgrInitialize(&game->Resources.TileSheet);
 
@@ -202,8 +202,8 @@ SAPI void GameApplication::Run()
 
 		DrawTexturePro(Game->TileMapRenderer.TileMapTexture.texture, srcRect, dstMapRect, { 0 }, 0.0f, WHITE);
 
-		UpdateEntities(Game);
-		DrawEntities(Game);
+		EntitiesUpdate(Game);
+		EntitiesDraw(Game);
 		GameLateUpdate(Game);
 
 		EndMode2D();
@@ -294,7 +294,7 @@ internal void GameUpdateCamera(Game* game, GameApplication* gameApp)
 		game->CameraLerpTime += GetDeltaTime();
 		if (game->CameraLerpTime > 1.0f) game->CameraLerpTime = 1.0f;
 
-		game->WorldCamera.target = Vector2Add(GetClientPlayer()->AsPosition(), { HALF_TILE_SIZE, HALF_TILE_SIZE });
+		game->WorldCamera.target = Vector2Add(GetClientPlayer()->TileToWorld(), { HALF_TILE_SIZE, HALF_TILE_SIZE });
 		game->ViewCamera.target = Vector2Multiply(game->WorldCamera.target, { GetScale(), GetScale() });
 	}
 
@@ -358,7 +358,7 @@ HandleGameInput(GameApplication* gameApp, Game* game)
 		if (CTileMap::IsTileInBounds(&game->Universe.World.ChunkedTileMap, clickedTilePos))
 		{
 			UpdatingLight light = {};
-			light.EntityId = ENT_NOT_FOUND;
+			light.EntityId = ENTITY_NOT_FOUND;
 			light.Pos = clickedTilePos;
 			light.MinIntensity = 7.0f;
 			light.MaxIntensity = 9.0f;
@@ -432,9 +432,9 @@ Game* GetGame()
 	return GetGameApp()->Game;
 }
 
-Player* GetClientPlayer()
+SEntity* GetClientPlayer()
 {
-	return &GetEntityMgr()->Player;
+	return GetPlayer();
 }
 
 SRandom* GetGlobalRandom()
@@ -489,7 +489,7 @@ void SetCameraDistance(GameApplication* gameApp, float zoom)
 
 	// NOTE: this is so we dont get weird camera
 	// jerking when we scroll
-	Vector2 playerPos = VecToTileCenter(GetClientPlayer()->AsPosition());
+	Vector2 playerPos = VecToTileCenter(GetClientPlayer()->TileToWorld());
 	gameApp->Game->WorldCamera.target = playerPos;
 	Vector2 viewTarget = Vector2Multiply(playerPos, { GetScale(), GetScale() });
 	gameApp->Game->ViewCamera.target = viewTarget;

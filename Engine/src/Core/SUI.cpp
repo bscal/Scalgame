@@ -89,7 +89,7 @@ void UpdateUI(UIState* state, GameApplication* gameApp, Game* game)
 
 	if (game->IsInventoryOpen)
 	{
-		Inventory* inv = GetInventory(GetClientPlayer()->Creature.InventoryId);
+		Inventory* inv = GetClientPlayer()->Inventory;
 		DrawInventory(&state->Ctx, inv);
 	}
 
@@ -128,7 +128,7 @@ void HandleGUIInput(UIState* state, GameApplication* gameApp)
 
 		if (nk_input_is_mouse_hovering_rect(&ctx->input, inventoryWindow->bounds))
 		{
-			PlayerClient* playerClient = &GetClientPlayer()->PlayerClient;
+			PlayerClient* playerClient = &gameApp->Game->Client;
 			SASSERT(playerClient);
 			if (!playerClient->CursorStack.IsEmpty() && IsKeyPressed(INV_FLIP_ITEM))
 			{
@@ -208,7 +208,7 @@ internal void
 DrawDebugPanel(UIState* state)
 {
 	struct nk_context* ctx = &state->Ctx;
-	Player* p = GetClientPlayer();
+	SEntity* p = GetClientPlayer();
 
 	ctx->style.window.fixed_background.data.color = BG_COLOR;
 
@@ -241,7 +241,7 @@ DrawDebugPanel(UIState* state)
 			, GetGameApp()->NumOfLightsUpdated, GetNumOfLights());
 		nk_label(ctx, lightStr, NK_TEXT_LEFT);
 
-		const char* xy = TextFormat("Pos: %s", FMT_VEC2(p->AsPosition()));
+		const char* xy = TextFormat("Pos: %s", FMT_VEC2(p->TileToWorld()));
 		nk_label(ctx, xy, NK_TEXT_LEFT);
 
 		const char* tileXY = TextFormat("TilePos: %s", FMT_VEC2I(p->TilePos));
@@ -542,7 +542,7 @@ internal void
 DrawInventory(struct nk_context* ctx, Inventory* inv)
 {
 	Texture2D* spriteSheet = &GetGame()->Resources.EntitySpriteSheet;
-	PlayerClient* playerClient = &GetClientPlayer()->PlayerClient;
+	PlayerClient* playerClient = &GetGame()->Client;
 
 	// Stops us from selecting an item and immediately placing it
 	// back into the inventory.

@@ -7,7 +7,7 @@
 #include "Universe.h"
 #include "SMemory.h"
 #include "SRandom.h"
-#include "Entity.h"
+#include "SEntity.h"
 #include "Inventory.h"
 #include "Lighting.h"
 
@@ -16,6 +16,15 @@
 #include "rmem/rmem.h"
 
 struct UIState;
+
+struct PlayerClient
+{
+    ItemStack CursorStack;
+    Vector2 ItemSlotOffset;
+    Vector2i16 ItemSlotOffsetSlot;
+    Vector2i16 CursorStackLastPos;
+    bool IsCursorStackFlipped;
+};
 
 struct Game
 {
@@ -101,7 +110,7 @@ struct GameApplication
 
 GameApplication* GetGameApp();
 Game* GetGame();
-Player* GetClientPlayer();
+SEntity* GetClientPlayer();
 
 void SetCameraPosition(Game* game, Vector3 pos);
 void SetCameraDistance(GameApplication* gameApp, float zoom);

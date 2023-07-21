@@ -1,7 +1,6 @@
 #include "Renderer.h"
 
 #include "Game.h"
-#include "Entity.h"
 #include "ResourceManager.h"
 
 #include <string.h>
@@ -413,28 +412,23 @@ SDrawTextureF(const Texture2D& texture, const Rectangle& source,
 	rlSetTexture(0);
 }
 
-void SDrawSprite(Texture2D* texture, WorldEntity* entity, Vector2 pos, Sprite sprite)
+void SDrawSubSprite(const Texture2D* texture, Sprite sprite, Vector2 pos, Vector2 offset, Color color, bool flipX)
 {
 	SASSERT(texture);
-	SASSERT(entity);
-	Rectangle src = { (float)sprite.x, (float)sprite.y, (float)sprite.w, (float)sprite.h };
-	Rectangle dst = { pos.x, pos.y, (float)sprite.w, (float)sprite.h };
-	bool flip = (entity->LookDir == TileDirection::South || entity->LookDir == TileDirection::West) ? true : false;
-	SDrawSprite(texture, src, dst, entity->Color, flip);
-}
-
-void SDrawSubSprite(Texture2D* texture, WorldEntity* entity, Vector2 pos, Vector2 offset, Sprite sprite)
-{
-	SASSERT(texture);
-	SASSERT(entity);
 	Rectangle src = { (float)sprite.x, (float)sprite.y, (float)sprite.w, (float)sprite.h };
 	Rectangle dst = { pos.x, pos.y + offset.y, (float)sprite.w, (float)sprite.h };
-	bool flip = (entity->LookDir == TileDirection::South || entity->LookDir == TileDirection::West) ? true : false;
-	dst.x += (flip) ? -offset.x + -sprite.w : offset.x;
-	SDrawSprite(texture, src, dst, entity->Color, flip);
+	dst.x += (flipX) ? -offset.x + -sprite.w : offset.x;
+	SDrawSprite(texture, src, dst, color, flipX);
 }
 
-void SDrawSprite(Texture2D* texture, Rectangle source, Rectangle dest, Color color, bool flipX)
+void SDrawSprite(const Texture2D* texture, Sprite sprite, Vector2 pos, Color color, bool flipX)
+{
+	Rectangle src = { (float)sprite.x, (float)sprite.y, (float)sprite.w, (float)sprite.h };
+	Rectangle dst = { pos.x, pos.y, (float)sprite.w, (float)sprite.h };
+	SDrawSprite(texture, src, dst, color, flipX);
+}
+
+void SDrawSprite(const Texture2D* texture, Rectangle src, Rectangle dst, Color color, bool flipX)
 {
 	SASSERT(texture);
 	SASSERT(texture->id);
@@ -443,7 +437,7 @@ void SDrawSprite(Texture2D* texture, Rectangle source, Rectangle dest, Color col
 	float width = (float)texture->width;
 	float height = (float)texture->height;
 
-	if (source.height < 0) source.y -= source.height;
+	if (src.height < 0) src.y -= src.height;
 
 	Vector2 topLeft = { 0 };
 	Vector2 topRight = { 0 };
@@ -453,33 +447,33 @@ void SDrawSprite(Texture2D* texture, Rectangle source, Rectangle dest, Color col
 	// Only calculate rotation if needed
 	if (rotation == 0.0f)
 	{
-		float x = dest.x - 0.0f;
-		float y = dest.y - 0.0f;
+		float x = dst.x - 0.0f;
+		float y = dst.y - 0.0f;
 		topLeft = Vector2{ x, y };
-		topRight = Vector2{ x + dest.width, y };
-		bottomLeft = Vector2{ x, y + dest.height };
-		bottomRight = Vector2{ x + dest.width, y + dest.height };
+		topRight = Vector2{ x + dst.width, y };
+		bottomLeft = Vector2{ x, y + dst.height };
+		bottomRight = Vector2{ x + dst.width, y + dst.height };
 	}
 	else
 	{
 		float sinRotation = sinf(rotation * DEG2RAD);
 		float cosRotation = cosf(rotation * DEG2RAD);
-		float x = dest.x;
-		float y = dest.y;
+		float x = dst.x;
+		float y = dst.y;
 		float dx = -0.0f;
 		float dy = -0.0f;
 
 		topLeft.x = x + dx * cosRotation - dy * sinRotation;
 		topLeft.y = y + dx * sinRotation + dy * cosRotation;
 
-		topRight.x = x + (dx + dest.width) * cosRotation - dy * sinRotation;
-		topRight.y = y + (dx + dest.width) * sinRotation + dy * cosRotation;
+		topRight.x = x + (dx + dst.width) * cosRotation - dy * sinRotation;
+		topRight.y = y + (dx + dst.width) * sinRotation + dy * cosRotation;
 
-		bottomLeft.x = x + dx * cosRotation - (dy + dest.height) * sinRotation;
-		bottomLeft.y = y + dx * sinRotation + (dy + dest.height) * cosRotation;
+		bottomLeft.x = x + dx * cosRotation - (dy + dst.height) * sinRotation;
+		bottomLeft.y = y + dx * sinRotation + (dy + dst.height) * cosRotation;
 
-		bottomRight.x = x + (dx + dest.width) * cosRotation - (dy + dest.height) * sinRotation;
-		bottomRight.y = y + (dx + dest.width) * sinRotation + (dy + dest.height) * cosRotation;
+		bottomRight.x = x + (dx + dst.width) * cosRotation - (dy + dst.height) * sinRotation;
+		bottomRight.y = y + (dx + dst.width) * sinRotation + (dy + dst.height) * cosRotation;
 	}
 
 	rlSetTexture(texture->id);
@@ -489,23 +483,23 @@ void SDrawSprite(Texture2D* texture, Rectangle source, Rectangle dest, Color col
 	rlNormal3f(0.0f, 0.0f, 1.0f);                          // Normal vector pointing towards viewer
 
 	// Top-left corner for texture and quad
-	if (flipX) rlTexCoord2f((source.x + source.width) / width, source.y / height);
-	else rlTexCoord2f(source.x / width, source.y / height);
+	if (flipX) rlTexCoord2f((src.x + src.width) / width, src.y / height);
+	else rlTexCoord2f(src.x / width, src.y / height);
 	rlVertex2f(topLeft.x, topLeft.y);
 
 	// Bottom-left corner for texture and quad
-	if (flipX) rlTexCoord2f((source.x + source.width) / width, (source.y + source.height) / height);
-	else rlTexCoord2f(source.x / width, (source.y + source.height) / height);
+	if (flipX) rlTexCoord2f((src.x + src.width) / width, (src.y + src.height) / height);
+	else rlTexCoord2f(src.x / width, (src.y + src.height) / height);
 	rlVertex2f(bottomLeft.x, bottomLeft.y);
 
 	// Bottom-right corner for texture and quad
-	if (flipX) rlTexCoord2f(source.x / width, (source.y + source.height) / height);
-	else rlTexCoord2f((source.x + source.width) / width, (source.y + source.height) / height);
+	if (flipX) rlTexCoord2f(src.x / width, (src.y + src.height) / height);
+	else rlTexCoord2f((src.x + src.width) / width, (src.y + src.height) / height);
 	rlVertex2f(bottomRight.x, bottomRight.y);
 
 	// Top-right corner for texture and quad
-	if (flipX) rlTexCoord2f(source.x / width, source.y / height);
-	else rlTexCoord2f((source.x + source.width) / width, source.y / height);
+	if (flipX) rlTexCoord2f(src.x / width, src.y / height);
+	else rlTexCoord2f((src.x + src.width) / width, src.y / height);
 	rlVertex2f(topRight.x, topRight.y);
 
 	rlEnd();

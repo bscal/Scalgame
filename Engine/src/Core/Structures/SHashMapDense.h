@@ -9,19 +9,19 @@
 * Stores 
 */
 template<typename K, typename V, typename Hasher = DefaultHasher>
-struct SHashHapDense : public SHashMap<K, V, Hasher>
+struct SHashHapDense : public SHashMap<K, V*, Hasher>
 {
-	V* InsertAlloc(const K* key)
+	V* InsertDense(const K* key)
 	{
 		V* valuePtr = SAlloc(Allocator, sizeof(V), MemoryTag::Game);
 		SASSERT(valuePtr);
 
 		uint32_t insertIdx this->Insert(key, valuePtr);
 
-		return &this->Buckets[insertIdx].Value;
+		return valuePtr;
 	}
 
-	bool RemoveFree(const K* key)
+	bool RemoveDense(const K* key)
 	{
 		V* val = nullptr;
 		bool wasRemoved = this->RemoveValue(key, &val);

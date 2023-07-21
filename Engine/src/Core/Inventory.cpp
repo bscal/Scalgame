@@ -277,50 +277,13 @@ bool ItemStack::Deincrement()
 	return true;
 }
 
-bool EquipItem(WorldEntity* entity, Creature* creature, const ItemStack* stack, uint8_t slot)
-{
-	SASSERT(entity);
-	SASSERT(creature);
-	SASSERT(stack);
-	SASSERT(slot < EquipmentSlots::MAX_SLOTS);
-
-	if (creature && creature->Equipment.Stacks[slot].IsEmpty())
-	{
-		// TODO check equip conditions?
-
-		creature->Equipment.Stacks[slot] = *stack;
-
-		Item* item = creature->Equipment.Stacks[slot].GetItem();
-		if (item->OnEquipCallback)
-			item->OnEquipCallback(entity, &creature->Equipment.Stacks[slot], slot);
-
-		return true;
-	}
-	return false;
-}
-
-bool UnquipItem(WorldEntity* entity, Creature* creature, uint8_t slot)
-{
-	SASSERT(entity);
-	SASSERT(creature);
-	SASSERT(slot < EquipmentSlots::MAX_SLOTS);
-
-	if (creature && !creature->Equipment.Stacks[slot].IsEmpty())
-	{
-		ItemStack* stack = &creature->Equipment.Stacks[slot];
-		SMemClear(stack, sizeof(ItemStack));
-
-		return true;
-	}
-	return false;
-}
-
-void OnEquipTorch(WorldEntity* entity, ItemStack* stack, uint8_t slot)
+internal void 
+OnEquipTorch(SEntity* entity, ItemStack* stack, uint8_t slot)
 {
 	SLOG_INFO("EQUIPED, %u", entity->TilePos);
 
 	UpdatingLight light = {};
-	light.EntityId = entity->Uid;
+	light.EntityId = entity->Uid.Number;
 	light.Pos = entity->TilePos;
 	light.MinIntensity = 8.0f;
 	light.MaxIntensity = 10.0f;
@@ -382,12 +345,12 @@ Inventory* CreateInventory(Vector2i16 dimensions)
 
 	InventoryMgr* invMgr = &GetGame()->InventoryMgr;
 
-	uint32_t id = invMgr->NextInventoryId++;
-	Inventory* inv = invMgr->Inventories.InsertKey(&id);
+	Inventory* inv = invMgr->Inventories.allocate();
+	SMemClear(inv, sizeof(Inventory));
+
 	inv->Width = dimensions.x;
 	inv->Height = dimensions.y;
-	inv->InventoryId = id;
-	inv->OwningEntity = ENT_NOT_FOUND;
+	inv->OwningEntity = UINT32_MAX;
 	inv->Slots.EnsureSize(inv->Width * inv->Height);
 	return inv;
 }
@@ -402,17 +365,14 @@ Inventory* CreateInventoryLayout(Vector2i16 dimensions, const InventorySlotState
 	return inv;
 }
 
-void DeleteInventory(uint32_t inventoryId)
+void DeleteInventory(Inventory* inventory)
 {
-	SHashMap<uint32_t, Inventory>* inventoryMap = &GetGame()->InventoryMgr.Inventories;
-	Inventory* inv = inventoryMap->Get(&inventoryId);
-	if (inv)
+	SASSERT(inventory);
+	if (inventory)
 	{
-		inv->Slots.Free();
-		inv->Contents.Free();
-		inv->InventoryId = UINT32_MAX;
-		bool wasRemoved = inventoryMap->Remove(&inventoryId);
-		SASSERT(wasRemoved);
+		inventory->Contents.Free();
+		inventory->Slots.Free();
+		GetGame()->InventoryMgr.Inventories.deallocate(inventory);
 	}
 }
 
@@ -422,12 +382,4 @@ ItemStack ItemStackNew(uint16_t itemId, uint16_t itemCount)
 	res.ItemId = itemId;
 	res.ItemCount = itemCount;
 	return res;
-}
-
-Inventory* GetInventory(uint32_t inventoryId)
-{
-	InventoryMgr* invMgr = &GetGame()->InventoryMgr;
-	SASSERT(invMgr);
-
-	return invMgr->Inventories.Get(&inventoryId);
 }

@@ -60,7 +60,7 @@ void Update(ChunkedTileMap* tilemap, Game* game)
 	SASSERT(tilemap);
 	SASSERT(game);
 
-	const Player* player = GetClientPlayer();
+	const SEntity* player = GetClientPlayer();
 
 	//Vector2 playerPos = player->AsPosition();
 	Vector2i playerChunkPos = TileToChunkCoord(player->TilePos);

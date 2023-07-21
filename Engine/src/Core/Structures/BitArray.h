@@ -3,14 +3,34 @@
 #include "Core/Core.h"
 #include "Core/SMemory.h"
 
-struct BitFlags
+struct BigFlags8
 {
-	uint64_t Flag;
+	uint8_t Flags;
 
-	inline bool Get(uint64_t index) const { SASSERT(index < 64); return BitGet(Flag, index); }
-	inline void Set(uint64_t index) { SASSERT(index < 64); BitSet(Flag, index); }
-	inline void Clear(uint64_t index) { SASSERT(index < 64); BitClear(Flag, index); }
-	inline void Toggle(uint64_t index) { SASSERT(index < 64); BitToggle(Flag, index); }
+	_FORCE_INLINE_ bool Get(uint8_t index) const { SASSERT(index < 8); return BitGet(Flags, index); }
+	_FORCE_INLINE_ bool Mask(uint8_t mask) const { return FlagTrue(Flags, mask); }
+	_FORCE_INLINE_ bool Any(uint8_t flags) const { return FlagAny(Flags, flags); }
+	_FORCE_INLINE_ void Toggle(uint8_t index) { SASSERT(index < 8);  Flags = BitToggle(Flags, index); }
+	_FORCE_INLINE_ void Set(uint64_t index, bool value)
+	{
+		SASSERT(index < 8);
+		Flags = (value) ? BitSet(Flags, index) : BitClear(Flags, index);
+	}
+};
+
+struct BitFlags64
+{
+	uint64_t Flags;
+
+	_FORCE_INLINE_ bool Get(uint64_t index) const { SASSERT(index < 64); return BitGet(Flags, index); }
+	_FORCE_INLINE_ bool Mask(uint64_t mask) const { return FlagTrue(Flags, mask); }
+	_FORCE_INLINE_ bool Any(uint64_t flags) const { return FlagAny(Flags, flags); }
+	_FORCE_INLINE_ void Toggle(uint64_t index) { SASSERT(index < 64);  Flags = BitToggle(Flags, index); }
+	_FORCE_INLINE_ void Set(uint64_t index, bool value)
+	{
+		SASSERT(index < 64);
+		Flags = (value) ? BitSet(Flags, index) : BitClear(Flags, index);
+	}
 };
 
 constexpr static uint64_t

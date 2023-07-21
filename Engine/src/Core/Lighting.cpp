@@ -1,7 +1,7 @@
 #include "Lighting.h"
 
 #include "Game.h"
-#include "Entity.h"
+#include "SEntity.h"
 #include "ThreadedLights.h"
 #include "WickedEngine/Jobs.h"
 
@@ -128,9 +128,10 @@ UpdatingLightUpdate(Light* lightPtr, Game* game, float dt)
 	SASSERT(game);
 	UpdatingLight* light = (UpdatingLight*)lightPtr;
 
-	if (light->EntityId != ENT_NOT_FOUND)
+	if (light->EntityId != ENTITY_NOT_FOUND)
 	{
-		WorldEntity* entity = (WorldEntity*)GetEntity(light->EntityId);
+		UID uid = { .Number = light->EntityId };
+		SEntity* entity = EntityGet(uid);
 		SASSERT(entity);
 		if (entity)
 			light->Pos = entity->TilePos;
