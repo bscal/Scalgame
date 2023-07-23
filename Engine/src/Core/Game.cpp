@@ -9,7 +9,6 @@
 
 #include "Structures/SArray.h"
 #include "Structures/SList.h"
-#include "Structures/STable.h"
 #include "Structures/SHashMap.h"
 #include "Structures/SparseSet.h"
 #include "Structures/TreeMap.h"
@@ -80,7 +79,6 @@ SAPI bool GameApplication::Start()
 	int totalTests = 0;
 
 	GAME_TEST(TestListImpl);
-	GAME_TEST(TestSTable);
 	GAME_TEST(TestStringImpls);
 	GAME_TEST(TestSHoodTable);
 	GAME_TEST(TestSparseSet);

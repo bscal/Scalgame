@@ -279,13 +279,13 @@ void EntitiesDraw(Game* game)
 	SDrawSprite(entitySheet, sprite, worldPos, player->Color, flip);
 	if (!player->Equipment.MainHand.IsEmpty())
 	{
-		Sprite sprite = player->Equipment.MainHand.GetItem()->Sprite;
+		Sprite sprite = SpriteGet(player->Equipment.MainHand.GetItem()->SpriteId);
 		Vector2 offset = Vector2Add(worldPos, { 8, 8 });
 		SDrawSubSprite(entitySheet, sprite, offset, type->Skeleton.RHand, player->Color, flip);
 	}
 	if (!player->Equipment.OffHand.IsEmpty())
 	{
-		Sprite sprite = player->Equipment.OffHand.GetItem()->Sprite;
+		Sprite sprite = SpriteGet(player->Equipment.OffHand.GetItem()->SpriteId);
 		Vector2 offset = Vector2Add(worldPos, { 8, 8 });
 		SDrawSubSprite(entitySheet, sprite, offset, type->Skeleton.LHand, player->Color, flip);
 	}

@@ -23,6 +23,13 @@ inline uint16_t TORCH;
 inline uint16_t FIRE_STAFF;
 };
 
+//enum class Items : uint16_t
+//{
+//	AIR = 0,
+//	TORCH,
+//	FIRE_STAFF,
+//};
+
 struct Item
 {
 	typedef ItemStack(*CreateDefaultStack)();
@@ -33,7 +40,7 @@ struct Item
 
 	OnEquip OnEquipCallback;
 
-	Sprite Sprite;
+	uint16_t SpriteId;
 	uint16_t MaxStackSize;
 	short Width;
 	short Height;
@@ -109,8 +116,8 @@ struct InventoryMgr
 // Items
 void InitializeItems(Game* game);
 
-uint16_t RegisterItem(Sprite sprite);
-uint16_t RegisterItemFunc(Sprite sprite, void(*RegisterCallback)(Item* item));
+uint16_t RegisterItem(uint16_t spriteId);
+uint16_t RegisterItemFunc(uint16_t spriteId, void(*RegisterCallback)(Item* item));
 
 ItemStack ItemStackNew(uint16_t itemId, uint16_t itemCount);
 

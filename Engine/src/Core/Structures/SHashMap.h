@@ -5,11 +5,9 @@
 #include "Core/SHash.hpp"
 #include "Core/SUtil.h"
 
-#include <functional>
-
 constexpr global_var uint32_t HASHMAP_RESIZE = 2u;
 constexpr global_var uint32_t HASHMAP_NOT_FOUND = UINT32_MAX;
-constexpr global_var float HASHMAP_LOAD_FACTOR = 0.75f;
+constexpr global_var float HASHMAP_LOAD_FACTOR = 0.8f;
 
 template<typename K, typename V>
 struct SHashMapBucket
@@ -42,14 +40,13 @@ struct SHashMap
 
 	_FORCE_INLINE_ V* Index(uint32_t i) { return (Buckets[i].Occupied) ? &Buckets[i].Value : nullptr; }
 	_FORCE_INLINE_ bool IsAllocated() const { return Buckets; }
-	_FORCE_INLINE_ size_t MemoryUsed() const { return Capacity * sizeof(SHashMapBucket<K, V>); }
-	_FORCE_INLINE_ void Foreach(std::function<void(V*)> onElement)
+	_FORCE_INLINE_ void Foreach(void(*CB)(K*, V*, void*), void* ctx)
 	{
 		for (uint32_t i = 0; i < Capacity; ++i)
 		{
 			if (Buckets[i].Occupied)
 			{
-				onElement(&Buckets[i].Value);
+				CB(&Buckets[i].Key, &Buckets[i].Value, ctx);
 			}
 		}
 	}
@@ -122,7 +119,7 @@ template<typename K, typename V, typename Hasher>
 void 
 SHashMap<K, V, Hasher>::Clear()
 {
-	SMemClear(Buckets, MemoryUsed());
+	SMemClear(Buckets, Capacity * sizeof(SHashMapBucket<K, V>));
 	Size = 0;
 }
 
@@ -130,7 +127,7 @@ template<typename K, typename V, typename Hasher>
 void 
 SHashMap<K, V, Hasher>::Free()
 {
-	SFree(Allocator, Buckets, MemoryUsed(), MemoryTag::Tables);
+	SFree(Allocator, Buckets, Capacity * sizeof(SHashMapBucket<K, V>), MemoryTag::Tables);
 	Buckets = nullptr;
 	Capacity = 0;
 	Size = 0;
@@ -193,16 +190,22 @@ V* SHashMap<K, V, Hasher>::Get(const K* key) const
 	if (!IsAllocated())
 		return nullptr;
 
+	uint32_t probeLength = 0;
 	uint32_t index = Hash(key);
 	while (true)
 	{
 		SHashMapBucket<K, V>* bucket = &Buckets[index];
-		if (bucket->Occupied == 0)
+		if (bucket->Occupied == 0 || probeLength > bucket->ProbeLength)
 			return nullptr;
 		else if (Equals(key, &bucket->Key))
 			return &bucket->Value;
 		else
-			if (++index == Capacity) index = 0;
+		{
+			++probeLength;
+			++index;
+			if (index == Capacity)
+				index = 0;
+		}
 	}
 	return nullptr;
 }

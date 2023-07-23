@@ -773,7 +773,9 @@ GetSprite(Texture2D* texture, Item* item, bool isRotated)
 {
 	struct nk_sprite res = {};
 	res.handle.ptr = texture;
-	SMemCopy(res.region, item->Sprite.Region, sizeof(res.region));
+	
+	Sprite sprite = SpriteGet(item->SpriteId);
+	SMemCopy(res.region, &sprite, sizeof(res.region));
 	if (isRotated)
 	{
 		// Note: Half slot size - 1, -1 because I guessing rotation offsets slightly?

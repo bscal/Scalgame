@@ -90,8 +90,8 @@ enum EntityFlags
 	EFLAG_PLAYER = Bit(0),
 	EFLAG_DEAD = Bit(1),
 
-	EFLAG_SNEAKING = Bit(10),
-	EFLAG_RUNNING = Bit(11),
+	EFLAG_SNEAKING = Bit(8),
+	EFLAG_RUNNING = Bit(9),
 };
 
 enum StatusFlags
@@ -137,12 +137,12 @@ struct CreatureTypeInfo
 	EntityDisable OnDisable;
 	EntityUpdate OnUpdate;
 	
+	EntitySkeleton Skeleton;	// Body part points on creature
+
 	SString Name;				// Monster internal name
 	SString DefaultDisplayName;	// Display name given to initilized creature, can be overriden
 	SString Desc;				// Description
 	SString Lore;				// Learnable lore
-
-	EntitySkeleton Skeleton;	// Body part points on creature
 
 	short MaxEnergy;
 	short MaxHealth;

@@ -299,14 +299,14 @@ OnEquipTorch(SEntity* entity, ItemStack* stack, uint8_t slot)
 void InitializeItems(Game* game)
 {
 	Items::AIR = RegisterItem({ 0 });
-	Items::TORCH = RegisterItemFunc({ 0, 32, 4, 4 }, [](Item* item)
+	Items::TORCH = RegisterItemFunc(Sprites::TORCH, [](Item* item)
 		{
 			item->Width = 1;
 			item->Height = 1;
 			item->MaxStackSize = 1;
 			item->OnEquipCallback = OnEquipTorch;
 		});
-	Items::FIRE_STAFF = RegisterItemFunc(SpriteGet(Sprites::FIRE_STAFF), [](Item* item)
+	Items::FIRE_STAFF = RegisterItemFunc(Sprites::FIRE_STAFF, [](Item* item)
 		{
 			item->Width = 1;
 			item->Height = 2;
@@ -314,7 +314,7 @@ void InitializeItems(Game* game)
 		});
 }
 
-uint16_t RegisterItem(Sprite sprite)
+uint16_t RegisterItem(uint16_t spriteId)
 {
 	ItemDB* itemDB = &GetGame()->ItemDB;
 
@@ -325,13 +325,13 @@ uint16_t RegisterItem(Sprite sprite)
 
 	uint16_t id = itemDB->NextItemId++;
 	itemDB->Items[id] = {};
-	itemDB->Items[id].Sprite = sprite;
+	itemDB->Items[id].SpriteId = spriteId;
 	return id;
 }
 
-uint16_t RegisterItemFunc(Sprite sprite, void(*RegisterCallback)(Item* item))
+uint16_t RegisterItemFunc(uint16_t spriteId, void(*RegisterCallback)(Item* item))
 {
-	uint16_t id = RegisterItem(sprite);
+	uint16_t id = RegisterItem(spriteId);
 
 	RegisterCallback(&GetGame()->ItemDB.Items[id]);
 

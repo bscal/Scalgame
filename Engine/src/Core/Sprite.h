@@ -78,6 +78,7 @@ namespace Sprites
     SPRITE_DEF(RAT, SpriteRec(16, 16, 16, 16));
     SPRITE_DEF(ROGUE, SpriteRec(16, 0, 16, 16));
     SPRITE_DEF(FIRE_STAFF, SpriteRec(4, 32, 4, 16));
+    SPRITE_DEF(TORCH, SpriteRec(0, 32, 4, 4));
 }
 
 //struct SpriteAtlasT

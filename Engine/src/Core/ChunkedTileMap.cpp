@@ -126,17 +126,18 @@ void LateUpdate(ChunkedTileMap* tilemap, Game* game)
 		screen.width = (float)GetScreenWidth();
 		screen.height = (float)GetScreenHeight();
 
-		tilemap->Chunks.Foreach([&screen](TileMapChunk** chunkPtr)
+		tilemap->Chunks.Foreach([](ChunkCoord* keyPtr, TileMapChunk** valuePtr, void* ctx)
 		{
-			TileMapChunk* chunk = *chunkPtr;
+			Rectangle* screen = (Rectangle*)ctx;
+			TileMapChunk* chunk = *valuePtr;
 			const char* chunkPosStr = TextFormat("%d, %d", chunk->ChunkCoord.x, chunk->ChunkCoord.y);
 			DrawText(chunkPosStr, (int)chunk->Bounds.x, (int)chunk->Bounds.y, 32, WHITE);
 
-			if (CheckCollisionRecs(screen, chunk->Bounds))
+			if (CheckCollisionRecs(*screen, chunk->Bounds))
 			{
 				DrawRectangleLinesEx(chunk->Bounds, 4, GREEN);
 			}
-		});
+		}, &screen);
 	}
 }
 

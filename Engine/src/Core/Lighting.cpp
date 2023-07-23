@@ -417,7 +417,7 @@ ComputeOctant(ChunkedTileMap* tilemap, uint8_t octant,
 		int wasOpaque = -1; // 0:false, 1:true, -1:not applicable
 		for (int y = topY; (int)y >= (int)bottomY; y--) // use a signed comparison because y can wrap around when decremented
 		{
-			float distance = Vector2i{ x, y }.Distance(TILEMAP_ORIGIN);
+			float distance = Vector2i{ x, y }.Distance({});
 			if (distance < rangeLimit) // skip the tile if it's out of visual range
 			{
 				bool isOpaque = BlocksLight(tilemap, x, y, origin, octant);

@@ -6,14 +6,11 @@
 #include "Scheduler.h"
 
 #include "Structures/SHashMap.h"
-#include "Structures/SHashMapDense.h"
 #include "Structures/SLinkedList.h"
 #include "Structures/StaticArray.h"
 
 struct GameApp;
 struct Game;
-
-global_var const Vector2i TILEMAP_ORIGIN = { 0, 0 };
 
 #define CHUNK_REBAKE_SELF (1 << 0)
 #define CHUNK_REBAKE_NEIGHBORS (1 << 1)
@@ -43,14 +40,11 @@ struct TileMapChunk
 
 struct ChunkedTileMap
 {
-	SHashMap<Vector2i, TileMapChunk*> Chunks;
-	SLinkedList<ChunkCoord> ChunksToUnload;
-
-	DistributedTileUpdater TileUpdater;
-
 	Vector2i ViewDistance;
 	Vector2i WorldDimChunks;	// Used in bounds check
 	Vector2i WorldDimTiles;		// Used in bounds check
+	SHashMap<Vector2i, TileMapChunk*> Chunks;
+	SLinkedList<ChunkCoord> ChunksToUnload;
 };
 
 namespace CTileMap
@@ -62,8 +56,6 @@ void Load(ChunkedTileMap* tilemap);
 
 void Update(ChunkedTileMap* tilemap, Game* game);
 void LateUpdate(ChunkedTileMap* tilemap, Game* game);
-
-void UpdateChunk(ChunkedTileMap* tilemap, TileMapChunk* chunk);
 
 TileMapChunk* LoadChunk(ChunkedTileMap* tilemap, ChunkCoord coord);
 void UnloadChunk(ChunkedTileMap* tilemap, ChunkCoord coord);

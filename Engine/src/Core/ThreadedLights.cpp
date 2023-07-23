@@ -71,7 +71,7 @@ void LightUpdater::ProcessOctant(uint8_t octant, int x, Slope top, Slope bottom)
 			float distance;
 			bool inRange = TileInsideCullRect(txty)
 				&& CTileMap::IsTileInBounds(Tilemap, txty)
-				&& ((distance = Vector2i{ x, y }.Distance(TILEMAP_ORIGIN)) <= rangeLimit);
+				&& ((distance = Vector2i{ x, y }.Distance({})) <= rangeLimit);
 			if (inRange)
 			{
 				TileCoord coord = WorldTileToCullTile(txty);
@@ -173,7 +173,7 @@ ProcessOctants(ThreadedUpdater* updater, uint8_t octant, int x, Slope top, Slope
 			float distance;
 			bool inRange = TileInsideCullRect(txty)
 				&& CTileMap::IsTileInBounds(updater->Tilemap, txty)
-				&& ((distance = Vector2i{ x, y }.Distance(TILEMAP_ORIGIN)) <= rangeLimit);
+				&& ((distance = Vector2i{ x, y }.Distance({})) <= rangeLimit);
 			if (inRange)
 			{
 				TileCoord coord = WorldTileToCullTile(txty);
